@@ -1,6 +1,6 @@
 # Python Test Suite Status
 
-Current status: local smoke tests pass; the full CPython suite has not been run against the K semantics.
+Current status: local smoke tests pass; a CPython 3.14.6 reference interpreter has been built locally; the full CPython suite has not been run against the K semantics.
 
 ## What Runs Now
 
@@ -21,9 +21,27 @@ The full CPython suite requires:
 - adapters that run each selected test or extracted test program through both CPython and the K semantics
 - normalization rules for stdout, stderr, tracebacks, paths, hash seeds, resource-dependent behavior, and diagnostics
 
+## Local Reference Interpreter
+
+The official `Python-3.14.6.tar.xz` archive was downloaded and verified with SHA-256:
+
+```text
+143b1dddefaec3bd2e21e3b839b34a2b7fb9842272883c576420d605e9f30c63
+```
+
+It was built under `.external/Python-3.14.6`. The build-tree interpreter reports `Python 3.14.6` and successfully runs the initial reference smoke command:
+
+```sh
+./python -m test --single-process --timeout 120 test_grammar
+```
+
+Result: success, 1 test file, 75 tests.
+
+The local build is not a fully provisioned CPython regression-test environment. Optional modules missing from the build include `_ssl`, `_hashlib`, `_sqlite3`, `_bz2`, `_lzma`, `_zstd`, `_curses`, `_tkinter`, `_uuid`, `_dbm`, `_gdbm`, and `readline`. Tests depending on these modules must be classified as environment-dependent until a fully provisioned CPython build exists.
+
 ## Current Blocker
 
-This local environment has K installed, but no `python3.14` executable. The suite harness therefore exits with a clear setup error until `PYTHON_REF` points to a CPython 3.14.6 executable and `CPYTHON_SOURCE` points to a matching source checkout.
+K differential execution requires classified test adapters. The CPython suite is therefore only a reference-suite availability check until adapters exist for selected test families.
 
 ## Correctness Policy
 

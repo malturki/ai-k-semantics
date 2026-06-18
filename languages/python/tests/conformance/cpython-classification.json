@@ -1,0 +1,284 @@
+{
+  "reference_suite": {
+    "name": "CPython regression test suite",
+    "implementation": "CPython",
+    "version": "3.14.6",
+    "source_tag": "v3.14.6",
+    "source_url": "https://github.com/python/cpython/tree/v3.14.6/Lib/test"
+  },
+  "classification_date": "2026-06-18",
+  "tests": [
+    {
+      "id": "test_grammar",
+      "source_path": "Lib/test/test_grammar.py",
+      "classification": "candidate-language-semantics",
+      "review_status": "reference-smoke-passed",
+      "translation_status": "needs-extraction",
+      "construct_refs": [
+        "grammar.full-peg",
+        "top.file-input",
+        "stmt.expression",
+        "stmt.assignment",
+        "compound.if-while-for",
+        "compound.function-def",
+        "compound.class-def",
+        "expr.atoms",
+        "expr.operators"
+      ],
+      "last_reference_result": {
+        "date": "2026-06-18",
+        "command": "./python -m test --single-process --timeout 120 test_grammar",
+        "result": "success: 1 test file, 75 tests",
+        "notes": "Run against local source build from the official Python-3.14.6.tar.xz release archive."
+      },
+      "notes": [
+        "Good first upstream canary for grammar-facing semantics.",
+        "Must be split before K differential testing because it mixes syntax acceptance, runtime behavior, and diagnostics."
+      ],
+      "blockers": ["Construct-preserving parser/adapters are not implemented yet."]
+    },
+    {
+      "id": "test_tokenize",
+      "source_path": "Lib/test/test_tokenize.py",
+      "classification": "candidate-lexical",
+      "review_status": "seed",
+      "translation_status": "needs-extraction",
+      "construct_refs": [
+        "lexical.source-encoding",
+        "lexical.physical-logical-lines",
+        "lexical.indentation",
+        "lexical.identifiers-keywords",
+        "lexical.literals",
+        "stdlib.ast-tokenize-keyword"
+      ],
+      "notes": ["Primary candidate for tokenizer conformance and diagnostics."],
+      "blockers": ["K tokenizer strategy is not selected yet."]
+    },
+    {
+      "id": "test_ast",
+      "source_path": "Lib/test/test_ast/test_ast.py",
+      "classification": "candidate-parser-ast",
+      "review_status": "seed",
+      "translation_status": "needs-extraction",
+      "construct_refs": ["grammar.full-peg", "stdlib.ast-tokenize-keyword"],
+      "notes": ["Useful for construct inventory and parse-tree preservation, but AST shape is library/API behavior."],
+      "blockers": ["Need explicit AST-as-oracle versus AST-as-semantics boundary."]
+    },
+    {
+      "id": "test_compile",
+      "source_path": "Lib/test/test_compile.py",
+      "classification": "candidate-execution-model",
+      "review_status": "seed",
+      "translation_status": "needs-extraction",
+      "construct_refs": [
+        "grammar.full-peg",
+        "execution.code-blocks-frames",
+        "execution.naming-binding-scopes",
+        "profile.cpython-diagnostics"
+      ],
+      "notes": ["Contains syntax, compiler, diagnostics, and CPython-specific checks; needs careful splitting."],
+      "blockers": ["No compiler/diagnostic profile adapter exists yet."]
+    },
+    {
+      "id": "test_builtin",
+      "source_path": "Lib/test/test_builtin.py",
+      "classification": "candidate-builtins",
+      "review_status": "seed",
+      "translation_status": "needs-extraction",
+      "construct_refs": ["stdlib.builtins", "stdlib.builtin-types", "execution.exceptions"],
+      "notes": ["Important once builtins are added to the K runtime."],
+      "blockers": ["Builtins namespace and exception model are not implemented yet."]
+    },
+    {
+      "id": "test_descr",
+      "source_path": "Lib/test/test_descr.py",
+      "classification": "candidate-object-model",
+      "review_status": "seed",
+      "translation_status": "needs-extraction",
+      "construct_refs": [
+        "data.objects-identity-type-value",
+        "data.standard-type-hierarchy",
+        "data.special-methods",
+        "data.descriptors",
+        "compound.class-def"
+      ],
+      "notes": ["High-value object model suite; likely needs phased extraction."],
+      "blockers": ["Object/type/class/descriptor semantics are not implemented yet."]
+    },
+    {
+      "id": "test_scope",
+      "source_path": "Lib/test/test_scope.py",
+      "classification": "candidate-execution-model",
+      "review_status": "seed",
+      "translation_status": "needs-extraction",
+      "construct_refs": [
+        "execution.naming-binding-scopes",
+        "execution.annotation-scopes",
+        "compound.function-def",
+        "compound.class-def",
+        "expr.displays-comprehensions"
+      ],
+      "notes": ["Primary candidate for lexical scoping, closures, class scopes, and comprehensions."],
+      "blockers": ["Static scope analysis and frame model are not implemented yet."]
+    },
+    {
+      "id": "test_exceptions",
+      "source_path": "Lib/test/test_exceptions.py",
+      "classification": "candidate-language-semantics",
+      "review_status": "seed",
+      "translation_status": "needs-extraction",
+      "construct_refs": [
+        "execution.exceptions",
+        "stdlib.exceptions",
+        "stmt.pass-del-return-yield-raise",
+        "compound.try-except-finally"
+      ],
+      "notes": ["Core suite for exception objects and propagation."],
+      "blockers": ["Exception model is not implemented yet."]
+    },
+    {
+      "id": "test_generators",
+      "source_path": "Lib/test/test_generators.py",
+      "classification": "candidate-language-semantics",
+      "review_status": "seed",
+      "translation_status": "needs-extraction",
+      "construct_refs": [
+        "data.coroutines-generators",
+        "expr.await-yield",
+        "stmt.pass-del-return-yield-raise",
+        "compound.function-def"
+      ],
+      "notes": ["Primary candidate for generator semantics and yield behavior."],
+      "blockers": ["Suspended frame and iterator protocol are not implemented yet."]
+    },
+    {
+      "id": "test_coroutines",
+      "source_path": "Lib/test/test_coroutines.py",
+      "classification": "candidate-language-semantics",
+      "review_status": "seed",
+      "translation_status": "needs-extraction",
+      "construct_refs": [
+        "data.coroutines-generators",
+        "expr.await-yield",
+        "compound.async-defs"
+      ],
+      "notes": ["Core candidate for native coroutine and await behavior."],
+      "blockers": ["Coroutine object and event-loop boundary decisions are not made yet."]
+    },
+    {
+      "id": "test_asyncgen",
+      "source_path": "Lib/test/test_asyncgen.py",
+      "classification": "candidate-language-semantics",
+      "review_status": "seed",
+      "translation_status": "needs-extraction",
+      "construct_refs": ["data.coroutines-generators", "compound.async-defs"],
+      "notes": ["Candidate for async generator protocol behavior."],
+      "blockers": ["Async generator semantics are not implemented yet."]
+    },
+    {
+      "id": "test_patma",
+      "source_path": "Lib/test/test_patma.py",
+      "classification": "candidate-language-semantics",
+      "review_status": "seed",
+      "translation_status": "needs-extraction",
+      "construct_refs": ["compound.match", "data.descriptors", "data.standard-type-hierarchy"],
+      "notes": ["Primary candidate for structural pattern matching."],
+      "blockers": ["Pattern matching semantics and PEP 634 underspecification ledger are not implemented yet."]
+    },
+    {
+      "id": "test_with",
+      "source_path": "Lib/test/test_with.py",
+      "classification": "candidate-language-semantics",
+      "review_status": "seed",
+      "translation_status": "needs-extraction",
+      "construct_refs": ["compound.with", "execution.exceptions", "data.special-methods"],
+      "notes": ["Candidate for context manager protocol and exception suppression."],
+      "blockers": ["Exception and special method dispatch are not implemented yet."]
+    },
+    {
+      "id": "test_importlib",
+      "source_path": "Lib/test/test_importlib",
+      "classification": "candidate-import-system",
+      "review_status": "seed",
+      "translation_status": "needs-extraction",
+      "construct_refs": [
+        "imports.modules-cache",
+        "imports.find-load-protocol",
+        "imports.packages-relative",
+        "stdlib.importlib"
+      ],
+      "notes": ["Directory suite mixes portable import semantics, importlib API behavior, filesystem behavior, and CPython details."],
+      "blockers": ["Import profile and filesystem model are not implemented yet."]
+    },
+    {
+      "id": "test_fstring",
+      "source_path": "Lib/test/test_fstring.py",
+      "classification": "candidate-language-semantics",
+      "review_status": "seed",
+      "translation_status": "needs-extraction",
+      "construct_refs": ["lexical.literals", "expr.atoms", "expr.primaries"],
+      "notes": ["Candidate for f-string lexical parsing and runtime interpolation."],
+      "blockers": ["String and formatted-string literal semantics are not implemented yet."]
+    },
+    {
+      "id": "test_string_literals",
+      "source_path": "Lib/test/test_string_literals.py",
+      "classification": "candidate-lexical",
+      "review_status": "seed",
+      "translation_status": "needs-extraction",
+      "construct_refs": ["lexical.literals", "stdlib.builtin-types"],
+      "notes": ["Candidate for string literal escape and prefix behavior."],
+      "blockers": ["String literal semantics are not implemented yet."]
+    },
+    {
+      "id": "test_ssl",
+      "source_path": "Lib/test/test_ssl.py",
+      "classification": "environment-dependent",
+      "review_status": "blocked",
+      "translation_status": "excluded",
+      "construct_refs": ["profile.cpython-resource-limits"],
+      "notes": ["Local CPython build did not include _ssl because OpenSSL development headers were unavailable."],
+      "blockers": ["Needs a fully provisioned CPython test environment; mostly outside portable language semantics."]
+    },
+    {
+      "id": "test_bz2",
+      "source_path": "Lib/test/test_bz2.py",
+      "classification": "environment-dependent",
+      "review_status": "blocked",
+      "translation_status": "excluded",
+      "construct_refs": ["profile.cpython-resource-limits"],
+      "notes": ["Local CPython build did not include _bz2."],
+      "blockers": ["Needs optional compression library development headers; outside portable language semantics."]
+    },
+    {
+      "id": "test_lzma",
+      "source_path": "Lib/test/test_lzma.py",
+      "classification": "environment-dependent",
+      "review_status": "blocked",
+      "translation_status": "excluded",
+      "construct_refs": ["profile.cpython-resource-limits"],
+      "notes": ["Local CPython build did not include _lzma."],
+      "blockers": ["Needs optional compression library development headers; outside portable language semantics."]
+    },
+    {
+      "id": "test_readline",
+      "source_path": "Lib/test/test_readline.py",
+      "classification": "environment-dependent",
+      "review_status": "blocked",
+      "translation_status": "excluded",
+      "construct_refs": ["top.interactive-input", "profile.cpython-resource-limits"],
+      "notes": ["Local CPython build did not include readline."],
+      "blockers": ["Needs optional readline development headers and an interactive-input profile."]
+    },
+    {
+      "id": "test_curses",
+      "source_path": "Lib/test/test_curses.py",
+      "classification": "environment-dependent",
+      "review_status": "blocked",
+      "translation_status": "excluded",
+      "construct_refs": ["profile.cpython-resource-limits"],
+      "notes": ["Local CPython build did not include _curses or _curses_panel."],
+      "blockers": ["Needs optional curses development headers and terminal-resource profile."]
+    }
+  ]
+}

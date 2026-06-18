@@ -1,0 +1,99 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/malturki/ai-k-semantics/schemas/python-source-map.schema.json",
+  "title": "Python K Source Map",
+  "type": "object",
+  "required": ["language", "construct_families"],
+  "properties": {
+    "language": {
+      "type": "object",
+      "required": ["id", "version", "reference_date"],
+      "properties": {
+        "id": { "const": "python" },
+        "version": { "type": "string" },
+        "reference_date": { "type": "string" },
+        "reference_profile": { "type": "string" }
+      }
+    },
+    "construct_families": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/family" },
+      "minItems": 1
+    }
+  },
+  "$defs": {
+    "id": {
+      "type": "string",
+      "pattern": "^[a-z0-9][a-z0-9._-]*$"
+    },
+    "status": {
+      "enum": ["not-started", "syntax", "partial", "profile", "complete"]
+    },
+    "reference": {
+      "type": "object",
+      "required": ["title", "url"],
+      "properties": {
+        "title": { "type": "string" },
+        "url": { "type": "string" },
+        "section": { "type": "string" },
+        "notes": { "type": "string" }
+      },
+      "additionalProperties": false
+    },
+    "family": {
+      "type": "object",
+      "required": ["id", "title", "status", "references", "constructs"],
+      "properties": {
+        "id": { "$ref": "#/$defs/id" },
+        "title": { "type": "string" },
+        "status": { "$ref": "#/$defs/status" },
+        "references": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/reference" },
+          "minItems": 1
+        },
+        "constructs": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/construct" },
+          "minItems": 1
+        }
+      },
+      "additionalProperties": false
+    },
+    "construct": {
+      "type": "object",
+      "required": [
+        "id",
+        "title",
+        "status",
+        "references",
+        "k_coverage",
+        "test_coverage",
+        "gaps"
+      ],
+      "properties": {
+        "id": { "$ref": "#/$defs/id" },
+        "title": { "type": "string" },
+        "status": { "$ref": "#/$defs/status" },
+        "references": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/reference" }
+        },
+        "k_coverage": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "test_coverage": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "gaps": {
+          "type": "array",
+          "items": { "type": "string" }
+        }
+      },
+      "additionalProperties": false
+    }
+  },
+  "additionalProperties": false
+}

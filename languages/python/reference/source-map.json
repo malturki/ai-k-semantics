@@ -1,0 +1,903 @@
+{
+  "language": {
+    "id": "python",
+    "version": "Python 3.14.6",
+    "reference_date": "2026-06-18",
+    "reference_profile": "Portable Python from the official Language Reference, with CPython-specific behavior isolated into named profile constructs."
+  },
+  "construct_families": [
+    {
+      "id": "lexical-analysis",
+      "title": "Lexical analysis",
+      "status": "partial",
+      "references": [
+        {
+          "title": "Python Language Reference: Lexical analysis",
+          "url": "https://docs.python.org/3/reference/lexical_analysis.html"
+        }
+      ],
+      "constructs": [
+        {
+          "id": "lexical.source-encoding",
+          "title": "Source encodings and encoding declarations",
+          "status": "not-started",
+          "references": [
+            {
+              "title": "Lexical analysis",
+              "url": "https://docs.python.org/3/reference/lexical_analysis.html",
+              "section": "Encoding declarations"
+            }
+          ],
+          "k_coverage": [],
+          "test_coverage": [],
+          "gaps": ["Need tokenizer-level model for UTF-8 default, coding comments, invalid encodings, and BOM behavior."]
+        },
+        {
+          "id": "lexical.physical-logical-lines",
+          "title": "Physical lines, logical lines, comments, and line joining",
+          "status": "not-started",
+          "references": [
+            {
+              "title": "Lexical analysis",
+              "url": "https://docs.python.org/3/reference/lexical_analysis.html",
+              "section": "Physical lines and logical lines"
+            }
+          ],
+          "k_coverage": [],
+          "test_coverage": [],
+          "gaps": ["The executable seed currently requires semicolon-separated simple statements and does not model Python newline handling."]
+        },
+        {
+          "id": "lexical.indentation",
+          "title": "Indentation, tabs, formfeeds, INDENT, and DEDENT",
+          "status": "not-started",
+          "references": [
+            {
+              "title": "Lexical analysis",
+              "url": "https://docs.python.org/3/reference/lexical_analysis.html",
+              "section": "Indentation"
+            }
+          ],
+          "k_coverage": [],
+          "test_coverage": [],
+          "gaps": ["Need explicit block token model and diagnostics for inconsistent tab/space indentation."]
+        },
+        {
+          "id": "lexical.identifiers-keywords",
+          "title": "Identifiers, keywords, soft keywords, and Unicode identifier rules",
+          "status": "partial",
+          "references": [
+            {
+              "title": "Lexical analysis",
+              "url": "https://docs.python.org/3/reference/lexical_analysis.html",
+              "section": "Identifiers and keywords"
+            }
+          ],
+          "k_coverage": ["semantics/python.k: Id token for ASCII smoke programs"],
+          "test_coverage": ["tests/examples/smoke-assignment.py"],
+          "gaps": ["Need Unicode identifier normalization and keyword/soft-keyword separation."]
+        },
+        {
+          "id": "lexical.literals",
+          "title": "Literal tokens",
+          "status": "partial",
+          "references": [
+            {
+              "title": "Lexical analysis",
+              "url": "https://docs.python.org/3/reference/lexical_analysis.html",
+              "section": "Literals"
+            }
+          ],
+          "k_coverage": ["semantics/python.k: integer token subset"],
+          "test_coverage": ["tests/examples/smoke-arithmetic.py"],
+          "gaps": ["Need strings, bytes, f-strings, t-strings, floats, imaginary literals, and numeric literal separators."]
+        }
+      ]
+    },
+    {
+      "id": "data-model",
+      "title": "Data model",
+      "status": "partial",
+      "references": [
+        {
+          "title": "Python Language Reference: Data model",
+          "url": "https://docs.python.org/3/reference/datamodel.html"
+        }
+      ],
+      "constructs": [
+        {
+          "id": "data.objects-identity-type-value",
+          "title": "Objects, identity, type, and value",
+          "status": "partial",
+          "references": [
+            {
+              "title": "Data model",
+              "url": "https://docs.python.org/3/reference/datamodel.html",
+              "section": "Objects, values and types"
+            }
+          ],
+          "k_coverage": ["semantics/python.k: internal integer value subset"],
+          "test_coverage": ["tests/examples/smoke-arithmetic.py"],
+          "gaps": ["Need heap object identity, type objects, mutability, aliasing, and lifetime model."]
+        },
+        {
+          "id": "data.standard-type-hierarchy",
+          "title": "Standard type hierarchy",
+          "status": "not-started",
+          "references": [
+            {
+              "title": "Data model",
+              "url": "https://docs.python.org/3/reference/datamodel.html",
+              "section": "The standard type hierarchy"
+            }
+          ],
+          "k_coverage": [],
+          "test_coverage": [],
+          "gaps": ["Need None, bool, numbers, sequences, mappings, classes, functions, modules, and code objects."]
+        },
+        {
+          "id": "data.special-methods",
+          "title": "Special method names and interpreter protocols",
+          "status": "not-started",
+          "references": [
+            {
+              "title": "Data model",
+              "url": "https://docs.python.org/3/reference/datamodel.html",
+              "section": "Special method names"
+            }
+          ],
+          "k_coverage": [],
+          "test_coverage": [],
+          "gaps": ["Need protocol dispatch for numeric operations, containers, calls, context managers, descriptors, and classes."]
+        },
+        {
+          "id": "data.descriptors",
+          "title": "Descriptors and attribute access",
+          "status": "not-started",
+          "references": [
+            {
+              "title": "Data model",
+              "url": "https://docs.python.org/3/reference/datamodel.html",
+              "section": "Implementing descriptors"
+            }
+          ],
+          "k_coverage": [],
+          "test_coverage": [],
+          "gaps": ["Need object/class attribute resolution order, descriptor binding, and special-method lookup separation."]
+        },
+        {
+          "id": "data.coroutines-generators",
+          "title": "Generator, coroutine, and asynchronous generator objects",
+          "status": "not-started",
+          "references": [
+            {
+              "title": "Data model",
+              "url": "https://docs.python.org/3/reference/datamodel.html",
+              "section": "Coroutine objects"
+            }
+          ],
+          "k_coverage": [],
+          "test_coverage": [],
+          "gaps": ["Need suspended frame model, send/throw/close, await protocol, and async iteration."]
+        }
+      ]
+    },
+    {
+      "id": "execution-model",
+      "title": "Execution model",
+      "status": "partial",
+      "references": [
+        {
+          "title": "Python Language Reference: Execution model",
+          "url": "https://docs.python.org/3/reference/executionmodel.html"
+        }
+      ],
+      "constructs": [
+        {
+          "id": "execution.code-blocks-frames",
+          "title": "Code blocks, execution frames, and runtime context",
+          "status": "not-started",
+          "references": [
+            {
+              "title": "Execution model",
+              "url": "https://docs.python.org/3/reference/executionmodel.html",
+              "section": "Structure of a program"
+            }
+          ],
+          "k_coverage": [],
+          "test_coverage": [],
+          "gaps": ["Need module/function/class/comprehension frames and execution context."]
+        },
+        {
+          "id": "execution.naming-binding-scopes",
+          "title": "Naming, binding, scopes, globals, nonlocals, and unbound names",
+          "status": "partial",
+          "references": [
+            {
+              "title": "Execution model",
+              "url": "https://docs.python.org/3/reference/executionmodel.html",
+              "section": "Naming and binding"
+            }
+          ],
+          "k_coverage": ["semantics/python.k: single global environment with name lookup and assignment"],
+          "test_coverage": ["tests/examples/smoke-assignment.py"],
+          "gaps": ["Need static scope analysis, local/global/nonlocal declarations, class scopes, comprehensions, closures, and annotation scopes."]
+        },
+        {
+          "id": "execution.exceptions",
+          "title": "Exceptions, propagation, and handlers",
+          "status": "not-started",
+          "references": [
+            {
+              "title": "Execution model",
+              "url": "https://docs.python.org/3/reference/executionmodel.html",
+              "section": "Exceptions"
+            }
+          ],
+          "k_coverage": [],
+          "test_coverage": [],
+          "gaps": ["Need exception objects, traceback shape, propagation, matching, chaining, groups, and finalization."]
+        },
+        {
+          "id": "execution.annotation-scopes",
+          "title": "Annotation scopes and lazy type aliases",
+          "status": "not-started",
+          "references": [
+            {
+              "title": "Execution model",
+              "url": "https://docs.python.org/3/reference/executionmodel.html",
+              "section": "Annotation scopes"
+            }
+          ],
+          "k_coverage": [],
+          "test_coverage": [],
+          "gaps": ["Need Python 3.14 annotation scope behavior, type parameter lists, and lazy evaluation boundaries."]
+        }
+      ]
+    },
+    {
+      "id": "import-system",
+      "title": "Import system",
+      "status": "not-started",
+      "references": [
+        {
+          "title": "Python Language Reference: The import system",
+          "url": "https://docs.python.org/3/reference/import.html"
+        }
+      ],
+      "constructs": [
+        {
+          "id": "imports.modules-cache",
+          "title": "Module cache and module objects",
+          "status": "not-started",
+          "references": [
+            {
+              "title": "The import system",
+              "url": "https://docs.python.org/3/reference/import.html",
+              "section": "The module cache"
+            }
+          ],
+          "k_coverage": [],
+          "test_coverage": [],
+          "gaps": ["Need module table and explicit environment profile for filesystem/package visibility."]
+        },
+        {
+          "id": "imports.find-load-protocol",
+          "title": "Finders, loaders, specs, and import protocol",
+          "status": "not-started",
+          "references": [
+            {
+              "title": "The import system",
+              "url": "https://docs.python.org/3/reference/import.html",
+              "section": "Finders and loaders"
+            }
+          ],
+          "k_coverage": [],
+          "test_coverage": [],
+          "gaps": ["Need separation between portable import semantics and host/CPython importlib profile."]
+        },
+        {
+          "id": "imports.packages-relative",
+          "title": "Packages, namespace packages, and relative imports",
+          "status": "not-started",
+          "references": [
+            {
+              "title": "The import system",
+              "url": "https://docs.python.org/3/reference/import.html",
+              "section": "Packages"
+            }
+          ],
+          "k_coverage": [],
+          "test_coverage": [],
+          "gaps": ["Need package namespace model, __path__, __package__, and relative resolution."]
+        }
+      ]
+    },
+    {
+      "id": "expressions",
+      "title": "Expressions",
+      "status": "partial",
+      "references": [
+        {
+          "title": "Python Language Reference: Expressions",
+          "url": "https://docs.python.org/3/reference/expressions.html"
+        }
+      ],
+      "constructs": [
+        {
+          "id": "expr.atoms",
+          "title": "Atoms and displays",
+          "status": "partial",
+          "references": [
+            {
+              "title": "Expressions",
+              "url": "https://docs.python.org/3/reference/expressions.html",
+              "section": "Atoms"
+            }
+          ],
+          "k_coverage": ["semantics/python.k: integer literals, names, parenthesized expressions"],
+          "test_coverage": ["tests/examples/smoke-arithmetic.py", "tests/examples/smoke-assignment.py"],
+          "gaps": ["Need None, True, False, strings, bytes, containers, comprehensions, yield expressions, and ellipsis."]
+        },
+        {
+          "id": "expr.displays-comprehensions",
+          "title": "Displays and comprehensions",
+          "status": "not-started",
+          "references": [
+            {
+              "title": "Expressions",
+              "url": "https://docs.python.org/3/reference/expressions.html",
+              "section": "Displays for lists, sets and dictionaries"
+            }
+          ],
+          "k_coverage": [],
+          "test_coverage": [],
+          "gaps": ["Need evaluation order, scope behavior, async comprehensions, unpacking, and dict key/value rules."]
+        },
+        {
+          "id": "expr.primaries",
+          "title": "Primaries: attributes, subscriptions, slicing, and calls",
+          "status": "not-started",
+          "references": [
+            {
+              "title": "Expressions",
+              "url": "https://docs.python.org/3/reference/expressions.html",
+              "section": "Primaries"
+            }
+          ],
+          "k_coverage": [],
+          "test_coverage": [],
+          "gaps": ["Need descriptors, __getitem__, slicing objects, call protocol, argument binding, and error behavior."]
+        },
+        {
+          "id": "expr.await-yield",
+          "title": "Await and yield expressions",
+          "status": "not-started",
+          "references": [
+            {
+              "title": "Expressions",
+              "url": "https://docs.python.org/3/reference/expressions.html",
+              "section": "Await expression"
+            }
+          ],
+          "k_coverage": [],
+          "test_coverage": [],
+          "gaps": ["Need generators, coroutines, async generators, and suspension/resumption semantics."]
+        },
+        {
+          "id": "expr.operators",
+          "title": "Unary, binary, matrix, shift, bitwise, and arithmetic operations",
+          "status": "partial",
+          "references": [
+            {
+              "title": "Expressions",
+              "url": "https://docs.python.org/3/reference/expressions.html",
+              "section": "Operator precedence"
+            }
+          ],
+          "k_coverage": ["semantics/python.k: integer +, -, *"],
+          "test_coverage": ["tests/examples/smoke-arithmetic.py"],
+          "gaps": ["Need all operators, reflected/in-place methods, type coercion behavior, division/modulo/power, and error cases."]
+        },
+        {
+          "id": "expr.comparisons-boolean",
+          "title": "Comparisons and Boolean operations",
+          "status": "not-started",
+          "references": [
+            {
+              "title": "Expressions",
+              "url": "https://docs.python.org/3/reference/expressions.html",
+              "section": "Comparisons"
+            }
+          ],
+          "k_coverage": [],
+          "test_coverage": [],
+          "gaps": ["Need rich comparison protocol, chained comparison evaluation, truth-value testing, and short-circuiting."]
+        },
+        {
+          "id": "expr.conditional-lambda",
+          "title": "Conditional expressions and lambda",
+          "status": "not-started",
+          "references": [
+            {
+              "title": "Expressions",
+              "url": "https://docs.python.org/3/reference/expressions.html",
+              "section": "Conditional expressions"
+            }
+          ],
+          "k_coverage": [],
+          "test_coverage": [],
+          "gaps": ["Need evaluation order, closure capture, and scope rules."]
+        },
+        {
+          "id": "expr.assignment-expressions",
+          "title": "Assignment expressions",
+          "status": "not-started",
+          "references": [
+            {
+              "title": "Expressions",
+              "url": "https://docs.python.org/3/reference/expressions.html",
+              "section": "Assignment expressions"
+            }
+          ],
+          "k_coverage": [],
+          "test_coverage": [],
+          "gaps": ["Need walrus binding rules, comprehension special cases, and syntax restrictions."]
+        }
+      ]
+    },
+    {
+      "id": "simple-statements",
+      "title": "Simple statements",
+      "status": "partial",
+      "references": [
+        {
+          "title": "Python Language Reference: Simple statements",
+          "url": "https://docs.python.org/3/reference/simple_stmts.html"
+        }
+      ],
+      "constructs": [
+        {
+          "id": "stmt.expression",
+          "title": "Expression statements",
+          "status": "partial",
+          "references": [
+            {
+              "title": "Simple statements",
+              "url": "https://docs.python.org/3/reference/simple_stmts.html",
+              "section": "Expression statements"
+            }
+          ],
+          "k_coverage": ["semantics/python.k: expression statement records result"],
+          "test_coverage": ["tests/examples/smoke-arithmetic.py"],
+          "gaps": ["Need interactive displayhook behavior and exact statement-list/newline handling."]
+        },
+        {
+          "id": "stmt.assignment",
+          "title": "Assignment statements, targets, annotations, and augmented assignment",
+          "status": "partial",
+          "references": [
+            {
+              "title": "Simple statements",
+              "url": "https://docs.python.org/3/reference/simple_stmts.html",
+              "section": "Assignment statements"
+            }
+          ],
+          "k_coverage": ["semantics/python.k: single-name assignment"],
+          "test_coverage": ["tests/examples/smoke-assignment.py"],
+          "gaps": ["Need target lists, unpacking, attributes, subscriptions, annotations, augmented assignment, and evaluation order."]
+        },
+        {
+          "id": "stmt.assert",
+          "title": "Assert statements",
+          "status": "not-started",
+          "references": [
+            {
+              "title": "Simple statements",
+              "url": "https://docs.python.org/3/reference/simple_stmts.html",
+              "section": "The assert statement"
+            }
+          ],
+          "k_coverage": [],
+          "test_coverage": [],
+          "gaps": ["Need __debug__ and optimization profile handling."]
+        },
+        {
+          "id": "stmt.pass-del-return-yield-raise",
+          "title": "pass, del, return, yield, and raise statements",
+          "status": "not-started",
+          "references": [
+            {
+              "title": "Simple statements",
+              "url": "https://docs.python.org/3/reference/simple_stmts.html",
+              "section": "The return statement"
+            }
+          ],
+          "k_coverage": [],
+          "test_coverage": [],
+          "gaps": ["Need abrupt-completion representation and function/generator/exception integration."]
+        },
+        {
+          "id": "stmt.import",
+          "title": "import and from-import statements",
+          "status": "not-started",
+          "references": [
+            {
+              "title": "Simple statements",
+              "url": "https://docs.python.org/3/reference/simple_stmts.html",
+              "section": "The import statement"
+            }
+          ],
+          "k_coverage": [],
+          "test_coverage": [],
+          "gaps": ["Need import-system semantics and binding rules."]
+        },
+        {
+          "id": "stmt.global-nonlocal-type",
+          "title": "global, nonlocal, and type statements",
+          "status": "not-started",
+          "references": [
+            {
+              "title": "Simple statements",
+              "url": "https://docs.python.org/3/reference/simple_stmts.html",
+              "section": "The type statement"
+            }
+          ],
+          "k_coverage": [],
+          "test_coverage": [],
+          "gaps": ["Need parser directives, scope analysis, annotation scopes, and lazy type alias objects."]
+        }
+      ]
+    },
+    {
+      "id": "compound-statements",
+      "title": "Compound statements",
+      "status": "not-started",
+      "references": [
+        {
+          "title": "Python Language Reference: Compound statements",
+          "url": "https://docs.python.org/3/reference/compound_stmts.html"
+        }
+      ],
+      "constructs": [
+        {
+          "id": "compound.if-while-for",
+          "title": "if, while, for, break, continue, and loop else",
+          "status": "not-started",
+          "references": [
+            {
+              "title": "Compound statements",
+              "url": "https://docs.python.org/3/reference/compound_stmts.html",
+              "section": "The if statement"
+            }
+          ],
+          "k_coverage": [],
+          "test_coverage": [],
+          "gaps": ["Need truth testing, iterators, loop control, and else-clause completion rules."]
+        },
+        {
+          "id": "compound.try-except-finally",
+          "title": "try, except, except*, else, and finally",
+          "status": "not-started",
+          "references": [
+            {
+              "title": "Compound statements",
+              "url": "https://docs.python.org/3/reference/compound_stmts.html",
+              "section": "The try statement"
+            }
+          ],
+          "k_coverage": [],
+          "test_coverage": [],
+          "gaps": ["Need exception matching, groups, cleanup ordering, and abrupt completion interactions."]
+        },
+        {
+          "id": "compound.with",
+          "title": "with and async with statements",
+          "status": "not-started",
+          "references": [
+            {
+              "title": "Compound statements",
+              "url": "https://docs.python.org/3/reference/compound_stmts.html",
+              "section": "The with statement"
+            }
+          ],
+          "k_coverage": [],
+          "test_coverage": [],
+          "gaps": ["Need context manager protocol, exception suppression, multiple managers, and async context managers."]
+        },
+        {
+          "id": "compound.match",
+          "title": "Structural pattern matching",
+          "status": "not-started",
+          "references": [
+            {
+              "title": "Compound statements",
+              "url": "https://docs.python.org/3/reference/compound_stmts.html",
+              "section": "The match statement"
+            }
+          ],
+          "k_coverage": [],
+          "test_coverage": [],
+          "gaps": ["Need all pattern forms, binding rollback decisions, guards, and PEP 634 underspecification triage."]
+        },
+        {
+          "id": "compound.function-def",
+          "title": "Function definitions, decorators, parameters, defaults, and type parameters",
+          "status": "not-started",
+          "references": [
+            {
+              "title": "Compound statements",
+              "url": "https://docs.python.org/3/reference/compound_stmts.html",
+              "section": "Function definitions"
+            }
+          ],
+          "k_coverage": [],
+          "test_coverage": [],
+          "gaps": ["Need function object construction, decorators, default evaluation, closures, calls, annotations, and type parameters."]
+        },
+        {
+          "id": "compound.class-def",
+          "title": "Class definitions, metaclasses, namespaces, and decorators",
+          "status": "not-started",
+          "references": [
+            {
+              "title": "Compound statements",
+              "url": "https://docs.python.org/3/reference/compound_stmts.html",
+              "section": "Class definitions"
+            }
+          ],
+          "k_coverage": [],
+          "test_coverage": [],
+          "gaps": ["Need class body execution, namespace creation, metaclass selection, MRO, descriptors, and decorators."]
+        },
+        {
+          "id": "compound.async-defs",
+          "title": "async def, async for, and async with",
+          "status": "not-started",
+          "references": [
+            {
+              "title": "Compound statements",
+              "url": "https://docs.python.org/3/reference/compound_stmts.html",
+              "section": "Coroutines"
+            }
+          ],
+          "k_coverage": [],
+          "test_coverage": [],
+          "gaps": ["Need coroutine objects, await protocol, async iteration, and async context management."]
+        }
+      ]
+    },
+    {
+      "id": "top-level-components",
+      "title": "Top-level components",
+      "status": "syntax",
+      "references": [
+        {
+          "title": "Python Language Reference: Top-level components",
+          "url": "https://docs.python.org/3/reference/toplevel_components.html"
+        }
+      ],
+      "constructs": [
+        {
+          "id": "top.file-input",
+          "title": "Complete Python files",
+          "status": "syntax",
+          "references": [
+            {
+              "title": "Top-level components",
+              "url": "https://docs.python.org/3/reference/toplevel_components.html",
+              "section": "Complete Python programs"
+            }
+          ],
+          "k_coverage": ["semantics/python.k: small semicolon-terminated program list"],
+          "test_coverage": ["tests/examples/smoke-arithmetic.py", "tests/examples/smoke-assignment.py"],
+          "gaps": ["Need full file_input grammar, shebang/encoding interaction, newline handling, and EOF behavior."]
+        },
+        {
+          "id": "top.interactive-input",
+          "title": "Interactive input",
+          "status": "not-started",
+          "references": [
+            {
+              "title": "Top-level components",
+              "url": "https://docs.python.org/3/reference/toplevel_components.html",
+              "section": "Interactive input"
+            }
+          ],
+          "k_coverage": [],
+          "test_coverage": [],
+          "gaps": ["Need REPL/displayhook profile and incomplete-input diagnostics."]
+        },
+        {
+          "id": "top.eval-input",
+          "title": "Expression input for eval",
+          "status": "not-started",
+          "references": [
+            {
+              "title": "Top-level components",
+              "url": "https://docs.python.org/3/reference/toplevel_components.html",
+              "section": "Expression input"
+            }
+          ],
+          "k_coverage": [],
+          "test_coverage": [],
+          "gaps": ["Need eval-mode parsing and environment binding model."]
+        }
+      ]
+    },
+    {
+      "id": "full-grammar",
+      "title": "Full grammar",
+      "status": "syntax",
+      "references": [
+        {
+          "title": "Python Language Reference: Full Grammar specification",
+          "url": "https://docs.python.org/3/reference/grammar.html"
+        }
+      ],
+      "constructs": [
+        {
+          "id": "grammar.full-peg",
+          "title": "Documented PEG grammar derived from CPython parser grammar",
+          "status": "syntax",
+          "references": [
+            {
+              "title": "Full Grammar specification",
+              "url": "https://docs.python.org/3/reference/grammar.html"
+            }
+          ],
+          "k_coverage": ["semantics/python.k: seed grammar only"],
+          "test_coverage": [],
+          "gaps": ["Need construct-preserving parser strategy: native K grammar where feasible, or parser-front-end AST that preserves every documented construct."]
+        }
+      ]
+    },
+    {
+      "id": "stdlib-runtime",
+      "title": "Language-facing standard library runtime",
+      "status": "not-started",
+      "references": [
+        {
+          "title": "Python Standard Library",
+          "url": "https://docs.python.org/3/library/"
+        }
+      ],
+      "constructs": [
+        {
+          "id": "stdlib.builtins",
+          "title": "Built-in functions and constants",
+          "status": "not-started",
+          "references": [
+            {
+              "title": "Built-in Functions",
+              "url": "https://docs.python.org/3/library/functions.html"
+            }
+          ],
+          "k_coverage": [],
+          "test_coverage": [],
+          "gaps": ["Need builtins namespace, exceptions, object construction, iteration helpers, eval/exec/open profiles, and __debug__."]
+        },
+        {
+          "id": "stdlib.builtin-types",
+          "title": "Built-in types",
+          "status": "partial",
+          "references": [
+            {
+              "title": "Built-in Types",
+              "url": "https://docs.python.org/3/library/stdtypes.html"
+            }
+          ],
+          "k_coverage": ["semantics/python.k: internal integer subset"],
+          "test_coverage": ["tests/examples/smoke-arithmetic.py"],
+          "gaps": ["Need bool, numeric tower, sequences, mappings, sets, context-manager types, memoryview, and iterator protocols."]
+        },
+        {
+          "id": "stdlib.exceptions",
+          "title": "Built-in exceptions",
+          "status": "not-started",
+          "references": [
+            {
+              "title": "Built-in Exceptions",
+              "url": "https://docs.python.org/3/library/exceptions.html"
+            }
+          ],
+          "k_coverage": [],
+          "test_coverage": [],
+          "gaps": ["Need exception hierarchy, construction, matching, traceback, exception groups, notes, and context/cause."]
+        },
+        {
+          "id": "stdlib.ast-tokenize-keyword",
+          "title": "ast, tokenize, token, and keyword modules",
+          "status": "not-started",
+          "references": [
+            {
+              "title": "ast",
+              "url": "https://docs.python.org/3/library/ast.html"
+            },
+            {
+              "title": "tokenize",
+              "url": "https://docs.python.org/3/library/tokenize.html"
+            }
+          ],
+          "k_coverage": [],
+          "test_coverage": [],
+          "gaps": ["Need explicit decision whether these are specified as library behavior, parser oracle adapters, or both."]
+        },
+        {
+          "id": "stdlib.importlib",
+          "title": "importlib",
+          "status": "not-started",
+          "references": [
+            {
+              "title": "importlib",
+              "url": "https://docs.python.org/3/library/importlib.html"
+            }
+          ],
+          "k_coverage": [],
+          "test_coverage": [],
+          "gaps": ["Need import-system linkage and host/filesystem profile."]
+        }
+      ]
+    },
+    {
+      "id": "cpython-profile",
+      "title": "CPython profile",
+      "status": "profile",
+      "references": [
+        {
+          "title": "Python 3.14.6 release",
+          "url": "https://www.python.org/downloads/release/python-3146/"
+        },
+        {
+          "title": "CPython source",
+          "url": "https://github.com/python/cpython/tree/v3.14.6"
+        }
+      ],
+      "constructs": [
+        {
+          "id": "profile.cpython-diagnostics",
+          "title": "CPython diagnostics and traceback formatting",
+          "status": "not-started",
+          "references": [
+            {
+              "title": "CPython source",
+              "url": "https://github.com/python/cpython/tree/v3.14.6"
+            }
+          ],
+          "k_coverage": [],
+          "test_coverage": [],
+          "gaps": ["Need normalization boundaries before comparing exact SyntaxError/TypeError text."]
+        },
+        {
+          "id": "profile.cpython-resource-limits",
+          "title": "CPython resource limits and implementation notes",
+          "status": "not-started",
+          "references": [
+            {
+              "title": "Language Reference introduction",
+              "url": "https://docs.python.org/3/reference/introduction.html",
+              "section": "Implementation notes"
+            }
+          ],
+          "k_coverage": [],
+          "test_coverage": [],
+          "gaps": ["Need profile for recursion limits, integer conversion limits, platform behavior, and implementation-defined edge cases."]
+        },
+        {
+          "id": "profile.cpython-bytecode-internals",
+          "title": "CPython bytecode and internal interpreter behavior",
+          "status": "not-started",
+          "references": [
+            {
+              "title": "CPython source",
+              "url": "https://github.com/python/cpython/tree/v3.14.6"
+            }
+          ],
+          "k_coverage": [],
+          "test_coverage": [],
+          "gaps": ["Non-goal for portable semantics unless selected as a CPython implementation-profile module."]
+        }
+      ]
+    }
+  ]
+}

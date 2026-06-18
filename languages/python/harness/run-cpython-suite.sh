@@ -3,6 +3,7 @@ set -euo pipefail
 
 PYTHON_REF="${PYTHON_REF:-python3.14}"
 CPYTHON_SOURCE="${CPYTHON_SOURCE:-}"
+CPYTHON_TEST_ARGS="${CPYTHON_TEST_ARGS:--m test --single-process --timeout 120 test_grammar}"
 
 if ! command -v "$PYTHON_REF" >/dev/null 2>&1; then
   echo "Missing CPython reference executable: $PYTHON_REF" >&2
@@ -19,6 +20,8 @@ fi
 echo "Reference implementation:"
 "$PYTHON_REF" --version
 
-echo "Running CPython reference suite only. K differential execution requires classified test adapters."
+echo "Running CPython reference suite subset only. K differential execution requires classified test adapters."
+echo "CPYTHON_TEST_ARGS=$CPYTHON_TEST_ARGS"
 cd "$CPYTHON_SOURCE"
-"$PYTHON_REF" -m test
+read -r -a TEST_ARGS <<< "$CPYTHON_TEST_ARGS"
+"$PYTHON_REF" "${TEST_ARGS[@]}"

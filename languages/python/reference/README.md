@@ -42,6 +42,8 @@ Use the Standard Library reference when language semantics depends on built-ins,
 
 Use accepted and final PEPs for design rationale and feature provenance. PEPs are especially important for newer constructs such as structural pattern matching, exception groups, type parameter lists, deferred annotations, and template string literals. If a PEP and the current docs disagree, prefer the current docs and record the discrepancy.
 
+`source-map.json` is the machine-readable construct ledger. Every K module, test adapter, and completion claim should point back to one or more construct IDs from that file.
+
 ## Specification Caveat
 
 The Language Reference explicitly says it uses English for most semantics and formal notation mainly for syntax and lexical analysis. It also says CPython implementation notes appear where CPython limitations or behavior are worth mentioning. This is important for K work: the repository should track prose ambiguities and distinguish portable language semantics from CPython-profile behavior.
@@ -56,6 +58,8 @@ Use CPython 3.14.6 as the primary reference implementation:
 - Release date: 2026-06-10
 
 CPython is the original and most-maintained Python implementation. New language features generally appear there first, but CPython internals and implementation notes are not automatically portable language semantics.
+
+`cpython-3.14.6-build.md` records the local source archive, hash, build command, optional module gaps, and reference-smoke result.
 
 ## Test Suite
 

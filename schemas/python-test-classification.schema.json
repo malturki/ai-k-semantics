@@ -1,0 +1,98 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/malturki/ai-k-semantics/schemas/python-test-classification.schema.json",
+  "title": "Python CPython Test Classification",
+  "type": "object",
+  "required": ["reference_suite", "classification_date", "tests"],
+  "properties": {
+    "reference_suite": {
+      "type": "object",
+      "required": ["name", "implementation", "version", "source_tag"],
+      "properties": {
+        "name": { "type": "string" },
+        "implementation": { "const": "CPython" },
+        "version": { "type": "string" },
+        "source_tag": { "type": "string" },
+        "source_url": { "type": "string" }
+      },
+      "additionalProperties": false
+    },
+    "classification_date": { "type": "string" },
+    "tests": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/test" },
+      "minItems": 1
+    }
+  },
+  "$defs": {
+    "id": {
+      "type": "string",
+      "pattern": "^[a-z0-9][a-z0-9._-]*$"
+    },
+    "test": {
+      "type": "object",
+      "required": [
+        "id",
+        "source_path",
+        "classification",
+        "review_status",
+        "translation_status",
+        "construct_refs",
+        "notes",
+        "blockers"
+      ],
+      "properties": {
+        "id": { "$ref": "#/$defs/id" },
+        "source_path": { "type": "string" },
+        "classification": {
+          "enum": [
+            "candidate-language-semantics",
+            "candidate-lexical",
+            "candidate-parser-ast",
+            "candidate-builtins",
+            "candidate-object-model",
+            "candidate-execution-model",
+            "candidate-import-system",
+            "stdlib-behavior",
+            "cpython-implementation-detail",
+            "platform-environment",
+            "diagnostic-only",
+            "environment-dependent",
+            "non-goal",
+            "unclassified"
+          ]
+        },
+        "review_status": {
+          "enum": ["seed", "reference-smoke-passed", "needs-split", "blocked", "excluded"]
+        },
+        "translation_status": {
+          "enum": ["not-started", "needs-extraction", "adapter-needed", "ready", "excluded"]
+        },
+        "construct_refs": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/id" }
+        },
+        "last_reference_result": {
+          "type": "object",
+          "properties": {
+            "date": { "type": "string" },
+            "command": { "type": "string" },
+            "result": { "type": "string" },
+            "notes": { "type": "string" }
+          },
+          "additionalProperties": false
+        },
+        "notes": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "blockers": {
+          "type": "array",
+          "items": { "type": "string" }
+        }
+      },
+      "additionalProperties": false
+    }
+  },
+  "additionalProperties": false
+}

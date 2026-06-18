@@ -10,6 +10,11 @@ module PYTHON-SYNTAX
                | "True" [symbol(pyTrue)]
                | "False" [symbol(pyFalse)]
                | "None" [symbol(pyNone)]
+               | "[" "]" [symbol(emptyListVal)]
+               | "[" ValItems "]" [symbol(listVal)]
+
+  syntax ValItems ::= Val "," [symbol(valItemsLast)]
+                    | Val "," ValItems [symbol(valItemsCons)]
 
   syntax Stmts ::= Stmt ";" Stmts [symbol(stmtsCons)]
                  | Stmt ";" [symbol(stmtsLast)]
@@ -45,6 +50,9 @@ module PYTHON-SYNTAX
                | Exp ">=" Exp [symbol(geExp), strict]
                | Exp "==" Exp [symbol(eqExp), strict]
                | Exp "!=" Exp [symbol(neExp), strict]
+               | Exp "in" Exp [symbol(inExp), strict]
+               | Exp "not" "in" Exp [symbol(notInExp), strict]
+               | Exp "[" Exp "]" [symbol(subscriptExp), strict]
                > "not" Exp [symbol(notExp), strict]
                > Exp "and" Exp [symbol(andExp), left]
                > Exp "or" Exp [symbol(orExp), left]
@@ -69,10 +77,13 @@ module PYTHON
   syntax Bool ::= truthy(Val) [function, symbol(truthy)]
                 | isIntLike(Val) [function, symbol(isIntLike)]
                 | valEq(Val, Val) [function, symbol(valEq)]
+                | valsEq(ValItems, ValItems) [function, symbol(valsEq)]
+                | containsVal(Val, ValItems) [function, symbol(containsVal)]
 
   syntax Int ::= intValue(Val) [function, symbol(intValue)]
                | pyFloorDiv(Int, Int) [function, symbol(pyFloorDiv)]
                | pyModulo(Int, Int) [function, symbol(pyModulo)]
+  syntax Val ::= listGet(ValItems, Int) [function, symbol(listGet)]
   syntax Val ::= boolValue(Bool) [function, symbol(boolValue)]
 
   rule truthy(0) => false
@@ -81,12 +92,16 @@ module PYTHON
   rule truthy(True) => true
   rule truthy(False) => false
   rule truthy(None) => false
+  rule truthy([]) => false
+  rule truthy(listVal(_:ValItems)) => true
 
   rule isIntLike(_:Int) => true
   rule isIntLike(_:String) => false
   rule isIntLike(True) => true
   rule isIntLike(False) => true
   rule isIntLike(None) => false
+  rule isIntLike([]) => false
+  rule isIntLike(listVal(_:ValItems)) => false
 
   rule intValue(I:Int) => I
   rule intValue(True) => 1
@@ -111,6 +126,30 @@ module PYTHON
   rule valEq(S1:String, S2:String) => S1 ==String S2
   rule valEq(_:String, _:Int) => false
   rule valEq(_:Int, _:String) => false
+  rule valEq([], []) => true
+  rule valEq([], listVal(_:ValItems)) => false
+  rule valEq(listVal(_:ValItems), []) => false
+  rule valEq(listVal(VS1:ValItems), listVal(VS2:ValItems)) => valsEq(VS1, VS2)
+  rule valEq(_:String, []) => false
+  rule valEq([], _:String) => false
+  rule valEq(_:Int, []) => false
+  rule valEq([], _:Int) => false
+  rule valEq(_:String, listVal(_:ValItems)) => false
+  rule valEq(listVal(_:ValItems), _:String) => false
+  rule valEq(_:Int, listVal(_:ValItems)) => false
+  rule valEq(listVal(_:ValItems), _:Int) => false
+  rule valEq(True, []) => false
+  rule valEq(False, []) => false
+  rule valEq([], True) => false
+  rule valEq([], False) => false
+  rule valEq(True, listVal(_:ValItems)) => false
+  rule valEq(False, listVal(_:ValItems)) => false
+  rule valEq(listVal(_:ValItems), True) => false
+  rule valEq(listVal(_:ValItems), False) => false
+  rule valEq(None, []) => false
+  rule valEq([], None) => false
+  rule valEq(None, listVal(_:ValItems)) => false
+  rule valEq(listVal(_:ValItems), None) => false
   rule valEq(_:String, True) => false
   rule valEq(_:String, False) => false
   rule valEq(_:String, None) => false
@@ -132,6 +171,21 @@ module PYTHON
   rule valEq(None, False) => false
   rule valEq(True, None) => false
   rule valEq(False, None) => false
+
+  rule valsEq(valItemsLast(V1:Val), valItemsLast(V2:Val)) => valEq(V1, V2)
+  rule valsEq(valItemsCons(V1:Val, VS1:ValItems), valItemsCons(V2:Val, VS2:ValItems)) =>
+    valEq(V1, V2) andBool valsEq(VS1, VS2)
+  rule valsEq(valItemsLast(_:Val), valItemsCons(_:Val, _:ValItems)) => false
+  rule valsEq(valItemsCons(_:Val, _:ValItems), valItemsLast(_:Val)) => false
+
+  rule containsVal(V:Val, valItemsLast(V1:Val)) => valEq(V, V1)
+  rule containsVal(V:Val, valItemsCons(V1:Val, VS:ValItems)) =>
+    valEq(V, V1) orBool containsVal(V, VS)
+
+  rule listGet(valItemsLast(V:Val), 0) => V
+  rule listGet(valItemsCons(V:Val, _:ValItems), 0) => V
+  rule listGet(valItemsCons(_:Val, VS:ValItems), I:Int) => listGet(VS, I -Int 1)
+    requires I >Int 0
 
   configuration
     <python>
@@ -190,6 +244,12 @@ module PYTHON
     requires isIntLike(V1) andBool isIntLike(V2)
   rule V1:Val == V2:Val => boolValue(valEq(V1, V2))
   rule V1:Val != V2:Val => boolValue(notBool valEq(V1, V2))
+  rule _V:Val in [] => False
+  rule V:Val in listVal(VS:ValItems) => boolValue(containsVal(V, VS))
+  rule _V:Val not in [] => True
+  rule V:Val not in listVal(VS:ValItems) => boolValue(notBool containsVal(V, VS))
+  rule subscriptExp(listVal(VS:ValItems), I:Val) => listGet(VS, intValue(I))
+    requires isIntLike(I) andBool intValue(I) >=Int 0
 
   rule not V:Val => boolValue(notBool truthy(V))
 

@@ -78,6 +78,13 @@
       "reference": "Python Language Reference 6.6 The power operator; 6.7 Binary arithmetic operations; 6.8 Shifting operations; 6.9 Binary bitwise operations",
       "expected_result": "8 ~> .K",
       "coverage": ["modulo", "left-shift", "right-shift", "bitwise-and", "bitwise-xor", "bitwise-or", "bitwise-inversion", "power"]
+    },
+    {
+      "id": "smoke-lists",
+      "source": "../examples/smoke-lists.py",
+      "reference": "Python Language Reference 6.2.4 Displays for lists, sets and dictionaries; 6.3.2 Subscriptions; 6.10 Comparisons",
+      "expected_result": "1 ~> .K",
+      "coverage": ["list-display-trailing-comma-subset", "list-equality", "list-membership", "list-truthiness", "positive-list-index"]
     }
   ]
 }

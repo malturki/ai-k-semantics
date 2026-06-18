@@ -131,8 +131,8 @@
               "section": "The standard type hierarchy"
             }
           ],
-          "k_coverage": ["semantics/python.k: Int, String, True, False, and None value subset"],
-          "test_coverage": ["tests/examples/smoke-bool-constants.py", "tests/examples/smoke-comparisons.py", "tests/examples/smoke-strings.py"],
+          "k_coverage": ["semantics/python.k: Int, String, list, True, False, and None value subset"],
+          "test_coverage": ["tests/examples/smoke-bool-constants.py", "tests/examples/smoke-comparisons.py", "tests/examples/smoke-strings.py", "tests/examples/smoke-lists.py"],
           "gaps": ["Need object identity, real bool-as-int subtype relationship, numeric tower, sequences, mappings, classes, functions, modules, and code objects."]
         },
         {
@@ -335,14 +335,14 @@
               "section": "Atoms"
             }
           ],
-          "k_coverage": ["semantics/python.k: integer, simple string, True, False, None, names, and parenthesized expressions"],
-          "test_coverage": ["tests/examples/smoke-arithmetic.py", "tests/examples/smoke-assignment.py", "tests/examples/smoke-bool-constants.py", "tests/examples/smoke-strings.py"],
-          "gaps": ["Need bytes, containers, comprehensions, yield expressions, and ellipsis."]
+          "k_coverage": ["semantics/python.k: integer, simple string, trailing-comma list values, True, False, None, names, and parenthesized expressions"],
+          "test_coverage": ["tests/examples/smoke-arithmetic.py", "tests/examples/smoke-assignment.py", "tests/examples/smoke-bool-constants.py", "tests/examples/smoke-strings.py", "tests/examples/smoke-lists.py"],
+          "gaps": ["Need bytes, full containers, comprehensions, yield expressions, and ellipsis."]
         },
         {
           "id": "expr.displays-comprehensions",
           "title": "Displays and comprehensions",
-          "status": "not-started",
+          "status": "partial",
           "references": [
             {
               "title": "Expressions",
@@ -350,14 +350,14 @@
               "section": "Displays for lists, sets and dictionaries"
             }
           ],
-          "k_coverage": [],
-          "test_coverage": [],
-          "gaps": ["Need evaluation order, scope behavior, async comprehensions, unpacking, and dict key/value rules."]
+          "k_coverage": ["semantics/python.k: trailing-comma list value display subset"],
+          "test_coverage": ["tests/examples/smoke-lists.py"],
+          "gaps": ["Need expression-list evaluation, non-trailing comma list parser support, unpacking, mutation, scope behavior, async comprehensions, set displays, dict displays, and dict key/value rules."]
         },
         {
           "id": "expr.primaries",
           "title": "Primaries: attributes, subscriptions, slicing, and calls",
-          "status": "not-started",
+          "status": "partial",
           "references": [
             {
               "title": "Expressions",
@@ -365,9 +365,9 @@
               "section": "Primaries"
             }
           ],
-          "k_coverage": [],
-          "test_coverage": [],
-          "gaps": ["Need descriptors, __getitem__, slicing objects, call protocol, argument binding, and error behavior."]
+          "k_coverage": ["semantics/python.k: positive integer indexing over nonempty list value subset"],
+          "test_coverage": ["tests/examples/smoke-lists.py"],
+          "gaps": ["Need attributes, descriptor lookup, general __getitem__, slicing objects, negative indices, out-of-range IndexError behavior, call protocol, argument binding, and error behavior."]
         },
         {
           "id": "expr.await-yield",
@@ -410,8 +410,8 @@
               "section": "Comparisons"
             }
           ],
-          "k_coverage": ["semantics/python.k: truthiness for Int/String/True/False/None; short-circuit and/or; not; binary int-like comparisons; equality over Int/String/True/False/None"],
-          "test_coverage": ["tests/examples/smoke-bool-ops.py", "tests/examples/smoke-comparisons.py", "tests/examples/smoke-strings.py"],
+          "k_coverage": ["semantics/python.k: truthiness for Int/String/list/True/False/None; short-circuit and/or; not; binary int-like comparisons; membership for lists; equality over Int/String/list/True/False/None"],
+          "test_coverage": ["tests/examples/smoke-bool-ops.py", "tests/examples/smoke-comparisons.py", "tests/examples/smoke-strings.py", "tests/examples/smoke-lists.py"],
           "gaps": ["Need rich comparison protocol, chained comparison evaluation, user-defined truth-value testing via __bool__/__len__, container truthiness, and TypeError behavior."]
         },
         {
@@ -787,8 +787,8 @@
               "url": "https://docs.python.org/3/library/stdtypes.html"
             }
           ],
-          "k_coverage": ["semantics/python.k: internal integer, string, bool, and None subset"],
-          "test_coverage": ["tests/examples/smoke-arithmetic.py", "tests/examples/smoke-bool-constants.py", "tests/examples/smoke-bool-ops.py", "tests/examples/smoke-comparisons.py", "tests/examples/smoke-strings.py", "tests/examples/smoke-int-operators.py"],
+          "k_coverage": ["semantics/python.k: internal integer, string, list, bool, and None subset"],
+          "test_coverage": ["tests/examples/smoke-arithmetic.py", "tests/examples/smoke-bool-constants.py", "tests/examples/smoke-bool-ops.py", "tests/examples/smoke-comparisons.py", "tests/examples/smoke-strings.py", "tests/examples/smoke-int-operators.py", "tests/examples/smoke-lists.py"],
           "gaps": ["Need real object/type hierarchy, numeric tower, sequences, mappings, sets, context-manager types, memoryview, and iterator protocols."]
         },
         {

@@ -39,6 +39,8 @@ The base modules should model portable Python semantics from the official docs. 
 - list truthiness, equality, membership, and positive integer indexing
 - tuple literals in a trailing-comma value-element subset
 - tuple truthiness, equality, membership, and positive integer indexing
+- single-argument `lambda` expressions
+- single-positional-argument calls to lambda closure values
 
 The coverage ledger in `../notes/full-language-coverage.md` is the source of truth for what remains.
 

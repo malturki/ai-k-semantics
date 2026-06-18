@@ -365,9 +365,9 @@
               "section": "Primaries"
             }
           ],
-          "k_coverage": ["semantics/python.k: positive integer indexing over nonempty list/tuple value subset"],
-          "test_coverage": ["tests/examples/smoke-lists.py", "tests/examples/smoke-tuples.py"],
-          "gaps": ["Need attributes, descriptor lookup, general __getitem__, slicing objects, negative indices, out-of-range IndexError behavior, call protocol, argument binding, and error behavior."]
+          "k_coverage": ["semantics/python.k: positive integer indexing over nonempty list/tuple value subset; single-positional lambda calls"],
+          "test_coverage": ["tests/examples/smoke-lists.py", "tests/examples/smoke-tuples.py", "tests/examples/smoke-lambda-call.py"],
+          "gaps": ["Need attributes, descriptor lookup, general __getitem__, slicing objects, negative indices, out-of-range IndexError behavior, full call protocol, argument binding, and error behavior."]
         },
         {
           "id": "expr.await-yield",
@@ -425,9 +425,9 @@
               "section": "Conditional expressions"
             }
           ],
-          "k_coverage": ["semantics/python.k: conditional expressions"],
-          "test_coverage": ["tests/examples/smoke-conditional-expression.py"],
-          "gaps": ["Need lambda expressions, closure capture, and broader evaluation-order tests."]
+          "k_coverage": ["semantics/python.k: conditional expressions and single-argument lambda expressions"],
+          "test_coverage": ["tests/examples/smoke-conditional-expression.py", "tests/examples/smoke-lambda-call.py"],
+          "gaps": ["Need full lambda grammar, closure/cell semantics for nested scopes, and broader evaluation-order tests."]
         },
         {
           "id": "expr.assignment-expressions",

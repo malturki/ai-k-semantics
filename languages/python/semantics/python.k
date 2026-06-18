@@ -32,6 +32,7 @@ module PYTHON-SYNTAX
   syntax Exp ::= Val
                | Id
                | "(" Exp ")" [bracket]
+               | Exp "(" Exp ")" [symbol(callExp)]
                | "+" Exp [symbol(posExp), strict]
                | "-" Exp [symbol(negExp), strict]
                | "~" Exp [symbol(invertExp), strict]
@@ -59,6 +60,7 @@ module PYTHON-SYNTAX
                > Exp "and" Exp [symbol(andExp), left]
                > Exp "or" Exp [symbol(orExp), left]
                > Exp "if" Exp "else" Exp [symbol(ifExp), right]
+               > "lambda" Id ":" Exp [symbol(lambdaExp)]
 endmodule
 
 module PYTHON
@@ -68,6 +70,8 @@ module PYTHON
   imports STRING
   imports MAP
 
+  syntax Val ::= closure(Id, Exp) [symbol(closure)]
+
   syntax KResult ::= Val
   syntax KItem ::= stmtNext(Stmts) [symbol(stmtNext)]
                  | "stmtEnd" [symbol(stmtEnd)]
@@ -75,6 +79,9 @@ module PYTHON
                  | andThen(Exp) [symbol(andThen)]
                  | orElse(Exp) [symbol(orElse)]
                  | ifThenElse(Exp, Exp) [symbol(ifThenElse)]
+                 | callArg(Exp) [symbol(callArg)]
+                 | callApply(Val) [symbol(callApply)]
+                 | restoreEnv(Map) [symbol(restoreEnv)]
 
   syntax Bool ::= truthy(Val) [function, symbol(truthy)]
                 | isIntLike(Val) [function, symbol(isIntLike)]
@@ -98,6 +105,7 @@ module PYTHON
   rule truthy(listVal(_:ValItems)) => true
   rule truthy(()) => false
   rule truthy(tupleVal(_:ValItems)) => true
+  rule truthy(closure(_:Id, _:Exp)) => true
 
   rule isIntLike(_:Int) => true
   rule isIntLike(_:String) => false
@@ -108,6 +116,7 @@ module PYTHON
   rule isIntLike(listVal(_:ValItems)) => false
   rule isIntLike(()) => false
   rule isIntLike(tupleVal(_:ValItems)) => false
+  rule isIntLike(closure(_:Id, _:Exp)) => false
 
   rule intValue(I:Int) => I
   rule intValue(True) => 1
@@ -188,6 +197,24 @@ module PYTHON
   rule valEq((), None) => false
   rule valEq(None, tupleVal(_:ValItems)) => false
   rule valEq(tupleVal(_:ValItems), None) => false
+  rule valEq(closure(_:Id, _:Exp), _:Int) => false
+  rule valEq(_:Int, closure(_:Id, _:Exp)) => false
+  rule valEq(closure(_:Id, _:Exp), _:String) => false
+  rule valEq(_:String, closure(_:Id, _:Exp)) => false
+  rule valEq(closure(_:Id, _:Exp), True) => false
+  rule valEq(closure(_:Id, _:Exp), False) => false
+  rule valEq(True, closure(_:Id, _:Exp)) => false
+  rule valEq(False, closure(_:Id, _:Exp)) => false
+  rule valEq(closure(_:Id, _:Exp), None) => false
+  rule valEq(None, closure(_:Id, _:Exp)) => false
+  rule valEq(closure(_:Id, _:Exp), []) => false
+  rule valEq([], closure(_:Id, _:Exp)) => false
+  rule valEq(closure(_:Id, _:Exp), listVal(_:ValItems)) => false
+  rule valEq(listVal(_:ValItems), closure(_:Id, _:Exp)) => false
+  rule valEq(closure(_:Id, _:Exp), ()) => false
+  rule valEq((), closure(_:Id, _:Exp)) => false
+  rule valEq(closure(_:Id, _:Exp), tupleVal(_:ValItems)) => false
+  rule valEq(tupleVal(_:ValItems), closure(_:Id, _:Exp)) => false
   rule valEq(_:String, True) => false
   rule valEq(_:String, False) => false
   rule valEq(_:String, None) => false
@@ -314,6 +341,14 @@ module PYTHON
     requires truthy(V)
   rule <k> V:Val ~> ifThenElse(_:Exp, E2:Exp) => E2 ... </k>
     requires notBool truthy(V)
+
+  rule <k> lambdaExp(X:Id, Body:Exp) => closure(X, Body) ... </k>
+  rule <k> callExp(F:Exp, Arg:Exp) => F ~> callArg(Arg) ... </k>
+  rule <k> F:Val ~> callArg(Arg:Exp) => Arg ~> callApply(F) ... </k>
+  rule <k> A:Val ~> callApply(closure(X:Id, Body:Exp)) => Body ~> restoreEnv(Rho) ... </k>
+       <env> Rho => Rho [ X <- A ] </env>
+  rule <k> V:Val ~> restoreEnv(Rho:Map) => V ... </k>
+       <env> _ => Rho </env>
 
   rule <k> assignStmt(X:Id, V:Val) => stmtNoResult ... </k>
        <env> Rho => Rho [ X <- V ] </env>

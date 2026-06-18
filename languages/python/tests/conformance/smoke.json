@@ -15,6 +15,34 @@
       "reference": "Python Language Reference 4.2 Naming and binding; 7.2 Assignment statements; 6.7 Binary arithmetic operations",
       "expected_result": "10 ~> .K",
       "coverage": ["single-name-assignment", "name-lookup", "multiplication"]
+    },
+    {
+      "id": "smoke-bool-constants",
+      "source": "../examples/smoke-bool-constants.py",
+      "reference": "Python Language Reference 3.2 The standard type hierarchy; Standard Library built-in constants",
+      "expected_result": "None ~> .K",
+      "coverage": ["bool-literals", "none-literal", "expression-statement"]
+    },
+    {
+      "id": "smoke-bool-ops",
+      "source": "../examples/smoke-bool-ops.py",
+      "reference": "Python Language Reference 6.11 Boolean operations; 6.16 Evaluation order",
+      "expected_result": "True ~> .K",
+      "coverage": ["truth-value-testing", "short-circuit-and", "short-circuit-or", "not"]
+    },
+    {
+      "id": "smoke-comparisons",
+      "source": "../examples/smoke-comparisons.py",
+      "reference": "Python Language Reference 3.2 The standard type hierarchy; 6.10 Comparisons; 6.7 Binary arithmetic operations",
+      "expected_result": "True ~> .K",
+      "coverage": ["bool-int-arithmetic", "equality-comparison", "single-name-assignment"]
+    },
+    {
+      "id": "smoke-pass",
+      "source": "../examples/smoke-pass.py",
+      "reference": "Python Language Reference 7.4 The pass statement",
+      "expected_result": "4 ~> .K",
+      "coverage": ["pass-statement", "expression-statement"]
     }
   ]
 }

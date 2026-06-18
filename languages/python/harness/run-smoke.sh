@@ -38,3 +38,7 @@ run_case() {
 
 run_case "smoke-arithmetic" "$ROOT/tests/examples/smoke-arithmetic.py" "7 ~> .K"
 run_case "smoke-assignment" "$ROOT/tests/examples/smoke-assignment.py" "10 ~> .K"
+run_case "smoke-bool-constants" "$ROOT/tests/examples/smoke-bool-constants.py" "None ~> .K"
+run_case "smoke-bool-ops" "$ROOT/tests/examples/smoke-bool-ops.py" "True ~> .K"
+run_case "smoke-comparisons" "$ROOT/tests/examples/smoke-comparisons.py" "True ~> .K"
+run_case "smoke-pass" "$ROOT/tests/examples/smoke-pass.py" "4 ~> .K"

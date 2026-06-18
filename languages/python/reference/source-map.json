@@ -20,7 +20,7 @@
         {
           "id": "lexical.source-encoding",
           "title": "Source encodings and encoding declarations",
-          "status": "not-started",
+          "status": "partial",
           "references": [
             {
               "title": "Lexical analysis",
@@ -498,9 +498,9 @@
               "section": "The assert statement"
             }
           ],
-          "k_coverage": [],
-          "test_coverage": [],
-          "gaps": ["Need __debug__ and optimization profile handling."]
+          "k_coverage": ["semantics/python.k: truthy assert succeeds"],
+          "test_coverage": ["tests/examples/smoke-assert-global.py"],
+          "gaps": ["Need AssertionError construction/raising, optional assertion message, __debug__, and optimization profile handling."]
         },
         {
           "id": "stmt.pass-del-return-yield-raise",
@@ -543,9 +543,9 @@
               "section": "The type statement"
             }
           ],
-          "k_coverage": [],
-          "test_coverage": [],
-          "gaps": ["Need parser directives, scope analysis, annotation scopes, and lazy type alias objects."]
+          "k_coverage": ["semantics/python.k: module-scope global declaration no-op"],
+          "test_coverage": ["tests/examples/smoke-assert-global.py"],
+          "gaps": ["Need global inside function scopes, nonlocal, parser directives, scope analysis, annotation scopes, and lazy type alias objects."]
         }
       ]
     },

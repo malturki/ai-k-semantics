@@ -25,7 +25,7 @@ Status values:
 | Execution model | Language Reference, chapter 4 | partial | Initial kernel has a single environment. Full code blocks, frames, binding, scopes, exceptions, annotation scopes, and runtime components remain. |
 | Import system | Language Reference, chapter 5 | not-started | Needs controlled module table and host profile. |
 | Expressions | Language Reference, chapter 6 | partial | Initial kernel covers integer/string/list/tuple/bool/None atoms, names, parentheses, unary `+`/`-`/`~`, arithmetic and bitwise integer operators, string concatenation/equality, list/tuple equality/membership/indexing, truthiness for simple values, short-circuit `and`/`or`, `not`, conditional expressions, single-argument lambdas/calls, and a binary comparison subset. All other expression constructs remain. |
-| Simple statements | Language Reference, chapter 7 | partial | Initial kernel covers expression statements, `pass`, simple assignment, simple-name `+=`/`-=`/`*=`, and simple-name `del`. Remaining statements are not started. |
+| Simple statements | Language Reference, chapter 7 | partial | Initial kernel covers expression statements, `pass`, truthy `assert`, module-scope `global`, simple assignment, simple-name `+=`/`-=`/`*=`, and simple-name `del`. Remaining statements are not started. |
 | Compound statements | Language Reference, chapter 8 | not-started | `if`, `while`, `for`, `try`, `with`, `match`, functions, classes, coroutines, type parameter lists, annotations remain. |
 | Top-level components | Language Reference, chapter 9 | syntax | Initial kernel parses a small file-input subset. Interactive/eval modes remain. |
 | Full grammar | Language Reference, chapter 10 | syntax | Must be mirrored construct-by-construct or replaced by a documented parser front end that preserves construct identity. |
@@ -49,7 +49,7 @@ Status values:
 | Attribute access and descriptors | not-started | Needs `object.__getattribute__`, descriptors, method binding, special method lookup. |
 | Classes and metaclasses | not-started | Needs class body execution, namespace, MRO, descriptors, metaclass protocol. |
 | Exceptions | not-started | Needs exception objects, raise/propagation, chaining, groups, handlers, finally. |
-| Control flow | not-started | Only `pass` and expression-level conditionals are covered; needs `if`, loops, `break`, `continue`, `return`, `yield`, context managers. |
+| Control flow | not-started | Only `pass`, truthy `assert`, and expression-level conditionals are covered; needs `if`, loops, `break`, `continue`, `return`, `yield`, context managers. |
 | Import system | not-started | Needs module cache, find/load protocol, packages, relative imports, `__main__`. |
 | Pattern matching | not-started | Needs PEP 634/635/636 plus current docs mapping. |
 | Coroutines and async | not-started | Needs awaitables, async functions/generators, async with/for. |

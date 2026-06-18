@@ -23,6 +23,8 @@ module PYTHON-SYNTAX
 
   syntax Stmt ::= Exp
                 | "pass" [symbol(passStmt)]
+                | "assert" Exp [symbol(assertStmt), strict]
+                | "global" Id [symbol(globalStmt)]
                 | "del" Id [symbol(delNameStmt)]
                 | Id "=" Exp [symbol(assignStmt), strict(2)]
                 | Id "+=" Exp [symbol(augAddStmt)]
@@ -363,6 +365,9 @@ module PYTHON
        <result> _ => .K </result>
 
   rule <k> pass => stmtNoResult ... </k>
+  rule <k> assertStmt(V:Val) => stmtNoResult ... </k>
+    requires truthy(V)
+  rule <k> globalStmt(_:Id) => stmtNoResult ... </k>
 
   rule <k> stmtNoResult ~> stmtNext(SS:Stmts) => SS ... </k>
   rule <k> stmtNoResult ~> stmtEnd => .K ... </k>

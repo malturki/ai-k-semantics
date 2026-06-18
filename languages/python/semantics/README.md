@@ -35,6 +35,8 @@ The base modules should model portable Python semantics from the official docs. 
 - conditional expressions
 - simple-name `+=`, `-=`, and `*=`
 - simple-name `del`
+- truthy `assert`
+- module-scope `global` declarations as no-ops
 - list literals in a trailing-comma value-element subset
 - list truthiness, equality, membership, and positive integer indexing
 - tuple literals in a trailing-comma value-element subset

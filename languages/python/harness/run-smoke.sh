@@ -50,3 +50,4 @@ run_case "smoke-int-operators" "$ROOT/tests/examples/smoke-int-operators.py" "8 
 run_case "smoke-lists" "$ROOT/tests/examples/smoke-lists.py" "1 ~> .K"
 run_case "smoke-tuples" "$ROOT/tests/examples/smoke-tuples.py" "2 ~> .K"
 run_case "smoke-lambda-call" "$ROOT/tests/examples/smoke-lambda-call.py" "6 ~> .K"
+run_case "smoke-assert-global" "$ROOT/tests/examples/smoke-assert-global.py" "2 ~> .K"

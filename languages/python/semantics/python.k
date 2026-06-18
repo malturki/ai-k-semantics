@@ -12,6 +12,8 @@ module PYTHON-SYNTAX
                | "None" [symbol(pyNone)]
                | "[" "]" [symbol(emptyListVal)]
                | "[" ValItems "]" [symbol(listVal)]
+               | "(" ")" [symbol(emptyTupleVal)]
+               | "(" ValItems ")" [symbol(tupleVal)]
 
   syntax ValItems ::= Val "," [symbol(valItemsLast)]
                     | Val "," ValItems [symbol(valItemsCons)]
@@ -94,6 +96,8 @@ module PYTHON
   rule truthy(None) => false
   rule truthy([]) => false
   rule truthy(listVal(_:ValItems)) => true
+  rule truthy(()) => false
+  rule truthy(tupleVal(_:ValItems)) => true
 
   rule isIntLike(_:Int) => true
   rule isIntLike(_:String) => false
@@ -102,6 +106,8 @@ module PYTHON
   rule isIntLike(None) => false
   rule isIntLike([]) => false
   rule isIntLike(listVal(_:ValItems)) => false
+  rule isIntLike(()) => false
+  rule isIntLike(tupleVal(_:ValItems)) => false
 
   rule intValue(I:Int) => I
   rule intValue(True) => 1
@@ -130,10 +136,30 @@ module PYTHON
   rule valEq([], listVal(_:ValItems)) => false
   rule valEq(listVal(_:ValItems), []) => false
   rule valEq(listVal(VS1:ValItems), listVal(VS2:ValItems)) => valsEq(VS1, VS2)
+  rule valEq((), ()) => true
+  rule valEq((), tupleVal(_:ValItems)) => false
+  rule valEq(tupleVal(_:ValItems), ()) => false
+  rule valEq(tupleVal(VS1:ValItems), tupleVal(VS2:ValItems)) => valsEq(VS1, VS2)
+  rule valEq((), []) => false
+  rule valEq([], ()) => false
+  rule valEq((), listVal(_:ValItems)) => false
+  rule valEq(listVal(_:ValItems), ()) => false
+  rule valEq(tupleVal(_:ValItems), []) => false
+  rule valEq([], tupleVal(_:ValItems)) => false
+  rule valEq(tupleVal(_:ValItems), listVal(_:ValItems)) => false
+  rule valEq(listVal(_:ValItems), tupleVal(_:ValItems)) => false
   rule valEq(_:String, []) => false
   rule valEq([], _:String) => false
   rule valEq(_:Int, []) => false
   rule valEq([], _:Int) => false
+  rule valEq(_:String, ()) => false
+  rule valEq((), _:String) => false
+  rule valEq(_:Int, ()) => false
+  rule valEq((), _:Int) => false
+  rule valEq(_:String, tupleVal(_:ValItems)) => false
+  rule valEq(tupleVal(_:ValItems), _:String) => false
+  rule valEq(_:Int, tupleVal(_:ValItems)) => false
+  rule valEq(tupleVal(_:ValItems), _:Int) => false
   rule valEq(_:String, listVal(_:ValItems)) => false
   rule valEq(listVal(_:ValItems), _:String) => false
   rule valEq(_:Int, listVal(_:ValItems)) => false
@@ -146,10 +172,22 @@ module PYTHON
   rule valEq(False, listVal(_:ValItems)) => false
   rule valEq(listVal(_:ValItems), True) => false
   rule valEq(listVal(_:ValItems), False) => false
+  rule valEq(True, ()) => false
+  rule valEq(False, ()) => false
+  rule valEq((), True) => false
+  rule valEq((), False) => false
+  rule valEq(True, tupleVal(_:ValItems)) => false
+  rule valEq(False, tupleVal(_:ValItems)) => false
+  rule valEq(tupleVal(_:ValItems), True) => false
+  rule valEq(tupleVal(_:ValItems), False) => false
   rule valEq(None, []) => false
   rule valEq([], None) => false
   rule valEq(None, listVal(_:ValItems)) => false
   rule valEq(listVal(_:ValItems), None) => false
+  rule valEq(None, ()) => false
+  rule valEq((), None) => false
+  rule valEq(None, tupleVal(_:ValItems)) => false
+  rule valEq(tupleVal(_:ValItems), None) => false
   rule valEq(_:String, True) => false
   rule valEq(_:String, False) => false
   rule valEq(_:String, None) => false
@@ -246,9 +284,15 @@ module PYTHON
   rule V1:Val != V2:Val => boolValue(notBool valEq(V1, V2))
   rule _V:Val in [] => False
   rule V:Val in listVal(VS:ValItems) => boolValue(containsVal(V, VS))
+  rule _V:Val in () => False
+  rule V:Val in tupleVal(VS:ValItems) => boolValue(containsVal(V, VS))
   rule _V:Val not in [] => True
   rule V:Val not in listVal(VS:ValItems) => boolValue(notBool containsVal(V, VS))
+  rule _V:Val not in () => True
+  rule V:Val not in tupleVal(VS:ValItems) => boolValue(notBool containsVal(V, VS))
   rule subscriptExp(listVal(VS:ValItems), I:Val) => listGet(VS, intValue(I))
+    requires isIntLike(I) andBool intValue(I) >=Int 0
+  rule subscriptExp(tupleVal(VS:ValItems), I:Val) => listGet(VS, intValue(I))
     requires isIntLike(I) andBool intValue(I) >=Int 0
 
   rule not V:Val => boolValue(notBool truthy(V))

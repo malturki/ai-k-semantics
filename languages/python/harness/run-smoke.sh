@@ -48,3 +48,4 @@ run_case "smoke-augmented-assignment" "$ROOT/tests/examples/smoke-augmented-assi
 run_case "smoke-del-name" "$ROOT/tests/examples/smoke-del-name.py" "2 ~> .K"
 run_case "smoke-int-operators" "$ROOT/tests/examples/smoke-int-operators.py" "8 ~> .K"
 run_case "smoke-lists" "$ROOT/tests/examples/smoke-lists.py" "1 ~> .K"
+run_case "smoke-tuples" "$ROOT/tests/examples/smoke-tuples.py" "2 ~> .K"

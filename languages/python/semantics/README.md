@@ -37,9 +37,11 @@ The base modules should model portable Python semantics from the official docs. 
 - simple-name `del`
 - list literals in a trailing-comma value-element subset
 - list truthiness, equality, membership, and positive integer indexing
+- tuple literals in a trailing-comma value-element subset
+- tuple truthiness, equality, membership, and positive integer indexing
 
 The coverage ledger in `../notes/full-language-coverage.md` is the source of truth for what remains.
 
 Current parser caveat: the K frontend treats `//` in source files as a comment before it can be parsed as Python floor division. The `floorDivExp` syntax and semantics are present, but concrete Python-source testing for `//` needs the parser/adaptor tranche.
 
-Current list caveat: concrete list smoke tests use Python-valid trailing commas, such as `[1, 2,]`, because the first executable K list grammar avoids an ambiguity caused by un-delimited value-list productions. Full list displays need the parser/adaptor tranche and expression-list evaluation.
+Current container caveat: concrete list and tuple smoke tests use Python-valid trailing commas, such as `[1, 2,]` and `(1, 2,)`, because the first executable K container grammar avoids an ambiguity caused by un-delimited value-list productions. Full displays need the parser/adaptor tranche and expression-list evaluation.

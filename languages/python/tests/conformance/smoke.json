@@ -85,6 +85,13 @@
       "reference": "Python Language Reference 6.2.4 Displays for lists, sets and dictionaries; 6.3.2 Subscriptions; 6.10 Comparisons",
       "expected_result": "1 ~> .K",
       "coverage": ["list-display-trailing-comma-subset", "list-equality", "list-membership", "list-truthiness", "positive-list-index"]
+    },
+    {
+      "id": "smoke-tuples",
+      "source": "../examples/smoke-tuples.py",
+      "reference": "Python Language Reference 6.2.3 Parenthesized forms; 6.3.2 Subscriptions; 6.10 Comparisons",
+      "expected_result": "2 ~> .K",
+      "coverage": ["tuple-display-trailing-comma-subset", "tuple-equality", "tuple-membership", "tuple-truthiness", "positive-tuple-index"]
     }
   ]
 }

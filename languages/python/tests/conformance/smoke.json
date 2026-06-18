@@ -43,6 +43,41 @@
       "reference": "Python Language Reference 7.4 The pass statement",
       "expected_result": "4 ~> .K",
       "coverage": ["pass-statement", "expression-statement"]
+    },
+    {
+      "id": "smoke-strings",
+      "source": "../examples/smoke-strings.py",
+      "reference": "Python Language Reference 2.5 String and Bytes literals; 6.7 Binary arithmetic operations; 6.10 Comparisons",
+      "expected_result": "True ~> .K",
+      "coverage": ["string-literal", "string-concatenation", "string-equality"]
+    },
+    {
+      "id": "smoke-conditional-expression",
+      "source": "../examples/smoke-conditional-expression.py",
+      "reference": "Python Language Reference 6.13 Conditional expressions",
+      "expected_result": "2 ~> .K",
+      "coverage": ["conditional-expression", "truth-value-testing", "short-circuit-branch-selection"]
+    },
+    {
+      "id": "smoke-augmented-assignment",
+      "source": "../examples/smoke-augmented-assignment.py",
+      "reference": "Python Language Reference 7.2.1 Augmented assignment statements",
+      "expected_result": "8 ~> .K",
+      "coverage": ["single-name-augmented-assignment", "addition", "multiplication", "subtraction"]
+    },
+    {
+      "id": "smoke-del-name",
+      "source": "../examples/smoke-del-name.py",
+      "reference": "Python Language Reference 7.5 The del statement",
+      "expected_result": "2 ~> .K",
+      "coverage": ["single-name-del", "environment-removal"]
+    },
+    {
+      "id": "smoke-int-operators",
+      "source": "../examples/smoke-int-operators.py",
+      "reference": "Python Language Reference 6.6 The power operator; 6.7 Binary arithmetic operations; 6.8 Shifting operations; 6.9 Binary bitwise operations",
+      "expected_result": "8 ~> .K",
+      "coverage": ["modulo", "left-shift", "right-shift", "bitwise-and", "bitwise-xor", "bitwise-or", "bitwise-inversion", "power"]
     }
   ]
 }

@@ -3,8 +3,10 @@ requires "domains.md"
 module PYTHON-SYNTAX
   imports INT-SYNTAX
   imports ID-SYNTAX
+  imports STRING-SYNTAX
 
   syntax Val ::= Int
+               | String
                | "True" [symbol(pyTrue)]
                | "False" [symbol(pyFalse)]
                | "None" [symbol(pyNone)]
@@ -14,16 +16,29 @@ module PYTHON-SYNTAX
 
   syntax Stmt ::= Exp
                 | "pass" [symbol(passStmt)]
+                | "del" Id [symbol(delNameStmt)]
                 | Id "=" Exp [symbol(assignStmt), strict(2)]
+                | Id "+=" Exp [symbol(augAddStmt)]
+                | Id "-=" Exp [symbol(augSubStmt)]
+                | Id "*=" Exp [symbol(augMulStmt)]
 
   syntax Exp ::= Val
                | Id
                | "(" Exp ")" [bracket]
                | "+" Exp [symbol(posExp), strict]
                | "-" Exp [symbol(negExp), strict]
+               | "~" Exp [symbol(invertExp), strict]
+               > Exp "**" Exp [symbol(powExp), right, strict]
                > Exp "*" Exp [symbol(mulExp), left, strict]
+               | Exp "//" Exp [symbol(floorDivExp), left, strict]
+               | Exp "%" Exp [symbol(modExp), left, strict]
                > Exp "+" Exp [symbol(addExp), left, strict]
                | Exp "-" Exp [symbol(subExp), left, strict]
+               > Exp "<<" Exp [symbol(lshiftExp), left, strict]
+               | Exp ">>" Exp [symbol(rshiftExp), left, strict]
+               > Exp "&" Exp [symbol(bitAndExp), left, strict]
+               > Exp "^" Exp [symbol(bitXorExp), left, strict]
+               > Exp "|" Exp [symbol(bitOrExp), left, strict]
                > Exp "<" Exp [symbol(ltExp), strict]
                | Exp "<=" Exp [symbol(leExp), strict]
                | Exp ">" Exp [symbol(gtExp), strict]
@@ -33,12 +48,14 @@ module PYTHON-SYNTAX
                > "not" Exp [symbol(notExp), strict]
                > Exp "and" Exp [symbol(andExp), left]
                > Exp "or" Exp [symbol(orExp), left]
+               > Exp "if" Exp "else" Exp [symbol(ifExp), right]
 endmodule
 
 module PYTHON
   imports PYTHON-SYNTAX
   imports INT
   imports BOOL
+  imports STRING
   imports MAP
 
   syntax KResult ::= Val
@@ -47,21 +64,26 @@ module PYTHON
                  | "stmtNoResult" [symbol(stmtNoResult)]
                  | andThen(Exp) [symbol(andThen)]
                  | orElse(Exp) [symbol(orElse)]
+                 | ifThenElse(Exp, Exp) [symbol(ifThenElse)]
 
   syntax Bool ::= truthy(Val) [function, symbol(truthy)]
                 | isIntLike(Val) [function, symbol(isIntLike)]
                 | valEq(Val, Val) [function, symbol(valEq)]
 
   syntax Int ::= intValue(Val) [function, symbol(intValue)]
+               | pyFloorDiv(Int, Int) [function, symbol(pyFloorDiv)]
+               | pyModulo(Int, Int) [function, symbol(pyModulo)]
   syntax Val ::= boolValue(Bool) [function, symbol(boolValue)]
 
   rule truthy(0) => false
   rule truthy(I:Int) => true requires I =/=Int 0
+  rule truthy(S:String) => lengthString(S) =/=Int 0
   rule truthy(True) => true
   rule truthy(False) => false
   rule truthy(None) => false
 
   rule isIntLike(_:Int) => true
+  rule isIntLike(_:String) => false
   rule isIntLike(True) => true
   rule isIntLike(False) => true
   rule isIntLike(None) => false
@@ -70,10 +92,31 @@ module PYTHON
   rule intValue(True) => 1
   rule intValue(False) => 0
 
+  rule pyFloorDiv(I1:Int, I2:Int) => (I1 /Int I2) -Int 1
+    requires I2 =/=Int 0
+     andBool I1 %Int I2 =/=Int 0
+     andBool ((I1 <Int 0 andBool I2 >Int 0) orBool (I1 >Int 0 andBool I2 <Int 0))
+  rule pyFloorDiv(I1:Int, I2:Int) => I1 /Int I2
+    requires I2 =/=Int 0
+     andBool (I1 %Int I2 ==Int 0
+       orBool notBool ((I1 <Int 0 andBool I2 >Int 0) orBool (I1 >Int 0 andBool I2 <Int 0)))
+
+  rule pyModulo(I1:Int, I2:Int) => I1 -Int (I2 *Int pyFloorDiv(I1, I2))
+    requires I2 =/=Int 0
+
   rule boolValue(true) => True
   rule boolValue(false) => False
 
   rule valEq(I1:Int, I2:Int) => I1 ==Int I2
+  rule valEq(S1:String, S2:String) => S1 ==String S2
+  rule valEq(_:String, _:Int) => false
+  rule valEq(_:Int, _:String) => false
+  rule valEq(_:String, True) => false
+  rule valEq(_:String, False) => false
+  rule valEq(_:String, None) => false
+  rule valEq(True, _:String) => false
+  rule valEq(False, _:String) => false
+  rule valEq(None, _:String) => false
   rule valEq(True, I:Int) => 1 ==Int I
   rule valEq(False, I:Int) => 0 ==Int I
   rule valEq(I:Int, True) => I ==Int 1
@@ -111,6 +154,7 @@ module PYTHON
 
   rule + V:Val => intValue(V) requires isIntLike(V)
   rule - V:Val => 0 -Int intValue(V) requires isIntLike(V)
+  rule ~ V:Val => ~Int intValue(V) requires isIntLike(V)
 
   rule V1:Val + V2:Val => intValue(V1) +Int intValue(V2)
     requires isIntLike(V1) andBool isIntLike(V2)
@@ -118,6 +162,23 @@ module PYTHON
     requires isIntLike(V1) andBool isIntLike(V2)
   rule V1:Val * V2:Val => intValue(V1) *Int intValue(V2)
     requires isIntLike(V1) andBool isIntLike(V2)
+  rule V1:Val ** V2:Val => intValue(V1) ^Int intValue(V2)
+    requires isIntLike(V1) andBool isIntLike(V2) andBool intValue(V2) >=Int 0
+  rule floorDivExp(V1:Val, V2:Val) => pyFloorDiv(intValue(V1), intValue(V2))
+    requires isIntLike(V1) andBool isIntLike(V2) andBool intValue(V2) =/=Int 0
+  rule V1:Val % V2:Val => pyModulo(intValue(V1), intValue(V2))
+    requires isIntLike(V1) andBool isIntLike(V2) andBool intValue(V2) =/=Int 0
+  rule V1:Val << V2:Val => intValue(V1) <<Int intValue(V2)
+    requires isIntLike(V1) andBool isIntLike(V2) andBool intValue(V2) >=Int 0
+  rule V1:Val >> V2:Val => intValue(V1) >>Int intValue(V2)
+    requires isIntLike(V1) andBool isIntLike(V2) andBool intValue(V2) >=Int 0
+  rule V1:Val & V2:Val => intValue(V1) &Int intValue(V2)
+    requires isIntLike(V1) andBool isIntLike(V2)
+  rule V1:Val ^ V2:Val => intValue(V1) xorInt intValue(V2)
+    requires isIntLike(V1) andBool isIntLike(V2)
+  rule V1:Val | V2:Val => intValue(V1) |Int intValue(V2)
+    requires isIntLike(V1) andBool isIntLike(V2)
+  rule S1:String + S2:String => S1 +String S2
 
   rule V1:Val < V2:Val => boolValue(intValue(V1) <Int intValue(V2))
     requires isIntLike(V1) andBool isIntLike(V2)
@@ -144,8 +205,22 @@ module PYTHON
   rule <k> V:Val ~> orElse(E:Exp) => E ... </k>
     requires notBool truthy(V)
 
+  rule <k> E1:Exp if C:Exp else E2:Exp => C ~> ifThenElse(E1, E2) ... </k>
+  rule <k> V:Val ~> ifThenElse(E1:Exp, _:Exp) => E1 ... </k>
+    requires truthy(V)
+  rule <k> V:Val ~> ifThenElse(_:Exp, E2:Exp) => E2 ... </k>
+    requires notBool truthy(V)
+
   rule <k> assignStmt(X:Id, V:Val) => stmtNoResult ... </k>
        <env> Rho => Rho [ X <- V ] </env>
+       <result> _ => .K </result>
+
+  rule <k> augAddStmt(X:Id, E:Exp) => assignStmt(X, X + E) ... </k>
+  rule <k> augSubStmt(X:Id, E:Exp) => assignStmt(X, X - E) ... </k>
+  rule <k> augMulStmt(X:Id, E:Exp) => assignStmt(X, X * E) ... </k>
+
+  rule <k> delNameStmt(X:Id) => stmtNoResult ... </k>
+       <env> Rho => Rho [ X <- undef ] </env>
        <result> _ => .K </result>
 
   rule <k> pass => stmtNoResult ... </k>

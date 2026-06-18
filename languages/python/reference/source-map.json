@@ -88,9 +88,9 @@
               "section": "Literals"
             }
           ],
-          "k_coverage": ["semantics/python.k: integer, True, False, and None literal subset"],
-          "test_coverage": ["tests/examples/smoke-arithmetic.py", "tests/examples/smoke-bool-constants.py"],
-          "gaps": ["Need strings, bytes, f-strings, t-strings, floats, imaginary literals, and numeric literal separators."]
+          "k_coverage": ["semantics/python.k: integer, simple K string, True, False, and None literal subset"],
+          "test_coverage": ["tests/examples/smoke-arithmetic.py", "tests/examples/smoke-bool-constants.py", "tests/examples/smoke-strings.py"],
+          "gaps": ["Need full Python string prefixes/escapes, bytes, f-strings, t-strings, floats, imaginary literals, and numeric literal separators."]
         }
       ]
     },
@@ -131,8 +131,8 @@
               "section": "The standard type hierarchy"
             }
           ],
-          "k_coverage": ["semantics/python.k: Int, True, False, and None value subset"],
-          "test_coverage": ["tests/examples/smoke-bool-constants.py", "tests/examples/smoke-comparisons.py"],
+          "k_coverage": ["semantics/python.k: Int, String, True, False, and None value subset"],
+          "test_coverage": ["tests/examples/smoke-bool-constants.py", "tests/examples/smoke-comparisons.py", "tests/examples/smoke-strings.py"],
           "gaps": ["Need object identity, real bool-as-int subtype relationship, numeric tower, sequences, mappings, classes, functions, modules, and code objects."]
         },
         {
@@ -335,9 +335,9 @@
               "section": "Atoms"
             }
           ],
-          "k_coverage": ["semantics/python.k: integer, True, False, None, names, and parenthesized expressions"],
-          "test_coverage": ["tests/examples/smoke-arithmetic.py", "tests/examples/smoke-assignment.py", "tests/examples/smoke-bool-constants.py"],
-          "gaps": ["Need strings, bytes, containers, comprehensions, yield expressions, and ellipsis."]
+          "k_coverage": ["semantics/python.k: integer, simple string, True, False, None, names, and parenthesized expressions"],
+          "test_coverage": ["tests/examples/smoke-arithmetic.py", "tests/examples/smoke-assignment.py", "tests/examples/smoke-bool-constants.py", "tests/examples/smoke-strings.py"],
+          "gaps": ["Need bytes, containers, comprehensions, yield expressions, and ellipsis."]
         },
         {
           "id": "expr.displays-comprehensions",
@@ -395,9 +395,9 @@
               "section": "Operator precedence"
             }
           ],
-          "k_coverage": ["semantics/python.k: unary +/-, integer and bool +, -, *"],
-          "test_coverage": ["tests/examples/smoke-arithmetic.py", "tests/examples/smoke-comparisons.py"],
-          "gaps": ["Need all remaining operators, reflected/in-place methods, full type coercion behavior, division/modulo/power, and error cases."]
+          "k_coverage": ["semantics/python.k: unary +, -, ~; integer and bool +, -, *, //, %, <<, >>, &, ^, |, nonnegative **; string +"],
+          "test_coverage": ["tests/examples/smoke-arithmetic.py", "tests/examples/smoke-comparisons.py", "tests/examples/smoke-strings.py", "tests/examples/smoke-int-operators.py"],
+          "gaps": ["Need true division, negative-exponent power returning float, matrix multiplication, reflected/in-place methods, full type coercion behavior, error cases, and concrete-source testing for // once the parser/adaptor handles K's comment conflict."]
         },
         {
           "id": "expr.comparisons-boolean",
@@ -410,14 +410,14 @@
               "section": "Comparisons"
             }
           ],
-          "k_coverage": ["semantics/python.k: truthiness for Int/True/False/None; short-circuit and/or; not; binary int-like comparisons; equality over Int/True/False/None"],
-          "test_coverage": ["tests/examples/smoke-bool-ops.py", "tests/examples/smoke-comparisons.py"],
+          "k_coverage": ["semantics/python.k: truthiness for Int/String/True/False/None; short-circuit and/or; not; binary int-like comparisons; equality over Int/String/True/False/None"],
+          "test_coverage": ["tests/examples/smoke-bool-ops.py", "tests/examples/smoke-comparisons.py", "tests/examples/smoke-strings.py"],
           "gaps": ["Need rich comparison protocol, chained comparison evaluation, user-defined truth-value testing via __bool__/__len__, container truthiness, and TypeError behavior."]
         },
         {
           "id": "expr.conditional-lambda",
           "title": "Conditional expressions and lambda",
-          "status": "not-started",
+          "status": "partial",
           "references": [
             {
               "title": "Expressions",
@@ -425,9 +425,9 @@
               "section": "Conditional expressions"
             }
           ],
-          "k_coverage": [],
-          "test_coverage": [],
-          "gaps": ["Need evaluation order, closure capture, and scope rules."]
+          "k_coverage": ["semantics/python.k: conditional expressions"],
+          "test_coverage": ["tests/examples/smoke-conditional-expression.py"],
+          "gaps": ["Need lambda expressions, closure capture, and broader evaluation-order tests."]
         },
         {
           "id": "expr.assignment-expressions",
@@ -483,9 +483,9 @@
               "section": "Assignment statements"
             }
           ],
-          "k_coverage": ["semantics/python.k: single-name assignment for Val"],
-          "test_coverage": ["tests/examples/smoke-assignment.py", "tests/examples/smoke-comparisons.py"],
-          "gaps": ["Need target lists, unpacking, attributes, subscriptions, annotations, augmented assignment, and evaluation order."]
+          "k_coverage": ["semantics/python.k: single-name assignment for Val; simple-name +=, -=, *="],
+          "test_coverage": ["tests/examples/smoke-assignment.py", "tests/examples/smoke-comparisons.py", "tests/examples/smoke-augmented-assignment.py"],
+          "gaps": ["Need target lists, unpacking, attributes, subscriptions, annotations, all remaining augmented operators, and target evaluation order."]
         },
         {
           "id": "stmt.assert",
@@ -513,9 +513,9 @@
               "section": "The return statement"
             }
           ],
-          "k_coverage": ["semantics/python.k: pass statement only"],
-          "test_coverage": ["tests/examples/smoke-pass.py"],
-          "gaps": ["Need del, return, yield, raise, abrupt-completion representation, and function/generator/exception integration."]
+          "k_coverage": ["semantics/python.k: pass statement and simple-name del"],
+          "test_coverage": ["tests/examples/smoke-pass.py", "tests/examples/smoke-del-name.py"],
+          "gaps": ["Need full del targets, NameError behavior, return, yield, raise, abrupt-completion representation, and function/generator/exception integration."]
         },
         {
           "id": "stmt.import",
@@ -787,8 +787,8 @@
               "url": "https://docs.python.org/3/library/stdtypes.html"
             }
           ],
-          "k_coverage": ["semantics/python.k: internal integer, bool, and None subset"],
-          "test_coverage": ["tests/examples/smoke-arithmetic.py", "tests/examples/smoke-bool-constants.py", "tests/examples/smoke-bool-ops.py", "tests/examples/smoke-comparisons.py"],
+          "k_coverage": ["semantics/python.k: internal integer, string, bool, and None subset"],
+          "test_coverage": ["tests/examples/smoke-arithmetic.py", "tests/examples/smoke-bool-constants.py", "tests/examples/smoke-bool-ops.py", "tests/examples/smoke-comparisons.py", "tests/examples/smoke-strings.py", "tests/examples/smoke-int-operators.py"],
           "gaps": ["Need real object/type hierarchy, numeric tower, sequences, mappings, sets, context-manager types, memoryview, and iterator protocols."]
         },
         {

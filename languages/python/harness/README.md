@@ -8,3 +8,17 @@ The harness will eventually run:
 - Selected CPython `Lib/test` cases after classification.
 
 Every differential run must record the CPython executable, version, platform, environment variables, hash seed, command-line flags, stdin/stdout/stderr normalization, and expected exception/diagnostic handling.
+
+## Current Commands
+
+```sh
+languages/python/harness/run-smoke.sh
+```
+
+Compiles `semantics/python.k` and runs the local smoke cases.
+
+```sh
+PYTHON_REF=/path/to/python3.14 CPYTHON_SOURCE=/path/to/cpython languages/python/harness/run-cpython-suite.sh
+```
+
+Checks the CPython reference suite entry point. This currently runs the CPython suite as a reference-suite availability check only; K differential adapters still need to be built per classified test family.

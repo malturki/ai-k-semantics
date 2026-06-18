@@ -1,0 +1,62 @@
+# Python Full-Language Coverage Map
+
+This file is the completeness ledger for Python 3.14.6. A construct is not considered complete until it has:
+
+- direct syntax in K or a documented reason for a faithful desugaring
+- semantic rules linked to the official docs
+- local positive and negative tests
+- CPython differential coverage, unless classified as intentionally non-CPython
+- known ambiguity/divergence notes where relevant
+
+Status values:
+
+- `not-started`: no K syntax or semantics yet
+- `syntax`: syntax exists, semantics incomplete
+- `partial`: executable semantics exists for a documented subset
+- `profile`: only covered in an implementation/profile module
+- `complete`: docs-linked semantics and tests are in place
+
+## Source Chapters
+
+| Source area | Reference | Status | Notes |
+| --- | --- | --- | --- |
+| Lexical analysis | Language Reference, chapter 2 | partial | Initial kernel uses semicolon-separated simple statements with trailing semicolons; full source encoding, physical/logical lines, indentation, comments, token classes, f/t/string literals, and numeric literal edge cases remain. |
+| Data model | Language Reference, chapter 3 | partial | Initial kernel has minimal integer values. Full object identity, bool/None, type hierarchy, attributes, descriptors, special methods, GC/lifetime notes, coroutines, and async generators remain. |
+| Execution model | Language Reference, chapter 4 | partial | Initial kernel has a single environment. Full code blocks, frames, binding, scopes, exceptions, annotation scopes, and runtime components remain. |
+| Import system | Language Reference, chapter 5 | not-started | Needs controlled module table and host profile. |
+| Expressions | Language Reference, chapter 6 | partial | Initial kernel covers integer literals, names, parentheses, and `+`, `-`, `*` over integers. All other expression constructs remain. |
+| Simple statements | Language Reference, chapter 7 | partial | Initial kernel covers expression statements and simple assignment over one target name. Remaining statements are not started. |
+| Compound statements | Language Reference, chapter 8 | not-started | `if`, `while`, `for`, `try`, `with`, `match`, functions, classes, coroutines, type parameter lists, annotations remain. |
+| Top-level components | Language Reference, chapter 9 | syntax | Initial kernel parses a small file-input subset. Interactive/eval modes remain. |
+| Full grammar | Language Reference, chapter 10 | syntax | Must be mirrored construct-by-construct or replaced by a documented parser front end that preserves construct identity. |
+| Built-ins and core library | Standard Library reference | not-started | Initial kernel only has internal integers; no real Python builtins yet. |
+
+## Construct Families
+
+| Family | Status | Required next evidence |
+| --- | --- | --- |
+| Source encodings and tokenizer behavior | not-started | CPython tokenizer cases and docs-linked K lexer/token model. |
+| Indentation and block structure | not-started | Parser tests for `INDENT`/`DEDENT`, mixed tabs/spaces diagnostics, blank/comment-only lines. |
+| Names, keywords, soft keywords | partial | Initial `Id` handling only; needs Python identifier Unicode rules and keyword/soft-keyword separation. |
+| Literals | partial | Int smoke coverage; bool, None, strings, bytes, floats, imaginary numbers, f-strings, t-strings remain. |
+| Object model | partial | Minimal value model only; needs heap objects, identity, type hierarchy, attributes, descriptors. |
+| Numeric operations | partial | Int `+`, `-`, `*` only; Python numeric tower, coercions, division, modulo, bit operations, comparisons remain. |
+| Truth-value testing | not-started | Needs `bool`, `__bool__`, `__len__`, and built-in falsey values. |
+| Name binding and scope | partial | Single environment only; needs module/function/class scopes, globals, nonlocals, comprehensions, annotation scopes. |
+| Assignment | partial | Single-name assignment only; needs targets, unpacking, attributes, subscriptions, annotations, augmented assignment. |
+| Calls and functions | not-started | Needs function objects, call protocol, defaults, varargs, kwargs, closures, decorators. |
+| Containers and comprehensions | not-started | Lists, tuples, dicts, sets, ranges, iterators, comprehensions. |
+| Attribute access and descriptors | not-started | Needs `object.__getattribute__`, descriptors, method binding, special method lookup. |
+| Classes and metaclasses | not-started | Needs class body execution, namespace, MRO, descriptors, metaclass protocol. |
+| Exceptions | not-started | Needs exception objects, raise/propagation, chaining, groups, handlers, finally. |
+| Control flow | not-started | Needs `if`, loops, `break`, `continue`, `return`, `yield`, context managers. |
+| Import system | not-started | Needs module cache, find/load protocol, packages, relative imports, `__main__`. |
+| Pattern matching | not-started | Needs PEP 634/635/636 plus current docs mapping. |
+| Coroutines and async | not-started | Needs awaitables, async functions/generators, async with/for. |
+| Annotations and type syntax | not-started | Needs deferred annotations, type parameters, `type` statement, annotation scopes. |
+| Standard library interactions | not-started | Needs staged builtins/core library coverage and host profile boundaries. |
+| CPython profile | not-started | Needs implementation notes, diagnostics, limits, and `Lib/test` classification. |
+
+## Completeness Rule
+
+Do not mark a construct complete merely because CPython accepts a test. Completion requires matching the official docs, a K rule story, and an explicit decision about CPython-specific behavior.

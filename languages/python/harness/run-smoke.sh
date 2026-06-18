@@ -1,0 +1,40 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+DEF="$ROOT/semantics/python.k"
+WORK="$ROOT/.build"
+KOMPILED="$WORK/python-kompiled"
+
+mkdir -p "$WORK"
+
+kompile "$DEF" \
+  --main-module PYTHON \
+  --syntax-module PYTHON-SYNTAX \
+  --output-definition "$KOMPILED"
+
+run_case() {
+  local name="$1"
+  local source="$2"
+  local expected="$3"
+  local output="$WORK/$name.out"
+
+  krun "$source" --definition "$KOMPILED" > "$output"
+
+  if ! grep -q "^[[:space:]]*\\.K$" "$output"; then
+    echo "FAIL $name: final <k> cell is not .K" >&2
+    cat "$output" >&2
+    exit 1
+  fi
+
+  if ! grep -q "$expected" "$output"; then
+    echo "FAIL $name: expected result $expected" >&2
+    cat "$output" >&2
+    exit 1
+  fi
+
+  echo "PASS $name"
+}
+
+run_case "smoke-arithmetic" "$ROOT/tests/examples/smoke-arithmetic.py" "7 ~> .K"
+run_case "smoke-assignment" "$ROOT/tests/examples/smoke-assignment.py" "10 ~> .K"

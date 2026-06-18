@@ -4,6 +4,7 @@ __pycache__/
 .pytest_cache/
 *-kompiled/
 .kompile-*/
+languages/*/.build/
 tmp/
 dist/
 build/

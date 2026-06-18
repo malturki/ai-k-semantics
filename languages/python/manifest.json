@@ -1,7 +1,7 @@
 {
   "id": "python",
   "name": "Python",
-  "status": "planned",
+  "status": "experimental",
   "visibility": "public",
   "k_framework": {
     "minimum_version": null,
@@ -111,13 +111,13 @@
     ]
   },
   "semantics": {
-    "main_definition": null,
-    "main_module": null,
-    "syntax_module": null,
+    "main_definition": "semantics/python.k",
+    "main_module": "PYTHON",
+    "syntax_module": "PYTHON-SYNTAX",
     "backends": ["llvm", "haskell"]
   },
   "tests": {
-    "conformance_manifest": null,
+    "conformance_manifest": "tests/conformance/smoke.json",
     "proof_manifest": null
   },
   "known_gaps": [

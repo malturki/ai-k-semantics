@@ -1,0 +1,20 @@
+{
+  "suite": "python-smoke",
+  "status": "local",
+  "cases": [
+    {
+      "id": "smoke-arithmetic",
+      "source": "../examples/smoke-arithmetic.py",
+      "reference": "Python Language Reference 6.7 Binary arithmetic operations; 6.16 Evaluation order",
+      "expected_result": "7 ~> .K",
+      "coverage": ["integer-literal", "expression-statement", "multiplication", "addition"]
+    },
+    {
+      "id": "smoke-assignment",
+      "source": "../examples/smoke-assignment.py",
+      "reference": "Python Language Reference 4.2 Naming and binding; 7.2 Assignment statements; 6.7 Binary arithmetic operations",
+      "expected_result": "10 ~> .K",
+      "coverage": ["single-name-assignment", "name-lookup", "multiplication"]
+    }
+  ]
+}

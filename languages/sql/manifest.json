@@ -1,0 +1,148 @@
+{
+  "id": "sql",
+  "name": "SQL",
+  "status": "planned",
+  "visibility": "public",
+  "k_framework": {
+    "minimum_version": null,
+    "tested_versions": []
+  },
+  "language": {
+    "version": "SQL:2023 / ISO/IEC 9075:2023",
+    "scope": "Initial target: standard SQL/Foundation core query and data semantics from ISO/IEC 9075-2:2023, interpreted through the ISO/IEC 9075-1:2023 framework and the ISO/IEC 9075-11:2023 information/definition schema model where needed. Start with scalar values, NULL and three-valued logic, row/table values, query expressions, predicates, joins, grouping, aggregation, ordering, set operations, schema/catalog state, constraints, and core DDL/DML.",
+    "non_goals": [
+      "Vendor dialect semantics such as PostgreSQL, SQLite, MySQL, T-SQL, PL/SQL, BigQuery SQL, or DuckDB extensions unless a separate profile is explicitly created.",
+      "Physical storage, indexing, query optimization, execution plans, cost models, and performance behavior.",
+      "Implementation-specific diagnostics, error wording, collation defaults, limits, or host-environment behavior unless selected as a conformance profile.",
+      "Interface and extension parts such as SQL/CLI, SQL/PSM, SQL/MED, SQL/OLB, SQL/JRT, SQL/XML, SQL/MDA, and SQL/PGQ until each is separately scoped."
+    ]
+  },
+  "sources": {
+    "specifications": [
+      {
+        "title": "ISO/IEC 9075-1:2023, Information technology - Database languages SQL - Part 1: Framework (SQL/Framework)",
+        "role": "authoritative framework",
+        "url": "https://www.iso.org/standard/76583.html",
+        "date": "2023-06",
+        "status": "published",
+        "notes": "Defines the conceptual framework, terms, and notation used by the SQL standard series."
+      },
+      {
+        "title": "ISO/IEC 9075-2:2023, Information technology - Database languages SQL - Part 2: Foundation (SQL/Foundation)",
+        "role": "primary language definition",
+        "url": "https://www.iso.org/standard/76584.html",
+        "date": "2023-06",
+        "status": "published",
+        "notes": "Primary target for core SQL syntax and semantics. The ISO catalog lists this as a paid 1715-page standard."
+      },
+      {
+        "title": "ISO/IEC 9075-11:2023, Information technology - Database languages SQL - Part 11: Information and Definition Schemas (SQL/Schemata)",
+        "role": "catalog and information schema model",
+        "url": "https://www.iso.org/standard/76586.html",
+        "date": "2023-06",
+        "status": "published",
+        "notes": "Relevant for catalog/schema state exposed through standard SQL schemata."
+      },
+      {
+        "title": "ISO/IEC 9075-3:2023, Part 3: Call-Level Interface (SQL/CLI)",
+        "role": "extension/interface part",
+        "url": "https://www.iso.org/standard/84803.html",
+        "date": "2023-06",
+        "status": "published"
+      },
+      {
+        "title": "ISO/IEC 9075-4:2023, Part 4: Persistent Stored Modules (SQL/PSM)",
+        "role": "extension/procedural part",
+        "url": "https://www.iso.org/standard/76585.html",
+        "date": "2023-06",
+        "status": "published"
+      },
+      {
+        "title": "ISO/IEC 9075-9:2023, Part 9: Management of External Data (SQL/MED)",
+        "role": "extension/external data part",
+        "url": "https://www.iso.org/standard/84804.html",
+        "date": "2023-06",
+        "status": "published"
+      },
+      {
+        "title": "ISO/IEC 9075-10:2023, Part 10: Object Language Bindings (SQL/OLB)",
+        "role": "extension/binding part",
+        "url": "https://www.iso.org/standard/84805.html",
+        "date": "2023-06",
+        "status": "published"
+      },
+      {
+        "title": "ISO/IEC 9075-13:2023, Part 13: SQL Routines and Types Using the Java Programming Language (SQL/JRT)",
+        "role": "extension/Java routines part",
+        "url": "https://www.iso.org/standard/84806.html",
+        "date": "2023-06",
+        "status": "published"
+      },
+      {
+        "title": "ISO/IEC 9075-14:2023, Part 14: XML-Related Specifications (SQL/XML)",
+        "role": "extension/XML part",
+        "url": "https://www.iso.org/standard/76587.html",
+        "date": "2023-06",
+        "status": "published"
+      },
+      {
+        "title": "ISO/IEC 9075-15:2023, Part 15: Multidimensional Arrays (SQL/MDA)",
+        "role": "extension/array part",
+        "url": "https://www.iso.org/standard/84807.html",
+        "date": "2023-06",
+        "status": "published"
+      },
+      {
+        "title": "ISO/IEC 9075-16:2023, Part 16: Property Graph Queries (SQL/PGQ)",
+        "role": "extension/property graph query part",
+        "url": "https://www.iso.org/standard/79473.html",
+        "date": "2023-06",
+        "status": "published"
+      }
+    ],
+    "reference_implementations": [
+      {
+        "name": "No globally accepted SQL reference implementation",
+        "role": "source finding",
+        "status": "not-applicable",
+        "notes": "SQL conformance is defined by the ISO/IEC 9075 standard and its feature/profile structure. Vendor systems are dialect implementations and can only serve as selected differential profiles, not as the normative reference."
+      }
+    ],
+    "test_suites": [
+      {
+        "name": "Current official public SQL conformance suite",
+        "status": "not identified",
+        "notes": "Initial research did not identify a current globally accepted public conformance suite for SQL:2023. Historical NIST/FIPS SQL conformance artifacts should be investigated separately before being treated as usable evidence."
+      },
+      {
+        "name": "Vendor and research SQL test suites",
+        "status": "candidate non-authoritative",
+        "notes": "PostgreSQL, SQLite, DuckDB, MySQL, and research suites may be useful for differential and regression testing, but each test must be classified as standard SQL, dialect behavior, implementation-defined behavior, or non-goal."
+      }
+    ]
+  },
+  "semantics": {
+    "main_definition": null,
+    "main_module": null,
+    "syntax_module": null,
+    "backends": ["llvm", "haskell"]
+  },
+  "tests": {
+    "conformance_manifest": null,
+    "proof_manifest": null
+  },
+  "known_gaps": [
+    {
+      "type": "source-access",
+      "description": "Most ISO/IEC 9075:2023 parts are paid and copyright-protected. The public repo must not vendor or reproduce standard text; implementation work needs licensed access and section-level provenance without copying protected text."
+    },
+    {
+      "type": "reference-implementation",
+      "description": "There is no single accepted reference implementation for standard SQL. Differential testing must be profile-based."
+    },
+    {
+      "type": "conformance-suite",
+      "description": "No current globally accepted public SQL:2023 conformance test suite has been identified yet."
+    }
+  ]
+}

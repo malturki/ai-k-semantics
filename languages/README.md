@@ -19,3 +19,8 @@ Expected maturity values:
 - `maintained`: CI-backed semantics with documented coverage and known gaps
 
 Do not use `_template` as a real language entry.
+
+## Current Language Entries
+
+- `python`: planned Python 3.14.6 semantics, using the official Python docs as the primary reference and CPython 3.14.6 as the reference implementation profile.
+- `sql`: planned SQL:2023 research charter, currently parked while Python is the active target.

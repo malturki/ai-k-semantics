@@ -10,6 +10,7 @@ This is the initial scaffold. It contains:
 
 - K Framework research notes from the official docs, tutorials, builtins, PL tutorial, and upstream source tree.
 - A language workspace template under `languages/_template`.
+- An initial Python charter under `languages/python`, targeting Python 3.14.6.
 - An initial SQL charter under `languages/sql`, targeting SQL:2023 / ISO/IEC 9075:2023.
 - Manifest schemas and a lightweight validator for future language entries.
 - Workflow docs for language onboarding and reference-implementation validation.

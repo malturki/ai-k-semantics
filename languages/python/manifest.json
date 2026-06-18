@@ -1,0 +1,141 @@
+{
+  "id": "python",
+  "name": "Python",
+  "status": "planned",
+  "visibility": "public",
+  "k_framework": {
+    "minimum_version": null,
+    "tested_versions": []
+  },
+  "language": {
+    "version": "Python 3.14.6",
+    "scope": "Initial target: Python 3.14 language syntax and core semantics as documented by the official Python Language Reference. Use the Python Standard Library reference for built-in functions, built-in constants, built-in types, exceptions, importlib behavior, and modules that materially interact with language semantics. Use accepted/final PEPs as provenance for features, but prefer the current official documentation when it differs from historical PEP text.",
+    "non_goals": [
+      "Python 2 semantics and unsupported Python 3 versions.",
+      "Alternate implementation behavior from PyPy, Jython, IronPython, or Python.NET unless a separate profile is explicitly created.",
+      "CPython bytecode, compiler optimizations, reference-counting details, C API behavior, ABI behavior, and internal interpreter layout unless they are selected as an implementation profile.",
+      "Exhaustive standard-library semantics beyond builtins and modules that affect core language execution.",
+      "Third-party packaging, PyPI behavior, virtual environment tooling, and framework/library semantics unless separately chartered.",
+      "Host-specific I/O, OS, filesystem, signal, thread scheduling, and locale behavior except through explicit environment profiles."
+    ]
+  },
+  "sources": {
+    "specifications": [
+      {
+        "title": "Python 3.14.6 documentation",
+        "role": "official documentation set",
+        "url": "https://docs.python.org/3/",
+        "date": "2026-06-18",
+        "status": "current stable docs",
+        "notes": "Official documentation for Python 3.14.6; docs.python.org lists Python 3.14 as stable, Python 3.15 as pre-release, and Python 3.16 as in development."
+      },
+      {
+        "title": "The Python Language Reference",
+        "role": "primary language reference",
+        "url": "https://docs.python.org/3/reference/",
+        "date": "2026-06-14",
+        "status": "current stable docs",
+        "notes": "Primary source for syntax and core semantics. The reference itself states that it is mostly English prose rather than a fully formal specification, so ambiguities must be tracked explicitly."
+      },
+      {
+        "title": "Python Language Reference: Introduction",
+        "role": "specification-methodology warning",
+        "url": "https://docs.python.org/3/reference/introduction.html",
+        "date": "2026-06-18",
+        "status": "current stable docs",
+        "notes": "Explains alternate implementations, CPython implementation notes, and the grammar notation used by lexical and syntactic definitions."
+      },
+      {
+        "title": "Python Language Reference: Full Grammar specification",
+        "role": "grammar source",
+        "url": "https://docs.python.org/3/reference/grammar.html",
+        "date": "2026-06-14",
+        "status": "current stable docs",
+        "notes": "Documentation says the full grammar is derived directly from the CPython parser grammar and omits code-generation and error-recovery details."
+      },
+      {
+        "title": "The Python Standard Library",
+        "role": "builtins and runtime library reference",
+        "url": "https://docs.python.org/3/library/",
+        "date": "2026-06-14",
+        "status": "current stable docs",
+        "notes": "Primary source for built-in functions, constants, types, exceptions, importlib, ast, tokenize, token, keyword, and other modules that interact with language execution."
+      },
+      {
+        "title": "PEP Index",
+        "role": "accepted feature provenance",
+        "url": "https://peps.python.org/",
+        "status": "active",
+        "notes": "Use accepted/final Standards Track PEPs to explain feature history and design rationale. Current docs remain canonical for implemented behavior."
+      },
+      {
+        "title": "PEP 745: Python 3.14 Release Schedule",
+        "role": "version provenance",
+        "url": "https://peps.python.org/pep-0745/",
+        "status": "final"
+      },
+      {
+        "title": "Status of Python versions",
+        "role": "release status",
+        "url": "https://devguide.python.org/versions/",
+        "date": "2026-06-18",
+        "status": "current"
+      }
+    ],
+    "reference_implementations": [
+      {
+        "name": "CPython 3.14.6",
+        "role": "primary reference implementation",
+        "url": "https://www.python.org/downloads/release/python-3146/",
+        "repository": "https://github.com/python/cpython",
+        "tag": "v3.14.6",
+        "date": "2026-06-10",
+        "notes": "Use CPython for differential behavior where the language reference is ambiguous or explicitly marks CPython implementation notes. Keep CPython-specific behavior separate from portable Python semantics."
+      }
+    ],
+    "test_suites": [
+      {
+        "name": "CPython regression test suite",
+        "role": "reference implementation test suite",
+        "source": "https://github.com/python/cpython/tree/v3.14.6/Lib/test",
+        "runner": "python -m test",
+        "documentation": "https://devguide.python.org/testing/run-write-tests/",
+        "notes": "Primary large-scale regression suite for the CPython reference profile. Tests must be classified as language semantics, CPython implementation detail, standard library behavior, platform-dependent behavior, or non-goal."
+      },
+      {
+        "name": "Python doctest/unittest examples in official docs",
+        "role": "documentation examples and local golden cases",
+        "source": "https://docs.python.org/3/",
+        "notes": "Useful for small golden cases, but examples must be traced to the relevant reference section before they become conformance tests."
+      }
+    ]
+  },
+  "semantics": {
+    "main_definition": null,
+    "main_module": null,
+    "syntax_module": null,
+    "backends": ["llvm", "haskell"]
+  },
+  "tests": {
+    "conformance_manifest": null,
+    "proof_manifest": null
+  },
+  "known_gaps": [
+    {
+      "type": "specification-form",
+      "description": "The Python Language Reference is the official core reference, but it is intentionally written mostly in English rather than as a fully formal semantic specification. Ambiguities must be recorded and tested against CPython where appropriate."
+    },
+    {
+      "type": "implementation-boundary",
+      "description": "CPython is the primary implementation and practical oracle, but some behavior is documented as implementation-specific. The base semantics must distinguish portable Python behavior from CPython-profile behavior."
+    },
+    {
+      "type": "scope",
+      "description": "The full standard library is enormous. The initial formal semantics should cover builtins and language-interacting modules before attempting broad library semantics."
+    },
+    {
+      "type": "environment",
+      "description": "I/O, filesystem, concurrency, signals, locale, and platform behavior need explicit host profiles to avoid baking in accidental local behavior."
+    }
+  ]
+}

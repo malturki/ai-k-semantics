@@ -1,0 +1,43 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/malturki/ai-k-semantics/schemas/language-manifest.schema.json",
+  "title": "Language Manifest",
+  "type": "object",
+  "required": ["id", "name", "status", "sources", "semantics", "tests", "known_gaps"],
+  "properties": {
+    "id": {
+      "type": "string",
+      "pattern": "^[a-z0-9][a-z0-9-]*$"
+    },
+    "name": { "type": "string" },
+    "status": {
+      "type": "string",
+      "enum": ["planned", "experimental", "reference-testing", "proof-testing", "maintained"]
+    },
+    "visibility": {
+      "type": "string",
+      "enum": ["public", "private"]
+    },
+    "k_framework": { "type": "object" },
+    "language": { "type": "object" },
+    "sources": {
+      "type": "object",
+      "required": ["specifications", "reference_implementations", "test_suites"],
+      "properties": {
+        "specifications": { "type": "array" },
+        "reference_implementations": { "type": "array" },
+        "test_suites": { "type": "array" }
+      }
+    },
+    "semantics": {
+      "type": "object",
+      "required": ["main_definition", "main_module", "syntax_module", "backends"]
+    },
+    "tests": {
+      "type": "object",
+      "required": ["conformance_manifest", "proof_manifest"]
+    },
+    "known_gaps": { "type": "array" }
+  },
+  "additionalProperties": true
+}

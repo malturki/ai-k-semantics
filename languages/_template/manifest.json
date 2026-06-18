@@ -1,0 +1,31 @@
+{
+  "id": "template",
+  "name": "Template Language",
+  "status": "planned",
+  "visibility": "public",
+  "k_framework": {
+    "minimum_version": null,
+    "tested_versions": []
+  },
+  "language": {
+    "version": null,
+    "scope": "Describe the subset or full language target.",
+    "non_goals": []
+  },
+  "sources": {
+    "specifications": [],
+    "reference_implementations": [],
+    "test_suites": []
+  },
+  "semantics": {
+    "main_definition": null,
+    "main_module": null,
+    "syntax_module": null,
+    "backends": ["llvm", "haskell"]
+  },
+  "tests": {
+    "conformance_manifest": null,
+    "proof_manifest": null
+  },
+  "known_gaps": []
+}

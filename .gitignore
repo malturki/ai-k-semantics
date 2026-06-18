@@ -1,0 +1,11 @@
+.DS_Store
+*.pyc
+__pycache__/
+.pytest_cache/
+*-kompiled/
+.kompile-*/
+tmp/
+dist/
+build/
+.coverage
+graphify-out/

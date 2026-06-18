@@ -26,9 +26,15 @@ languages/
   _template/         Copy this structure for each language.
 schemas/
   language-manifest.schema.json
+skills/
+  k-formal-semantics/ Reusable Codex skill for K semantics work.
 tools/
   validate_manifests.py
 ```
+
+## Codex Skill
+
+This repo versions a reusable Codex skill at `skills/k-formal-semantics`. Install or copy it into `${CODEX_HOME:-~/.codex}/skills/k-formal-semantics` to make Codex auto-discover the project methodology for K semantics work.
 
 ## Intended Workflow
 

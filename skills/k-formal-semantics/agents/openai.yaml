@@ -1,0 +1,4 @@
+interface:
+  display_name: "K Formal Semantics"
+  short_description: "Build K semantics from specs and tests"
+  default_prompt: "Use $k-formal-semantics to plan and implement a K semantics for a language from its official specification and reference tests."

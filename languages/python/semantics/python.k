@@ -277,6 +277,7 @@ module PYTHON
   syntax Map ::= bindVals(Map, IdItems, ValItems) [function, symbol(bindVals)]
   syntax ValItems ::= argValsToValItems(ArgVals) [function, symbol(argValsToValItems)]
   syntax ValItems ::= argValsToSetItems(ArgVals) [function, symbol(argValsToSetItems)]
+  syntax ValItems ::= stringToValItems(String, Int, Int) [function, symbol(stringToValItems)]
   syntax ValItems ::= concatValItems(ValItems, ValItems) [function, symbol(concatValItems)]
   syntax ValItems ::= repeatValItems(ValItems, Int) [function, symbol(repeatValItems)]
   syntax ValItems ::= sliceValItems(ValItems, Int, Int) [function, symbol(sliceValItems)]
@@ -715,6 +716,13 @@ module PYTHON
     valItemsCons(V, argValsToSetItems(VS))
     requires notBool emptyArgVals(VS)
       andBool notBool containsVal(V, argValsToSetItems(VS))
+
+  rule stringToValItems(S:String, I:Int, Len:Int) =>
+    valItemsLast(substrString(S, I, I +Int 1))
+    requires I +Int 1 >=Int Len
+  rule stringToValItems(S:String, I:Int, Len:Int) =>
+    valItemsCons(substrString(S, I, I +Int 1), stringToValItems(S, I +Int 1, Len))
+    requires I +Int 1 <Int Len
 
   rule concatValItems(valItemsLast(V:Val), VS:ValItems) => valItemsCons(V, VS)
   rule concatValItems(valItemsCons(V:Val, VS1:ValItems), VS2:ValItems) =>
@@ -1427,6 +1435,12 @@ module PYTHON
   rule <k> tupleVal(VS:ValItems) ~> forIter(X:Id, Body:Block) =>
            forItems(X, VS, Body)
        ... </k>
+  rule <k> S:String ~> forIter(_:Id, _:Block) => stmtNoResult ... </k>
+    requires lengthString(S) ==Int 0
+  rule <k> S:String ~> forIter(X:Id, Body:Block) =>
+           forItems(X, stringToValItems(S, 0, lengthString(S)), Body)
+       ... </k>
+    requires lengthString(S) >Int 0
   rule <k> rangeVal(Start:Int, Stop:Int) ~> forIter(X:Id, Body:Block) =>
            forRange(X, Start, Stop, Body)
        ... </k>
@@ -1552,6 +1566,12 @@ module PYTHON
   rule <k> tupleVal(VS:ValItems) ~> forElseIter(X:Id, Body:Block, Else:Block) =>
            forElseItems(X, VS, Body, Else)
        ... </k>
+  rule <k> S:String ~> forElseIter(_:Id, _:Block, Else:Block) => runLoopElse(Else) ... </k>
+    requires lengthString(S) ==Int 0
+  rule <k> S:String ~> forElseIter(X:Id, Body:Block, Else:Block) =>
+           forElseItems(X, stringToValItems(S, 0, lengthString(S)), Body, Else)
+       ... </k>
+    requires lengthString(S) >Int 0
   rule <k> rangeVal(Start:Int, Stop:Int) ~> forElseIter(X:Id, Body:Block, Else:Block) =>
            forElseRange(X, Start, Stop, Body, Else)
        ... </k>

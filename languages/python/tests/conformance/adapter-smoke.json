@@ -389,6 +389,13 @@
       "coverage": ["for-statement", "tuple-iteration-subset", "simple-name-target", "ordinary-python-source-adapter"]
     },
     {
+      "id": "adapter-for-string",
+      "source": "../adapter/adapter-for-string.py",
+      "reference": "Python Language Reference 8.3 The for statement; Python Standard Library Built-in Types str",
+      "expected_result": "True ~> .K",
+      "coverage": ["for-statement", "string-iteration-subset", "simple-name-target", "break-statement", "continue-statement", "ordinary-python-source-adapter"]
+    },
+    {
       "id": "adapter-for-break-continue",
       "source": "../adapter/adapter-for-break-continue.py",
       "reference": "Python Language Reference 8.3 The for statement; 7.9 The break statement; 7.10 The continue statement",
@@ -450,6 +457,13 @@
       "reference": "Python Language Reference 8.3 The for statement; 7.10 The continue statement",
       "expected_result": "True ~> .K",
       "coverage": ["for-statement", "loop-else-after-continue-exhaustion", "continue-statement", "ordinary-python-source-adapter"]
+    },
+    {
+      "id": "adapter-for-string-else",
+      "source": "../adapter/adapter-for-string-else.py",
+      "reference": "Python Language Reference 8.3 The for statement; Python Standard Library Built-in Types str",
+      "expected_result": "True ~> .K",
+      "coverage": ["for-statement", "string-iteration-subset", "empty-string-iteration", "loop-else-normal-completion", "loop-else-break-suppression", "ordinary-python-source-adapter"]
     },
     {
       "id": "adapter-range-for",

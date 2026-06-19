@@ -91,6 +91,7 @@ module PYTHON-SYNTAX
 
   syntax Exp ::= Val
                | Id
+               | "#namedExpr" "(" Id "," Exp ")" [symbol(namedExprExp), strict(2)]
                | "(" Exp ")" [bracket]
                | Exp "(" Exp ")" [symbol(callExp)]
                | "#call" "(" Exp "," ArgExps ")" [symbol(callArgsExp)]
@@ -1043,6 +1044,9 @@ module PYTHON
 
   rule <k> X:Id => V ... </k>
        <env> ... X |-> V:Val ... </env>
+
+  rule <k> namedExprExp(X:Id, V:Val) => V ... </k>
+       <env> Rho => Rho [ X <- V ] </env>
 
   rule + V:Val => intValue(V) requires isIntLike(V)
   rule - V:Val => 0 -Int intValue(V) requires isIntLike(V)

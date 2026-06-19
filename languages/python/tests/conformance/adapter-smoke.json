@@ -298,6 +298,13 @@
       "coverage": ["chained-comparison", "identity-comparison", "ordinary-python-source-adapter"]
     },
     {
+      "id": "adapter-named-expression",
+      "source": "../adapter/adapter-named-expression.py",
+      "reference": "Python Language Reference 6.12 Assignment expressions; 6.16 Evaluation order",
+      "expected_result": "True ~> .K",
+      "coverage": ["assignment-expression", "named-expression", "simple-name-target", "expression-evaluation-order", "ordinary-python-source-adapter"]
+    },
+    {
       "id": "adapter-while",
       "source": "../adapter/adapter-while.py",
       "reference": "Python Language Reference 8.2 The while statement",

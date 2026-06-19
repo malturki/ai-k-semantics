@@ -103,6 +103,10 @@ def emit_exp(exp: ast.expr) -> str:
             return emit_constant(exp, value)
         case ast.Name(id=name):
             return name
+        case ast.NamedExpr(target=ast.Name(id=name), value=value):
+            return f"#namedExpr({name}, {emit_exp(value)})"
+        case ast.NamedExpr():
+            raise unsupported(exp, "only simple-name assignment expression targets are supported yet")
         case ast.BinOp(left=left, op=op, right=right):
             return emit_bin_op(left, op, right)
         case ast.UnaryOp(op=op, operand=operand):

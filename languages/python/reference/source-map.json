@@ -219,9 +219,9 @@
               "section": "Naming and binding"
             }
           ],
-          "k_coverage": ["semantics/python.k: single global environment with name lookup and assignment for Val"],
-          "test_coverage": ["tests/examples/smoke-assignment.py", "tests/examples/smoke-comparisons.py"],
-          "gaps": ["Need static scope analysis, local/global/nonlocal declarations, class scopes, comprehensions, closures, and annotation scopes."]
+          "k_coverage": ["semantics/python.k: single global environment with name lookup and assignment for Val", "semantics/python.k: internal #namedExpr binds simple-name assignment expressions in the current environment"],
+          "test_coverage": ["tests/examples/smoke-assignment.py", "tests/examples/smoke-comparisons.py", "tests/adapter/adapter-named-expression.py"],
+          "gaps": ["Need static scope analysis, local/global/nonlocal declarations, class scopes, comprehension binding behavior, closures, and annotation scopes."]
         },
         {
           "id": "execution.exceptions",
@@ -432,7 +432,7 @@
         {
           "id": "expr.assignment-expressions",
           "title": "Assignment expressions",
-          "status": "not-started",
+          "status": "partial",
           "references": [
             {
               "title": "Expressions",
@@ -440,9 +440,9 @@
               "section": "Assignment expressions"
             }
           ],
-          "k_coverage": [],
-          "test_coverage": [],
-          "gaps": ["Need walrus binding rules, comprehension special cases, and syntax restrictions."]
+          "k_coverage": ["semantics/python.k: internal #namedExpr simple-name target form evaluates the RHS expression, binds the value in the current environment, and yields the assigned value", "harness/python_to_k_input.py: CPython AST NamedExpr nodes with simple-name targets are translated to #namedExpr"],
+          "test_coverage": ["tests/adapter/adapter-named-expression.py"],
+          "gaps": ["Need concrete parser integration for :=, grammar-position restrictions and diagnostics, comprehension special cases, class/function/global/nonlocal scope interactions, and invalid target diagnostics."]
         }
       ]
     },

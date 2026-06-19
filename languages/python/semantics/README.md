@@ -44,6 +44,7 @@ The base modules should model portable Python semantics from the official docs. 
 - singleton identity comparisons with `is` and `is not` for `None`, `True`, and `False`
 - adapter-backed chained comparisons over the currently supported comparison operators, with short-circuiting
 - conditional expressions
+- adapter-backed assignment expressions `NAME := expr` for simple-name targets in the current environment
 - simple-name `+=`, `-=`, `*=`, `%=`, `**=`, `//=`, `<<=`, `>>=`, `&=`, `^=`, and `|=`
 - multi-target simple-name assignment through the AST adapter
 - simple-name `del`
@@ -88,6 +89,8 @@ Current compound-statement caveat: the K parser does not yet accept Python inden
 Current range caveat: adapter-backed `range` support is an internal `rangeVal` subset used by `for` loops, `len`, equality, truthiness, integer-like containment, indexing, and nonzero-step slicing, including positive and negative integer steps. Zero-step `ValueError`, range object attributes, non-integer containment fallback, out-of-range `IndexError`, and the general iterator protocol remain unsupported.
 
 Current builtin caveat: `len` is defined only for the current concrete string/container/range values, `bool` is defined only through the current truth-value subset, `all` and `any` are defined only for current concrete string/container/range values after the argument value is materialized, `sum` is defined only for current concrete int-like container/range values with optional int-like `start`, one-argument `min` and `max` are defined only for current nonempty concrete int-like container/range values, `int` is defined only for no argument and current int-like values, `abs`, `divmod`, and two-argument `pow` are defined only for current int-like values, with `pow` limited to nonnegative exponents, and the current container type constructors cover only no-argument `list()`, `tuple()`, `dict()`, and `set()`. General builtins namespace lookup, constructor arguments, string/base numeric conversion, three-argument modular `pow`, lazy iterator side effects, non-int sum starts/items, empty/default/key/multi-argument `min`/`max`, `__bool__`/`__len__`/`__iter__`/`__next__`/`__int__`/`__abs__`/`__divmod__`/`__pow__` dispatch, overflow/error behavior, and user-defined objects remain unsupported.
+
+Current assignment-expression caveat: adapter-backed `NAME := expr` evaluates `expr`, binds the resulting value to `NAME` in the current single environment, and yields that value. Full named-expression support still needs concrete parser integration, grammar-position restrictions and diagnostics, comprehension scope behavior, and interaction with real module/function/class scopes.
 
 Current function caveat: adapter-backed `#def` and `#defArgs` cover zero or more positional parameters, no decorators, no defaults, no annotations, no keyword arguments, no varargs/kwargs, and an environment-restore model. Full Python function objects need real frames, cells/closures, default evaluation, globals/nonlocals, descriptors, methods, and argument binding diagnostics.
 

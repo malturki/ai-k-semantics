@@ -127,6 +127,7 @@ module PYTHON-SYNTAX
                | Exp "[" Exp "]" [symbol(subscriptExp), strict]
                | "#range" "(" Exp ")" [symbol(range1Exp), strict]
                | "#range" "(" Exp "," Exp ")" [symbol(range2Exp), strict]
+               | "#range" "(" Exp "," Exp "," Exp ")" [symbol(range3Exp), strict]
                > "not" Exp [symbol(notExp), strict]
                > Exp "and" Exp [symbol(andExp), left]
                > Exp "or" Exp [symbol(orExp), left]
@@ -147,6 +148,7 @@ module PYTHON
                | functionVal(Id, Block) [symbol(functionVal)]
                | functionValArgs(IdItems, Block) [symbol(functionValArgs)]
                | rangeVal(Int, Int) [symbol(rangeVal)]
+               | rangeVal(Int, Int, Int) [symbol(rangeValStep)]
                | argsVal(ArgVals) [symbol(argsVal)]
                | dictArgsVal(DictVals) [symbol(dictArgsVal)]
 
@@ -187,6 +189,8 @@ module PYTHON
                  | forUnpackItems(IdItems, ValItems, Block) [symbol(forUnpackItems)]
                  | forRange(Id, Int, Int, Block) [symbol(forRange)]
                  | forRangeAgain(Id, Int, Int, Block) [symbol(forRangeAgain)]
+                 | forRangeStep(Id, Int, Int, Int, Block) [symbol(forRangeStep)]
+                 | forRangeStepAgain(Id, Int, Int, Int, Block) [symbol(forRangeStepAgain)]
                  | forElseIter(Id, Block, Block) [symbol(forElseIter)]
                  | forElseItems(Id, ValItems, Block, Block) [symbol(forElseItems)]
                  | forElseDone(Block) [symbol(forElseDone)]
@@ -195,6 +199,8 @@ module PYTHON
                  | forUnpackElseDone(Block) [symbol(forUnpackElseDone)]
                  | forElseRange(Id, Int, Int, Block, Block) [symbol(forElseRange)]
                  | forElseRangeAgain(Id, Int, Int, Block, Block) [symbol(forElseRangeAgain)]
+                 | forElseRangeStep(Id, Int, Int, Int, Block, Block) [symbol(forElseRangeStep)]
+                 | forElseRangeStepAgain(Id, Int, Int, Int, Block, Block) [symbol(forElseRangeStepAgain)]
                  | runLoopElse(Block) [symbol(runLoopElse)]
                  | "forDone" [symbol(forDone)]
                  | "breakSignal" [symbol(breakSignal)]
@@ -221,6 +227,7 @@ module PYTHON
                | pyFloorDiv(Int, Int) [function, symbol(pyFloorDiv)]
                | pyModulo(Int, Int) [function, symbol(pyModulo)]
                | pyLen(Val) [function, symbol(pyLen)]
+               | pyRangeLen(Int, Int, Int) [function, symbol(pyRangeLen)]
                | valItemsLen(ValItems) [function, symbol(valItemsLen)]
                | dictItemsLen(DictItems) [function, symbol(dictItemsLen)]
   syntax ArgVals ::= "#noArgVals" [symbol(noArgVals)]
@@ -255,6 +262,8 @@ module PYTHON
   rule truthy(functionVal(_:Id, _:Block)) => true
   rule truthy(functionValArgs(_:IdItems, _:Block)) => true
   rule truthy(rangeVal(Start:Int, Stop:Int)) => Start <Int Stop
+  rule truthy(rangeVal(Start:Int, Stop:Int, Step:Int)) => pyRangeLen(Start, Stop, Step) >Int 0
+    requires Step =/=Int 0
   rule truthy(argsVal(_:ArgVals)) => true
   rule truthy(dictArgsVal(_:DictVals)) => true
 
@@ -275,6 +284,7 @@ module PYTHON
   rule isIntLike(functionVal(_:Id, _:Block)) => false
   rule isIntLike(functionValArgs(_:IdItems, _:Block)) => false
   rule isIntLike(rangeVal(_:Int, _:Int)) => false
+  rule isIntLike(rangeVal(_:Int, _:Int, _:Int)) => false
   rule isIntLike(argsVal(_:ArgVals)) => false
   rule isIntLike(dictArgsVal(_:DictVals)) => false
 
@@ -295,6 +305,7 @@ module PYTHON
   rule singletonIdentity(functionVal(_:Id, _:Block)) => false
   rule singletonIdentity(functionValArgs(_:IdItems, _:Block)) => false
   rule singletonIdentity(rangeVal(_:Int, _:Int)) => false
+  rule singletonIdentity(rangeVal(_:Int, _:Int, _:Int)) => false
   rule singletonIdentity(argsVal(_:ArgVals)) => false
   rule singletonIdentity(dictArgsVal(_:DictVals)) => false
 
@@ -314,6 +325,16 @@ module PYTHON
     requires Start <Int Stop
   rule pyLen(rangeVal(Start:Int, Stop:Int)) => 0
     requires Start >=Int Stop
+  rule pyLen(rangeVal(Start:Int, Stop:Int, Step:Int)) => pyRangeLen(Start, Stop, Step)
+    requires Step =/=Int 0
+
+  rule pyRangeLen(Start:Int, Stop:Int, Step:Int) => ((Stop -Int Start -Int 1) /Int Step) +Int 1
+    requires Step >Int 0 andBool Start <Int Stop
+  rule pyRangeLen(Start:Int, Stop:Int, Step:Int) => ((Start -Int Stop -Int 1) /Int (0 -Int Step)) +Int 1
+    requires Step <Int 0 andBool Start >Int Stop
+  rule pyRangeLen(Start:Int, Stop:Int, Step:Int) => 0
+    requires (Step >Int 0 andBool Start >=Int Stop)
+      orBool (Step <Int 0 andBool Start <=Int Stop)
 
   rule valItemsLen(valItemsLast(_:Val)) => 1
   rule valItemsLen(valItemsCons(_:Val, VS:ValItems)) => 1 +Int valItemsLen(VS)
@@ -754,6 +775,8 @@ module PYTHON
     requires isIntLike(N)
   rule range2Exp(Start:Val, Stop:Val) => rangeVal(intValue(Start), intValue(Stop))
     requires isIntLike(Start) andBool isIntLike(Stop)
+  rule range3Exp(Start:Val, Stop:Val, Step:Val) => rangeVal(intValue(Start), intValue(Stop), intValue(Step))
+    requires isIntLike(Start) andBool isIntLike(Stop) andBool isIntLike(Step) andBool intValue(Step) =/=Int 0
 
   rule <k> assignStmt(X:Id, V:Val) => stmtNoResult ... </k>
        <env> Rho => Rho [ X <- V ] </env>
@@ -868,6 +891,10 @@ module PYTHON
   rule <k> rangeVal(Start:Int, Stop:Int) ~> forIter(X:Id, Body:Block) =>
            forRange(X, Start, Stop, Body)
        ... </k>
+  rule <k> rangeVal(Start:Int, Stop:Int, Step:Int) ~> forIter(X:Id, Body:Block) =>
+           forRangeStep(X, Start, Stop, Step, Body)
+       ... </k>
+    requires Step =/=Int 0
 
   rule <k> forItems(X:Id, valItemsCons(V:Val, VS:ValItems), block(SS:Stmts)) =>
            SS ~> forItems(X, VS, block(SS))
@@ -956,6 +983,25 @@ module PYTHON
            forRange(X, I, Stop, Body)
        ... </k>
 
+  rule <k> forRangeStep(X:Id, I:Int, Stop:Int, Step:Int, block(SS:Stmts)) =>
+           SS ~> forRangeStepAgain(X, I +Int Step, Stop, Step, block(SS))
+       ... </k>
+       <env> Rho => Rho [ X <- I ] </env>
+    requires (Step >Int 0 andBool I <Int Stop)
+      orBool (Step <Int 0 andBool I >Int Stop)
+  rule <k> forRangeStep(X:Id, I:Int, Stop:Int, Step:Int, {}) =>
+           forRangeStep(X, I +Int Step, Stop, Step, {})
+       ... </k>
+       <env> Rho => Rho [ X <- I ] </env>
+    requires (Step >Int 0 andBool I <Int Stop)
+      orBool (Step <Int 0 andBool I >Int Stop)
+  rule <k> forRangeStep(_:Id, I:Int, Stop:Int, Step:Int, _:Block) => stmtNoResult ... </k>
+    requires (Step >Int 0 andBool I >=Int Stop)
+      orBool (Step <Int 0 andBool I <=Int Stop)
+  rule <k> forRangeStepAgain(X:Id, I:Int, Stop:Int, Step:Int, Body:Block) =>
+           forRangeStep(X, I, Stop, Step, Body)
+       ... </k>
+
   rule <k> forElseStmt(X:Id, E:Exp, Body:Block, Else:Block) =>
            E ~> forElseIter(X, Body, Else)
        ... </k>
@@ -970,6 +1016,10 @@ module PYTHON
   rule <k> rangeVal(Start:Int, Stop:Int) ~> forElseIter(X:Id, Body:Block, Else:Block) =>
            forElseRange(X, Start, Stop, Body, Else)
        ... </k>
+  rule <k> rangeVal(Start:Int, Stop:Int, Step:Int) ~> forElseIter(X:Id, Body:Block, Else:Block) =>
+           forElseRangeStep(X, Start, Stop, Step, Body, Else)
+       ... </k>
+    requires Step =/=Int 0
 
   rule <k> forElseItems(X:Id, valItemsCons(V:Val, VS:ValItems), block(SS:Stmts), Else:Block) =>
            SS ~> forElseItems(X, VS, block(SS), Else)
@@ -1059,6 +1109,25 @@ module PYTHON
            forElseRange(X, I, Stop, Body, Else)
        ... </k>
 
+  rule <k> forElseRangeStep(X:Id, I:Int, Stop:Int, Step:Int, block(SS:Stmts), Else:Block) =>
+           SS ~> forElseRangeStepAgain(X, I +Int Step, Stop, Step, block(SS), Else)
+       ... </k>
+       <env> Rho => Rho [ X <- I ] </env>
+    requires (Step >Int 0 andBool I <Int Stop)
+      orBool (Step <Int 0 andBool I >Int Stop)
+  rule <k> forElseRangeStep(X:Id, I:Int, Stop:Int, Step:Int, {}, Else:Block) =>
+           forElseRangeStep(X, I +Int Step, Stop, Step, {}, Else)
+       ... </k>
+       <env> Rho => Rho [ X <- I ] </env>
+    requires (Step >Int 0 andBool I <Int Stop)
+      orBool (Step <Int 0 andBool I >Int Stop)
+  rule <k> forElseRangeStep(_:Id, I:Int, Stop:Int, Step:Int, _:Block, Else:Block) => runLoopElse(Else) ... </k>
+    requires (Step >Int 0 andBool I >=Int Stop)
+      orBool (Step <Int 0 andBool I <=Int Stop)
+  rule <k> forElseRangeStepAgain(X:Id, I:Int, Stop:Int, Step:Int, Body:Block, Else:Block) =>
+           forElseRangeStep(X, I, Stop, Step, Body, Else)
+       ... </k>
+
   rule <k> runLoopElse(block(SS:Stmts)) => SS ~> ifStmtDone ... </k>
   rule <k> runLoopElse({}) => stmtNoResult ... </k>
 
@@ -1103,6 +1172,11 @@ module PYTHON
            forRange(X, I, Stop, Body)
        ... </k>
   rule <k> returnSignal(V:Val) ~> forRangeAgain(_:Id, _:Int, _:Int, _:Block) => returnSignal(V) ... </k>
+  rule <k> breakSignal ~> forRangeStepAgain(_:Id, _:Int, _:Int, _:Int, _:Block) => stmtNoResult ... </k>
+  rule <k> continueSignal ~> forRangeStepAgain(X:Id, I:Int, Stop:Int, Step:Int, Body:Block) =>
+           forRangeStep(X, I, Stop, Step, Body)
+       ... </k>
+  rule <k> returnSignal(V:Val) ~> forRangeStepAgain(_:Id, _:Int, _:Int, _:Int, _:Block) => returnSignal(V) ... </k>
   rule <k> breakSignal ~> forElseItems(_:Id, _:ValItems, _:Block, _:Block) => stmtNoResult ... </k>
   rule <k> breakSignal ~> forElseDone(_:Block) => stmtNoResult ... </k>
   rule <k> continueSignal ~> forElseItems(X:Id, VS:ValItems, Body:Block, Else:Block) =>
@@ -1124,6 +1198,11 @@ module PYTHON
            forElseRange(X, I, Stop, Body, Else)
        ... </k>
   rule <k> returnSignal(V:Val) ~> forElseRangeAgain(_:Id, _:Int, _:Int, _:Block, _:Block) => returnSignal(V) ... </k>
+  rule <k> breakSignal ~> forElseRangeStepAgain(_:Id, _:Int, _:Int, _:Int, _:Block, _:Block) => stmtNoResult ... </k>
+  rule <k> continueSignal ~> forElseRangeStepAgain(X:Id, I:Int, Stop:Int, Step:Int, Body:Block, Else:Block) =>
+           forElseRangeStep(X, I, Stop, Step, Body, Else)
+       ... </k>
+  rule <k> returnSignal(V:Val) ~> forElseRangeStepAgain(_:Id, _:Int, _:Int, _:Int, _:Block, _:Block) => returnSignal(V) ... </k>
   rule <k> returnSignal(V:Val) ~> functionDone(Rho:Map) => V ~> restoreEnv(Rho) ... </k>
   rule <k> functionDone(Rho:Map) => None ~> restoreEnv(Rho) ... </k>
 

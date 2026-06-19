@@ -62,7 +62,7 @@ The base modules should model portable Python semantics from the official docs. 
 - adapter-backed `for` loops over the current list/tuple value subset, including `break`, `continue`, and `return` propagation
 - adapter-backed flat sequence unpacking targets in `for` loops
 - adapter-backed `while`/`for` loop `else` clauses for the current loop subsets
-- adapter-backed `range(stop)` and `range(start, stop)` values in `for` loops
+- adapter-backed `range(stop)`, `range(start, stop)`, and `range(start, stop, step)` values in `for` loops
 - adapter-backed `len(...)` for strings, lists, tuples, dictionaries, sets, and current range values
 - adapter-backed single-parameter `def` functions, `return`, fallthrough to `None`, and recursive calls in the single-environment subset
 
@@ -74,7 +74,7 @@ Current container caveat: direct concrete list, tuple, dict, and set smoke tests
 
 Current compound-statement caveat: the K parser does not yet accept Python indentation syntax directly. The AST adapter emits internal `#if`, `#while`, `#whileElse`, `#for`, `#forElse`, and `#def` statements with explicit blocks for the supported subset. General iterator protocol, `try`, `with`, `match`, full function definitions, class definitions, and async compound statements remain unsupported.
 
-Current range caveat: adapter-backed `range` support is an internal `rangeVal(start, stop)` subset with an implicit positive step of `1`, used only by `for` loops. Step arguments, negative steps, range object attributes, range equality, indexing, slicing, containment arithmetic, and the general iterator protocol remain unsupported.
+Current range caveat: adapter-backed `range` support is an internal `rangeVal` subset used by `for` loops and `len`, including positive and negative integer steps. Zero-step `ValueError`, range object attributes, range equality, indexing, slicing, containment arithmetic, and the general iterator protocol remain unsupported.
 
 Current builtin caveat: `len` is defined only for the current concrete string/container/range values. General `__len__` dispatch, overflow/error behavior, and user-defined objects remain unsupported.
 

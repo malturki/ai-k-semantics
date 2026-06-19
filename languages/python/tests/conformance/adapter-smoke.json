@@ -305,6 +305,27 @@
       "coverage": ["for-statement", "range-start-stop-subset", "break-statement", "continue-statement", "ordinary-python-source-adapter"]
     },
     {
+      "id": "adapter-range-step",
+      "source": "../adapter/adapter-range-step.py",
+      "reference": "Python Language Reference 8.3 The for statement; Standard Library range type",
+      "expected_result": "True ~> .K",
+      "coverage": ["for-statement", "range-step-subset", "ordinary-python-source-adapter"]
+    },
+    {
+      "id": "adapter-range-negative-step",
+      "source": "../adapter/adapter-range-negative-step.py",
+      "reference": "Python Language Reference 8.3 The for statement; Standard Library range type",
+      "expected_result": "True ~> .K",
+      "coverage": ["for-statement", "range-negative-step-subset", "ordinary-python-source-adapter"]
+    },
+    {
+      "id": "adapter-range-step-else",
+      "source": "../adapter/adapter-range-step-else.py",
+      "reference": "Python Language Reference 8.3 The for statement; Standard Library range type",
+      "expected_result": "True ~> .K",
+      "coverage": ["for-statement", "range-negative-step-subset", "loop-else-normal-completion", "ordinary-python-source-adapter"]
+    },
+    {
       "id": "adapter-len-containers",
       "source": "../adapter/adapter-len-containers.py",
       "reference": "Python Standard Library Built-in Functions len(); Built-in Types sequence, mapping, and set length",
@@ -317,6 +338,13 @@
       "reference": "Python Standard Library Built-in Functions len(); Built-in Types str and range",
       "expected_result": "True ~> .K",
       "coverage": ["len-builtin", "string-length", "range-length", "ordinary-python-source-adapter"]
+    },
+    {
+      "id": "adapter-len-range-step",
+      "source": "../adapter/adapter-len-range-step.py",
+      "reference": "Python Standard Library Built-in Functions len(); Built-in Types range",
+      "expected_result": "True ~> .K",
+      "coverage": ["len-builtin", "range-step-length", "ordinary-python-source-adapter"]
     },
     {
       "id": "adapter-dict",

@@ -1346,6 +1346,8 @@ module PYTHON
     requires isIntLike(V) andBool intValue(V) >Int 0
   rule V1:Val ** V2:Val => intValue(V1) ^Int intValue(V2)
     requires isIntLike(V1) andBool isIntLike(V2) andBool intValue(V2) >=Int 0
+  rule V1:Val ** V2:Val => Int2Float(intValue(V1), 53, 11) ^Float Int2Float(intValue(V2), 53, 11)
+    requires isIntLike(V1) andBool isIntLike(V2) andBool intValue(V1) =/=Int 0 andBool intValue(V2) <Int 0
   rule floorDivExp(V1:Val, V2:Val) => pyFloorDiv(intValue(V1), intValue(V2))
     requires isIntLike(V1) andBool isIntLike(V2) andBool intValue(V2) =/=Int 0
   rule floorDivInternal(V1:Val, V2:Val) => pyFloorDiv(intValue(V1), intValue(V2))
@@ -1950,6 +1952,8 @@ module PYTHON
     requires isIntLike(V1) andBool isIntLike(V2) andBool intValue(V2) =/=Int 0
   rule #pow(V1:Val, V2:Val) => intValue(V1) ^Int intValue(V2)
     requires isIntLike(V1) andBool isIntLike(V2) andBool intValue(V2) >=Int 0
+  rule #pow(V1:Val, V2:Val) => Int2Float(intValue(V1), 53, 11) ^Float Int2Float(intValue(V2), 53, 11)
+    requires isIntLike(V1) andBool isIntLike(V2) andBool intValue(V1) =/=Int 0 andBool intValue(V2) <Int 0
 
   rule range1Exp(N:Val) => rangeVal(0, intValue(N))
     requires isIntLike(N)

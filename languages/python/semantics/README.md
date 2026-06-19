@@ -33,7 +33,7 @@ The base modules should model portable Python semantics from the official docs. 
 - binary comparisons for int-like values and equality over integers, booleans, and `None`
 - string equality
 - conditional expressions
-- simple-name `+=`, `-=`, and `*=`
+- simple-name `+=`, `-=`, `*=`, `%=`, `**=`, `//=`, `<<=`, `>>=`, `&=`, `^=`, and `|=`
 - multi-target simple-name assignment through the AST adapter
 - simple-name `del`
 - truthy `assert`
@@ -63,3 +63,5 @@ Current container caveat: direct concrete list, tuple, dict, and set smoke tests
 Current compound-statement caveat: the K parser does not yet accept Python indentation syntax directly. The AST adapter emits internal `#if`, `#while`, `#for`, and `#def` statements with explicit blocks for the supported subset. Loop `else`, general iterator protocol, `try`, `with`, `match`, full function definitions, class definitions, and async compound statements remain unsupported.
 
 Current function caveat: adapter-backed `#def` uses one positional parameter, no decorators, no defaults, no annotations, no keyword arguments, and an environment-restore model. Full Python function objects need real frames, cells/closures, default evaluation, globals/nonlocals, descriptors, methods, and argument binding diagnostics.
+
+Current augmented-assignment caveat: true-division `/=` and matrix-multiplication `@=` remain unsupported because the current value model has no float/numeric tower or matrix protocol.

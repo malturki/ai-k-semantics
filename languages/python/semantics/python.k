@@ -44,6 +44,14 @@ module PYTHON-SYNTAX
                 | Id "+=" Exp [symbol(augAddStmt)]
                 | Id "-=" Exp [symbol(augSubStmt)]
                 | Id "*=" Exp [symbol(augMulStmt)]
+                | Id "%=" Exp [symbol(augModStmt)]
+                | Id "**=" Exp [symbol(augPowStmt)]
+                | Id "<<=" Exp [symbol(augLShiftStmt)]
+                | Id ">>=" Exp [symbol(augRShiftStmt)]
+                | Id "&=" Exp [symbol(augBitAndStmt)]
+                | Id "^=" Exp [symbol(augBitXorStmt)]
+                | Id "|=" Exp [symbol(augBitOrStmt)]
+                | "#floorDivAssign" "(" Id "," Exp ")" [symbol(augFloorDivStmt)]
                 | "#assignMany" "(" IdItems ";" Exp ")" [symbol(assignManyStmt), strict(2)]
                 | "return" Exp [symbol(returnStmt), strict]
                 | "#def" "(" Id "," Id "," Block ")" [symbol(functionDefStmt)]
@@ -432,6 +440,14 @@ module PYTHON
   rule <k> augAddStmt(X:Id, E:Exp) => assignStmt(X, X + E) ... </k>
   rule <k> augSubStmt(X:Id, E:Exp) => assignStmt(X, X - E) ... </k>
   rule <k> augMulStmt(X:Id, E:Exp) => assignStmt(X, X * E) ... </k>
+  rule <k> augModStmt(X:Id, E:Exp) => assignStmt(X, X % E) ... </k>
+  rule <k> augPowStmt(X:Id, E:Exp) => assignStmt(X, X ** E) ... </k>
+  rule <k> augLShiftStmt(X:Id, E:Exp) => assignStmt(X, X << E) ... </k>
+  rule <k> augRShiftStmt(X:Id, E:Exp) => assignStmt(X, X >> E) ... </k>
+  rule <k> augBitAndStmt(X:Id, E:Exp) => assignStmt(X, X & E) ... </k>
+  rule <k> augBitXorStmt(X:Id, E:Exp) => assignStmt(X, X ^ E) ... </k>
+  rule <k> augBitOrStmt(X:Id, E:Exp) => assignStmt(X, X | E) ... </k>
+  rule <k> augFloorDivStmt(X:Id, E:Exp) => assignStmt(X, #floorDiv(X, E)) ... </k>
 
   rule <k> assignManyStmt(IDS:IdItems, V:Val) => assignMany(IDS, V) ... </k>
   rule <k> assignMany(idItemsLast(X:Id), V:Val) => stmtNoResult ... </k>

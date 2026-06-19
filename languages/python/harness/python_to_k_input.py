@@ -67,6 +67,8 @@ def emit_stmt(stmt: ast.stmt) -> str:
         case ast.Assign(targets=targets, value=value):
             return emit_assign(stmt, targets, value)
         case ast.AugAssign(target=ast.Name(id=name), op=op, value=value):
+            if isinstance(op, ast.FloorDiv):
+                return f"#floorDivAssign({name}, {emit_exp(value)})"
             return f"{name} {emit_aug_op(op)}= {emit_exp(value)}"
         case ast.AugAssign():
             raise unsupported(stmt, "only simple-name +=, -=, and *= are supported")
@@ -296,6 +298,20 @@ def emit_aug_op(op: ast.operator) -> str:
         return "-"
     if isinstance(op, ast.Mult):
         return "*"
+    if isinstance(op, ast.Mod):
+        return "%"
+    if isinstance(op, ast.Pow):
+        return "**"
+    if isinstance(op, ast.LShift):
+        return "<<"
+    if isinstance(op, ast.RShift):
+        return ">>"
+    if isinstance(op, ast.BitAnd):
+        return "&"
+    if isinstance(op, ast.BitXor):
+        return "^"
+    if isinstance(op, ast.BitOr):
+        return "|"
     raise unsupported(op, "augmented assignment operator is not supported")
 
 

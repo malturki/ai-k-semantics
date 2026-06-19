@@ -483,9 +483,9 @@
               "section": "Assignment statements"
             }
           ],
-          "k_coverage": ["semantics/python.k: single-name assignment for Val; simple-name +=, -=, *=", "semantics/python.k: internal #assignMany for adapter-backed multi-target simple-name assignment"],
-          "test_coverage": ["tests/examples/smoke-assignment.py", "tests/examples/smoke-comparisons.py", "tests/examples/smoke-augmented-assignment.py", "tests/adapter/adapter-assign-many.py"],
-          "gaps": ["Need target lists, unpacking, attributes, subscriptions, annotations, all remaining augmented operators, and target evaluation order beyond simple names."]
+          "k_coverage": ["semantics/python.k: single-name assignment for Val; simple-name augmented assignment for +=, -=, *=, %=, **=, //=, <<=, >>=, &=, ^=, |=", "semantics/python.k: internal #assignMany for adapter-backed multi-target simple-name assignment"],
+          "test_coverage": ["tests/examples/smoke-assignment.py", "tests/examples/smoke-comparisons.py", "tests/examples/smoke-augmented-assignment.py", "tests/adapter/adapter-assign-many.py", "tests/adapter/adapter-augmented-more.py"],
+          "gaps": ["Need target lists, unpacking, attributes, subscriptions, annotations, true-division augmented assignment, matrix-multiplication augmented assignment, and target evaluation order beyond simple names."]
         },
         {
           "id": "stmt.assert",

@@ -156,6 +156,13 @@
       "reference": "Python Language Reference 7.2 Assignment statements",
       "expected_result": "True ~> .K",
       "coverage": ["multi-target-assignment", "simple-name-targets", "single-rhs-evaluation", "ordinary-python-source-adapter"]
+    },
+    {
+      "id": "adapter-augmented-more",
+      "source": "../adapter/adapter-augmented-more.py",
+      "reference": "Python Language Reference 7.2.1 Augmented assignment statements",
+      "expected_result": "True ~> .K",
+      "coverage": ["augmented-assignment", "modulo", "power", "floor-division", "shifts", "bitwise-operators", "ordinary-python-source-adapter"]
     }
   ]
 }

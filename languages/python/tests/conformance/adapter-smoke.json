@@ -256,6 +256,13 @@
       "coverage": ["min-builtin", "max-builtin", "int-like-ordering", "nonempty-concrete-iterable-subset", "dict-key-iteration-subset", "range-iteration-subset", "ordinary-python-source-adapter"]
     },
     {
+      "id": "adapter-min-max-args",
+      "source": "../adapter/adapter-min-max-args.py",
+      "reference": "Python Standard Library Built-in Functions min and max",
+      "expected_result": "True ~> .K",
+      "coverage": ["min-builtin", "max-builtin", "multi-argument-form", "int-like-ordering", "bool-as-int-ordering", "ordinary-python-source-adapter"]
+    },
+    {
       "id": "adapter-int-constructor",
       "source": "../adapter/adapter-int-constructor.py",
       "reference": "Python Standard Library Built-in Types int",

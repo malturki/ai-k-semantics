@@ -126,6 +126,8 @@ module PYTHON-SYNTAX
                | "#sum" "(" Exp "," Exp ")" [symbol(sum2Exp), strict]
                | "#min" "(" Exp ")" [symbol(minExp), strict]
                | "#max" "(" Exp ")" [symbol(maxExp), strict]
+               | "#minArgs" "(" ArgExps ")" [symbol(minArgsExp)]
+               | "#maxArgs" "(" ArgExps ")" [symbol(maxArgsExp)]
                | "#intCtor" "(" ")" [symbol(intCtor0Exp)]
                | "#intCtor" "(" Exp ")" [symbol(intCtor1Exp), strict]
                | "#abs" "(" Exp ")" [symbol(absExp), strict]
@@ -218,6 +220,8 @@ module PYTHON
                  | "buildList" [symbol(buildList)]
                  | "buildTuple" [symbol(buildTuple)]
                  | "buildSet" [symbol(buildSet)]
+                 | "minArgsResult" [symbol(minArgsResult)]
+                 | "maxArgsResult" [symbol(maxArgsResult)]
                  | evalDict(DictExps, DictVals) [symbol(evalDict)]
                  | evalDictValue(Exp, DictExps, DictVals) [symbol(evalDictValue)]
                  | evalDictNext(DictExps, DictVals, Val) [symbol(evalDictNext)]
@@ -329,6 +333,8 @@ module PYTHON
                | rangeSum(Int, Int, Int) [function, symbol(rangeSum)]
                | minValItems(ValItems) [function, symbol(minValItems)]
                | maxValItems(ValItems) [function, symbol(maxValItems)]
+               | minArgVals(ArgVals) [function, symbol(minArgVals)]
+               | maxArgVals(ArgVals) [function, symbol(maxArgVals)]
                | rangeMin(Int, Int, Int) [function, symbol(rangeMin)]
                | rangeMax(Int, Int, Int) [function, symbol(rangeMax)]
   syntax String ::= repeatString(String, Int) [function, symbol(repeatString)]
@@ -1053,6 +1059,26 @@ module PYTHON
     requires isIntLike(V)
       andBool valItemsAllIntLike(VS)
       andBool intValue(V) <Int maxValItems(VS)
+  rule minArgVals(argValsCons(V:Val, #noArgVals)) => intValue(V)
+    requires isIntLike(V)
+  rule minArgVals(argValsCons(V:Val, VS:ArgVals)) => intValue(V)
+    requires notBool emptyArgVals(VS)
+      andBool isIntLike(V)
+      andBool intValue(V) <=Int minArgVals(VS)
+  rule minArgVals(argValsCons(V:Val, VS:ArgVals)) => minArgVals(VS)
+    requires notBool emptyArgVals(VS)
+      andBool isIntLike(V)
+      andBool intValue(V) >Int minArgVals(VS)
+  rule maxArgVals(argValsCons(V:Val, #noArgVals)) => intValue(V)
+    requires isIntLike(V)
+  rule maxArgVals(argValsCons(V:Val, VS:ArgVals)) => intValue(V)
+    requires notBool emptyArgVals(VS)
+      andBool isIntLike(V)
+      andBool intValue(V) >=Int maxArgVals(VS)
+  rule maxArgVals(argValsCons(V:Val, VS:ArgVals)) => maxArgVals(VS)
+    requires notBool emptyArgVals(VS)
+      andBool isIntLike(V)
+      andBool intValue(V) <Int maxArgVals(VS)
   rule rangeMin(Start:Int, Stop:Int, Step:Int) => Start
     requires Step >Int 0 andBool pyRangeLen(Start, Stop, Step) >Int 0
   rule rangeMin(Start:Int, Stop:Int, Step:Int) =>
@@ -1941,6 +1967,12 @@ module PYTHON
     requires pyRangeLen(Start, Stop, 1) >Int 0
   rule #max(rangeVal(Start:Int, Stop:Int, Step:Int)) => rangeMax(Start, Stop, Step)
     requires Step =/=Int 0 andBool pyRangeLen(Start, Stop, Step) >Int 0
+  rule <k> minArgsExp(Args:ArgExps) => evalArgs(Args, #noArgVals) ~> minArgsResult ... </k>
+  rule <k> argsVal(VS:ArgVals) ~> minArgsResult => minArgVals(VS) ... </k>
+    requires notBool emptyArgVals(VS)
+  rule <k> maxArgsExp(Args:ArgExps) => evalArgs(Args, #noArgVals) ~> maxArgsResult ... </k>
+  rule <k> argsVal(VS:ArgVals) ~> maxArgsResult => maxArgVals(VS) ... </k>
+    requires notBool emptyArgVals(VS)
   rule #intCtor() => 0
   rule #intCtor(V:Val) => intValue(V)
     requires isIntLike(V)

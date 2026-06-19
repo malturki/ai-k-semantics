@@ -25,7 +25,12 @@ module PYTHON-SYNTAX
                      | Val ":" Val "," DictItems [symbol(dictItemsCons)]
 
   syntax IdItems ::= "#id" "(" Id ")" [symbol(idItemsLast)]
+                   | "#noIds" [symbol(noIdItems)]
                    | "#ids" "(" Id "," IdItems ")" [symbol(idItemsCons)]
+
+  syntax ArgExps ::= "#noArgs" [symbol(noArgExps)]
+                   | "#arg" "(" Exp ")" [symbol(argExp)]
+                   | "#args" "(" Exp "," ArgExps ")" [symbol(argExpsCons)]
 
   syntax Stmts ::= Stmt ";" Stmts [symbol(stmtsCons)]
                  | Stmt ";" [symbol(stmtsLast)]
@@ -55,6 +60,7 @@ module PYTHON-SYNTAX
                 | "#assignMany" "(" IdItems ";" Exp ")" [symbol(assignManyStmt), strict(2)]
                 | "return" Exp [symbol(returnStmt), strict]
                 | "#def" "(" Id "," Id "," Block ")" [symbol(functionDefStmt)]
+                | "#defArgs" "(" Id "," IdItems "," Block ")" [symbol(functionDefArgsStmt)]
                 | "#if" "(" Exp "," Block "," Block ")" [symbol(ifStmt)]
                 | "#while" "(" Exp "," Block ")" [symbol(whileStmt)]
                 | "#for" "(" Id "," Exp "," Block ")" [symbol(forStmt)]
@@ -63,6 +69,7 @@ module PYTHON-SYNTAX
                | Id
                | "(" Exp ")" [bracket]
                | Exp "(" Exp ")" [symbol(callExp)]
+               | "#call" "(" Exp "," ArgExps ")" [symbol(callArgsExp)]
                | "#floorDiv" "(" Exp "," Exp ")" [symbol(floorDivInternal), strict]
                | "+" Exp [symbol(posExp), strict]
                | "-" Exp [symbol(negExp), strict]
@@ -94,6 +101,7 @@ module PYTHON-SYNTAX
                > Exp "or" Exp [symbol(orExp), left]
                > Exp "if" Exp "else" Exp [symbol(ifExp), right]
                > "lambda" Id ":" Exp [symbol(lambdaExp)]
+               | "#lambdaArgs" "(" IdItems "," Exp ")" [symbol(lambdaArgsExp)]
 endmodule
 
 module PYTHON
@@ -104,8 +112,11 @@ module PYTHON
   imports MAP
 
   syntax Val ::= closure(Id, Exp) [symbol(closure)]
+               | closureArgs(IdItems, Exp) [symbol(closureArgs)]
                | functionVal(Id, Block) [symbol(functionVal)]
+               | functionValArgs(IdItems, Block) [symbol(functionValArgs)]
                | rangeVal(Int, Int) [symbol(rangeVal)]
+               | argsVal(ArgVals) [symbol(argsVal)]
 
   syntax KResult ::= Val
   syntax KItem ::= stmtNext(Stmts) [symbol(stmtNext)]
@@ -116,6 +127,10 @@ module PYTHON
                  | ifThenElse(Exp, Exp) [symbol(ifThenElse)]
                  | callArg(Exp) [symbol(callArg)]
                  | callApply(Val) [symbol(callApply)]
+                 | callArgs(ArgExps) [symbol(callArgs)]
+                 | evalArgs(ArgExps, ArgVals) [symbol(evalArgs)]
+                 | evalArgNext(ArgExps, ArgVals) [symbol(evalArgNext)]
+                 | callApplyArgs(Val) [symbol(callApplyArgs)]
                  | restoreEnv(Map) [symbol(restoreEnv)]
                  | ifStmtBranch(Block, Block) [symbol(ifStmtBranch)]
                  | "ifStmtDone" [symbol(ifStmtDone)]
@@ -136,12 +151,17 @@ module PYTHON
                 | isIntLike(Val) [function, symbol(isIntLike)]
                 | valEq(Val, Val) [function, symbol(valEq)]
                 | valsEq(ValItems, ValItems) [function, symbol(valsEq)]
+                | sameArity(IdItems, ArgVals) [function, symbol(sameArity)]
                 | containsVal(Val, ValItems) [function, symbol(containsVal)]
                 | containsKey(Val, DictItems) [function, symbol(containsKey)]
 
   syntax Int ::= intValue(Val) [function, symbol(intValue)]
                | pyFloorDiv(Int, Int) [function, symbol(pyFloorDiv)]
                | pyModulo(Int, Int) [function, symbol(pyModulo)]
+  syntax ArgVals ::= "#noArgVals" [symbol(noArgVals)]
+                   | argValsCons(Val, ArgVals) [symbol(argValsCons)]
+                   | appendArgVal(ArgVals, Val) [function, symbol(appendArgVal)]
+  syntax Map ::= bindArgs(Map, IdItems, ArgVals) [function, symbol(bindArgs)]
   syntax Val ::= listGet(ValItems, Int) [function, symbol(listGet)]
   syntax Val ::= dictGet(DictItems, Val) [function, symbol(dictGet)]
   syntax Val ::= boolValue(Bool) [function, symbol(boolValue)]
@@ -160,8 +180,11 @@ module PYTHON
   rule truthy(dictVal(_:DictItems)) => true
   rule truthy(setVal(_:ValItems)) => true
   rule truthy(closure(_:Id, _:Exp)) => true
+  rule truthy(closureArgs(_:IdItems, _:Exp)) => true
   rule truthy(functionVal(_:Id, _:Block)) => true
+  rule truthy(functionValArgs(_:IdItems, _:Block)) => true
   rule truthy(rangeVal(Start:Int, Stop:Int)) => Start <Int Stop
+  rule truthy(argsVal(_:ArgVals)) => true
 
   rule isIntLike(_:Int) => true
   rule isIntLike(_:String) => false
@@ -176,8 +199,11 @@ module PYTHON
   rule isIntLike(dictVal(_:DictItems)) => false
   rule isIntLike(setVal(_:ValItems)) => false
   rule isIntLike(closure(_:Id, _:Exp)) => false
+  rule isIntLike(closureArgs(_:IdItems, _:Exp)) => false
   rule isIntLike(functionVal(_:Id, _:Block)) => false
+  rule isIntLike(functionValArgs(_:IdItems, _:Block)) => false
   rule isIntLike(rangeVal(_:Int, _:Int)) => false
+  rule isIntLike(argsVal(_:ArgVals)) => false
 
   rule intValue(I:Int) => I
   rule intValue(True) => 1
@@ -297,6 +323,23 @@ module PYTHON
   rule valEq(None, False) => false
   rule valEq(True, None) => false
   rule valEq(False, None) => false
+
+  rule sameArity(#noIds, #noArgVals) => true
+  rule sameArity(#noIds, argValsCons(_:Val, _:ArgVals)) => false
+  rule sameArity(idItemsLast(_:Id), #noArgVals) => false
+  rule sameArity(idItemsLast(_:Id), argValsCons(_:Val, #noArgVals)) => true
+  rule sameArity(idItemsLast(_:Id), argValsCons(_:Val, argValsCons(_:Val, _:ArgVals))) => false
+  rule sameArity(idItemsCons(_:Id, _:IdItems), #noArgVals) => false
+  rule sameArity(idItemsCons(_:Id, IDS:IdItems), argValsCons(_:Val, VS:ArgVals)) => sameArity(IDS, VS)
+
+  rule appendArgVal(#noArgVals, V:Val) => argValsCons(V, #noArgVals)
+  rule appendArgVal(argValsCons(V0:Val, VS:ArgVals), V:Val) =>
+    argValsCons(V0, appendArgVal(VS, V))
+
+  rule bindArgs(Rho:Map, #noIds, #noArgVals) => Rho
+  rule bindArgs(Rho:Map, idItemsLast(X:Id), argValsCons(V:Val, #noArgVals)) => Rho [ X <- V ]
+  rule bindArgs(Rho:Map, idItemsCons(X:Id, IDS:IdItems), argValsCons(V:Val, VS:ArgVals)) =>
+    bindArgs(Rho [ X <- V ], IDS, VS)
 
   rule valsEq(valItemsLast(V1:Val), valItemsLast(V2:Val)) => valEq(V1, V2)
   rule valsEq(valItemsCons(V1:Val, VS1:ValItems), valItemsCons(V2:Val, VS2:ValItems)) =>
@@ -425,6 +468,7 @@ module PYTHON
     requires notBool truthy(V)
 
   rule <k> lambdaExp(X:Id, Body:Exp) => closure(X, Body) ... </k>
+  rule <k> lambdaArgsExp(IDS:IdItems, Body:Exp) => closureArgs(IDS, Body) ... </k>
   rule <k> callExp(F:Exp, Arg:Exp) => F ~> callArg(Arg) ... </k>
   rule <k> F:Val ~> callArg(Arg:Exp) => Arg ~> callApply(F) ... </k>
   rule <k> A:Val ~> callApply(closure(X:Id, Body:Exp)) => Body ~> restoreEnv(Rho) ... </k>
@@ -439,6 +483,36 @@ module PYTHON
        <env> Rho => Rho [ X <- A ] </env>
   rule <k> V:Val ~> restoreEnv(Rho:Map) => V ... </k>
        <env> _ => Rho </env>
+
+  rule <k> callArgsExp(F:Exp, Args:ArgExps) => F ~> callArgs(Args) ... </k>
+  rule <k> F:Val ~> callArgs(Args:ArgExps) =>
+           evalArgs(Args, #noArgVals) ~> callApplyArgs(F)
+       ... </k>
+  rule <k> evalArgs(#noArgs, VS:ArgVals) => argsVal(VS) ... </k>
+  rule <k> evalArgs(argExp(E:Exp), VS:ArgVals) =>
+           E ~> evalArgNext(#noArgs, VS)
+       ... </k>
+  rule <k> evalArgs(argExpsCons(E:Exp, ES:ArgExps), VS:ArgVals) =>
+           E ~> evalArgNext(ES, VS)
+       ... </k>
+  rule <k> V:Val ~> evalArgNext(ES:ArgExps, VS:ArgVals) =>
+           evalArgs(ES, appendArgVal(VS, V))
+       ... </k>
+  rule <k> argsVal(VS:ArgVals) ~> callApplyArgs(closureArgs(IDS:IdItems, Body:Exp)) =>
+           Body ~> restoreEnv(Rho)
+       ... </k>
+       <env> Rho => bindArgs(Rho, IDS, VS) </env>
+    requires sameArity(IDS, VS)
+  rule <k> argsVal(VS:ArgVals) ~> callApplyArgs(functionValArgs(IDS:IdItems, block(SS:Stmts))) =>
+           SS ~> functionDone(Rho)
+       ... </k>
+       <env> Rho => bindArgs(Rho, IDS, VS) </env>
+    requires sameArity(IDS, VS)
+  rule <k> argsVal(VS:ArgVals) ~> callApplyArgs(functionValArgs(IDS:IdItems, {})) =>
+           None ~> restoreEnv(Rho)
+       ... </k>
+       <env> Rho => bindArgs(Rho, IDS, VS) </env>
+    requires sameArity(IDS, VS)
 
   rule range1Exp(N:Val) => rangeVal(0, intValue(N))
     requires isIntLike(N)
@@ -471,6 +545,9 @@ module PYTHON
 
   rule <k> functionDefStmt(F:Id, X:Id, Body:Block) => stmtNoResult ... </k>
        <env> Rho => Rho [ F <- functionVal(X, Body) ] </env>
+       <result> _ => .K </result>
+  rule <k> functionDefArgsStmt(F:Id, IDS:IdItems, Body:Block) => stmtNoResult ... </k>
+       <env> Rho => Rho [ F <- functionValArgs(IDS, Body) ] </env>
        <result> _ => .K </result>
 
   rule <k> ifStmt(C:Exp, Then:Block, Else:Block) =>

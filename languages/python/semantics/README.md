@@ -48,6 +48,7 @@ The base modules should model portable Python semantics from the official docs. 
 - set truthiness and membership
 - single-argument `lambda` expressions
 - single-positional-argument calls to lambda closure values
+- adapter-backed zero- and multi-positional-argument calls, functions, and lambdas without defaults or keywords
 - an internal `#floorDiv(E1, E2)` parser bridge form emitted by the AST adapter
 - adapter-backed `if` statements with optional `else`
 - adapter-backed `while` loops with `break` and `continue`, without loop `else`
@@ -65,6 +66,6 @@ Current compound-statement caveat: the K parser does not yet accept Python inden
 
 Current range caveat: adapter-backed `range` support is an internal `rangeVal(start, stop)` subset with an implicit positive step of `1`, used only by `for` loops. Step arguments, negative steps, range object attributes, range equality, indexing, slicing, containment arithmetic, and the general iterator protocol remain unsupported.
 
-Current function caveat: adapter-backed `#def` uses one positional parameter, no decorators, no defaults, no annotations, no keyword arguments, and an environment-restore model. Full Python function objects need real frames, cells/closures, default evaluation, globals/nonlocals, descriptors, methods, and argument binding diagnostics.
+Current function caveat: adapter-backed `#def` and `#defArgs` cover zero or more positional parameters, no decorators, no defaults, no annotations, no keyword arguments, no varargs/kwargs, and an environment-restore model. Full Python function objects need real frames, cells/closures, default evaluation, globals/nonlocals, descriptors, methods, and argument binding diagnostics.
 
 Current augmented-assignment caveat: true-division `/=` and matrix-multiplication `@=` remain unsupported because the current value model has no float/numeric tower or matrix protocol.

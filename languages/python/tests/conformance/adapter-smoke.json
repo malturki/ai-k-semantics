@@ -102,6 +102,34 @@
       "coverage": ["function-definition", "recursive-call", "return-through-if", "ordinary-python-source-adapter"]
     },
     {
+      "id": "adapter-function-zero-arg",
+      "source": "../adapter/adapter-function-zero-arg.py",
+      "reference": "Python Language Reference 8.7 Function definitions; 6.3.4 Calls",
+      "expected_result": "True ~> .K",
+      "coverage": ["function-definition", "zero-positional-parameter-function", "zero-positional-call", "ordinary-python-source-adapter"]
+    },
+    {
+      "id": "adapter-function-multi-arg",
+      "source": "../adapter/adapter-function-multi-arg.py",
+      "reference": "Python Language Reference 8.7 Function definitions; 6.3.4 Calls",
+      "expected_result": "True ~> .K",
+      "coverage": ["function-definition", "multi-positional-parameter-function", "multi-positional-call", "ordinary-python-source-adapter"]
+    },
+    {
+      "id": "adapter-function-arg-expressions",
+      "source": "../adapter/adapter-function-arg-expressions.py",
+      "reference": "Python Language Reference 8.7 Function definitions; 6.3.4 Calls; 6.16 Evaluation order",
+      "expected_result": "True ~> .K",
+      "coverage": ["function-definition", "multi-positional-call", "argument-expression-evaluation", "ordinary-python-source-adapter"]
+    },
+    {
+      "id": "adapter-lambda-multi-arg",
+      "source": "../adapter/adapter-lambda-multi-arg.py",
+      "reference": "Python Language Reference 6.14 Lambdas; 6.3.4 Calls",
+      "expected_result": "True ~> .K",
+      "coverage": ["lambda-expression", "multi-positional-call", "ordinary-python-source-adapter"]
+    },
+    {
       "id": "adapter-for-list",
       "source": "../adapter/adapter-for-list.py",
       "reference": "Python Language Reference 8.3 The for statement",

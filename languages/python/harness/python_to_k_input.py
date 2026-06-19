@@ -129,8 +129,10 @@ def emit_exp(exp: ast.expr) -> str:
             raise unsupported(step, "range step arguments are not supported yet")
         case ast.Call(func=func, args=[arg], keywords=[]):
             return f"({emit_exp(func)}({emit_exp(arg)}))"
+        case ast.Call(func=func, args=args, keywords=[]):
+            return f"#call({emit_exp(func)}, {emit_arg_exps(args)})"
         case ast.Call():
-            raise unsupported(exp, "only one positional argument and no keywords are supported")
+            raise unsupported(exp, "keyword arguments are not supported yet")
         case ast.List(elts=elts, ctx=ast.Load()):
             return emit_list(elts)
         case ast.Tuple(elts=elts, ctx=ast.Load()):
@@ -199,10 +201,12 @@ def emit_lambda(node: ast.AST, args: ast.arguments, body: ast.expr) -> str:
         or args.defaults
         or args.vararg is not None
         or args.kwarg is not None
-        or len(args.args) != 1
     ):
-        raise unsupported(node, "only a single positional lambda parameter is supported")
-    return f"(lambda {args.args[0].arg}: {emit_exp(body)})"
+        raise unsupported(node, "lambda defaults, keyword-only parameters, varargs, and kwargs are not supported yet")
+    names = [arg.arg for arg in args.args]
+    if len(names) == 1:
+        return f"(lambda {names[0]}: {emit_exp(body)})"
+    return f"#lambdaArgs({emit_id_items(names)}, {emit_exp(body)})"
 
 
 def emit_function_def(
@@ -227,10 +231,12 @@ def emit_function_def(
         or args.defaults
         or args.vararg is not None
         or args.kwarg is not None
-        or len(args.args) != 1
     ):
-        raise unsupported(node, "only one positional function parameter is supported")
-    return f"#def({name}, {args.args[0].arg}, {emit_block(body)})"
+        raise unsupported(node, "function defaults, keyword-only parameters, varargs, and kwargs are not supported yet")
+    names = [arg.arg for arg in args.args]
+    if len(names) == 1:
+        return f"#def({name}, {names[0]}, {emit_block(body)})"
+    return f"#defArgs({name}, {emit_id_items(names)}, {emit_block(body)})"
 
 
 def emit_assign(node: ast.AST, targets: list[ast.expr], value: ast.expr) -> str:
@@ -247,9 +253,19 @@ def emit_assign(node: ast.AST, targets: list[ast.expr], value: ast.expr) -> str:
 
 
 def emit_id_items(names: list[str]) -> str:
+    if not names:
+        return "#noIds"
     if len(names) == 1:
         return f"#id({names[0]})"
     return f"#ids({names[0]}, {emit_id_items(names[1:])})"
+
+
+def emit_arg_exps(args: list[ast.expr]) -> str:
+    if not args:
+        return "#noArgs"
+    if len(args) == 1:
+        return f"#arg({emit_exp(args[0])})"
+    return f"#args({emit_exp(args[0])}, {emit_arg_exps(args[1:])})"
 
 
 def emit_list(elts: list[ast.expr]) -> str:

@@ -29,7 +29,17 @@ def unsupported(node: ast.AST, message: str) -> UnsupportedPythonSubset:
 
 
 def emit_module(module: ast.Module) -> str:
-    return "\n".join(f"{emit_stmt(stmt)};" for stmt in module.body) + "\n"
+    return emit_stmt_list(module.body) + "\n"
+
+
+def emit_stmt_list(stmts: list[ast.stmt]) -> str:
+    return "\n".join(f"{emit_stmt(stmt)};" for stmt in stmts)
+
+
+def emit_block(stmts: list[ast.stmt]) -> str:
+    if not stmts:
+        return "{}"
+    return "{\n" + emit_stmt_list(stmts) + "\n}"
 
 
 def emit_stmt(stmt: ast.stmt) -> str:
@@ -58,6 +68,12 @@ def emit_stmt(stmt: ast.stmt) -> str:
             return f"{name} {emit_aug_op(op)}= {emit_exp(value)}"
         case ast.AugAssign():
             raise unsupported(stmt, "only simple-name +=, -=, and *= are supported")
+        case ast.If(test=test, body=body, orelse=orelse):
+            return f"#if({emit_exp(test)}, {emit_block(body)}, {emit_block(orelse)})"
+        case ast.While(test=test, body=body, orelse=[]):
+            return f"#while({emit_exp(test)}, {emit_block(body)})"
+        case ast.While(orelse=orelse):
+            raise unsupported(orelse[0], "while else clauses are not supported yet")
         case _:
             raise unsupported(stmt, "statement is not supported by the current K subset")
 

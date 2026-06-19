@@ -47,3 +47,7 @@ run_case "adapter-floor-div" "$ROOT/tests/adapter/adapter-floor-div.py" "True ~>
 run_case "adapter-list-normal" "$ROOT/tests/adapter/adapter-list-normal.py" "True ~> .K"
 run_case "adapter-tuple-normal" "$ROOT/tests/adapter/adapter-tuple-normal.py" "True ~> .K"
 run_case "adapter-lambda-normal" "$ROOT/tests/adapter/adapter-lambda-normal.py" "7 ~> .K"
+run_case "adapter-if" "$ROOT/tests/adapter/adapter-if.py" "True ~> .K"
+run_case "adapter-if-no-else" "$ROOT/tests/adapter/adapter-if-no-else.py" "True ~> .K"
+run_case "adapter-while" "$ROOT/tests/adapter/adapter-while.py" "True ~> .K"
+run_case "adapter-nested-if-while" "$ROOT/tests/adapter/adapter-nested-if-while.py" "True ~> .K"

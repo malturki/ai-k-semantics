@@ -21,6 +21,9 @@ module PYTHON-SYNTAX
   syntax Stmts ::= Stmt ";" Stmts [symbol(stmtsCons)]
                  | Stmt ";" [symbol(stmtsLast)]
 
+  syntax Block ::= "{" "}" [symbol(emptyBlock)]
+                 | "{" Stmts "}" [symbol(block)]
+
   syntax Stmt ::= Exp
                 | "pass" [symbol(passStmt)]
                 | "assert" Exp [symbol(assertStmt), strict]
@@ -30,6 +33,8 @@ module PYTHON-SYNTAX
                 | Id "+=" Exp [symbol(augAddStmt)]
                 | Id "-=" Exp [symbol(augSubStmt)]
                 | Id "*=" Exp [symbol(augMulStmt)]
+                | "#if" "(" Exp "," Block "," Block ")" [symbol(ifStmt)]
+                | "#while" "(" Exp "," Block ")" [symbol(whileStmt)]
 
   syntax Exp ::= Val
                | Id
@@ -85,6 +90,10 @@ module PYTHON
                  | callArg(Exp) [symbol(callArg)]
                  | callApply(Val) [symbol(callApply)]
                  | restoreEnv(Map) [symbol(restoreEnv)]
+                 | ifStmtBranch(Block, Block) [symbol(ifStmtBranch)]
+                 | "ifStmtDone" [symbol(ifStmtDone)]
+                 | whileStmtBranch(Exp, Block) [symbol(whileStmtBranch)]
+                 | whileStmtAgain(Exp, Block) [symbol(whileStmtAgain)]
 
   syntax Bool ::= truthy(Val) [function, symbol(truthy)]
                 | isIntLike(Val) [function, symbol(isIntLike)]
@@ -362,6 +371,46 @@ module PYTHON
   rule <k> augAddStmt(X:Id, E:Exp) => assignStmt(X, X + E) ... </k>
   rule <k> augSubStmt(X:Id, E:Exp) => assignStmt(X, X - E) ... </k>
   rule <k> augMulStmt(X:Id, E:Exp) => assignStmt(X, X * E) ... </k>
+
+  rule <k> ifStmt(C:Exp, Then:Block, Else:Block) =>
+           C ~> ifStmtBranch(Then, Else)
+       ... </k>
+  rule <k> V:Val ~> ifStmtBranch(block(SS:Stmts), _:Block) =>
+           SS ~> ifStmtDone
+       ... </k>
+    requires truthy(V)
+  rule <k> V:Val ~> ifStmtBranch({}, _:Block) =>
+           stmtNoResult
+       ... </k>
+    requires truthy(V)
+  rule <k> V:Val ~> ifStmtBranch(_:Block, block(SS:Stmts)) =>
+           SS ~> ifStmtDone
+       ... </k>
+    requires notBool truthy(V)
+  rule <k> V:Val ~> ifStmtBranch(_:Block, {}) =>
+           stmtNoResult
+       ... </k>
+    requires notBool truthy(V)
+  rule <k> ifStmtDone => stmtNoResult ... </k>
+
+  rule <k> whileStmt(C:Exp, Body:Block) =>
+           C ~> whileStmtBranch(C, Body)
+       ... </k>
+  rule <k> V:Val ~> whileStmtBranch(C:Exp, block(SS:Stmts)) =>
+           SS ~> whileStmtAgain(C, block(SS))
+       ... </k>
+    requires truthy(V)
+  rule <k> V:Val ~> whileStmtBranch(C:Exp, {}) =>
+           whileStmt(C, {})
+       ... </k>
+    requires truthy(V)
+  rule <k> V:Val ~> whileStmtBranch(_:Exp, _:Block) =>
+           stmtNoResult
+       ... </k>
+    requires notBool truthy(V)
+  rule <k> whileStmtAgain(C:Exp, Body:Block) =>
+           whileStmt(C, Body)
+       ... </k>
 
   rule <k> delNameStmt(X:Id) => stmtNoResult ... </k>
        <env> Rho => Rho [ X <- undef ] </env>

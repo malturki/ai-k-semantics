@@ -552,7 +552,7 @@
     {
       "id": "compound-statements",
       "title": "Compound statements",
-      "status": "not-started",
+      "status": "partial",
       "references": [
         {
           "title": "Python Language Reference: Compound statements",
@@ -563,7 +563,7 @@
         {
           "id": "compound.if-while-for",
           "title": "if, while, for, break, continue, and loop else",
-          "status": "not-started",
+          "status": "partial",
           "references": [
             {
               "title": "Compound statements",
@@ -571,9 +571,9 @@
               "section": "The if statement"
             }
           ],
-          "k_coverage": [],
-          "test_coverage": [],
-          "gaps": ["Need truth testing, iterators, loop control, and else-clause completion rules."]
+          "k_coverage": ["semantics/python.k: internal #if and #while statement forms with explicit Block syntax", "harness/python_to_k_input.py: CPython AST If and While adapter for the supported subset"],
+          "test_coverage": ["tests/adapter/adapter-if.py", "tests/adapter/adapter-if-no-else.py", "tests/adapter/adapter-while.py", "tests/adapter/adapter-nested-if-while.py"],
+          "gaps": ["Need direct indentation/parser support, elif provenance tests, for loops and iterator protocol, break, continue, loop else completion rules, while-else, and abrupt completion interactions."]
         },
         {
           "id": "compound.try-except-finally",

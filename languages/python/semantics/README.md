@@ -44,9 +44,13 @@ The base modules should model portable Python semantics from the official docs. 
 - single-argument `lambda` expressions
 - single-positional-argument calls to lambda closure values
 - an internal `#floorDiv(E1, E2)` parser bridge form emitted by the AST adapter
+- adapter-backed `if` statements with optional `else`
+- adapter-backed `while` loops without `else`, `break`, or `continue`
 
 The coverage ledger in `../notes/full-language-coverage.md` is the source of truth for what remains.
 
 Current parser caveat: the K frontend treats `//` in direct K input files as a comment before it can be parsed as Python floor division. The `floorDivExp` syntax and semantics are present, and `harness/python_to_k_input.py` now translates real Python `//` nodes to the internal `#floorDiv(E1, E2)` form for adapter smoke tests.
 
 Current container caveat: direct concrete list and tuple smoke tests use Python-valid trailing commas, such as `[1, 2,]` and `(1, 2,)`, because the first executable K container grammar avoids an ambiguity caused by un-delimited value-list productions. The AST adapter now accepts ordinary Python list and tuple displays for the supported value-expression subset and emits the trailing-comma internal form. Full displays still need expression-list evaluation, unpacking, mutation, and comprehension semantics.
+
+Current compound-statement caveat: the K parser does not yet accept Python indentation syntax directly. The AST adapter emits internal `#if` and `#while` statements with explicit blocks for the supported subset. Loop `else`, `break`, `continue`, `for`, `try`, `with`, `match`, function definitions, class definitions, and async compound statements remain unsupported.

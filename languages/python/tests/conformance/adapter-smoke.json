@@ -30,6 +30,34 @@
       "reference": "Python Language Reference 6.3.4 Calls; 6.14 Lambdas",
       "expected_result": "7 ~> .K",
       "coverage": ["lambda-expression", "single-positional-call", "ordinary-python-source-adapter"]
+    },
+    {
+      "id": "adapter-if",
+      "source": "../adapter/adapter-if.py",
+      "reference": "Python Language Reference 8.1 The if statement",
+      "expected_result": "True ~> .K",
+      "coverage": ["if-statement", "else-clause", "truth-value-testing", "ordinary-python-source-adapter"]
+    },
+    {
+      "id": "adapter-if-no-else",
+      "source": "../adapter/adapter-if-no-else.py",
+      "reference": "Python Language Reference 8.1 The if statement",
+      "expected_result": "True ~> .K",
+      "coverage": ["if-statement", "missing-else-empty-block", "truth-value-testing", "ordinary-python-source-adapter"]
+    },
+    {
+      "id": "adapter-while",
+      "source": "../adapter/adapter-while.py",
+      "reference": "Python Language Reference 8.2 The while statement",
+      "expected_result": "True ~> .K",
+      "coverage": ["while-statement", "loop-condition", "simple-name-augmented-assignment", "ordinary-python-source-adapter"]
+    },
+    {
+      "id": "adapter-nested-if-while",
+      "source": "../adapter/adapter-nested-if-while.py",
+      "reference": "Python Language Reference 8.1 The if statement; 8.2 The while statement",
+      "expected_result": "True ~> .K",
+      "coverage": ["nested-if-while", "while-statement", "if-statement", "ordinary-python-source-adapter"]
     }
   ]
 }

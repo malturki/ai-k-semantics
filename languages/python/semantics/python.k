@@ -68,6 +68,7 @@ module PYTHON-SYNTAX
                 | "break" [symbol(breakStmt)]
                 | "continue" [symbol(continueStmt)]
                 | "assert" Exp [symbol(assertStmt), strict]
+                | "#assertMsg" "(" Exp "," Exp ")" [symbol(assertMsgStmt), strict(1)]
                 | "global" Id [symbol(globalStmt)]
                 | "del" Id [symbol(delNameStmt)]
                 | Id "=" Exp [symbol(assignStmt), strict(2)]
@@ -2676,6 +2677,8 @@ module PYTHON
 
   rule <k> pass => stmtNoResult ... </k>
   rule <k> assertStmt(V:Val) => stmtNoResult ... </k>
+    requires truthy(V)
+  rule <k> assertMsgStmt(V:Val, _Msg:Exp) => stmtNoResult ... </k>
     requires truthy(V)
   rule <k> globalStmt(_:Id) => stmtNoResult ... </k>
 

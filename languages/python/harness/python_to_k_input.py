@@ -54,8 +54,8 @@ def emit_stmt(stmt: ast.stmt) -> str:
             return "continue"
         case ast.Assert(test=test, msg=None):
             return f"assert {emit_exp(test)}"
-        case ast.Assert(msg=msg):
-            raise unsupported(msg, "assert messages are not supported yet")
+        case ast.Assert(test=test, msg=msg):
+            return f"#assertMsg({emit_exp(test)}, {emit_exp(msg)})"
         case ast.Global(names=[name]):
             return f"global {name}"
         case ast.Global():

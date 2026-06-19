@@ -498,9 +498,9 @@
               "section": "The assert statement"
             }
           ],
-          "k_coverage": ["semantics/python.k: truthy assert succeeds"],
-          "test_coverage": ["tests/examples/smoke-assert-global.py"],
-          "gaps": ["Need AssertionError construction/raising, optional assertion message, __debug__, and optimization profile handling."]
+          "k_coverage": ["semantics/python.k: truthy assert succeeds, including adapter-backed optional assertion messages that are not evaluated on success"],
+          "test_coverage": ["tests/examples/smoke-assert-global.py", "tests/adapter/adapter-assert-message.py"],
+          "gaps": ["Need AssertionError construction/raising, false-assert message evaluation/attachment, __debug__, and optimization profile handling."]
         },
         {
           "id": "stmt.pass-del-return-yield-raise",

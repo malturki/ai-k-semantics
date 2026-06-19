@@ -90,6 +90,7 @@ run_case "adapter-chained-comparison" "$ROOT/tests/adapter/adapter-chained-compa
 run_case "adapter-chained-comparison-short-circuit" "$ROOT/tests/adapter/adapter-chained-comparison-short-circuit.py" "False ~> .K"
 run_case "adapter-chained-identity" "$ROOT/tests/adapter/adapter-chained-identity.py" "True ~> .K"
 run_case "adapter-named-expression" "$ROOT/tests/adapter/adapter-named-expression.py" "True ~> .K"
+run_case "adapter-assert-message" "$ROOT/tests/adapter/adapter-assert-message.py" "True ~> .K"
 run_case "adapter-while" "$ROOT/tests/adapter/adapter-while.py" "True ~> .K"
 run_case "adapter-while-else-normal" "$ROOT/tests/adapter/adapter-while-else-normal.py" "True ~> .K"
 run_case "adapter-while-else-break" "$ROOT/tests/adapter/adapter-while-else-break.py" "True ~> .K"

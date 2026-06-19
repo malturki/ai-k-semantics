@@ -129,6 +129,8 @@ def emit_exp(exp: ast.expr) -> str:
             return emit_list(elts)
         case ast.Tuple(elts=elts, ctx=ast.Load()):
             return emit_tuple(elts)
+        case ast.Dict(keys=keys, values=values):
+            return emit_dict(exp, keys, values)
         case ast.Subscript(value=value, slice=slice_, ctx=ast.Load()):
             return f"({emit_exp(value)}[{emit_exp(slice_)}])"
         case _:
@@ -243,8 +245,21 @@ def emit_val_exp(exp: ast.expr) -> str:
             return emit_list(elts)
         case ast.Tuple(elts=elts, ctx=ast.Load()):
             return emit_tuple(elts)
+        case ast.Dict(keys=keys, values=values):
+            return emit_dict(exp, keys, values)
         case _:
-            raise unsupported(exp, "list and tuple displays currently support only value elements")
+            raise unsupported(exp, "container displays currently support only value elements")
+
+
+def emit_dict(node: ast.AST, keys: list[ast.expr | None], values: list[ast.expr]) -> str:
+    if not keys:
+        return "{}"
+    items: list[str] = []
+    for key, value in zip(keys, values, strict=True):
+        if key is None:
+            raise unsupported(node, "dictionary unpacking is not supported yet")
+        items.append(f"{emit_val_exp(key)}: {emit_val_exp(value)}")
+    return "{" + ", ".join(items) + ",}"
 
 
 def emit_aug_op(op: ast.operator) -> str:

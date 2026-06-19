@@ -14,9 +14,14 @@ module PYTHON-SYNTAX
                | "[" ValItems "]" [symbol(listVal)]
                | "(" ")" [symbol(emptyTupleVal)]
                | "(" ValItems ")" [symbol(tupleVal)]
+               | "{" "}" [symbol(emptyDictVal)]
+               | "{" DictItems "}" [symbol(dictVal)]
 
   syntax ValItems ::= Val "," [symbol(valItemsLast)]
                     | Val "," ValItems [symbol(valItemsCons)]
+
+  syntax DictItems ::= Val ":" Val "," [symbol(dictItemsLast)]
+                     | Val ":" Val "," DictItems [symbol(dictItemsCons)]
 
   syntax Stmts ::= Stmt ";" Stmts [symbol(stmtsCons)]
                  | Stmt ";" [symbol(stmtsLast)]
@@ -113,11 +118,13 @@ module PYTHON
                 | valEq(Val, Val) [function, symbol(valEq)]
                 | valsEq(ValItems, ValItems) [function, symbol(valsEq)]
                 | containsVal(Val, ValItems) [function, symbol(containsVal)]
+                | containsKey(Val, DictItems) [function, symbol(containsKey)]
 
   syntax Int ::= intValue(Val) [function, symbol(intValue)]
                | pyFloorDiv(Int, Int) [function, symbol(pyFloorDiv)]
                | pyModulo(Int, Int) [function, symbol(pyModulo)]
   syntax Val ::= listGet(ValItems, Int) [function, symbol(listGet)]
+  syntax Val ::= dictGet(DictItems, Val) [function, symbol(dictGet)]
   syntax Val ::= boolValue(Bool) [function, symbol(boolValue)]
 
   rule truthy(0) => false
@@ -130,6 +137,8 @@ module PYTHON
   rule truthy(listVal(_:ValItems)) => true
   rule truthy(()) => false
   rule truthy(tupleVal(_:ValItems)) => true
+  rule truthy({}) => false
+  rule truthy(dictVal(_:DictItems)) => true
   rule truthy(closure(_:Id, _:Exp)) => true
   rule truthy(functionVal(_:Id, _:Block)) => true
 
@@ -142,6 +151,8 @@ module PYTHON
   rule isIntLike(listVal(_:ValItems)) => false
   rule isIntLike(()) => false
   rule isIntLike(tupleVal(_:ValItems)) => false
+  rule isIntLike({}) => false
+  rule isIntLike(dictVal(_:DictItems)) => false
   rule isIntLike(closure(_:Id, _:Exp)) => false
   rule isIntLike(functionVal(_:Id, _:Block)) => false
 
@@ -274,10 +285,21 @@ module PYTHON
   rule containsVal(V:Val, valItemsCons(V1:Val, VS:ValItems)) =>
     valEq(V, V1) orBool containsVal(V, VS)
 
+  rule containsKey(K:Val, dictItemsLast(K1:Val, _:Val)) => valEq(K, K1)
+  rule containsKey(K:Val, dictItemsCons(K1:Val, _:Val, DS:DictItems)) =>
+    valEq(K, K1) orBool containsKey(K, DS)
+
   rule listGet(valItemsLast(V:Val), 0) => V
   rule listGet(valItemsCons(V:Val, _:ValItems), 0) => V
   rule listGet(valItemsCons(_:Val, VS:ValItems), I:Int) => listGet(VS, I -Int 1)
     requires I >Int 0
+
+  rule dictGet(dictItemsLast(K1:Val, V:Val), K:Val) => V
+    requires valEq(K, K1)
+  rule dictGet(dictItemsCons(K1:Val, V:Val, _:DictItems), K:Val) => V
+    requires valEq(K, K1)
+  rule dictGet(dictItemsCons(K1:Val, _:Val, DS:DictItems), K:Val) => dictGet(DS, K)
+    requires notBool valEq(K, K1)
 
   configuration
     <python>
@@ -342,14 +364,20 @@ module PYTHON
   rule V:Val in listVal(VS:ValItems) => boolValue(containsVal(V, VS))
   rule _V:Val in () => False
   rule V:Val in tupleVal(VS:ValItems) => boolValue(containsVal(V, VS))
+  rule _V:Val in {} => False
+  rule V:Val in dictVal(DS:DictItems) => boolValue(containsKey(V, DS))
   rule _V:Val not in [] => True
   rule V:Val not in listVal(VS:ValItems) => boolValue(notBool containsVal(V, VS))
   rule _V:Val not in () => True
   rule V:Val not in tupleVal(VS:ValItems) => boolValue(notBool containsVal(V, VS))
+  rule _V:Val not in {} => True
+  rule V:Val not in dictVal(DS:DictItems) => boolValue(notBool containsKey(V, DS))
   rule subscriptExp(listVal(VS:ValItems), I:Val) => listGet(VS, intValue(I))
     requires isIntLike(I) andBool intValue(I) >=Int 0
   rule subscriptExp(tupleVal(VS:ValItems), I:Val) => listGet(VS, intValue(I))
     requires isIntLike(I) andBool intValue(I) >=Int 0
+  rule subscriptExp(dictVal(DS:DictItems), K:Val) => dictGet(DS, K)
+    requires containsKey(K, DS)
 
   rule not V:Val => boolValue(notBool truthy(V))
 

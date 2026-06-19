@@ -128,6 +128,20 @@
       "reference": "Python Language Reference 8.3 The for statement; 7.6 The return statement",
       "expected_result": "True ~> .K",
       "coverage": ["for-statement", "return-through-loop", "function-definition", "ordinary-python-source-adapter"]
+    },
+    {
+      "id": "adapter-dict",
+      "source": "../adapter/adapter-dict.py",
+      "reference": "Python Language Reference 6.2.7 Dictionary displays; 6.3.2 Subscriptions; 6.10 Comparisons",
+      "expected_result": "True ~> .K",
+      "coverage": ["dict-display-value-subset", "dict-subscription", "dict-key-membership", "ordinary-python-source-adapter"]
+    },
+    {
+      "id": "adapter-dict-truthy",
+      "source": "../adapter/adapter-dict-truthy.py",
+      "reference": "Python Language Reference 6.2.7 Dictionary displays; Standard Library truth value testing",
+      "expected_result": "True ~> .K",
+      "coverage": ["dict-display-value-subset", "dict-truthiness", "ordinary-python-source-adapter"]
     }
   ]
 }

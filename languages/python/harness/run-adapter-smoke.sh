@@ -61,3 +61,5 @@ run_case "adapter-for-list" "$ROOT/tests/adapter/adapter-for-list.py" "True ~> .
 run_case "adapter-for-tuple" "$ROOT/tests/adapter/adapter-for-tuple.py" "True ~> .K"
 run_case "adapter-for-break-continue" "$ROOT/tests/adapter/adapter-for-break-continue.py" "True ~> .K"
 run_case "adapter-for-return" "$ROOT/tests/adapter/adapter-for-return.py" "True ~> .K"
+run_case "adapter-dict" "$ROOT/tests/adapter/adapter-dict.py" "True ~> .K"
+run_case "adapter-dict-truthy" "$ROOT/tests/adapter/adapter-dict-truthy.py" "True ~> .K"

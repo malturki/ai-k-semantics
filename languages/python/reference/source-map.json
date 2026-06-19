@@ -131,8 +131,8 @@
               "section": "The standard type hierarchy"
             }
           ],
-          "k_coverage": ["semantics/python.k: Int, String, list, tuple, True, False, and None value subset"],
-          "test_coverage": ["tests/examples/smoke-bool-constants.py", "tests/examples/smoke-comparisons.py", "tests/examples/smoke-strings.py", "tests/examples/smoke-lists.py", "tests/examples/smoke-tuples.py"],
+          "k_coverage": ["semantics/python.k: Int, String, list, tuple, dict, True, False, and None value subset"],
+          "test_coverage": ["tests/examples/smoke-bool-constants.py", "tests/examples/smoke-comparisons.py", "tests/examples/smoke-strings.py", "tests/examples/smoke-lists.py", "tests/examples/smoke-tuples.py", "tests/adapter/adapter-dict.py", "tests/adapter/adapter-dict-truthy.py"],
           "gaps": ["Need object identity, real bool-as-int subtype relationship, numeric tower, sequences, mappings, classes, functions, modules, and code objects."]
         },
         {
@@ -335,8 +335,8 @@
               "section": "Atoms"
             }
           ],
-          "k_coverage": ["semantics/python.k: integer, simple string, trailing-comma list/tuple values, True, False, None, names, and parenthesized expressions", "harness/python_to_k_input.py: AST adapter for the currently supported atom/display subset"],
-          "test_coverage": ["tests/examples/smoke-arithmetic.py", "tests/examples/smoke-assignment.py", "tests/examples/smoke-bool-constants.py", "tests/examples/smoke-strings.py", "tests/examples/smoke-lists.py", "tests/examples/smoke-tuples.py", "tests/adapter/adapter-list-normal.py", "tests/adapter/adapter-tuple-normal.py"],
+          "k_coverage": ["semantics/python.k: integer, simple string, trailing-comma list/tuple/dict values, True, False, None, names, and parenthesized expressions", "harness/python_to_k_input.py: AST adapter for the currently supported atom/display subset"],
+          "test_coverage": ["tests/examples/smoke-arithmetic.py", "tests/examples/smoke-assignment.py", "tests/examples/smoke-bool-constants.py", "tests/examples/smoke-strings.py", "tests/examples/smoke-lists.py", "tests/examples/smoke-tuples.py", "tests/adapter/adapter-list-normal.py", "tests/adapter/adapter-tuple-normal.py", "tests/adapter/adapter-dict.py", "tests/adapter/adapter-dict-truthy.py"],
           "gaps": ["Need bytes, full containers, comprehensions, yield expressions, and ellipsis."]
         },
         {
@@ -350,9 +350,9 @@
               "section": "Displays for lists, sets and dictionaries"
             }
           ],
-          "k_coverage": ["semantics/python.k: trailing-comma list and tuple value display subset", "harness/python_to_k_input.py: ordinary Python list/tuple displays translated to the current value-element subset"],
-          "test_coverage": ["tests/examples/smoke-lists.py", "tests/examples/smoke-tuples.py", "tests/adapter/adapter-list-normal.py", "tests/adapter/adapter-tuple-normal.py"],
-          "gaps": ["Need expression-list evaluation, direct non-trailing comma parser support, unpacking, mutation, scope behavior, async comprehensions, set displays, dict displays, and dict key/value rules."]
+          "k_coverage": ["semantics/python.k: trailing-comma list, tuple, and dict value display subset", "harness/python_to_k_input.py: ordinary Python list/tuple/dict displays translated to the current value-element subset"],
+          "test_coverage": ["tests/examples/smoke-lists.py", "tests/examples/smoke-tuples.py", "tests/adapter/adapter-list-normal.py", "tests/adapter/adapter-tuple-normal.py", "tests/adapter/adapter-dict.py", "tests/adapter/adapter-dict-truthy.py"],
+          "gaps": ["Need expression-list evaluation, direct non-trailing comma parser support, unpacking, mutation, scope behavior, async comprehensions, set displays, duplicate dict-key overwrite behavior, and full dict key/value rules."]
         },
         {
           "id": "expr.primaries",
@@ -365,9 +365,9 @@
               "section": "Primaries"
             }
           ],
-          "k_coverage": ["semantics/python.k: positive integer indexing over nonempty list/tuple value subset; single-positional lambda calls"],
-          "test_coverage": ["tests/examples/smoke-lists.py", "tests/examples/smoke-tuples.py", "tests/examples/smoke-lambda-call.py", "tests/adapter/adapter-list-normal.py", "tests/adapter/adapter-tuple-normal.py", "tests/adapter/adapter-lambda-normal.py"],
-          "gaps": ["Need attributes, descriptor lookup, general __getitem__, slicing objects, negative indices, out-of-range IndexError behavior, full call protocol, argument binding, and error behavior."]
+          "k_coverage": ["semantics/python.k: positive integer indexing over nonempty list/tuple value subset; dict key lookup subset; single-positional lambda calls"],
+          "test_coverage": ["tests/examples/smoke-lists.py", "tests/examples/smoke-tuples.py", "tests/examples/smoke-lambda-call.py", "tests/adapter/adapter-list-normal.py", "tests/adapter/adapter-tuple-normal.py", "tests/adapter/adapter-dict.py", "tests/adapter/adapter-lambda-normal.py"],
+          "gaps": ["Need attributes, descriptor lookup, general __getitem__, slicing objects, negative indices, out-of-range IndexError behavior, KeyError behavior, full call protocol, argument binding, and error behavior."]
         },
         {
           "id": "expr.await-yield",
@@ -410,9 +410,9 @@
               "section": "Comparisons"
             }
           ],
-          "k_coverage": ["semantics/python.k: truthiness for Int/String/list/tuple/True/False/None; short-circuit and/or; not; binary int-like comparisons; membership for lists/tuples; equality over Int/String/list/tuple/True/False/None"],
-          "test_coverage": ["tests/examples/smoke-bool-ops.py", "tests/examples/smoke-comparisons.py", "tests/examples/smoke-strings.py", "tests/examples/smoke-lists.py", "tests/examples/smoke-tuples.py"],
-          "gaps": ["Need rich comparison protocol, chained comparison evaluation, user-defined truth-value testing via __bool__/__len__, container truthiness, and TypeError behavior."]
+          "k_coverage": ["semantics/python.k: truthiness for Int/String/list/tuple/dict/True/False/None; short-circuit and/or; not; binary int-like comparisons; membership for lists/tuples and dict keys; equality over Int/String/list/tuple/True/False/None"],
+          "test_coverage": ["tests/examples/smoke-bool-ops.py", "tests/examples/smoke-comparisons.py", "tests/examples/smoke-strings.py", "tests/examples/smoke-lists.py", "tests/examples/smoke-tuples.py", "tests/adapter/adapter-dict.py", "tests/adapter/adapter-dict-truthy.py"],
+          "gaps": ["Need rich comparison protocol, chained comparison evaluation, user-defined truth-value testing via __bool__/__len__, full container truthiness/equality, dict equality, and TypeError behavior."]
         },
         {
           "id": "expr.conditional-lambda",
@@ -817,8 +817,8 @@
               "url": "https://docs.python.org/3/library/stdtypes.html"
             }
           ],
-          "k_coverage": ["semantics/python.k: internal integer, string, list, tuple, bool, and None subset"],
-          "test_coverage": ["tests/examples/smoke-arithmetic.py", "tests/examples/smoke-bool-constants.py", "tests/examples/smoke-bool-ops.py", "tests/examples/smoke-comparisons.py", "tests/examples/smoke-strings.py", "tests/examples/smoke-int-operators.py", "tests/examples/smoke-lists.py", "tests/examples/smoke-tuples.py", "tests/adapter/adapter-floor-div.py", "tests/adapter/adapter-list-normal.py", "tests/adapter/adapter-tuple-normal.py"],
+          "k_coverage": ["semantics/python.k: internal integer, string, list, tuple, dict, bool, and None subset"],
+          "test_coverage": ["tests/examples/smoke-arithmetic.py", "tests/examples/smoke-bool-constants.py", "tests/examples/smoke-bool-ops.py", "tests/examples/smoke-comparisons.py", "tests/examples/smoke-strings.py", "tests/examples/smoke-int-operators.py", "tests/examples/smoke-lists.py", "tests/examples/smoke-tuples.py", "tests/adapter/adapter-floor-div.py", "tests/adapter/adapter-list-normal.py", "tests/adapter/adapter-tuple-normal.py", "tests/adapter/adapter-dict.py", "tests/adapter/adapter-dict-truthy.py"],
           "gaps": ["Need real object/type hierarchy, numeric tower, sequences, mappings, sets, context-manager types, memoryview, and iterator protocols."]
         },
         {

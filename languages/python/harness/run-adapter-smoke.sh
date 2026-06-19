@@ -78,6 +78,7 @@ run_case "adapter-bool-constructor" "$ROOT/tests/adapter/adapter-bool-constructo
 run_case "adapter-int-constructor" "$ROOT/tests/adapter/adapter-int-constructor.py" "True ~> .K"
 run_case "adapter-abs-int" "$ROOT/tests/adapter/adapter-abs-int.py" "True ~> .K"
 run_case "adapter-divmod-int" "$ROOT/tests/adapter/adapter-divmod-int.py" "True ~> .K"
+run_case "adapter-pow-int" "$ROOT/tests/adapter/adapter-pow-int.py" "True ~> .K"
 run_case "adapter-chained-comparison" "$ROOT/tests/adapter/adapter-chained-comparison.py" "True ~> .K"
 run_case "adapter-chained-comparison-short-circuit" "$ROOT/tests/adapter/adapter-chained-comparison-short-circuit.py" "False ~> .K"
 run_case "adapter-chained-identity" "$ROOT/tests/adapter/adapter-chained-identity.py" "True ~> .K"

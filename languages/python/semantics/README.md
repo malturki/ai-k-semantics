@@ -24,6 +24,7 @@ The base modules should model portable Python semantics from the official docs. 
 - adapter-backed `int()` and `int(x)` for the current int-like subset
 - adapter-backed `abs(x)` for the current int-like subset
 - adapter-backed `divmod(x, y)` for the current int-like subset
+- adapter-backed two-argument `pow(x, y)` for the current nonnegative-exponent int-like subset
 - `True`, `False`, and `None`
 - simple string literals as K `String` tokens
 - name lookup in a single environment
@@ -82,7 +83,7 @@ Current compound-statement caveat: the K parser does not yet accept Python inden
 
 Current range caveat: adapter-backed `range` support is an internal `rangeVal` subset used by `for` loops, `len`, equality, truthiness, integer-like containment, indexing, and nonzero-step slicing, including positive and negative integer steps. Zero-step `ValueError`, range object attributes, non-integer containment fallback, out-of-range `IndexError`, and the general iterator protocol remain unsupported.
 
-Current builtin caveat: `len` is defined only for the current concrete string/container/range values, `bool` is defined only through the current truth-value subset, `int` is defined only for no argument and current int-like values, `abs` and `divmod` are defined only for current int-like values, and the current container type constructors cover only no-argument `list()`, `tuple()`, `dict()`, and `set()`. General builtins namespace lookup, constructor arguments, string/base numeric conversion, `__bool__`/`__len__`/`__int__`/`__abs__`/`__divmod__` dispatch, overflow/error behavior, and user-defined objects remain unsupported.
+Current builtin caveat: `len` is defined only for the current concrete string/container/range values, `bool` is defined only through the current truth-value subset, `int` is defined only for no argument and current int-like values, `abs`, `divmod`, and two-argument `pow` are defined only for current int-like values, with `pow` limited to nonnegative exponents, and the current container type constructors cover only no-argument `list()`, `tuple()`, `dict()`, and `set()`. General builtins namespace lookup, constructor arguments, string/base numeric conversion, three-argument modular `pow`, `__bool__`/`__len__`/`__int__`/`__abs__`/`__divmod__`/`__pow__` dispatch, overflow/error behavior, and user-defined objects remain unsupported.
 
 Current function caveat: adapter-backed `#def` and `#defArgs` cover zero or more positional parameters, no decorators, no defaults, no annotations, no keyword arguments, no varargs/kwargs, and an environment-restore model. Full Python function objects need real frames, cells/closures, default evaluation, globals/nonlocals, descriptors, methods, and argument binding diagnostics.
 

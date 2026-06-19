@@ -145,6 +145,8 @@ def emit_exp(exp: ast.expr) -> str:
             return f"#abs({emit_exp(arg)})"
         case ast.Call(func=ast.Name(id="divmod"), args=[left, right], keywords=[]):
             return f"#divmod({emit_exp(left)}, {emit_exp(right)})"
+        case ast.Call(func=ast.Name(id="pow"), args=[base, exponent], keywords=[]):
+            return f"#pow({emit_exp(base)}, {emit_exp(exponent)})"
         case ast.Call(func=func, args=[arg], keywords=[]):
             return f"({emit_exp(func)}({emit_exp(arg)}))"
         case ast.Call(func=func, args=args, keywords=[]):

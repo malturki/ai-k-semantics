@@ -41,6 +41,8 @@ module PYTHON-SYNTAX
   syntax KwArgExps ::= "#noKwArgs" [symbol(noKwArgExps)]
                      | "#kwArg" "(" Id "," Exp ")" [symbol(kwArgExp)]
                      | "#kwArgs" "(" Id "," Exp "," KwArgExps ")" [symbol(kwArgExpsCons)]
+                     | "#kwStarArg" "(" Exp ")" [symbol(kwStarArgExp)]
+                     | "#kwStarArgs" "(" Exp "," KwArgExps ")" [symbol(kwStarArgExpsCons)]
 
   syntax DictExps ::= "#noDictItems" [symbol(noDictExps)]
                     | "#dictItem" "(" Exp "," Exp ")" [symbol(dictExpItem)]
@@ -252,6 +254,7 @@ module PYTHON
                  | callKwArgs(KwArgExps) [symbol(callKwArgs)]
                  | evalKwArgs(KwArgExps, KwArgVals) [symbol(evalKwArgs)]
                  | evalKwArgNext(Id, KwArgExps, KwArgVals) [symbol(evalKwArgNext)]
+                 | evalKwStarArgNext(KwArgExps, KwArgVals) [symbol(evalKwStarArgNext)]
                  | callApplyKwArgs(Val) [symbol(callApplyKwArgs)]
                  | kwArgsVal(KwArgVals) [symbol(kwArgsVal)]
                  | callMixedArgs(ArgExps, KwArgExps) [symbol(callMixedArgs)]
@@ -364,9 +367,11 @@ module PYTHON
                 | emptyDictVals(DictVals) [function, symbol(emptyDictVals)]
                 | idContains(Id, IdItems) [function, symbol(idContains)]
                 | kwContains(Id, KwArgVals) [function, symbol(kwContains)]
+                | kwStringContains(String, KwArgVals) [function, symbol(kwStringContains)]
                 | kwNoDuplicates(KwArgVals) [function, symbol(kwNoDuplicates)]
                 | kwAllInIds(KwArgVals, IdItems) [function, symbol(kwAllInIds)]
                 | kwAllInEitherIds(KwArgVals, IdItems, IdItems) [function, symbol(kwAllInEitherIds)]
+                | stringIdContains(String, IdItems) [function, symbol(stringIdContains)]
                 | kwRequiredPresent(IdItems, KwArgVals, ArgVals) [function, symbol(kwRequiredPresent)]
                 | kwRequiredAlignedPresent(IdItems, KwArgVals, ArgVals) [function, symbol(kwRequiredAlignedPresent)]
                 | hasKwDefaultMissing(ArgVals) [function, symbol(hasKwDefaultMissing)]
@@ -429,7 +434,11 @@ module PYTHON
   syntax Val ::= kwExtrasDict(KwArgVals, IdItems) [function, symbol(kwExtrasDict)]
   syntax KwArgVals ::= "#noKwArgVals" [symbol(noKwArgVals)]
                      | kwArgValsCons(Id, Val, KwArgVals) [symbol(kwArgValsCons)]
+                     | kwArgStringValsCons(String, Val, KwArgVals) [symbol(kwArgStringValsCons)]
                      | appendKwArgVal(KwArgVals, Id, Val) [function, symbol(appendKwArgVal)]
+                     | appendKwStringArgVal(KwArgVals, String, Val) [function, symbol(appendKwStringArgVal)]
+                     | appendKwUnpack(KwArgVals, Val) [function, symbol(appendKwUnpack)]
+                     | appendKwDictItems(KwArgVals, DictItems) [function, symbol(appendKwDictItems)]
   syntax DictVals ::= "#noDictVals" [symbol(noDictVals)]
                     | dictValsCons(Val, Val, DictVals) [symbol(dictValsCons)]
                     | appendDictVal(DictVals, Val, Val) [function, symbol(appendDictVal)]
@@ -707,6 +716,7 @@ module PYTHON
 
   rule kwArgValsLen(#noKwArgVals) => 0
   rule kwArgValsLen(kwArgValsCons(_:Id, _:Val, VS:KwArgVals)) => 1 +Int kwArgValsLen(VS)
+  rule kwArgValsLen(kwArgStringValsCons(_:String, _:Val, VS:KwArgVals)) => 1 +Int kwArgValsLen(VS)
 
   rule dictItemsLen(dictItemsLast(_:Val, _:Val)) => 1
   rule dictItemsLen(dictItemsCons(_:Val, _:Val, DS:DictItems)) => 1 +Int dictItemsLen(DS)
@@ -1056,6 +1066,7 @@ module PYTHON
 
   rule emptyKwArgVals(#noKwArgVals) => true
   rule emptyKwArgVals(kwArgValsCons(_:Id, _:Val, _:KwArgVals)) => false
+  rule emptyKwArgVals(kwArgStringValsCons(_:String, _:Val, _:KwArgVals)) => false
 
   rule emptyDictVals(#noDictVals) => true
   rule emptyDictVals(dictValsCons(_:Val, _:Val, _:DictVals)) => false
@@ -1068,26 +1079,50 @@ module PYTHON
   rule idContains(X:Id, idItemsCons(_Y:Id, IDS:IdItems)) => idContains(X, IDS)
     [owise]
 
+  rule stringIdContains(_:String, #noIds) => false
+  rule stringIdContains(S:String, idItemsLast(X:Id)) => S ==String Id2String(X)
+  rule stringIdContains(S:String, idItemsCons(X:Id, IDS:IdItems)) =>
+    S ==String Id2String(X) orBool stringIdContains(S, IDS)
+
   rule kwContains(_:Id, #noKwArgVals) => false
   rule kwContains(X:Id, kwArgValsCons(X, _:Val, _:KwArgVals)) => true
   rule kwContains(X:Id, kwArgValsCons(_Y:Id, _:Val, KWS:KwArgVals)) => kwContains(X, KWS)
+    [owise]
+  rule kwContains(X:Id, kwArgStringValsCons(S:String, _:Val, KWS:KwArgVals)) =>
+    Id2String(X) ==String S orBool kwContains(X, KWS)
+
+  rule kwStringContains(_:String, #noKwArgVals) => false
+  rule kwStringContains(S:String, kwArgValsCons(X:Id, _:Val, KWS:KwArgVals)) =>
+    S ==String Id2String(X) orBool kwStringContains(S, KWS)
+  rule kwStringContains(S:String, kwArgStringValsCons(S, _:Val, _:KwArgVals)) => true
+  rule kwStringContains(S:String, kwArgStringValsCons(_T:String, _:Val, KWS:KwArgVals)) => kwStringContains(S, KWS)
     [owise]
 
   rule kwLookup(X:Id, kwArgValsCons(X, V:Val, _:KwArgVals)) => V
   rule kwLookup(X:Id, kwArgValsCons(_Y:Id, _:Val, KWS:KwArgVals)) => kwLookup(X, KWS)
     [owise]
+  rule kwLookup(X:Id, kwArgStringValsCons(S:String, V:Val, _:KwArgVals)) => V
+    requires Id2String(X) ==String S
+  rule kwLookup(X:Id, kwArgStringValsCons(_S:String, _:Val, KWS:KwArgVals)) => kwLookup(X, KWS)
+    [owise]
 
   rule kwNoDuplicates(#noKwArgVals) => true
   rule kwNoDuplicates(kwArgValsCons(X:Id, _:Val, KWS:KwArgVals)) =>
     notBool kwContains(X, KWS) andBool kwNoDuplicates(KWS)
+  rule kwNoDuplicates(kwArgStringValsCons(S:String, _:Val, KWS:KwArgVals)) =>
+    notBool kwStringContains(S, KWS) andBool kwNoDuplicates(KWS)
 
   rule kwAllInIds(#noKwArgVals, _:IdItems) => true
   rule kwAllInIds(kwArgValsCons(X:Id, _:Val, KWS:KwArgVals), IDS:IdItems) =>
     idContains(X, IDS) andBool kwAllInIds(KWS, IDS)
+  rule kwAllInIds(kwArgStringValsCons(S:String, _:Val, KWS:KwArgVals), IDS:IdItems) =>
+    stringIdContains(S, IDS) andBool kwAllInIds(KWS, IDS)
 
   rule kwAllInEitherIds(#noKwArgVals, _:IdItems, _:IdItems) => true
   rule kwAllInEitherIds(kwArgValsCons(X:Id, _:Val, KWS:KwArgVals), Pos:IdItems, KwOnly:IdItems) =>
     (idContains(X, Pos) orBool idContains(X, KwOnly)) andBool kwAllInEitherIds(KWS, Pos, KwOnly)
+  rule kwAllInEitherIds(kwArgStringValsCons(S:String, _:Val, KWS:KwArgVals), Pos:IdItems, KwOnly:IdItems) =>
+    (stringIdContains(S, Pos) orBool stringIdContains(S, KwOnly)) andBool kwAllInEitherIds(KWS, Pos, KwOnly)
 
   rule isKwDefaultMissing(#kwDefaultMissing) => true
   rule isKwDefaultMissing(_:Val) => false
@@ -1227,6 +1262,22 @@ module PYTHON
   rule appendKwArgVal(#noKwArgVals, X:Id, V:Val) => kwArgValsCons(X, V, #noKwArgVals)
   rule appendKwArgVal(kwArgValsCons(X0:Id, V0:Val, KWS:KwArgVals), X:Id, V:Val) =>
     kwArgValsCons(X0, V0, appendKwArgVal(KWS, X, V))
+  rule appendKwArgVal(kwArgStringValsCons(S0:String, V0:Val, KWS:KwArgVals), X:Id, V:Val) =>
+    kwArgStringValsCons(S0, V0, appendKwArgVal(KWS, X, V))
+
+  rule appendKwStringArgVal(#noKwArgVals, S:String, V:Val) => kwArgStringValsCons(S, V, #noKwArgVals)
+  rule appendKwStringArgVal(kwArgValsCons(X0:Id, V0:Val, KWS:KwArgVals), S:String, V:Val) =>
+    kwArgValsCons(X0, V0, appendKwStringArgVal(KWS, S, V))
+  rule appendKwStringArgVal(kwArgStringValsCons(S0:String, V0:Val, KWS:KwArgVals), S:String, V:Val) =>
+    kwArgStringValsCons(S0, V0, appendKwStringArgVal(KWS, S, V))
+
+  rule appendKwUnpack(KWS:KwArgVals, ({}):Val) => KWS
+  rule appendKwUnpack(KWS:KwArgVals, dictVal(DS:DictItems)) => appendKwDictItems(KWS, DS)
+
+  rule appendKwDictItems(KWS:KwArgVals, dictItemsLast(S:String, V:Val)) =>
+    appendKwStringArgVal(KWS, S, V)
+  rule appendKwDictItems(KWS:KwArgVals, dictItemsCons(S:String, V:Val, DS:DictItems)) =>
+    appendKwDictItems(appendKwStringArgVal(KWS, S, V), DS)
 
   rule buildKwDefaultArgs(#noIds, _:KwArgVals, _:ArgVals) => #noArgVals
   rule buildKwDefaultArgs(idItemsLast(X:Id), KWS:KwArgVals, #noArgVals) =>
@@ -1276,6 +1327,12 @@ module PYTHON
   rule kwExtrasDictVals(kwArgValsCons(X:Id, V:Val, KWS:KwArgVals), IDS:IdItems) =>
     dictValsCons(Id2String(X), V, kwExtrasDictVals(KWS, IDS))
     requires notBool idContains(X, IDS)
+  rule kwExtrasDictVals(kwArgStringValsCons(S:String, _:Val, KWS:KwArgVals), IDS:IdItems) =>
+    kwExtrasDictVals(KWS, IDS)
+    requires stringIdContains(S, IDS)
+  rule kwExtrasDictVals(kwArgStringValsCons(S:String, V:Val, KWS:KwArgVals), IDS:IdItems) =>
+    dictValsCons(S, V, kwExtrasDictVals(KWS, IDS))
+    requires notBool stringIdContains(S, IDS)
 
   rule appendDictVal(#noDictVals, K:Val, V:Val) => dictValsCons(K, V, #noDictVals)
   rule appendDictVal(dictValsCons(K0:Val, _:Val, DVS:DictVals), K:Val, V:Val) =>
@@ -2286,8 +2343,17 @@ module PYTHON
   rule <k> evalKwArgs(kwArgExpsCons(X:Id, E:Exp, Rest:KwArgExps), KWS:KwArgVals) =>
            E ~> evalKwArgNext(X, Rest, KWS)
        ... </k>
+  rule <k> evalKwArgs(kwStarArgExp(E:Exp), KWS:KwArgVals) =>
+           E ~> evalKwStarArgNext(#noKwArgs, KWS)
+       ... </k>
+  rule <k> evalKwArgs(kwStarArgExpsCons(E:Exp, Rest:KwArgExps), KWS:KwArgVals) =>
+           E ~> evalKwStarArgNext(Rest, KWS)
+       ... </k>
   rule <k> V:Val ~> evalKwArgNext(X:Id, Rest:KwArgExps, KWS:KwArgVals) =>
            evalKwArgs(Rest, appendKwArgVal(KWS, X, V))
+       ... </k>
+  rule <k> V:Val ~> evalKwStarArgNext(Rest:KwArgExps, KWS:KwArgVals) =>
+           evalKwArgs(Rest, appendKwUnpack(KWS, V))
        ... </k>
   rule <k> kwArgsVal(KWS:KwArgVals) ~> callApplyKwArgs(closure(X:Id, Body:Exp)) =>
            Body ~> restoreEnv(Rho)

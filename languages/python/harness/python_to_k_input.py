@@ -507,7 +507,9 @@ def emit_kw_arg_exps(node: ast.AST, keywords: list[ast.keyword]) -> str:
         return "#noKwArgs"
     keyword = keywords[0]
     if keyword.arg is None:
-        raise unsupported(node, "** keyword unpacking is not supported yet")
+        if len(keywords) == 1:
+            return f"#kwStarArg({emit_exp(keyword.value)})"
+        return f"#kwStarArgs({emit_exp(keyword.value)}, {emit_kw_arg_exps(node, keywords[1:])})"
     if len(keywords) == 1:
         return f"#kwArg({keyword.arg}, {emit_exp(keyword.value)})"
     return f"#kwArgs({keyword.arg}, {emit_exp(keyword.value)}, {emit_kw_arg_exps(node, keywords[1:])})"

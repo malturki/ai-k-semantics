@@ -314,8 +314,8 @@ def emit_assign(node: ast.AST, targets: list[ast.expr], value: ast.expr) -> str:
         if isinstance(target, ast.Name):
             return f"{target.id} = {emit_exp(value)}"
         if isinstance(target, ast.Tuple | ast.List):
-            return f"#unpackAssign({emit_id_items(emit_flat_target_names(target))}; {emit_exp(value)})"
-        raise unsupported(target, "only simple-name and flat sequence assignment targets are supported")
+            return emit_sequence_assign(target, value)
+        raise unsupported(target, "only simple-name and flat/starred sequence assignment targets are supported")
 
     names: list[str] = []
     for target in targets:
@@ -327,14 +327,39 @@ def emit_assign(node: ast.AST, targets: list[ast.expr], value: ast.expr) -> str:
     return f"#assignMany({emit_id_items(names)}; {emit_exp(value)})"
 
 
+def emit_sequence_assign(target: ast.Tuple | ast.List, value: ast.expr) -> str:
+    star_indexes = [index for index, elt in enumerate(target.elts) if isinstance(elt, ast.Starred)]
+    if not star_indexes:
+        return f"#unpackAssign({emit_id_items(emit_flat_target_names(target))}; {emit_exp(value)})"
+    if len(star_indexes) > 1:
+        raise unsupported(target.elts[star_indexes[1]], "only one starred assignment target is allowed")
+
+    star_index = star_indexes[0]
+    star = target.elts[star_index]
+    if not isinstance(star, ast.Starred) or not isinstance(star.value, ast.Name):
+        raise unsupported(star, "only simple-name starred assignment targets are supported")
+
+    prefix = emit_flat_target_names_from_elts(target.elts[:star_index])
+    suffix = emit_flat_target_names_from_elts(target.elts[star_index + 1 :])
+    return (
+        f"#unpackStarAssign({emit_id_items(prefix)}; {star.value.id}; "
+        f"{emit_id_items(suffix)}; {emit_exp(value)})"
+    )
+
+
 def emit_flat_target_names(target: ast.Tuple | ast.List) -> list[str]:
+    names = emit_flat_target_names_from_elts(target.elts)
+    if not names:
+        raise unsupported(target, "empty sequence assignment targets are not supported yet")
+    return names
+
+
+def emit_flat_target_names_from_elts(elts: list[ast.expr]) -> list[str]:
     names: list[str] = []
-    for elt in target.elts:
+    for elt in elts:
         if not isinstance(elt, ast.Name):
             raise unsupported(elt, "only flat name sequence assignment targets are supported")
         names.append(elt.id)
-    if not names:
-        raise unsupported(target, "empty sequence assignment targets are not supported yet")
     return names
 
 

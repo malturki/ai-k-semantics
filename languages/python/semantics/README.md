@@ -20,6 +20,7 @@ The base modules should model portable Python semantics from the official docs. 
 - `pass`
 - single-name assignment
 - adapter-backed flat sequence unpacking assignment to simple names
+- adapter-backed starred sequence unpacking assignment to simple names over current list/tuple RHS values
 - integer literals
 - adapter-backed `int()` and `int(x)` for the current int-like subset
 - adapter-backed `abs(x)` for the current int-like subset
@@ -91,6 +92,8 @@ Current range caveat: adapter-backed `range` support is an internal `rangeVal` s
 Current builtin caveat: `len` is defined only for the current concrete string/container/range values, `bool` is defined only through the current truth-value subset, `all` and `any` are defined only for current concrete string/container/range values after the argument value is materialized, `sum` is defined only for current concrete int-like container/range values with optional int-like `start`, one-argument `min` and `max` are defined only for current nonempty concrete int-like container/range values, `int` is defined only for no argument and current int-like values, `abs`, `divmod`, and two-argument `pow` are defined only for current int-like values, with `pow` limited to nonnegative exponents, and the current container type constructors cover only no-argument `list()`, `tuple()`, `dict()`, and `set()`. General builtins namespace lookup, constructor arguments, string/base numeric conversion, three-argument modular `pow`, lazy iterator side effects, non-int sum starts/items, empty/default/key/multi-argument `min`/`max`, `__bool__`/`__len__`/`__iter__`/`__next__`/`__int__`/`__abs__`/`__divmod__`/`__pow__` dispatch, overflow/error behavior, and user-defined objects remain unsupported.
 
 Current assignment-expression caveat: adapter-backed `NAME := expr` evaluates `expr`, binds the resulting value to `NAME` in the current single environment, and yields that value. Full named-expression support still needs concrete parser integration, grammar-position restrictions and diagnostics, comprehension scope behavior, and interaction with real module/function/class scopes.
+
+Current unpacking-assignment caveat: flat and starred assignment targets are adapter-backed for simple names and current concrete list/tuple RHS values. A starred target receives a list of remaining values, possibly empty, and prefix/star/suffix name binding follows left-to-right target order. General iterable unpacking, nested targets, starred targets in `for`, unpacking diagnostics, and attribute/subscript targets remain unsupported.
 
 Current function caveat: adapter-backed `#def` and `#defArgs` cover zero or more positional parameters, no decorators, no defaults, no annotations, no keyword arguments, no varargs/kwargs, and an environment-restore model. Full Python function objects need real frames, cells/closures, default evaluation, globals/nonlocals, descriptors, methods, and argument binding diagnostics.
 

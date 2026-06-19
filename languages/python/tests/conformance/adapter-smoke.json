@@ -718,6 +718,13 @@
       "coverage": ["sequence-unpacking-assignment", "expression-rhs", "flat-name-targets", "ordinary-python-source-adapter"]
     },
     {
+      "id": "adapter-star-unpack-assignment",
+      "source": "../adapter/adapter-star-unpack-assignment.py",
+      "reference": "Python Language Reference 7.2 Assignment statements; PEP 3132 Extended Iterable Unpacking",
+      "expected_result": "True ~> .K",
+      "coverage": ["starred-target-assignment", "sequence-unpacking-assignment", "empty-starred-rest-list", "left-to-right-target-binding", "ordinary-python-source-adapter"]
+    },
+    {
       "id": "adapter-augmented-more",
       "source": "../adapter/adapter-augmented-more.py",
       "reference": "Python Language Reference 7.2.1 Augmented assignment statements",

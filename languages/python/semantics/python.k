@@ -78,6 +78,7 @@ module PYTHON-SYNTAX
                 | "#floorDivAssign" "(" Id "," Exp ")" [symbol(augFloorDivStmt)]
                 | "#assignMany" "(" IdItems ";" Exp ")" [symbol(assignManyStmt), strict(2)]
                 | "#unpackAssign" "(" IdItems ";" Exp ")" [symbol(unpackAssignStmt), strict(2)]
+                | "#unpackStarAssign" "(" IdItems ";" Id ";" IdItems ";" Exp ")" [symbol(unpackStarAssignStmt), strict(4)]
                 | "return" Exp [symbol(returnStmt), strict]
                 | "#def" "(" Id "," Id "," Block ")" [symbol(functionDefStmt)]
                 | "#defArgs" "(" Id "," IdItems "," Block ")" [symbol(functionDefArgsStmt)]
@@ -251,6 +252,7 @@ module PYTHON
                 | setItemsSubset(ValItems, ValItems) [function, symbol(setItemsSubset)]
                 | sameArity(IdItems, ArgVals) [function, symbol(sameArity)]
                 | sameIdValArity(IdItems, ValItems) [function, symbol(sameIdValArity)]
+                | starUnpackArityOk(IdItems, IdItems, Int) [function, symbol(starUnpackArityOk)]
                 | emptyArgVals(ArgVals) [function, symbol(emptyArgVals)]
                 | emptyDictVals(DictVals) [function, symbol(emptyDictVals)]
                 | containsVal(Val, ValItems) [function, symbol(containsVal)]
@@ -276,6 +278,7 @@ module PYTHON
                | pySliceUpperNeg(Val, Int) [function, symbol(pySliceUpperNeg)]
                | pySliceIndexNeg(Int, Int) [function, symbol(pySliceIndexNeg)]
                | valItemsLen(ValItems) [function, symbol(valItemsLen)]
+               | idItemsLen(IdItems) [function, symbol(idItemsLen)]
                | dictItemsLen(DictItems) [function, symbol(dictItemsLen)]
                | rangeGet(Int, Int, Int, Int) [function, symbol(rangeGet)]
                | sumValItems(ValItems) [function, symbol(sumValItems)]
@@ -295,11 +298,16 @@ module PYTHON
                     | appendDictVal(DictVals, Val, Val) [function, symbol(appendDictVal)]
   syntax Map ::= bindArgs(Map, IdItems, ArgVals) [function, symbol(bindArgs)]
   syntax Map ::= bindVals(Map, IdItems, ValItems) [function, symbol(bindVals)]
+  syntax Map ::= bindPrefixVals(Map, IdItems, ValItems) [function, symbol(bindPrefixVals)]
+  syntax Map ::= bindSuffixVals(Map, IdItems, ValItems, Int) [function, symbol(bindSuffixVals)]
+  syntax Map ::= bindOneVal(Map, Id, Val) [function, symbol(bindOneVal)]
+  syntax Map ::= bindStarUnpack(Map, IdItems, Id, IdItems, ValItems) [function, symbol(bindStarUnpack)]
   syntax ValItems ::= argValsToValItems(ArgVals) [function, symbol(argValsToValItems)]
   syntax ValItems ::= argValsToSetItems(ArgVals) [function, symbol(argValsToSetItems)]
   syntax ValItems ::= stringToValItems(String, Int, Int) [function, symbol(stringToValItems)]
   syntax ValItems ::= dictKeysToValItems(DictItems) [function, symbol(dictKeysToValItems)]
   syntax ValItems ::= rangeToValItems(Int, Int, Int, Int, Int) [function, symbol(rangeToValItems)]
+  syntax ValItems ::= dropValItems(ValItems, Int) [function, symbol(dropValItems)]
   syntax ValItems ::= concatValItems(ValItems, ValItems) [function, symbol(concatValItems)]
   syntax ValItems ::= repeatValItems(ValItems, Int) [function, symbol(repeatValItems)]
   syntax ValItems ::= sliceValItems(ValItems, Int, Int) [function, symbol(sliceValItems)]
@@ -485,6 +493,10 @@ module PYTHON
 
   rule valItemsLen(valItemsLast(_:Val)) => 1
   rule valItemsLen(valItemsCons(_:Val, VS:ValItems)) => 1 +Int valItemsLen(VS)
+
+  rule idItemsLen(#noIds) => 0
+  rule idItemsLen(idItemsLast(_:Id)) => 1
+  rule idItemsLen(idItemsCons(_:Id, IDS:IdItems)) => 1 +Int idItemsLen(IDS)
 
   rule dictItemsLen(dictItemsLast(_:Val, _:Val)) => 1
   rule dictItemsLen(dictItemsCons(_:Val, _:Val, DS:DictItems)) => 1 +Int dictItemsLen(DS)
@@ -698,6 +710,9 @@ module PYTHON
   rule sameIdValArity(idItemsCons(_:Id, IDS:IdItems), valItemsCons(_:Val, VS:ValItems)) =>
     sameIdValArity(IDS, VS)
 
+  rule starUnpackArityOk(Prefix:IdItems, Suffix:IdItems, Len:Int) =>
+    idItemsLen(Prefix) +Int idItemsLen(Suffix) <=Int Len
+
   rule emptyArgVals(#noArgVals) => true
   rule emptyArgVals(argValsCons(_:Val, _:ArgVals)) => false
 
@@ -724,6 +739,29 @@ module PYTHON
   rule bindVals(Rho:Map, idItemsLast(X:Id), valItemsLast(V:Val)) => Rho [ X <- V ]
   rule bindVals(Rho:Map, idItemsCons(X:Id, IDS:IdItems), valItemsCons(V:Val, VS:ValItems)) =>
     bindVals(Rho [ X <- V ], IDS, VS)
+
+  rule bindPrefixVals(Rho:Map, #noIds, _:ValItems) => Rho
+  rule bindPrefixVals(Rho:Map, idItemsLast(X:Id), valItemsLast(V:Val)) => Rho [ X <- V ]
+  rule bindPrefixVals(Rho:Map, idItemsLast(X:Id), valItemsCons(V:Val, _:ValItems)) => Rho [ X <- V ]
+  rule bindPrefixVals(Rho:Map, idItemsCons(X:Id, IDS:IdItems), valItemsCons(V:Val, VS:ValItems)) =>
+    bindPrefixVals(Rho [ X <- V ], IDS, VS)
+
+  rule bindSuffixVals(Rho:Map, #noIds, _:ValItems, _:Int) => Rho
+  rule bindSuffixVals(Rho:Map, IDS:IdItems, VS:ValItems, Len:Int) =>
+    bindVals(Rho, IDS, dropValItems(VS, Len -Int idItemsLen(IDS)))
+    requires idItemsLen(IDS) >Int 0
+
+  rule bindOneVal(Rho:Map, X:Id, V:Val) => Rho [ X <- V ]
+
+  rule bindStarUnpack(Rho:Map, Prefix:IdItems, Star:Id, Suffix:IdItems, VS:ValItems) =>
+    bindSuffixVals(
+      bindOneVal(
+        bindPrefixVals(Rho, Prefix, VS),
+        Star,
+        listSlice(VS, idItemsLen(Prefix), valItemsLen(VS) -Int idItemsLen(Suffix))),
+      Suffix,
+      VS,
+      valItemsLen(VS))
 
   rule argValsToValItems(argValsCons(V:Val, #noArgVals)) => valItemsLast(V)
   rule argValsToValItems(argValsCons(V:Val, VS:ArgVals)) =>
@@ -829,6 +867,10 @@ module PYTHON
   rule repeatValItems(VS:ValItems, 1) => VS
   rule repeatValItems(VS:ValItems, N:Int) => concatValItems(VS, repeatValItems(VS, N -Int 1))
     requires N >Int 1
+
+  rule dropValItems(VS:ValItems, 0) => VS
+  rule dropValItems(valItemsCons(_:Val, VS:ValItems), N:Int) => dropValItems(VS, N -Int 1)
+    requires N >Int 0
 
   rule sliceString(_:String, Start:Int, Stop:Int) => "" requires Start >=Int Stop
   rule sliceString(S:String, Start:Int, Stop:Int) => substrString(S, Start, Stop)
@@ -1580,6 +1622,23 @@ module PYTHON
        <env> Rho => bindVals(Rho, IDS, VS) </env>
        <result> _ => .K </result>
     requires sameIdValArity(IDS, VS)
+
+  rule <k> unpackStarAssignStmt(Prefix:IdItems, Star:Id, Suffix:IdItems, listVal(VS:ValItems)) => stmtNoResult ... </k>
+       <env> Rho => bindStarUnpack(Rho, Prefix, Star, Suffix, VS) </env>
+       <result> _ => .K </result>
+    requires starUnpackArityOk(Prefix, Suffix, valItemsLen(VS))
+  rule <k> unpackStarAssignStmt(Prefix:IdItems, Star:Id, Suffix:IdItems, tupleVal(VS:ValItems)) => stmtNoResult ... </k>
+       <env> Rho => bindStarUnpack(Rho, Prefix, Star, Suffix, VS) </env>
+       <result> _ => .K </result>
+    requires starUnpackArityOk(Prefix, Suffix, valItemsLen(VS))
+  rule <k> unpackStarAssignStmt(Prefix:IdItems, Star:Id, Suffix:IdItems, []) => stmtNoResult ... </k>
+       <env> Rho => Rho [ Star <- [] ] </env>
+       <result> _ => .K </result>
+    requires idItemsLen(Prefix) +Int idItemsLen(Suffix) ==Int 0
+  rule <k> unpackStarAssignStmt(Prefix:IdItems, Star:Id, Suffix:IdItems, ()) => stmtNoResult ... </k>
+       <env> Rho => Rho [ Star <- [] ] </env>
+       <result> _ => .K </result>
+    requires idItemsLen(Prefix) +Int idItemsLen(Suffix) ==Int 0
 
   rule <k> functionDefStmt(F:Id, X:Id, Body:Block) => stmtNoResult ... </k>
        <env> Rho => Rho [ F <- functionVal(X, Body) ] </env>

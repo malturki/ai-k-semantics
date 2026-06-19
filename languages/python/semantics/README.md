@@ -73,6 +73,7 @@ The base modules should model portable Python semantics from the official docs. 
 - adapter-backed positional lambda default values, evaluated when the lambda expression is evaluated
 - adapter-backed positional function default values, evaluated at function definition time
 - adapter-backed function and lambda varargs parameters for positional calls, collecting extra positional arguments into a tuple
+- adapter-backed function and lambda keyword-only parameters in the no-defaults/no-positional subset
 - an internal `#floorDiv(E1, E2)` parser bridge form emitted by the AST adapter
 - adapter-backed `if` statements with optional `else`
 - adapter-backed `while` loops with `break`, `continue`, and loop `else`
@@ -100,7 +101,7 @@ Current assignment-expression caveat: adapter-backed `NAME := expr` evaluates `e
 
 Current unpacking caveat: flat and starred assignment targets are adapter-backed for simple names and current concrete list/tuple RHS values, and flat/starred `for` targets are adapter-backed over current concrete list/tuple item values. A starred target receives a list of remaining values, possibly empty, and prefix/star/suffix name binding follows left-to-right target order. General iterable unpacking, nested targets, unpacking diagnostics, and attribute/subscript targets remain unsupported.
 
-Current function caveat: adapter-backed `#def`, `#defArgs`, `#defDefaults`, `#defVarArgs`, `#lambdaArgs`, `#lambdaDefaults`, and `#lambdaVarArgs` cover zero or more positional parameters, optional suffix defaults evaluated at function/lambda definition time, varargs parameters for positional calls without defaults, keyword-only calls without positional arguments, mixed positional/keyword calls, starred positional call unpacking over current ordered concrete string/list/tuple/dict/range values, no `**kwargs`, no decorators, no annotations, no positional-only or keyword-only parameters, no keyword binding for varargs callables, and an environment-restore model. Full Python function objects need real frames, cells/closures, globals/nonlocals, descriptors, methods, and argument binding diagnostics.
+Current function caveat: adapter-backed `#def`, `#defArgs`, `#defDefaults`, `#defVarArgs`, `#defKwOnly`, `#lambdaArgs`, `#lambdaDefaults`, `#lambdaVarArgs`, and `#lambdaKwOnly` cover zero or more positional parameters, optional suffix defaults evaluated at function/lambda definition time, varargs parameters for positional calls without defaults, keyword-only parameters without positional parameters or defaults, keyword-only calls without positional arguments, mixed positional/keyword calls, starred positional call unpacking over current ordered concrete string/list/tuple/dict/range values, no `**kwargs`, no decorators, no annotations, no positional-only parameters, no mixed positional-plus-keyword-only parameter definitions, no keyword binding for varargs callables, and an environment-restore model. Full Python function objects need real frames, cells/closures, globals/nonlocals, descriptors, methods, and argument binding diagnostics.
 
 Current augmented-assignment caveat: matrix-multiplication `@=` remains unsupported because there is no matrix protocol, and augmented assignment is otherwise limited to simple-name targets in the current value/operator subsets rather than full in-place/special-method dispatch.
 

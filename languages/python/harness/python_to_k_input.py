@@ -167,12 +167,14 @@ def emit_exp(exp: ast.expr) -> str:
             return f"#divmod({emit_exp(left)}, {emit_exp(right)})"
         case ast.Call(func=ast.Name(id="pow"), args=[base, exponent], keywords=[]):
             return f"#pow({emit_exp(base)}, {emit_exp(exponent)})"
+        case ast.Call(func=func, args=[], keywords=keywords) if keywords:
+            return f"#callKw({emit_exp(func)}, {emit_kw_arg_exps(exp, keywords)})"
+        case ast.Call(keywords=keywords) if keywords:
+            raise unsupported(exp, "only keyword-only calls without positional arguments are supported yet")
         case ast.Call(func=func, args=[arg], keywords=[]):
             return f"({emit_exp(func)}({emit_exp(arg)}))"
         case ast.Call(func=func, args=args, keywords=[]):
             return f"#call({emit_exp(func)}, {emit_arg_exps(args)})"
-        case ast.Call():
-            raise unsupported(exp, "keyword arguments are not supported yet")
         case ast.List(elts=elts, ctx=ast.Load()):
             return emit_list(elts)
         case ast.Tuple(elts=elts, ctx=ast.Load()):
@@ -379,6 +381,17 @@ def emit_arg_exps(args: list[ast.expr]) -> str:
     if len(args) == 1:
         return f"#arg({emit_exp(args[0])})"
     return f"#args({emit_exp(args[0])}, {emit_arg_exps(args[1:])})"
+
+
+def emit_kw_arg_exps(node: ast.AST, keywords: list[ast.keyword]) -> str:
+    if not keywords:
+        return "#noKwArgs"
+    keyword = keywords[0]
+    if keyword.arg is None:
+        raise unsupported(node, "** keyword unpacking is not supported yet")
+    if len(keywords) == 1:
+        return f"#kwArg({keyword.arg}, {emit_exp(keyword.value)})"
+    return f"#kwArgs({keyword.arg}, {emit_exp(keyword.value)}, {emit_kw_arg_exps(node, keywords[1:])})"
 
 
 def emit_list(elts: list[ast.expr]) -> str:

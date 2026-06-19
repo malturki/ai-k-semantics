@@ -115,8 +115,8 @@ def emit_exp(exp: ast.expr) -> str:
             return emit_bool_op(exp, op, values)
         case ast.Compare(left=left, ops=[op], comparators=[right]):
             return f"({emit_exp(left)} {emit_cmp_op(op)} {emit_exp(right)})"
-        case ast.Compare():
-            raise unsupported(exp, "chained comparisons are not supported yet")
+        case ast.Compare(left=left, ops=ops, comparators=comparators):
+            return f"#compareChain({emit_exp(left)}, {emit_cmp_chain(ops, comparators)})"
         case ast.IfExp(test=test, body=body, orelse=orelse):
             return f"({emit_exp(body)} if {emit_exp(test)} else {emit_exp(orelse)})"
         case ast.Lambda(args=args, body=body):
@@ -370,6 +370,40 @@ def emit_cmp_op(op: ast.cmpop) -> str:
     if isinstance(op, ast.IsNot):
         return "is not"
     raise unsupported(op, "comparison operator is not supported")
+
+
+def emit_cmp_op_tag(op: ast.cmpop) -> str:
+    if isinstance(op, ast.Lt):
+        return "#lt"
+    if isinstance(op, ast.LtE):
+        return "#le"
+    if isinstance(op, ast.Gt):
+        return "#gt"
+    if isinstance(op, ast.GtE):
+        return "#ge"
+    if isinstance(op, ast.Eq):
+        return "#eq"
+    if isinstance(op, ast.NotEq):
+        return "#ne"
+    if isinstance(op, ast.Is):
+        return "#is"
+    if isinstance(op, ast.IsNot):
+        return "#isNot"
+    if isinstance(op, ast.In):
+        return "#in"
+    if isinstance(op, ast.NotIn):
+        return "#notIn"
+    raise unsupported(op, "comparison operator is not supported")
+
+
+def emit_cmp_chain(ops: list[ast.cmpop], comparators: list[ast.expr]) -> str:
+    if len(ops) != len(comparators) or not ops:
+        raise UnsupportedPythonSubset("comparison chain must have matching operators and comparators")
+    op = emit_cmp_op_tag(ops[0])
+    comparator = emit_exp(comparators[0])
+    if len(ops) == 1:
+        return f"#cmpLast({op}, {comparator})"
+    return f"#cmpCons({op}, {comparator}, {emit_cmp_chain(ops[1:], comparators[1:])})"
 
 
 def main(argv: list[str]) -> int:

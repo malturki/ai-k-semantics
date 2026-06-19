@@ -36,6 +36,20 @@ module PYTHON-SYNTAX
                     | "#dictItem" "(" Exp "," Exp ")" [symbol(dictExpItem)]
                     | "#dictItems" "(" Exp "," Exp "," DictExps ")" [symbol(dictExpsCons)]
 
+  syntax CmpOp ::= "#lt" [symbol(cmpLt)]
+                 | "#le" [symbol(cmpLe)]
+                 | "#gt" [symbol(cmpGt)]
+                 | "#ge" [symbol(cmpGe)]
+                 | "#eq" [symbol(cmpEq)]
+                 | "#ne" [symbol(cmpNe)]
+                 | "#is" [symbol(cmpIs)]
+                 | "#isNot" [symbol(cmpIsNot)]
+                 | "#in" [symbol(cmpIn)]
+                 | "#notIn" [symbol(cmpNotIn)]
+
+  syntax CmpChain ::= "#cmpLast" "(" CmpOp "," Exp ")" [symbol(cmpChainLast)]
+                    | "#cmpCons" "(" CmpOp "," Exp "," CmpChain ")" [symbol(cmpChainCons)]
+
   syntax Stmts ::= Stmt ";" Stmts [symbol(stmtsCons)]
                  | Stmt ";" [symbol(stmtsLast)]
 
@@ -80,6 +94,7 @@ module PYTHON-SYNTAX
                | "#tuple" "(" ArgExps ")" [symbol(tupleDisplayExp)]
                | "#dict" "(" DictExps ")" [symbol(dictDisplayExp)]
                | "#set" "(" ArgExps ")" [symbol(setDisplayExp)]
+               | "#compareChain" "(" Exp "," CmpChain ")" [symbol(compareChainExp)]
                | "#floorDiv" "(" Exp "," Exp ")" [symbol(floorDivInternal), strict]
                | "+" Exp [symbol(posExp), strict]
                | "-" Exp [symbol(negExp), strict]
@@ -151,6 +166,10 @@ module PYTHON
                  | evalDictValue(Exp, DictExps, DictVals) [symbol(evalDictValue)]
                  | evalDictNext(DictExps, DictVals, Val) [symbol(evalDictNext)]
                  | "buildDict" [symbol(buildDict)]
+                 | compareChain(CmpChain) [symbol(compareChain)]
+                 | compareChainLast(CmpOp, Val) [symbol(compareChainLast)]
+                 | compareChainNext(CmpOp, Val, CmpChain) [symbol(compareChainNext)]
+                 | compareFrom(Val, CmpChain) [symbol(compareFrom)]
                  | restoreEnv(Map) [symbol(restoreEnv)]
                  | ifStmtBranch(Block, Block) [symbol(ifStmtBranch)]
                  | "ifStmtDone" [symbol(ifStmtDone)]
@@ -179,6 +198,7 @@ module PYTHON
                 | isIntLike(Val) [function, symbol(isIntLike)]
                 | valEq(Val, Val) [function, symbol(valEq)]
                 | valIs(Val, Val) [function, symbol(valIs)]
+                | cmpHolds(CmpOp, Val, Val) [function, symbol(cmpHolds)]
                 | singletonIdentity(Val) [function, symbol(singletonIdentity)]
                 | valsEq(ValItems, ValItems) [function, symbol(valsEq)]
                 | sameArity(IdItems, ArgVals) [function, symbol(sameArity)]
@@ -390,6 +410,27 @@ module PYTHON
   rule valIs(V1:Val, V2:Val) => false
     requires notBool singletonIdentity(V1) andBool singletonIdentity(V2)
 
+  rule cmpHolds(#lt, V1:Val, V2:Val) => intValue(V1) <Int intValue(V2)
+    requires isIntLike(V1) andBool isIntLike(V2)
+  rule cmpHolds(#le, V1:Val, V2:Val) => intValue(V1) <=Int intValue(V2)
+    requires isIntLike(V1) andBool isIntLike(V2)
+  rule cmpHolds(#gt, V1:Val, V2:Val) => intValue(V1) >Int intValue(V2)
+    requires isIntLike(V1) andBool isIntLike(V2)
+  rule cmpHolds(#ge, V1:Val, V2:Val) => intValue(V1) >=Int intValue(V2)
+    requires isIntLike(V1) andBool isIntLike(V2)
+  rule cmpHolds(#eq, V1:Val, V2:Val) => valEq(V1, V2)
+  rule cmpHolds(#ne, V1:Val, V2:Val) => notBool valEq(V1, V2)
+  rule cmpHolds(#is, V1:Val, V2:Val) => valIs(V1, V2)
+  rule cmpHolds(#isNot, V1:Val, V2:Val) => notBool valIs(V1, V2)
+  rule cmpHolds(#in, _V:Val, []) => false
+  rule cmpHolds(#in, V:Val, listVal(VS:ValItems)) => containsVal(V, VS)
+  rule cmpHolds(#in, _V:Val, ()) => false
+  rule cmpHolds(#in, V:Val, tupleVal(VS:ValItems)) => containsVal(V, VS)
+  rule cmpHolds(#in, _V:Val, {}) => false
+  rule cmpHolds(#in, V:Val, dictVal(DS:DictItems)) => containsKey(V, DS)
+  rule cmpHolds(#in, V:Val, setVal(VS:ValItems)) => containsVal(V, VS)
+  rule cmpHolds(#notIn, V1:Val, V2:Val) => notBool cmpHolds(#in, V1, V2)
+
   rule sameArity(#noIds, #noArgVals) => true
   rule sameArity(#noIds, argValsCons(_:Val, _:ArgVals)) => false
   rule sameArity(idItemsLast(_:Id), #noArgVals) => false
@@ -514,6 +555,29 @@ module PYTHON
   rule V1:Val != V2:Val => boolValue(notBool valEq(V1, V2))
   rule V1:Val is V2:Val => boolValue(valIs(V1, V2))
   rule V1:Val is not V2:Val => boolValue(notBool valIs(V1, V2))
+  rule <k> compareChainExp(Left:Exp, Chain:CmpChain) =>
+           Left ~> compareChain(Chain)
+       ... </k>
+  rule <k> L:Val ~> compareChain(cmpChainLast(Op:CmpOp, Right:Exp)) =>
+           Right ~> compareChainLast(Op, L)
+       ... </k>
+  rule <k> R:Val ~> compareChainLast(Op:CmpOp, L:Val) =>
+           boolValue(cmpHolds(Op, L, R))
+       ... </k>
+  rule <k> L:Val ~> compareChain(cmpChainCons(Op:CmpOp, Right:Exp, Rest:CmpChain)) =>
+           Right ~> compareChainNext(Op, L, Rest)
+       ... </k>
+  rule <k> R:Val ~> compareChainNext(Op:CmpOp, L:Val, Rest:CmpChain) =>
+           compareFrom(R, Rest)
+       ... </k>
+    requires cmpHolds(Op, L, R)
+  rule <k> R:Val ~> compareChainNext(Op:CmpOp, L:Val, _:CmpChain) =>
+           False
+       ... </k>
+    requires notBool cmpHolds(Op, L, R)
+  rule <k> compareFrom(L:Val, Chain:CmpChain) =>
+           L ~> compareChain(Chain)
+       ... </k>
   rule _V:Val in [] => False
   rule V:Val in listVal(VS:ValItems) => boolValue(containsVal(V, VS))
   rule _V:Val in () => False

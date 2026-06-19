@@ -33,6 +33,7 @@ The base modules should model portable Python semantics from the official docs. 
 - binary comparisons for int-like values and equality over integers, booleans, and `None`
 - string equality
 - singleton identity comparisons with `is` and `is not` for `None`, `True`, and `False`
+- adapter-backed chained comparisons over the currently supported comparison operators, with short-circuiting
 - conditional expressions
 - simple-name `+=`, `-=`, `*=`, `%=`, `**=`, `//=`, `<<=`, `>>=`, `&=`, `^=`, and `|=`
 - multi-target simple-name assignment through the AST adapter

@@ -74,6 +74,27 @@
       "coverage": ["identity-comparison", "bool-singletons", "ordinary-python-source-adapter"]
     },
     {
+      "id": "adapter-chained-comparison",
+      "source": "../adapter/adapter-chained-comparison.py",
+      "reference": "Python Language Reference 6.10 Comparisons; 6.16 Evaluation order",
+      "expected_result": "True ~> .K",
+      "coverage": ["chained-comparison", "comparison-evaluation-order", "ordinary-python-source-adapter"]
+    },
+    {
+      "id": "adapter-chained-comparison-short-circuit",
+      "source": "../adapter/adapter-chained-comparison-short-circuit.py",
+      "reference": "Python Language Reference 6.10 Comparisons; 6.16 Evaluation order",
+      "expected_result": "False ~> .K",
+      "coverage": ["chained-comparison", "comparison-short-circuit", "ordinary-python-source-adapter"]
+    },
+    {
+      "id": "adapter-chained-identity",
+      "source": "../adapter/adapter-chained-identity.py",
+      "reference": "Python Language Reference 6.10 Comparisons; 6.10.3 Identity comparisons",
+      "expected_result": "True ~> .K",
+      "coverage": ["chained-comparison", "identity-comparison", "ordinary-python-source-adapter"]
+    },
+    {
       "id": "adapter-while",
       "source": "../adapter/adapter-while.py",
       "reference": "Python Language Reference 8.2 The while statement",

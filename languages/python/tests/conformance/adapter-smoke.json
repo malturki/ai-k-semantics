@@ -228,6 +228,13 @@
       "coverage": ["bool-constructor", "truth-value-testing", "bool-singletons", "ordinary-python-source-adapter"]
     },
     {
+      "id": "adapter-all-any",
+      "source": "../adapter/adapter-all-any.py",
+      "reference": "Python Standard Library Built-in Functions all and any; Truth Value Testing; Built-in Types list, tuple, str, dict, set, and range",
+      "expected_result": "True ~> .K",
+      "coverage": ["all-builtin", "any-builtin", "truth-value-testing", "concrete-iterable-subset", "dict-key-iteration-subset", "range-iteration-subset", "ordinary-python-source-adapter"]
+    },
+    {
       "id": "adapter-int-constructor",
       "source": "../adapter/adapter-int-constructor.py",
       "reference": "Python Standard Library Built-in Types int",

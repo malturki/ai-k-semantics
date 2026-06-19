@@ -104,6 +104,8 @@ module PYTHON-SYNTAX
                | "#setCtor" "(" ")" [symbol(setCtorExp)]
                | "#boolCtor" "(" ")" [symbol(boolCtor0Exp)]
                | "#boolCtor" "(" Exp ")" [symbol(boolCtor1Exp), strict]
+               | "#all" "(" Exp ")" [symbol(allExp), strict]
+               | "#any" "(" Exp ")" [symbol(anyExp), strict]
                | "#intCtor" "(" ")" [symbol(intCtor0Exp)]
                | "#intCtor" "(" Exp ")" [symbol(intCtor1Exp), strict]
                | "#abs" "(" Exp ")" [symbol(absExp), strict]
@@ -249,6 +251,10 @@ module PYTHON
                 | rangeContains(Val, Int, Int) [function, symbol(rangeContains)]
                 | rangeContains(Val, Int, Int, Int) [function, symbol(rangeContainsStep)]
                 | rangeEq(Int, Int, Int, Int, Int, Int) [function, symbol(rangeEq)]
+                | allValItems(ValItems) [function, symbol(allValItems)]
+                | anyValItems(ValItems) [function, symbol(anyValItems)]
+                | rangeAllTruthy(Int, Int, Int) [function, symbol(rangeAllTruthy)]
+                | rangeAnyTruthy(Int, Int, Int) [function, symbol(rangeAnyTruthy)]
 
   syntax Int ::= intValue(Val) [function, symbol(intValue)]
                | pyFloorDiv(Int, Int) [function, symbol(pyFloorDiv)]
@@ -728,6 +734,26 @@ module PYTHON
   rule dictKeysToValItems(dictItemsLast(K:Val, _:Val)) => valItemsLast(K)
   rule dictKeysToValItems(dictItemsCons(K:Val, _:Val, DS:DictItems)) =>
     valItemsCons(K, dictKeysToValItems(DS))
+
+  rule allValItems(valItemsLast(V:Val)) => truthy(V)
+  rule allValItems(valItemsCons(V:Val, VS:ValItems)) => truthy(V) andBool allValItems(VS)
+  rule anyValItems(valItemsLast(V:Val)) => truthy(V)
+  rule anyValItems(valItemsCons(V:Val, VS:ValItems)) => truthy(V) orBool anyValItems(VS)
+
+  rule rangeAllTruthy(Start:Int, Stop:Int, Step:Int) => notBool rangeContains(0, Start, Stop, Step)
+    requires Step =/=Int 0
+  rule rangeAnyTruthy(Start:Int, Stop:Int, Step:Int) => false
+    requires Step =/=Int 0 andBool pyRangeLen(Start, Stop, Step) ==Int 0
+  rule rangeAnyTruthy(Start:Int, Stop:Int, Step:Int) => false
+    requires Step =/=Int 0
+      andBool pyRangeLen(Start, Stop, Step) ==Int 1
+      andBool rangeGet(Start, Stop, Step, 0) ==Int 0
+  rule rangeAnyTruthy(Start:Int, Stop:Int, Step:Int) => true
+    requires Step =/=Int 0
+      andBool pyRangeLen(Start, Stop, Step) ==Int 1
+      andBool rangeGet(Start, Stop, Step, 0) =/=Int 0
+  rule rangeAnyTruthy(Start:Int, Stop:Int, Step:Int) => true
+    requires Step =/=Int 0 andBool pyRangeLen(Start, Stop, Step) >Int 1
 
   rule concatValItems(valItemsLast(V:Val), VS:ValItems) => valItemsCons(V, VS)
   rule concatValItems(valItemsCons(V:Val, VS1:ValItems), VS2:ValItems) =>
@@ -1310,6 +1336,30 @@ module PYTHON
   rule #setCtor() => set()
   rule #boolCtor() => False
   rule #boolCtor(V:Val) => boolValue(truthy(V))
+  rule #all([]) => True
+  rule #all(listVal(VS:ValItems)) => boolValue(allValItems(VS))
+  rule #all(()) => True
+  rule #all(tupleVal(VS:ValItems)) => boolValue(allValItems(VS))
+  rule #all(_:String) => True
+  rule #all(({}):Val) => True
+  rule #all(dictVal(DS:DictItems)) => boolValue(allValItems(dictKeysToValItems(DS)))
+  rule #all(set()) => True
+  rule #all(setVal(VS:ValItems)) => boolValue(allValItems(VS))
+  rule #all(rangeVal(Start:Int, Stop:Int)) => boolValue(rangeAllTruthy(Start, Stop, 1))
+  rule #all(rangeVal(Start:Int, Stop:Int, Step:Int)) => boolValue(rangeAllTruthy(Start, Stop, Step))
+    requires Step =/=Int 0
+  rule #any([]) => False
+  rule #any(listVal(VS:ValItems)) => boolValue(anyValItems(VS))
+  rule #any(()) => False
+  rule #any(tupleVal(VS:ValItems)) => boolValue(anyValItems(VS))
+  rule #any(S:String) => boolValue(lengthString(S) >Int 0)
+  rule #any(({}):Val) => False
+  rule #any(dictVal(DS:DictItems)) => boolValue(anyValItems(dictKeysToValItems(DS)))
+  rule #any(set()) => False
+  rule #any(setVal(VS:ValItems)) => boolValue(anyValItems(VS))
+  rule #any(rangeVal(Start:Int, Stop:Int)) => boolValue(rangeAnyTruthy(Start, Stop, 1))
+  rule #any(rangeVal(Start:Int, Stop:Int, Step:Int)) => boolValue(rangeAnyTruthy(Start, Stop, Step))
+    requires Step =/=Int 0
   rule #intCtor() => 0
   rule #intCtor(V:Val) => intValue(V)
     requires isIntLike(V)

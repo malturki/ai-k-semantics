@@ -169,8 +169,10 @@ def emit_exp(exp: ast.expr) -> str:
             return f"#pow({emit_exp(base)}, {emit_exp(exponent)})"
         case ast.Call(func=func, args=[], keywords=keywords) if keywords:
             return f"#callKw({emit_exp(func)}, {emit_kw_arg_exps(exp, keywords)})"
+        case ast.Call(func=func, args=args, keywords=keywords) if args and keywords:
+            return f"#callMixed({emit_exp(func)}, {emit_arg_exps(args)}, {emit_kw_arg_exps(exp, keywords)})"
         case ast.Call(keywords=keywords) if keywords:
-            raise unsupported(exp, "only keyword-only calls without positional arguments are supported yet")
+            raise unsupported(exp, "unsupported keyword call shape")
         case ast.Call(func=func, args=[arg], keywords=[]):
             return f"({emit_exp(func)}({emit_exp(arg)}))"
         case ast.Call(func=func, args=args, keywords=[]):

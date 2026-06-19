@@ -67,7 +67,7 @@ The base modules should model portable Python semantics from the official docs. 
 - adapter-backed `list(x)` and `tuple(x)` for current ordered concrete string/list/tuple/dict/range values, with dictionaries yielding keys
 - single-argument `lambda` expressions
 - single-positional-argument calls to lambda closure values
-- adapter-backed zero- and multi-positional-argument calls, keyword-only calls, functions, and lambdas
+- adapter-backed zero- and multi-positional-argument calls, keyword-only calls, mixed positional/keyword calls, functions, and lambdas
 - adapter-backed positional lambda default values, evaluated when the lambda expression is evaluated
 - adapter-backed positional function default values, evaluated at function definition time
 - an internal `#floorDiv(E1, E2)` parser bridge form emitted by the AST adapter
@@ -97,7 +97,7 @@ Current assignment-expression caveat: adapter-backed `NAME := expr` evaluates `e
 
 Current unpacking-assignment caveat: flat and starred assignment targets are adapter-backed for simple names and current concrete list/tuple RHS values. A starred target receives a list of remaining values, possibly empty, and prefix/star/suffix name binding follows left-to-right target order. General iterable unpacking, nested targets, starred targets in `for`, unpacking diagnostics, and attribute/subscript targets remain unsupported.
 
-Current function caveat: adapter-backed `#def`, `#defArgs`, and `#defDefaults` cover zero or more positional parameters, optional suffix defaults evaluated at function definition time, keyword-only calls without positional arguments, no decorators, no annotations, no mixed positional/keyword calls, no positional-only or keyword-only parameters, no varargs/kwargs, and an environment-restore model. Full Python function objects need real frames, cells/closures, globals/nonlocals, descriptors, methods, and argument binding diagnostics.
+Current function caveat: adapter-backed `#def`, `#defArgs`, and `#defDefaults` cover zero or more positional parameters, optional suffix defaults evaluated at function definition time, keyword-only calls without positional arguments, mixed positional/keyword calls without starred argument unpacking or `**kwargs`, no decorators, no annotations, no positional-only or keyword-only parameters, no varargs/kwargs, and an environment-restore model. Full Python function objects need real frames, cells/closures, globals/nonlocals, descriptors, methods, and argument binding diagnostics.
 
 Current augmented-assignment caveat: true-division `/=` and matrix-multiplication `@=` remain unsupported because the current value model has no float/numeric tower or matrix protocol.
 

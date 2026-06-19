@@ -103,6 +103,7 @@ run_case "adapter-function-defaults" "$ROOT/tests/adapter/adapter-function-defau
 run_case "adapter-lambda-multi-arg" "$ROOT/tests/adapter/adapter-lambda-multi-arg.py" "True ~> .K"
 run_case "adapter-lambda-defaults" "$ROOT/tests/adapter/adapter-lambda-defaults.py" "True ~> .K"
 run_case "adapter-keyword-calls" "$ROOT/tests/adapter/adapter-keyword-calls.py" "True ~> .K"
+run_case "adapter-mixed-calls" "$ROOT/tests/adapter/adapter-mixed-calls.py" "True ~> .K"
 run_case "adapter-for-list" "$ROOT/tests/adapter/adapter-for-list.py" "True ~> .K"
 run_case "adapter-for-tuple" "$ROOT/tests/adapter/adapter-for-tuple.py" "True ~> .K"
 run_case "adapter-for-string" "$ROOT/tests/adapter/adapter-for-string.py" "True ~> .K"

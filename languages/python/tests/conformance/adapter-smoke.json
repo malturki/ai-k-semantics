@@ -424,6 +424,13 @@
       "coverage": ["keyword-argument-call", "keyword-expression-evaluation-order", "keyword-default-filling", "function-call", "lambda-call", "ordinary-python-source-adapter"]
     },
     {
+      "id": "adapter-mixed-calls",
+      "source": "../adapter/adapter-mixed-calls.py",
+      "reference": "Python Language Reference 6.3.4 Calls; 6.16 Evaluation order",
+      "expected_result": "True ~> .K",
+      "coverage": ["mixed-positional-keyword-call", "argument-expression-evaluation-order", "keyword-default-filling", "function-call", "lambda-call", "ordinary-python-source-adapter"]
+    },
+    {
       "id": "adapter-for-list",
       "source": "../adapter/adapter-for-list.py",
       "reference": "Python Language Reference 8.3 The for statement",

@@ -102,6 +102,7 @@ module PYTHON-SYNTAX
                | Exp "(" Exp ")" [symbol(callExp)]
                | "#call" "(" Exp "," ArgExps ")" [symbol(callArgsExp)]
                | "#callKw" "(" Exp "," KwArgExps ")" [symbol(callKwArgsExp)]
+               | "#callMixed" "(" Exp "," ArgExps "," KwArgExps ")" [symbol(callMixedArgsExp)]
                | "#list" "(" ArgExps ")" [symbol(listDisplayExp)]
                | "#tuple" "(" ArgExps ")" [symbol(tupleDisplayExp)]
                | "#dict" "(" DictExps ")" [symbol(dictDisplayExp)]
@@ -203,6 +204,9 @@ module PYTHON
                  | evalKwArgNext(Id, KwArgExps, KwArgVals) [symbol(evalKwArgNext)]
                  | callApplyKwArgs(Val) [symbol(callApplyKwArgs)]
                  | kwArgsVal(KwArgVals) [symbol(kwArgsVal)]
+                 | callMixedArgs(ArgExps, KwArgExps) [symbol(callMixedArgs)]
+                 | evalMixedKwArgs(KwArgExps, Val) [symbol(evalMixedKwArgs)]
+                 | callApplyMixedArgs(Val, ArgVals) [symbol(callApplyMixedArgs)]
                  | bindLambdaDefaults(IdItems, Exp) [symbol(bindLambdaDefaults)]
                  | "buildList" [symbol(buildList)]
                  | "buildTuple" [symbol(buildTuple)]
@@ -271,6 +275,9 @@ module PYTHON
                 | starUnpackArityOk(IdItems, IdItems, Int) [function, symbol(starUnpackArityOk)]
                 | defaultsCallArityOk(IdItems, ArgVals, ArgVals) [function, symbol(defaultsCallArityOk)]
                 | keywordOnlyCallArityOk(IdItems, KwArgVals, ArgVals) [function, symbol(keywordOnlyCallArityOk)]
+                | mixedCallArityOk(IdItems, ArgVals, KwArgVals, ArgVals) [function, symbol(mixedCallArityOk)]
+                | mixedNoPosKeyword(IdItems, ArgVals, KwArgVals) [function, symbol(mixedNoPosKeyword)]
+                | mixedRequiredPresent(IdItems, ArgVals, KwArgVals, ArgVals) [function, symbol(mixedRequiredPresent)]
                 | emptyArgVals(ArgVals) [function, symbol(emptyArgVals)]
                 | emptyKwArgVals(KwArgVals) [function, symbol(emptyKwArgVals)]
                 | emptyDictVals(DictVals) [function, symbol(emptyDictVals)]
@@ -323,6 +330,7 @@ module PYTHON
                    | dropArgVals(ArgVals, Int) [function, symbol(dropArgVals)]
                    | completeDefaultArgs(IdItems, ArgVals, ArgVals) [function, symbol(completeDefaultArgs)]
                    | buildKwDefaultArgs(IdItems, KwArgVals, ArgVals) [function, symbol(buildKwDefaultArgs)]
+                   | buildMixedDefaultArgs(IdItems, ArgVals, KwArgVals, ArgVals) [function, symbol(buildMixedDefaultArgs)]
   syntax KwArgVals ::= "#noKwArgVals" [symbol(noKwArgVals)]
                      | kwArgValsCons(Id, Val, KwArgVals) [symbol(kwArgValsCons)]
                      | appendKwArgVal(KwArgVals, Id, Val) [function, symbol(appendKwArgVal)]
@@ -770,6 +778,14 @@ module PYTHON
       andBool kwRequiredPresent(IDS, KWS, Defaults)
       andBool argValsLen(Defaults) <=Int idItemsLen(IDS)
 
+  rule mixedCallArityOk(IDS:IdItems, VS:ArgVals, KWS:KwArgVals, Defaults:ArgVals) =>
+    argValsLen(VS) <=Int idItemsLen(IDS)
+      andBool argValsLen(Defaults) <=Int idItemsLen(IDS)
+      andBool kwNoDuplicates(KWS)
+      andBool kwAllInIds(KWS, IDS)
+      andBool mixedNoPosKeyword(IDS, VS, KWS)
+      andBool mixedRequiredPresent(IDS, VS, KWS, Defaults)
+
   rule emptyArgVals(#noArgVals) => true
   rule emptyArgVals(argValsCons(_:Val, _:ArgVals)) => false
 
@@ -811,6 +827,29 @@ module PYTHON
   rule kwRequiredPresent(idItemsCons(X:Id, IDS:IdItems), KWS:KwArgVals, Defaults:ArgVals) =>
     kwContains(X, KWS) andBool kwRequiredPresent(IDS, KWS, Defaults)
     requires idItemsLen(idItemsCons(X, IDS)) >Int argValsLen(Defaults)
+
+  rule mixedNoPosKeyword(#noIds, argValsCons(_:Val, _:ArgVals), _:KwArgVals) => false
+  rule mixedNoPosKeyword(_:IdItems, #noArgVals, _:KwArgVals) => true
+  rule mixedNoPosKeyword(idItemsLast(X:Id), argValsCons(_:Val, #noArgVals), KWS:KwArgVals) =>
+    notBool kwContains(X, KWS)
+  rule mixedNoPosKeyword(idItemsLast(_:Id), argValsCons(_:Val, argValsCons(_:Val, _:ArgVals)), _:KwArgVals) =>
+    false
+  rule mixedNoPosKeyword(idItemsCons(X:Id, IDS:IdItems), argValsCons(_:Val, VS:ArgVals), KWS:KwArgVals) =>
+    notBool kwContains(X, KWS) andBool mixedNoPosKeyword(IDS, VS, KWS)
+
+  rule mixedRequiredPresent(#noIds, argValsCons(_:Val, _:ArgVals), _:KwArgVals, _:ArgVals) => false
+  rule mixedRequiredPresent(IDS:IdItems, #noArgVals, KWS:KwArgVals, Defaults:ArgVals) =>
+    kwRequiredPresent(IDS, KWS, Defaults)
+  rule mixedRequiredPresent(idItemsLast(_:Id), argValsCons(_:Val, #noArgVals), _:KwArgVals, _:ArgVals) =>
+    true
+  rule mixedRequiredPresent(idItemsLast(_:Id), argValsCons(_:Val, argValsCons(_:Val, _:ArgVals)), _:KwArgVals, _:ArgVals) =>
+    false
+  rule mixedRequiredPresent(idItemsCons(X:Id, IDS:IdItems), argValsCons(_:Val, VS:ArgVals), KWS:KwArgVals, Defaults:ArgVals) =>
+    mixedRequiredPresent(IDS, VS, KWS, Defaults)
+    requires idItemsLen(idItemsCons(X, IDS)) >Int argValsLen(Defaults)
+  rule mixedRequiredPresent(idItemsCons(X:Id, IDS:IdItems), argValsCons(_:Val, VS:ArgVals), KWS:KwArgVals, argValsCons(_:Val, Defaults:ArgVals)) =>
+    mixedRequiredPresent(IDS, VS, KWS, Defaults)
+    requires idItemsLen(idItemsCons(X, IDS)) ==Int 1 +Int argValsLen(Defaults)
 
   rule appendArgVal(#noArgVals, V:Val) => argValsCons(V, #noArgVals)
   rule appendArgVal(argValsCons(V0:Val, VS:ArgVals), V:Val) =>
@@ -858,6 +897,17 @@ module PYTHON
     argValsCons(Default, buildKwDefaultArgs(IDS, KWS, Defaults))
     requires idItemsLen(idItemsCons(X, IDS)) ==Int argValsLen(argValsCons(Default, Defaults))
       andBool notBool kwContains(X, KWS)
+
+  rule buildMixedDefaultArgs(IDS:IdItems, #noArgVals, KWS:KwArgVals, Defaults:ArgVals) =>
+    buildKwDefaultArgs(IDS, KWS, Defaults)
+  rule buildMixedDefaultArgs(idItemsLast(_:Id), argValsCons(V:Val, #noArgVals), _:KwArgVals, _:ArgVals) =>
+    argValsCons(V, #noArgVals)
+  rule buildMixedDefaultArgs(idItemsCons(X:Id, IDS:IdItems), argValsCons(V:Val, VS:ArgVals), KWS:KwArgVals, Defaults:ArgVals) =>
+    argValsCons(V, buildMixedDefaultArgs(IDS, VS, KWS, Defaults))
+    requires idItemsLen(idItemsCons(X, IDS)) >Int argValsLen(Defaults)
+  rule buildMixedDefaultArgs(idItemsCons(X:Id, IDS:IdItems), argValsCons(V:Val, VS:ArgVals), KWS:KwArgVals, argValsCons(_:Val, Defaults:ArgVals)) =>
+    argValsCons(V, buildMixedDefaultArgs(IDS, VS, KWS, Defaults))
+    requires idItemsLen(idItemsCons(X, IDS)) ==Int 1 +Int argValsLen(Defaults)
 
   rule appendDictVal(#noDictVals, K:Val, V:Val) => dictValsCons(K, V, #noDictVals)
   rule appendDictVal(dictValsCons(K0:Val, _:Val, DVS:DictVals), K:Val, V:Val) =>
@@ -1639,6 +1689,59 @@ module PYTHON
        ... </k>
        <env> Rho => bindArgs(Rho, IDS, buildKwDefaultArgs(IDS, KWS, Defaults)) </env>
     requires keywordOnlyCallArityOk(IDS, KWS, Defaults)
+
+  rule <k> callMixedArgsExp(F:Exp, Args:ArgExps, KWS:KwArgExps) => F ~> callMixedArgs(Args, KWS) ... </k>
+  rule <k> F:Val ~> callMixedArgs(Args:ArgExps, KWS:KwArgExps) =>
+           evalArgs(Args, #noArgVals) ~> evalMixedKwArgs(KWS, F)
+       ... </k>
+  rule <k> argsVal(VS:ArgVals) ~> evalMixedKwArgs(KWS:KwArgExps, F:Val) =>
+           evalKwArgs(KWS, #noKwArgVals) ~> callApplyMixedArgs(F, VS)
+       ... </k>
+  rule <k> kwArgsVal(KWS:KwArgVals) ~> callApplyMixedArgs(closure(X:Id, Body:Exp), VS:ArgVals) =>
+           Body ~> restoreEnv(Rho)
+       ... </k>
+       <env> Rho => bindArgs(Rho, idItemsLast(X), buildMixedDefaultArgs(idItemsLast(X), VS, KWS, #noArgVals)) </env>
+    requires mixedCallArityOk(idItemsLast(X), VS, KWS, #noArgVals)
+  rule <k> kwArgsVal(KWS:KwArgVals) ~> callApplyMixedArgs(closureArgs(IDS:IdItems, Body:Exp), VS:ArgVals) =>
+           Body ~> restoreEnv(Rho)
+       ... </k>
+       <env> Rho => bindArgs(Rho, IDS, buildMixedDefaultArgs(IDS, VS, KWS, #noArgVals)) </env>
+    requires mixedCallArityOk(IDS, VS, KWS, #noArgVals)
+  rule <k> kwArgsVal(KWS:KwArgVals) ~> callApplyMixedArgs(closureDefaults(IDS:IdItems, Defaults:ArgVals, Body:Exp), VS:ArgVals) =>
+           Body ~> restoreEnv(Rho)
+       ... </k>
+       <env> Rho => bindArgs(Rho, IDS, buildMixedDefaultArgs(IDS, VS, KWS, Defaults)) </env>
+    requires mixedCallArityOk(IDS, VS, KWS, Defaults)
+  rule <k> kwArgsVal(KWS:KwArgVals) ~> callApplyMixedArgs(functionVal(X:Id, block(SS:Stmts)), VS:ArgVals) =>
+           SS ~> functionDone(Rho)
+       ... </k>
+       <env> Rho => bindArgs(Rho, idItemsLast(X), buildMixedDefaultArgs(idItemsLast(X), VS, KWS, #noArgVals)) </env>
+    requires mixedCallArityOk(idItemsLast(X), VS, KWS, #noArgVals)
+  rule <k> kwArgsVal(KWS:KwArgVals) ~> callApplyMixedArgs(functionVal(X:Id, {}), VS:ArgVals) =>
+           None ~> restoreEnv(Rho)
+       ... </k>
+       <env> Rho => bindArgs(Rho, idItemsLast(X), buildMixedDefaultArgs(idItemsLast(X), VS, KWS, #noArgVals)) </env>
+    requires mixedCallArityOk(idItemsLast(X), VS, KWS, #noArgVals)
+  rule <k> kwArgsVal(KWS:KwArgVals) ~> callApplyMixedArgs(functionValArgs(IDS:IdItems, block(SS:Stmts)), VS:ArgVals) =>
+           SS ~> functionDone(Rho)
+       ... </k>
+       <env> Rho => bindArgs(Rho, IDS, buildMixedDefaultArgs(IDS, VS, KWS, #noArgVals)) </env>
+    requires mixedCallArityOk(IDS, VS, KWS, #noArgVals)
+  rule <k> kwArgsVal(KWS:KwArgVals) ~> callApplyMixedArgs(functionValArgs(IDS:IdItems, {}), VS:ArgVals) =>
+           None ~> restoreEnv(Rho)
+       ... </k>
+       <env> Rho => bindArgs(Rho, IDS, buildMixedDefaultArgs(IDS, VS, KWS, #noArgVals)) </env>
+    requires mixedCallArityOk(IDS, VS, KWS, #noArgVals)
+  rule <k> kwArgsVal(KWS:KwArgVals) ~> callApplyMixedArgs(functionValDefaults(IDS:IdItems, Defaults:ArgVals, block(SS:Stmts)), VS:ArgVals) =>
+           SS ~> functionDone(Rho)
+       ... </k>
+       <env> Rho => bindArgs(Rho, IDS, buildMixedDefaultArgs(IDS, VS, KWS, Defaults)) </env>
+    requires mixedCallArityOk(IDS, VS, KWS, Defaults)
+  rule <k> kwArgsVal(KWS:KwArgVals) ~> callApplyMixedArgs(functionValDefaults(IDS:IdItems, Defaults:ArgVals, {}), VS:ArgVals) =>
+           None ~> restoreEnv(Rho)
+       ... </k>
+       <env> Rho => bindArgs(Rho, IDS, buildMixedDefaultArgs(IDS, VS, KWS, Defaults)) </env>
+    requires mixedCallArityOk(IDS, VS, KWS, Defaults)
 
   rule <k> listDisplayExp(Args:ArgExps) => evalArgs(Args, #noArgVals) ~> buildList ... </k>
   rule <k> argsVal(#noArgVals) ~> buildList => [] ... </k>

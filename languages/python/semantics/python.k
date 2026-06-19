@@ -618,8 +618,16 @@ module PYTHON
   rule V:Val not in setVal(VS:ValItems) => boolValue(notBool containsVal(V, VS))
   rule subscriptExp(listVal(VS:ValItems), I:Val) => listGet(VS, intValue(I))
     requires isIntLike(I) andBool intValue(I) >=Int 0
+  rule subscriptExp(listVal(VS:ValItems), I:Val) => listGet(VS, valItemsLen(VS) +Int intValue(I))
+    requires isIntLike(I)
+     andBool intValue(I) <Int 0
+     andBool valItemsLen(VS) +Int intValue(I) >=Int 0
   rule subscriptExp(tupleVal(VS:ValItems), I:Val) => listGet(VS, intValue(I))
     requires isIntLike(I) andBool intValue(I) >=Int 0
+  rule subscriptExp(tupleVal(VS:ValItems), I:Val) => listGet(VS, valItemsLen(VS) +Int intValue(I))
+    requires isIntLike(I)
+     andBool intValue(I) <Int 0
+     andBool valItemsLen(VS) +Int intValue(I) >=Int 0
   rule subscriptExp(dictVal(DS:DictItems), K:Val) => dictGet(DS, K)
     requires containsKey(K, DS)
 

@@ -42,10 +42,10 @@ The base modules should model portable Python semantics from the official docs. 
 - module-scope `global` declarations as no-ops
 - list literals in a trailing-comma value-element subset
 - adapter-backed list displays with supported expression elements
-- list truthiness, equality, membership, and positive integer indexing
+- list truthiness, equality, membership, and positive/negative integer indexing
 - tuple literals in a trailing-comma value-element subset
 - adapter-backed tuple displays with supported expression elements
-- tuple truthiness, equality, membership, and positive integer indexing
+- tuple truthiness, equality, membership, and positive/negative integer indexing
 - dictionary literals in a trailing-comma key/value subset
 - adapter-backed dictionary displays with supported key/value expressions
 - dictionary truthiness, key membership, and key subscription lookup

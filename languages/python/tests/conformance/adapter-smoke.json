@@ -25,6 +25,13 @@
       "coverage": ["list-display", "expression-list-evaluation", "positive-list-index", "ordinary-python-source-adapter"]
     },
     {
+      "id": "adapter-list-negative-index",
+      "source": "../adapter/adapter-list-negative-index.py",
+      "reference": "Python Language Reference 6.3.2 Subscriptions; Built-in sequence types",
+      "expected_result": "True ~> .K",
+      "coverage": ["list-subscription", "negative-sequence-index", "ordinary-python-source-adapter"]
+    },
+    {
       "id": "adapter-tuple-normal",
       "source": "../adapter/adapter-tuple-normal.py",
       "reference": "Python Language Reference 6.2.3 Parenthesized forms; 6.3.2 Subscriptions",
@@ -37,6 +44,13 @@
       "reference": "Python Language Reference 6.2.3 Parenthesized forms; 6.16 Evaluation order",
       "expected_result": "True ~> .K",
       "coverage": ["tuple-display", "expression-list-evaluation", "positive-tuple-index", "ordinary-python-source-adapter"]
+    },
+    {
+      "id": "adapter-tuple-negative-index",
+      "source": "../adapter/adapter-tuple-negative-index.py",
+      "reference": "Python Language Reference 6.3.2 Subscriptions; Built-in sequence types",
+      "expected_result": "True ~> .K",
+      "coverage": ["tuple-subscription", "negative-sequence-index", "ordinary-python-source-adapter"]
     },
     {
       "id": "adapter-lambda-normal",

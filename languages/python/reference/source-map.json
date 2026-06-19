@@ -88,9 +88,9 @@
               "section": "Literals"
             }
           ],
-          "k_coverage": ["semantics/python.k: integer, simple K string, True, False, and None literal subset"],
-          "test_coverage": ["tests/examples/smoke-arithmetic.py", "tests/examples/smoke-bool-constants.py", "tests/examples/smoke-strings.py"],
-          "gaps": ["Need full Python string prefixes/escapes, bytes, f-strings, t-strings, floats, imaginary literals, and numeric literal separators."]
+          "k_coverage": ["semantics/python.k: integer, simple finite float, simple K string, True, False, and None literal subset"],
+          "test_coverage": ["tests/examples/smoke-arithmetic.py", "tests/examples/smoke-bool-constants.py", "tests/examples/smoke-strings.py", "tests/adapter/adapter-true-div.py"],
+          "gaps": ["Need full Python string prefixes/escapes, bytes, f-strings, t-strings, full float lexical edge cases, imaginary literals, and numeric literal separators."]
         }
       ]
     },
@@ -395,9 +395,9 @@
               "section": "Operator precedence"
             }
           ],
-          "k_coverage": ["semantics/python.k: unary +, -, ~; integer and bool +, -, *, //, %, <<, >>, &, ^, |, nonnegative **; int() and int(x), abs(x), divmod(x, y), two-argument pow(x, y), int-like sum(x)/sum(x, start), and nonempty int-like min(x)/max(x) over the current int-like subset with nonnegative exponents for pow; string +; string/list/tuple sequence repetition with integer-like counts; list/tuple same-type concatenation; internal #floorDiv adapter form"],
-          "test_coverage": ["tests/examples/smoke-arithmetic.py", "tests/examples/smoke-comparisons.py", "tests/examples/smoke-strings.py", "tests/examples/smoke-int-operators.py", "tests/adapter/adapter-floor-div.py", "tests/adapter/adapter-int-constructor.py", "tests/adapter/adapter-abs-int.py", "tests/adapter/adapter-divmod-int.py", "tests/adapter/adapter-pow-int.py", "tests/adapter/adapter-sum-int.py", "tests/adapter/adapter-min-max-int.py", "tests/adapter/adapter-string-repeat.py", "tests/adapter/adapter-list-concat.py", "tests/adapter/adapter-list-repeat.py", "tests/adapter/adapter-tuple-concat.py", "tests/adapter/adapter-tuple-repeat.py"],
-          "gaps": ["Need true division, negative-exponent power returning float, matrix multiplication, string/base int conversion, non-integer repetition diagnostics, cross-type concatenation diagnostics, reflected/in-place methods, full type coercion behavior, error cases, and direct concrete-source testing for // once K frontend comment handling is avoided or replaced by a full parser."]
+          "k_coverage": ["semantics/python.k: unary +, -, ~; integer and bool +, -, *, /, //, %, <<, >>, &, ^, |, nonnegative **; int() and int(x), abs(x), divmod(x, y), two-argument pow(x, y), int-like sum(x)/sum(x, start), and nonempty int-like min(x)/max(x) over the current int-like subset with nonnegative exponents for pow; string +; string/list/tuple sequence repetition with integer-like counts; list/tuple same-type concatenation; internal #floorDiv and #trueDiv adapter forms"],
+          "test_coverage": ["tests/examples/smoke-arithmetic.py", "tests/examples/smoke-comparisons.py", "tests/examples/smoke-strings.py", "tests/examples/smoke-int-operators.py", "tests/adapter/adapter-floor-div.py", "tests/adapter/adapter-true-div.py", "tests/adapter/adapter-int-constructor.py", "tests/adapter/adapter-abs-int.py", "tests/adapter/adapter-divmod-int.py", "tests/adapter/adapter-pow-int.py", "tests/adapter/adapter-sum-int.py", "tests/adapter/adapter-min-max-int.py", "tests/adapter/adapter-string-repeat.py", "tests/adapter/adapter-list-concat.py", "tests/adapter/adapter-list-repeat.py", "tests/adapter/adapter-tuple-concat.py", "tests/adapter/adapter-tuple-repeat.py"],
+          "gaps": ["Need negative-exponent power returning float, matrix multiplication, string/base int conversion, exact large-int/float comparison behavior, non-integer repetition diagnostics, cross-type concatenation diagnostics, reflected/in-place methods, full type coercion behavior, error cases, and direct concrete-source testing for // once K frontend comment handling is avoided or replaced by a full parser."]
         },
         {
           "id": "expr.comparisons-boolean",

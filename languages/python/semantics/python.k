@@ -4,8 +4,10 @@ module PYTHON-SYNTAX
   imports INT-SYNTAX
   imports ID-SYNTAX
   imports STRING-SYNTAX
+  imports FLOAT-SYNTAX
 
   syntax Val ::= Int
+               | Float
                | String
                | "True" [symbol(pyTrue)]
                | "False" [symbol(pyFalse)]
@@ -131,6 +133,7 @@ module PYTHON-SYNTAX
                | "#compareChain" "(" Exp "," CmpChain ")" [symbol(compareChainExp)]
                | "#len" "(" Exp ")" [symbol(lenExp), strict]
                | "#floorDiv" "(" Exp "," Exp ")" [symbol(floorDivInternal), strict]
+               | "#trueDiv" "(" Exp "," Exp ")" [symbol(trueDivInternal), strict]
                | "#slice" "(" Exp "," Exp "," Exp ")" [symbol(sliceExp), strict]
                | "#sliceStep" "(" Exp "," Exp "," Exp "," Exp ")" [symbol(sliceStepExp), strict]
                | "+" Exp [symbol(posExp), strict]
@@ -175,6 +178,7 @@ module PYTHON
   imports INT
   imports BOOL
   imports STRING
+  imports FLOAT
   imports MAP
 
   syntax Val ::= closure(Id, Exp) [symbol(closure)]
@@ -373,6 +377,7 @@ module PYTHON
 
   rule truthy(0) => false
   rule truthy(I:Int) => true requires I =/=Int 0
+  rule truthy(F:Float) => F =/=Float 0.0
   rule truthy(S:String) => lengthString(S) =/=Int 0
   rule truthy(True) => true
   rule truthy(False) => false
@@ -398,6 +403,7 @@ module PYTHON
   rule truthy(dictArgsVal(_:DictVals)) => true
 
   rule isIntLike(_:Int) => true
+  rule isIntLike(_:Float) => false
   rule isIntLike(_:String) => false
   rule isIntLike(True) => true
   rule isIntLike(False) => true
@@ -425,6 +431,7 @@ module PYTHON
   rule singletonIdentity(False) => true
   rule singletonIdentity(None) => true
   rule singletonIdentity(_:Int) => false
+  rule singletonIdentity(_:Float) => false
   rule singletonIdentity(_:String) => false
   rule singletonIdentity([]) => false
   rule singletonIdentity(listVal(_:ValItems)) => false
@@ -577,6 +584,15 @@ module PYTHON
   rule boolValue(false) => False
 
   rule valEq(I1:Int, I2:Int) => I1 ==Int I2
+  rule valEq(F1:Float, F2:Float) => F1 ==Float F2
+  rule valEq(I:Int, F:Float) => Int2Float(I, 53, 11) ==Float F
+  rule valEq(F:Float, I:Int) => F ==Float Int2Float(I, 53, 11)
+  rule valEq(True, F:Float) => Int2Float(1, 53, 11) ==Float F
+  rule valEq(False, F:Float) => Int2Float(0, 53, 11) ==Float F
+  rule valEq(F:Float, True) => F ==Float Int2Float(1, 53, 11)
+  rule valEq(F:Float, False) => F ==Float Int2Float(0, 53, 11)
+  rule valEq(_:Float, _:Val) => false [owise]
+  rule valEq(_:Val, _:Float) => false [owise]
   rule valEq(S1:String, S2:String) => S1 ==String S2
   rule valEq(_:String, _:Int) => false
   rule valEq(_:Int, _:String) => false
@@ -1185,6 +1201,7 @@ module PYTHON
   rule isListSequence(rangeVal(_:Int, _:Int, _:Int)) => false
   rule isListSequence(argsVal(_:ArgVals)) => false
   rule isListSequence(dictArgsVal(_:DictVals)) => false
+  rule isListSequence(_:Float) => false
 
   rule isTupleSequence([]) => false
   rule isTupleSequence(listVal(_:ValItems)) => false
@@ -1209,6 +1226,7 @@ module PYTHON
   rule isTupleSequence(rangeVal(_:Int, _:Int, _:Int)) => false
   rule isTupleSequence(argsVal(_:ArgVals)) => false
   rule isTupleSequence(dictArgsVal(_:DictVals)) => false
+  rule isTupleSequence(_:Float) => false
 
   rule seqOrderComparable(V1:Val, V2:Val) =>
     (isListSequence(V1) andBool isListSequence(V2))
@@ -1287,7 +1305,9 @@ module PYTHON
        <env> Rho => Rho [ X <- V ] </env>
 
   rule + V:Val => intValue(V) requires isIntLike(V)
+  rule + F:Float => F
   rule - V:Val => 0 -Int intValue(V) requires isIntLike(V)
+  rule - F:Float => --Float F
   rule ~ V:Val => ~Int intValue(V) requires isIntLike(V)
 
   rule V1:Val + V2:Val => intValue(V1) +Int intValue(V2)
@@ -1329,6 +1349,9 @@ module PYTHON
   rule floorDivExp(V1:Val, V2:Val) => pyFloorDiv(intValue(V1), intValue(V2))
     requires isIntLike(V1) andBool isIntLike(V2) andBool intValue(V2) =/=Int 0
   rule floorDivInternal(V1:Val, V2:Val) => pyFloorDiv(intValue(V1), intValue(V2))
+    requires isIntLike(V1) andBool isIntLike(V2) andBool intValue(V2) =/=Int 0
+  rule trueDivInternal(V1:Val, V2:Val) =>
+    Int2Float(intValue(V1), 53, 11) /Float Int2Float(intValue(V2), 53, 11)
     requires isIntLike(V1) andBool isIntLike(V2) andBool intValue(V2) =/=Int 0
   rule V1:Val % V2:Val => pyModulo(intValue(V1), intValue(V2))
     requires isIntLike(V1) andBool isIntLike(V2) andBool intValue(V2) =/=Int 0

@@ -26,13 +26,14 @@ The base modules should model portable Python semantics from the official docs. 
 - adapter-backed `abs(x)` for the current int-like subset
 - adapter-backed `divmod(x, y)` for the current int-like subset
 - adapter-backed two-argument `pow(x, y)` for the current nonnegative-exponent int-like subset
+- adapter-backed true division `/` for the current int-like subset, producing float values
 - `True`, `False`, and `None`
 - simple string literals as K `String` tokens
 - name lookup in a single environment
 - unary `+`, unary `-`, and integer/bool `+`, `-`, and `*`
-- integer/bool `%`, `//`, shifts, bitwise operators, bitwise inversion, and nonnegative exponentiation
+- integer/bool `%`, `//`, `/`, shifts, bitwise operators, bitwise inversion, and nonnegative exponentiation
 - string concatenation with `+`, repetition with integer/bool `*`, nonzero-step slicing, substring membership, lexicographic ordering, and positive/negative integer indexing
-- truth-value testing for integers, booleans, and `None`
+- truth-value testing for integers, floats, booleans, and `None`
 - truth-value testing for strings
 - adapter-backed `bool()` and `bool(x)` for the current truth-value subset
 - adapter-backed `all(x)` and `any(x)` for current concrete string/container/range values
@@ -99,6 +100,6 @@ Current unpacking caveat: flat and starred assignment targets are adapter-backed
 
 Current function caveat: adapter-backed `#def`, `#defArgs`, and `#defDefaults` cover zero or more positional parameters, optional suffix defaults evaluated at function definition time, keyword-only calls without positional arguments, mixed positional/keyword calls without starred argument unpacking or `**kwargs`, no decorators, no annotations, no positional-only or keyword-only parameters, no varargs/kwargs, and an environment-restore model. Full Python function objects need real frames, cells/closures, globals/nonlocals, descriptors, methods, and argument binding diagnostics.
 
-Current augmented-assignment caveat: true-division `/=` and matrix-multiplication `@=` remain unsupported because the current value model has no float/numeric tower or matrix protocol.
+Current augmented-assignment caveat: true-division `/=` and matrix-multiplication `@=` remain unsupported because augmented assignment is only wired for the current integer-like operators and there is no matrix protocol.
 
 Current identity caveat: `is` and `is not` are defined only for the language singletons `None`, `True`, and `False` compared with singleton or non-singleton values. General object identity requires a heap/object model and remains unsupported.

@@ -204,6 +204,8 @@ def emit_constant(node: ast.AST, value: object) -> str:
         return "None"
     if isinstance(value, int):
         return str(value)
+    if isinstance(value, float):
+        return repr(value)
     if isinstance(value, str):
         return json.dumps(value)
     raise unsupported(node, f"constant {value!r} is not supported")
@@ -214,6 +216,8 @@ def emit_bin_op(left: ast.expr, op: ast.operator, right: ast.expr) -> str:
     right_text = emit_exp(right)
     if isinstance(op, ast.FloorDiv):
         return f"#floorDiv({left_text}, {right_text})"
+    if isinstance(op, ast.Div):
+        return f"#trueDiv({left_text}, {right_text})"
     return f"({left_text} {emit_binary_op(op)} {right_text})"
 
 

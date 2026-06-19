@@ -216,6 +216,11 @@ module PYTHON
                 | cmpHolds(CmpOp, Val, Val) [function, symbol(cmpHolds)]
                 | singletonIdentity(Val) [function, symbol(singletonIdentity)]
                 | valsEq(ValItems, ValItems) [function, symbol(valsEq)]
+                | valItemsLt(ValItems, ValItems) [function, symbol(valItemsLt)]
+                | isListSequence(Val) [function, symbol(isListSequence)]
+                | isTupleSequence(Val) [function, symbol(isTupleSequence)]
+                | seqOrderComparable(Val, Val) [function, symbol(seqOrderComparable)]
+                | seqLt(Val, Val) [function, symbol(seqLt)]
                 | dictsEq(DictItems, DictItems) [function, symbol(dictsEq)]
                 | dictItemsContained(DictItems, DictItems) [function, symbol(dictItemsContained)]
                 | containsDictPair(Val, Val, DictItems) [function, symbol(containsDictPair)]
@@ -477,18 +482,26 @@ module PYTHON
 
   rule cmpHolds(#lt, V1:Val, V2:Val) => intValue(V1) <Int intValue(V2)
     requires isIntLike(V1) andBool isIntLike(V2)
+  rule cmpHolds(#lt, V1:Val, V2:Val) => seqLt(V1, V2)
+    requires seqOrderComparable(V1, V2)
   rule cmpHolds(#lt, setVal(VS1:ValItems), setVal(VS2:ValItems)) =>
     setItemsSubset(VS1, VS2) andBool notBool setsEq(VS1, VS2)
   rule cmpHolds(#le, V1:Val, V2:Val) => intValue(V1) <=Int intValue(V2)
     requires isIntLike(V1) andBool isIntLike(V2)
+  rule cmpHolds(#le, V1:Val, V2:Val) => seqLt(V1, V2) orBool valEq(V1, V2)
+    requires seqOrderComparable(V1, V2)
   rule cmpHolds(#le, setVal(VS1:ValItems), setVal(VS2:ValItems)) =>
     setItemsSubset(VS1, VS2)
   rule cmpHolds(#gt, V1:Val, V2:Val) => intValue(V1) >Int intValue(V2)
     requires isIntLike(V1) andBool isIntLike(V2)
+  rule cmpHolds(#gt, V1:Val, V2:Val) => seqLt(V2, V1)
+    requires seqOrderComparable(V1, V2)
   rule cmpHolds(#gt, setVal(VS1:ValItems), setVal(VS2:ValItems)) =>
     setItemsSubset(VS2, VS1) andBool notBool setsEq(VS1, VS2)
   rule cmpHolds(#ge, V1:Val, V2:Val) => intValue(V1) >=Int intValue(V2)
     requires isIntLike(V1) andBool isIntLike(V2)
+  rule cmpHolds(#ge, V1:Val, V2:Val) => seqLt(V2, V1) orBool valEq(V1, V2)
+    requires seqOrderComparable(V1, V2)
   rule cmpHolds(#ge, setVal(VS1:ValItems), setVal(VS2:ValItems)) =>
     setItemsSubset(VS2, VS1)
   rule cmpHolds(#eq, V1:Val, V2:Val) => valEq(V1, V2)
@@ -569,6 +582,80 @@ module PYTHON
     valEq(V1, V2) andBool valsEq(VS1, VS2)
   rule valsEq(valItemsLast(_:Val), valItemsCons(_:Val, _:ValItems)) => false
   rule valsEq(valItemsCons(_:Val, _:ValItems), valItemsLast(_:Val)) => false
+
+  rule valItemsLt(valItemsLast(V1:Val), valItemsLast(V2:Val)) => cmpHolds(#lt, V1, V2)
+    requires notBool valEq(V1, V2)
+  rule valItemsLt(valItemsLast(V1:Val), valItemsLast(V2:Val)) => false
+    requires valEq(V1, V2)
+  rule valItemsLt(valItemsLast(V1:Val), valItemsCons(V2:Val, _:ValItems)) => true
+    requires valEq(V1, V2)
+  rule valItemsLt(valItemsLast(V1:Val), valItemsCons(V2:Val, _:ValItems)) => cmpHolds(#lt, V1, V2)
+    requires notBool valEq(V1, V2)
+  rule valItemsLt(valItemsCons(V1:Val, _:ValItems), valItemsLast(V2:Val)) => false
+    requires valEq(V1, V2)
+  rule valItemsLt(valItemsCons(V1:Val, _:ValItems), valItemsLast(V2:Val)) => cmpHolds(#lt, V1, V2)
+    requires notBool valEq(V1, V2)
+  rule valItemsLt(valItemsCons(V1:Val, VS1:ValItems), valItemsCons(V2:Val, VS2:ValItems)) =>
+    valItemsLt(VS1, VS2)
+    requires valEq(V1, V2)
+  rule valItemsLt(valItemsCons(V1:Val, _:ValItems), valItemsCons(V2:Val, _:ValItems)) =>
+    cmpHolds(#lt, V1, V2)
+    requires notBool valEq(V1, V2)
+
+  rule isListSequence([]) => true
+  rule isListSequence(listVal(_:ValItems)) => true
+  rule isListSequence(()) => false
+  rule isListSequence(tupleVal(_:ValItems)) => false
+  rule isListSequence(_:Int) => false
+  rule isListSequence(_:String) => false
+  rule isListSequence(True) => false
+  rule isListSequence(False) => false
+  rule isListSequence(None) => false
+  rule isListSequence({}) => false
+  rule isListSequence(dictVal(_:DictItems)) => false
+  rule isListSequence(setVal(_:ValItems)) => false
+  rule isListSequence(closure(_:Id, _:Exp)) => false
+  rule isListSequence(closureArgs(_:IdItems, _:Exp)) => false
+  rule isListSequence(functionVal(_:Id, _:Block)) => false
+  rule isListSequence(functionValArgs(_:IdItems, _:Block)) => false
+  rule isListSequence(rangeVal(_:Int, _:Int)) => false
+  rule isListSequence(rangeVal(_:Int, _:Int, _:Int)) => false
+  rule isListSequence(argsVal(_:ArgVals)) => false
+  rule isListSequence(dictArgsVal(_:DictVals)) => false
+
+  rule isTupleSequence([]) => false
+  rule isTupleSequence(listVal(_:ValItems)) => false
+  rule isTupleSequence(()) => true
+  rule isTupleSequence(tupleVal(_:ValItems)) => true
+  rule isTupleSequence(_:Int) => false
+  rule isTupleSequence(_:String) => false
+  rule isTupleSequence(True) => false
+  rule isTupleSequence(False) => false
+  rule isTupleSequence(None) => false
+  rule isTupleSequence({}) => false
+  rule isTupleSequence(dictVal(_:DictItems)) => false
+  rule isTupleSequence(setVal(_:ValItems)) => false
+  rule isTupleSequence(closure(_:Id, _:Exp)) => false
+  rule isTupleSequence(closureArgs(_:IdItems, _:Exp)) => false
+  rule isTupleSequence(functionVal(_:Id, _:Block)) => false
+  rule isTupleSequence(functionValArgs(_:IdItems, _:Block)) => false
+  rule isTupleSequence(rangeVal(_:Int, _:Int)) => false
+  rule isTupleSequence(rangeVal(_:Int, _:Int, _:Int)) => false
+  rule isTupleSequence(argsVal(_:ArgVals)) => false
+  rule isTupleSequence(dictArgsVal(_:DictVals)) => false
+
+  rule seqOrderComparable(V1:Val, V2:Val) =>
+    (isListSequence(V1) andBool isListSequence(V2))
+      orBool (isTupleSequence(V1) andBool isTupleSequence(V2))
+
+  rule seqLt([], []) => false
+  rule seqLt([], listVal(_:ValItems)) => true
+  rule seqLt(listVal(_:ValItems), []) => false
+  rule seqLt(listVal(VS1:ValItems), listVal(VS2:ValItems)) => valItemsLt(VS1, VS2)
+  rule seqLt((), ()) => false
+  rule seqLt((), tupleVal(_:ValItems)) => true
+  rule seqLt(tupleVal(_:ValItems), ()) => false
+  rule seqLt(tupleVal(VS1:ValItems), tupleVal(VS2:ValItems)) => valItemsLt(VS1, VS2)
 
   rule dictsEq(DS1:DictItems, DS2:DictItems) =>
     dictItemsLen(DS1) ==Int dictItemsLen(DS2)
@@ -663,18 +750,26 @@ module PYTHON
 
   rule V1:Val < V2:Val => boolValue(intValue(V1) <Int intValue(V2))
     requires isIntLike(V1) andBool isIntLike(V2)
+  rule V1:Val < V2:Val => boolValue(cmpHolds(#lt, V1, V2))
+    requires seqOrderComparable(V1, V2)
   rule setVal(VS1:ValItems) < setVal(VS2:ValItems) =>
     boolValue(cmpHolds(#lt, setVal(VS1), setVal(VS2)))
   rule V1:Val <= V2:Val => boolValue(intValue(V1) <=Int intValue(V2))
     requires isIntLike(V1) andBool isIntLike(V2)
+  rule V1:Val <= V2:Val => boolValue(cmpHolds(#le, V1, V2))
+    requires seqOrderComparable(V1, V2)
   rule setVal(VS1:ValItems) <= setVal(VS2:ValItems) =>
     boolValue(cmpHolds(#le, setVal(VS1), setVal(VS2)))
   rule V1:Val > V2:Val => boolValue(intValue(V1) >Int intValue(V2))
     requires isIntLike(V1) andBool isIntLike(V2)
+  rule V1:Val > V2:Val => boolValue(cmpHolds(#gt, V1, V2))
+    requires seqOrderComparable(V1, V2)
   rule setVal(VS1:ValItems) > setVal(VS2:ValItems) =>
     boolValue(cmpHolds(#gt, setVal(VS1), setVal(VS2)))
   rule V1:Val >= V2:Val => boolValue(intValue(V1) >=Int intValue(V2))
     requires isIntLike(V1) andBool isIntLike(V2)
+  rule V1:Val >= V2:Val => boolValue(cmpHolds(#ge, V1, V2))
+    requires seqOrderComparable(V1, V2)
   rule setVal(VS1:ValItems) >= setVal(VS2:ValItems) =>
     boolValue(cmpHolds(#ge, setVal(VS1), setVal(VS2)))
   rule V1:Val == V2:Val => boolValue(valEq(V1, V2))

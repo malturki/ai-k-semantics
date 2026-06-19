@@ -504,18 +504,38 @@
         },
         {
           "id": "stmt.pass-del-return-yield-raise",
-          "title": "pass, del, return, yield, and raise statements",
-          "status": "not-started",
+          "title": "pass, del, break, continue, return, yield, and raise statements",
+          "status": "partial",
           "references": [
+            {
+              "title": "Simple statements",
+              "url": "https://docs.python.org/3/reference/simple_stmts.html",
+              "section": "The pass statement"
+            },
+            {
+              "title": "Simple statements",
+              "url": "https://docs.python.org/3/reference/simple_stmts.html",
+              "section": "The del statement"
+            },
+            {
+              "title": "Simple statements",
+              "url": "https://docs.python.org/3/reference/simple_stmts.html",
+              "section": "The break statement"
+            },
+            {
+              "title": "Simple statements",
+              "url": "https://docs.python.org/3/reference/simple_stmts.html",
+              "section": "The continue statement"
+            },
             {
               "title": "Simple statements",
               "url": "https://docs.python.org/3/reference/simple_stmts.html",
               "section": "The return statement"
             }
           ],
-          "k_coverage": ["semantics/python.k: pass statement and simple-name del"],
-          "test_coverage": ["tests/examples/smoke-pass.py", "tests/examples/smoke-del-name.py"],
-          "gaps": ["Need full del targets, NameError behavior, return, yield, raise, abrupt-completion representation, and function/generator/exception integration."]
+          "k_coverage": ["semantics/python.k: pass statement and simple-name del", "semantics/python.k: break/continue abrupt-completion signals resolved by the nearest supported while loop"],
+          "test_coverage": ["tests/examples/smoke-pass.py", "tests/examples/smoke-del-name.py", "tests/adapter/adapter-break.py", "tests/adapter/adapter-continue.py"],
+          "gaps": ["Need full del targets, NameError behavior, SyntaxError diagnostics for break/continue outside loops, return, yield, raise, and function/generator/exception integration."]
         },
         {
           "id": "stmt.import",
@@ -571,9 +591,9 @@
               "section": "The if statement"
             }
           ],
-          "k_coverage": ["semantics/python.k: internal #if and #while statement forms with explicit Block syntax", "harness/python_to_k_input.py: CPython AST If and While adapter for the supported subset"],
-          "test_coverage": ["tests/adapter/adapter-if.py", "tests/adapter/adapter-if-no-else.py", "tests/adapter/adapter-while.py", "tests/adapter/adapter-nested-if-while.py"],
-          "gaps": ["Need direct indentation/parser support, elif provenance tests, for loops and iterator protocol, break, continue, loop else completion rules, while-else, and abrupt completion interactions."]
+          "k_coverage": ["semantics/python.k: internal #if and #while statement forms with explicit Block syntax; breakSignal and continueSignal abrupt-completion subset", "harness/python_to_k_input.py: CPython AST If, While, Break, and Continue adapter for the supported subset"],
+          "test_coverage": ["tests/adapter/adapter-if.py", "tests/adapter/adapter-if-no-else.py", "tests/adapter/adapter-while.py", "tests/adapter/adapter-nested-if-while.py", "tests/adapter/adapter-break.py", "tests/adapter/adapter-continue.py"],
+          "gaps": ["Need direct indentation/parser support, elif provenance tests, for loops and iterator protocol, loop else completion rules, while-else, SyntaxError diagnostics for break/continue outside loops, and broader abrupt completion interactions."]
         },
         {
           "id": "compound.try-except-finally",

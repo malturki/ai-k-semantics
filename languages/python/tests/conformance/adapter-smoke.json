@@ -58,6 +58,20 @@
       "reference": "Python Language Reference 8.1 The if statement; 8.2 The while statement",
       "expected_result": "True ~> .K",
       "coverage": ["nested-if-while", "while-statement", "if-statement", "ordinary-python-source-adapter"]
+    },
+    {
+      "id": "adapter-break",
+      "source": "../adapter/adapter-break.py",
+      "reference": "Python Language Reference 8.2 The while statement; 7.9 The break statement",
+      "expected_result": "True ~> .K",
+      "coverage": ["while-statement", "break-statement", "nearest-loop-abrupt-completion", "ordinary-python-source-adapter"]
+    },
+    {
+      "id": "adapter-continue",
+      "source": "../adapter/adapter-continue.py",
+      "reference": "Python Language Reference 8.2 The while statement; 7.10 The continue statement",
+      "expected_result": "True ~> .K",
+      "coverage": ["while-statement", "continue-statement", "body-skip-and-condition-recheck", "ordinary-python-source-adapter"]
     }
   ]
 }

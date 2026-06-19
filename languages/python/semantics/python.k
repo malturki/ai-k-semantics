@@ -26,6 +26,8 @@ module PYTHON-SYNTAX
 
   syntax Stmt ::= Exp
                 | "pass" [symbol(passStmt)]
+                | "break" [symbol(breakStmt)]
+                | "continue" [symbol(continueStmt)]
                 | "assert" Exp [symbol(assertStmt), strict]
                 | "global" Id [symbol(globalStmt)]
                 | "del" Id [symbol(delNameStmt)]
@@ -94,6 +96,8 @@ module PYTHON
                  | "ifStmtDone" [symbol(ifStmtDone)]
                  | whileStmtBranch(Exp, Block) [symbol(whileStmtBranch)]
                  | whileStmtAgain(Exp, Block) [symbol(whileStmtAgain)]
+                 | "breakSignal" [symbol(breakSignal)]
+                 | "continueSignal" [symbol(continueSignal)]
 
   syntax Bool ::= truthy(Val) [function, symbol(truthy)]
                 | isIntLike(Val) [function, symbol(isIntLike)]
@@ -409,6 +413,20 @@ module PYTHON
        ... </k>
     requires notBool truthy(V)
   rule <k> whileStmtAgain(C:Exp, Body:Block) =>
+           whileStmt(C, Body)
+       ... </k>
+
+  rule <k> break => breakSignal ... </k>
+  rule <k> continue => continueSignal ... </k>
+
+  rule <k> breakSignal ~> stmtNext(_:Stmts) => breakSignal ... </k>
+  rule <k> continueSignal ~> stmtNext(_:Stmts) => continueSignal ... </k>
+  rule <k> breakSignal ~> stmtEnd => breakSignal ... </k>
+  rule <k> continueSignal ~> stmtEnd => continueSignal ... </k>
+  rule <k> breakSignal ~> ifStmtDone => breakSignal ... </k>
+  rule <k> continueSignal ~> ifStmtDone => continueSignal ... </k>
+  rule <k> breakSignal ~> whileStmtAgain(_:Exp, _:Block) => stmtNoResult ... </k>
+  rule <k> continueSignal ~> whileStmtAgain(C:Exp, Body:Block) =>
            whileStmt(C, Body)
        ... </k>
 

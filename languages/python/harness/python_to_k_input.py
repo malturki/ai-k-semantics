@@ -48,6 +48,10 @@ def emit_stmt(stmt: ast.stmt) -> str:
             return emit_exp(value)
         case ast.Pass():
             return "pass"
+        case ast.Break():
+            return "break"
+        case ast.Continue():
+            return "continue"
         case ast.Assert(test=test, msg=None):
             return f"assert {emit_exp(test)}"
         case ast.Assert(msg=msg):

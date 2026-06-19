@@ -274,6 +274,7 @@ module PYTHON
                | listSliceStep(ValItems, Int, Int, Int) [function, symbol(listSliceStep)]
                | tupleSliceStep(ValItems, Int, Int, Int) [function, symbol(tupleSliceStep)]
                | listGet(ValItems, Int) [function, symbol(listGet)]
+               | rangeGet(Int, Int, Int, Int) [function, symbol(rangeGet)]
   syntax Val ::= dictGet(DictItems, Val) [function, symbol(dictGet)]
   syntax Val ::= boolValue(Bool) [function, symbol(boolValue)]
 
@@ -393,6 +394,9 @@ module PYTHON
         orBool (Start1 ==Int Start2
           andBool (pyRangeLen(Start1, Stop1, Step1) ==Int 1 orBool Step1 ==Int Step2)))
     requires Step1 =/=Int 0 andBool Step2 =/=Int 0
+
+  rule rangeGet(Start:Int, _Stop:Int, Step:Int, Index:Int) => Start +Int (Step *Int Index)
+    requires Step =/=Int 0
 
   rule pySliceLower(None, _:Int) => 0
   rule pySliceLower(True, Len:Int) => pySliceIndex(1, Len)
@@ -1077,6 +1081,28 @@ module PYTHON
     requires isIntLike(I)
      andBool intValue(I) <Int 0
      andBool lengthString(S) +Int intValue(I) >=Int 0
+  rule subscriptExp(rangeVal(Start:Int, Stop:Int), I:Val) =>
+    rangeGet(Start, Stop, 1, intValue(I))
+    requires isIntLike(I)
+     andBool intValue(I) >=Int 0
+     andBool intValue(I) <Int pyRangeLen(Start, Stop, 1)
+  rule subscriptExp(rangeVal(Start:Int, Stop:Int), I:Val) =>
+    rangeGet(Start, Stop, 1, pyRangeLen(Start, Stop, 1) +Int intValue(I))
+    requires isIntLike(I)
+     andBool intValue(I) <Int 0
+     andBool pyRangeLen(Start, Stop, 1) +Int intValue(I) >=Int 0
+  rule subscriptExp(rangeVal(Start:Int, Stop:Int, Step:Int), I:Val) =>
+    rangeGet(Start, Stop, Step, intValue(I))
+    requires isIntLike(I)
+     andBool Step =/=Int 0
+     andBool intValue(I) >=Int 0
+     andBool intValue(I) <Int pyRangeLen(Start, Stop, Step)
+  rule subscriptExp(rangeVal(Start:Int, Stop:Int, Step:Int), I:Val) =>
+    rangeGet(Start, Stop, Step, pyRangeLen(Start, Stop, Step) +Int intValue(I))
+    requires isIntLike(I)
+     andBool Step =/=Int 0
+     andBool intValue(I) <Int 0
+     andBool pyRangeLen(Start, Stop, Step) +Int intValue(I) >=Int 0
   rule subscriptExp(listVal(VS:ValItems), I:Val) => listGet(VS, intValue(I))
     requires isIntLike(I) andBool intValue(I) >=Int 0
   rule subscriptExp(listVal(VS:ValItems), I:Val) => listGet(VS, valItemsLen(VS) +Int intValue(I))

@@ -473,6 +473,13 @@
       "coverage": ["range-equality", "range-sequence-equality", "empty-range-equality", "single-element-range-equality", "bool-as-int-range-argument", "ordinary-python-source-adapter"]
     },
     {
+      "id": "adapter-range-index",
+      "source": "../adapter/adapter-range-index.py",
+      "reference": "Python Language Reference 6.3.2 Subscriptions; Standard Library range type",
+      "expected_result": "True ~> .K",
+      "coverage": ["range-subscription", "positive-range-index", "negative-sequence-index", "bool-as-int-index", "ordinary-python-source-adapter"]
+    },
+    {
       "id": "adapter-len-containers",
       "source": "../adapter/adapter-len-containers.py",
       "reference": "Python Standard Library Built-in Functions len(); Built-in Types sequence, mapping, and set length",

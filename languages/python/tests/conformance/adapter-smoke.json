@@ -235,6 +235,13 @@
       "coverage": ["all-builtin", "any-builtin", "truth-value-testing", "concrete-iterable-subset", "dict-key-iteration-subset", "range-iteration-subset", "ordinary-python-source-adapter"]
     },
     {
+      "id": "adapter-sum-int",
+      "source": "../adapter/adapter-sum-int.py",
+      "reference": "Python Standard Library Built-in Functions sum; Built-in Types list, tuple, dict, set, and range",
+      "expected_result": "True ~> .K",
+      "coverage": ["sum-builtin", "int-like-sum", "start-argument", "empty-iterable-start", "dict-key-iteration-subset", "range-iteration-subset", "ordinary-python-source-adapter"]
+    },
+    {
       "id": "adapter-int-constructor",
       "source": "../adapter/adapter-int-constructor.py",
       "reference": "Python Standard Library Built-in Types int",

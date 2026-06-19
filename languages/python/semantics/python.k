@@ -106,6 +106,8 @@ module PYTHON-SYNTAX
                | "#boolCtor" "(" Exp ")" [symbol(boolCtor1Exp), strict]
                | "#all" "(" Exp ")" [symbol(allExp), strict]
                | "#any" "(" Exp ")" [symbol(anyExp), strict]
+               | "#sum" "(" Exp ")" [symbol(sum1Exp), strict]
+               | "#sum" "(" Exp "," Exp ")" [symbol(sum2Exp), strict]
                | "#intCtor" "(" ")" [symbol(intCtor0Exp)]
                | "#intCtor" "(" Exp ")" [symbol(intCtor1Exp), strict]
                | "#abs" "(" Exp ")" [symbol(absExp), strict]
@@ -253,6 +255,7 @@ module PYTHON
                 | rangeEq(Int, Int, Int, Int, Int, Int) [function, symbol(rangeEq)]
                 | allValItems(ValItems) [function, symbol(allValItems)]
                 | anyValItems(ValItems) [function, symbol(anyValItems)]
+                | valItemsAllIntLike(ValItems) [function, symbol(valItemsAllIntLike)]
                 | rangeAllTruthy(Int, Int, Int) [function, symbol(rangeAllTruthy)]
                 | rangeAnyTruthy(Int, Int, Int) [function, symbol(rangeAnyTruthy)]
 
@@ -270,6 +273,8 @@ module PYTHON
                | valItemsLen(ValItems) [function, symbol(valItemsLen)]
                | dictItemsLen(DictItems) [function, symbol(dictItemsLen)]
                | rangeGet(Int, Int, Int, Int) [function, symbol(rangeGet)]
+               | sumValItems(ValItems) [function, symbol(sumValItems)]
+               | rangeSum(Int, Int, Int) [function, symbol(rangeSum)]
   syntax String ::= repeatString(String, Int) [function, symbol(repeatString)]
                   | sliceString(String, Int, Int) [function, symbol(sliceString)]
                   | sliceStepString(String, Int, Int, Int) [function, symbol(sliceStepString)]
@@ -739,6 +744,9 @@ module PYTHON
   rule allValItems(valItemsCons(V:Val, VS:ValItems)) => truthy(V) andBool allValItems(VS)
   rule anyValItems(valItemsLast(V:Val)) => truthy(V)
   rule anyValItems(valItemsCons(V:Val, VS:ValItems)) => truthy(V) orBool anyValItems(VS)
+  rule valItemsAllIntLike(valItemsLast(V:Val)) => isIntLike(V)
+  rule valItemsAllIntLike(valItemsCons(V:Val, VS:ValItems)) =>
+    isIntLike(V) andBool valItemsAllIntLike(VS)
 
   rule rangeAllTruthy(Start:Int, Stop:Int, Step:Int) => notBool rangeContains(0, Start, Stop, Step)
     requires Step =/=Int 0
@@ -754,6 +762,13 @@ module PYTHON
       andBool rangeGet(Start, Stop, Step, 0) =/=Int 0
   rule rangeAnyTruthy(Start:Int, Stop:Int, Step:Int) => true
     requires Step =/=Int 0 andBool pyRangeLen(Start, Stop, Step) >Int 1
+  rule sumValItems(valItemsLast(V:Val)) => intValue(V)
+    requires isIntLike(V)
+  rule sumValItems(valItemsCons(V:Val, VS:ValItems)) => intValue(V) +Int sumValItems(VS)
+    requires isIntLike(V) andBool valItemsAllIntLike(VS)
+  rule rangeSum(Start:Int, Stop:Int, Step:Int) =>
+    (pyRangeLen(Start, Stop, Step) *Int ((2 *Int Start) +Int ((pyRangeLen(Start, Stop, Step) -Int 1) *Int Step))) /Int 2
+    requires Step =/=Int 0
 
   rule concatValItems(valItemsLast(V:Val), VS:ValItems) => valItemsCons(V, VS)
   rule concatValItems(valItemsCons(V:Val, VS1:ValItems), VS2:ValItems) =>
@@ -1360,6 +1375,45 @@ module PYTHON
   rule #any(rangeVal(Start:Int, Stop:Int)) => boolValue(rangeAnyTruthy(Start, Stop, 1))
   rule #any(rangeVal(Start:Int, Stop:Int, Step:Int)) => boolValue(rangeAnyTruthy(Start, Stop, Step))
     requires Step =/=Int 0
+  rule #sum([]) => 0
+  rule #sum(listVal(VS:ValItems)) => sumValItems(VS)
+    requires valItemsAllIntLike(VS)
+  rule #sum(()) => 0
+  rule #sum(tupleVal(VS:ValItems)) => sumValItems(VS)
+    requires valItemsAllIntLike(VS)
+  rule #sum(({}):Val) => 0
+  rule #sum(dictVal(DS:DictItems)) => sumValItems(dictKeysToValItems(DS))
+    requires valItemsAllIntLike(dictKeysToValItems(DS))
+  rule #sum(set()) => 0
+  rule #sum(setVal(VS:ValItems)) => sumValItems(VS)
+    requires valItemsAllIntLike(VS)
+  rule #sum(rangeVal(Start:Int, Stop:Int)) => rangeSum(Start, Stop, 1)
+  rule #sum(rangeVal(Start:Int, Stop:Int, Step:Int)) => rangeSum(Start, Stop, Step)
+    requires Step =/=Int 0
+  rule #sum([], Seed:Val) => Seed
+    requires isIntLike(Seed)
+  rule #sum(listVal(VS:ValItems), Seed:Val) => intValue(Seed) +Int sumValItems(VS)
+    requires isIntLike(Seed) andBool valItemsAllIntLike(VS)
+  rule #sum((), Seed:Val) => Seed
+    requires isIntLike(Seed)
+  rule #sum(tupleVal(VS:ValItems), Seed:Val) => intValue(Seed) +Int sumValItems(VS)
+    requires isIntLike(Seed) andBool valItemsAllIntLike(VS)
+  rule #sum(({}):Val, Seed:Val) => Seed
+    requires isIntLike(Seed)
+  rule #sum(dictVal(DS:DictItems), Seed:Val) => intValue(Seed) +Int sumValItems(dictKeysToValItems(DS))
+    requires isIntLike(Seed) andBool valItemsAllIntLike(dictKeysToValItems(DS))
+  rule #sum(set(), Seed:Val) => Seed
+    requires isIntLike(Seed)
+  rule #sum(setVal(VS:ValItems), Seed:Val) => intValue(Seed) +Int sumValItems(VS)
+    requires isIntLike(Seed) andBool valItemsAllIntLike(VS)
+  rule #sum(rangeVal(Start:Int, Stop:Int), Seed:Val) => Seed
+    requires isIntLike(Seed) andBool pyRangeLen(Start, Stop, 1) ==Int 0
+  rule #sum(rangeVal(Start:Int, Stop:Int), Seed:Val) => intValue(Seed) +Int rangeSum(Start, Stop, 1)
+    requires isIntLike(Seed) andBool pyRangeLen(Start, Stop, 1) >Int 0
+  rule #sum(rangeVal(Start:Int, Stop:Int, Step:Int), Seed:Val) => Seed
+    requires isIntLike(Seed) andBool Step =/=Int 0 andBool pyRangeLen(Start, Stop, Step) ==Int 0
+  rule #sum(rangeVal(Start:Int, Stop:Int, Step:Int), Seed:Val) => intValue(Seed) +Int rangeSum(Start, Stop, Step)
+    requires isIntLike(Seed) andBool Step =/=Int 0 andBool pyRangeLen(Start, Stop, Step) >Int 0
   rule #intCtor() => 0
   rule #intCtor(V:Val) => intValue(V)
     requires isIntLike(V)

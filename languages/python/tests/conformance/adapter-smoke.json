@@ -774,6 +774,13 @@
       "coverage": ["starred-target-assignment", "sequence-unpacking-assignment", "empty-starred-rest-list", "left-to-right-target-binding", "ordinary-python-source-adapter"]
     },
     {
+      "id": "adapter-augmented-true-div",
+      "source": "../adapter/adapter-augmented-true-div.py",
+      "reference": "Python Language Reference 7.2.1 Augmented assignment statements; Python Language Reference 6.7 Binary arithmetic operations",
+      "expected_result": "True ~> .K",
+      "coverage": ["augmented-assignment", "true-division", "float-result", "bool-as-int-division", "ordinary-python-source-adapter"]
+    },
+    {
       "id": "adapter-augmented-more",
       "source": "../adapter/adapter-augmented-more.py",
       "reference": "Python Language Reference 7.2.1 Augmented assignment statements",

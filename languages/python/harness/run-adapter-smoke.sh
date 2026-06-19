@@ -153,4 +153,5 @@ run_case "adapter-unpack-tuple" "$ROOT/tests/adapter/adapter-unpack-tuple.py" "T
 run_case "adapter-unpack-list" "$ROOT/tests/adapter/adapter-unpack-list.py" "True ~> .K"
 run_case "adapter-unpack-expression-rhs" "$ROOT/tests/adapter/adapter-unpack-expression-rhs.py" "True ~> .K"
 run_case "adapter-star-unpack-assignment" "$ROOT/tests/adapter/adapter-star-unpack-assignment.py" "True ~> .K"
+run_case "adapter-augmented-true-div" "$ROOT/tests/adapter/adapter-augmented-true-div.py" "True ~> .K"
 run_case "adapter-augmented-more" "$ROOT/tests/adapter/adapter-augmented-more.py" "True ~> .K"

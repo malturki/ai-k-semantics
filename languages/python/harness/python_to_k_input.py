@@ -71,7 +71,7 @@ def emit_stmt(stmt: ast.stmt) -> str:
                 return f"#floorDivAssign({name}, {emit_exp(value)})"
             return f"{name} {emit_aug_op(op)}= {emit_exp(value)}"
         case ast.AugAssign():
-            raise unsupported(stmt, "only simple-name +=, -=, and *= are supported")
+            raise unsupported(stmt, "only simple-name augmented assignment targets are supported")
         case ast.Return(value=None):
             return "return None"
         case ast.Return(value=value):
@@ -462,6 +462,8 @@ def emit_aug_op(op: ast.operator) -> str:
         return "-"
     if isinstance(op, ast.Mult):
         return "*"
+    if isinstance(op, ast.Div):
+        return "/"
     if isinstance(op, ast.Mod):
         return "%"
     if isinstance(op, ast.Pow):

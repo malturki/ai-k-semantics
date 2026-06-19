@@ -74,6 +74,7 @@ module PYTHON-SYNTAX
                 | Id "+=" Exp [symbol(augAddStmt)]
                 | Id "-=" Exp [symbol(augSubStmt)]
                 | Id "*=" Exp [symbol(augMulStmt)]
+                | Id "/=" Exp [symbol(augTrueDivStmt)]
                 | Id "%=" Exp [symbol(augModStmt)]
                 | Id "**=" Exp [symbol(augPowStmt)]
                 | Id "<<=" Exp [symbol(augLShiftStmt)]
@@ -1969,6 +1970,7 @@ module PYTHON
   rule <k> augAddStmt(X:Id, E:Exp) => assignStmt(X, X + E) ... </k>
   rule <k> augSubStmt(X:Id, E:Exp) => assignStmt(X, X - E) ... </k>
   rule <k> augMulStmt(X:Id, E:Exp) => assignStmt(X, X * E) ... </k>
+  rule <k> augTrueDivStmt(X:Id, E:Exp) => assignStmt(X, #trueDiv(X, E)) ... </k>
   rule <k> augModStmt(X:Id, E:Exp) => assignStmt(X, X % E) ... </k>
   rule <k> augPowStmt(X:Id, E:Exp) => assignStmt(X, X ** E) ... </k>
   rule <k> augLShiftStmt(X:Id, E:Exp) => assignStmt(X, X << E) ... </k>

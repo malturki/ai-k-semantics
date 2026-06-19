@@ -47,7 +47,7 @@ The base modules should model portable Python semantics from the official docs. 
 - adapter-backed chained comparisons over the currently supported comparison operators, with short-circuiting
 - conditional expressions
 - adapter-backed assignment expressions `NAME := expr` for simple-name targets in the current environment
-- simple-name `+=`, `-=`, `*=`, `%=`, `**=`, `//=`, `<<=`, `>>=`, `&=`, `^=`, and `|=`
+- simple-name `+=`, `-=`, `*=`, `/=`, `%=`, `**=`, `//=`, `<<=`, `>>=`, `&=`, `^=`, and `|=`
 - multi-target simple-name assignment through the AST adapter
 - simple-name `del`
 - truthy `assert`
@@ -100,6 +100,6 @@ Current unpacking caveat: flat and starred assignment targets are adapter-backed
 
 Current function caveat: adapter-backed `#def`, `#defArgs`, and `#defDefaults` cover zero or more positional parameters, optional suffix defaults evaluated at function definition time, keyword-only calls without positional arguments, mixed positional/keyword calls without starred argument unpacking or `**kwargs`, no decorators, no annotations, no positional-only or keyword-only parameters, no varargs/kwargs, and an environment-restore model. Full Python function objects need real frames, cells/closures, globals/nonlocals, descriptors, methods, and argument binding diagnostics.
 
-Current augmented-assignment caveat: true-division `/=` and matrix-multiplication `@=` remain unsupported because augmented assignment is only wired for the current integer-like operators and there is no matrix protocol.
+Current augmented-assignment caveat: matrix-multiplication `@=` remains unsupported because there is no matrix protocol, and augmented assignment is otherwise limited to simple-name targets in the current value/operator subsets rather than full in-place/special-method dispatch.
 
 Current identity caveat: `is` and `is not` are defined only for the language singletons `None`, `True`, and `False` compared with singleton or non-singleton values. General object identity requires a heap/object model and remains unsupported.

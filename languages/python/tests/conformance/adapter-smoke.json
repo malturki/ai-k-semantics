@@ -375,6 +375,13 @@
       "coverage": ["dict-display", "dict-duplicate-key-overwrite", "dict-key-equality", "ordinary-python-source-adapter"]
     },
     {
+      "id": "adapter-dict-equality",
+      "source": "../adapter/adapter-dict-equality.py",
+      "reference": "Python Language Reference 6.10 Comparisons; Standard Library dict",
+      "expected_result": "True ~> .K",
+      "coverage": ["dict-equality", "dict-order-insensitive-equality", "dict-duplicate-key-overwrite", "ordinary-python-source-adapter"]
+    },
+    {
       "id": "adapter-set",
       "source": "../adapter/adapter-set.py",
       "reference": "Python Language Reference 6.2.6 Set displays; 6.10 Comparisons; Standard Library truth value testing",
@@ -387,6 +394,13 @@
       "reference": "Python Language Reference 6.2.6 Set displays; 6.16 Evaluation order",
       "expected_result": "True ~> .K",
       "coverage": ["set-display", "expression-list-evaluation", "set-membership", "ordinary-python-source-adapter"]
+    },
+    {
+      "id": "adapter-set-equality",
+      "source": "../adapter/adapter-set-equality.py",
+      "reference": "Python Language Reference 6.10 Comparisons; Standard Library set types",
+      "expected_result": "True ~> .K",
+      "coverage": ["set-equality", "set-duplicate-element-normalization", "set-membership", "ordinary-python-source-adapter"]
     },
     {
       "id": "adapter-assign-many",

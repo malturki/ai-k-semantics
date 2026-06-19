@@ -216,6 +216,11 @@ module PYTHON
                 | cmpHolds(CmpOp, Val, Val) [function, symbol(cmpHolds)]
                 | singletonIdentity(Val) [function, symbol(singletonIdentity)]
                 | valsEq(ValItems, ValItems) [function, symbol(valsEq)]
+                | dictsEq(DictItems, DictItems) [function, symbol(dictsEq)]
+                | dictItemsContained(DictItems, DictItems) [function, symbol(dictItemsContained)]
+                | containsDictPair(Val, Val, DictItems) [function, symbol(containsDictPair)]
+                | setsEq(ValItems, ValItems) [function, symbol(setsEq)]
+                | setItemsSubset(ValItems, ValItems) [function, symbol(setItemsSubset)]
                 | sameArity(IdItems, ArgVals) [function, symbol(sameArity)]
                 | sameIdValArity(IdItems, ValItems) [function, symbol(sameIdValArity)]
                 | emptyArgVals(ArgVals) [function, symbol(emptyArgVals)]
@@ -239,6 +244,7 @@ module PYTHON
   syntax Map ::= bindArgs(Map, IdItems, ArgVals) [function, symbol(bindArgs)]
   syntax Map ::= bindVals(Map, IdItems, ValItems) [function, symbol(bindVals)]
   syntax ValItems ::= argValsToValItems(ArgVals) [function, symbol(argValsToValItems)]
+  syntax ValItems ::= argValsToSetItems(ArgVals) [function, symbol(argValsToSetItems)]
   syntax DictItems ::= dictValsToDictItems(DictVals) [function, symbol(dictValsToDictItems)]
   syntax Val ::= listGet(ValItems, Int) [function, symbol(listGet)]
   syntax Val ::= dictGet(DictItems, Val) [function, symbol(dictGet)]
@@ -369,6 +375,11 @@ module PYTHON
   rule valEq((), tupleVal(_:ValItems)) => false
   rule valEq(tupleVal(_:ValItems), ()) => false
   rule valEq(tupleVal(VS1:ValItems), tupleVal(VS2:ValItems)) => valsEq(VS1, VS2)
+  rule valEq({}, {}) => true
+  rule valEq({}, dictVal(_:DictItems)) => false
+  rule valEq(dictVal(_:DictItems), {}) => false
+  rule valEq(dictVal(DS1:DictItems), dictVal(DS2:DictItems)) => dictsEq(DS1, DS2)
+  rule valEq(setVal(VS1:ValItems), setVal(VS2:ValItems)) => setsEq(VS1, VS2)
   rule valEq((), []) => false
   rule valEq([], ()) => false
   rule valEq((), listVal(_:ValItems)) => false
@@ -531,6 +542,15 @@ module PYTHON
     valItemsCons(V, argValsToValItems(VS))
     requires notBool emptyArgVals(VS)
 
+  rule argValsToSetItems(argValsCons(V:Val, #noArgVals)) => valItemsLast(V)
+  rule argValsToSetItems(argValsCons(V:Val, VS:ArgVals)) => argValsToSetItems(VS)
+    requires notBool emptyArgVals(VS)
+      andBool containsVal(V, argValsToSetItems(VS))
+  rule argValsToSetItems(argValsCons(V:Val, VS:ArgVals)) =>
+    valItemsCons(V, argValsToSetItems(VS))
+    requires notBool emptyArgVals(VS)
+      andBool notBool containsVal(V, argValsToSetItems(VS))
+
   rule dictValsToDictItems(dictValsCons(K:Val, V:Val, #noDictVals)) => dictItemsLast(K, V)
   rule dictValsToDictItems(dictValsCons(K:Val, V:Val, DVS:DictVals)) =>
     dictItemsCons(K, V, dictValsToDictItems(DVS))
@@ -541,6 +561,27 @@ module PYTHON
     valEq(V1, V2) andBool valsEq(VS1, VS2)
   rule valsEq(valItemsLast(_:Val), valItemsCons(_:Val, _:ValItems)) => false
   rule valsEq(valItemsCons(_:Val, _:ValItems), valItemsLast(_:Val)) => false
+
+  rule dictsEq(DS1:DictItems, DS2:DictItems) =>
+    dictItemsLen(DS1) ==Int dictItemsLen(DS2)
+      andBool dictItemsContained(DS1, DS2)
+      andBool dictItemsContained(DS2, DS1)
+
+  rule dictItemsContained(dictItemsLast(K:Val, V:Val), DS:DictItems) => containsDictPair(K, V, DS)
+  rule dictItemsContained(dictItemsCons(K:Val, V:Val, DS1:DictItems), DS2:DictItems) =>
+    containsDictPair(K, V, DS2) andBool dictItemsContained(DS1, DS2)
+
+  rule containsDictPair(K:Val, V:Val, dictItemsLast(K1:Val, V1:Val)) =>
+    valEq(K, K1) andBool valEq(V, V1)
+  rule containsDictPair(K:Val, V:Val, dictItemsCons(K1:Val, V1:Val, DS:DictItems)) =>
+    (valEq(K, K1) andBool valEq(V, V1)) orBool containsDictPair(K, V, DS)
+
+  rule setsEq(VS1:ValItems, VS2:ValItems) =>
+    setItemsSubset(VS1, VS2) andBool setItemsSubset(VS2, VS1)
+
+  rule setItemsSubset(valItemsLast(V:Val), VS:ValItems) => containsVal(V, VS)
+  rule setItemsSubset(valItemsCons(V:Val, VS1:ValItems), VS2:ValItems) =>
+    containsVal(V, VS2) andBool setItemsSubset(VS1, VS2)
 
   rule containsVal(V:Val, valItemsLast(V1:Val)) => valEq(V, V1)
   rule containsVal(V:Val, valItemsCons(V1:Val, VS:ValItems)) =>
@@ -754,7 +795,7 @@ module PYTHON
     requires notBool emptyArgVals(VS)
 
   rule <k> setDisplayExp(Args:ArgExps) => evalArgs(Args, #noArgVals) ~> buildSet ... </k>
-  rule <k> argsVal(VS:ArgVals) ~> buildSet => setVal(argValsToValItems(VS)) ... </k>
+  rule <k> argsVal(VS:ArgVals) ~> buildSet => setVal(argValsToSetItems(VS)) ... </k>
     requires notBool emptyArgVals(VS)
 
   rule <k> dictDisplayExp(Items:DictExps) => evalDict(Items, #noDictVals) ~> buildDict ... </k>

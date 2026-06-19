@@ -276,7 +276,9 @@ def emit_lambda(node: ast.AST, args: ast.arguments, body: ast.expr) -> str:
         names = [arg.arg for arg in args.args]
         if names:
             if args.defaults or kw_defaults is not None:
-                raise unsupported(node, "lambda mixed positional and keyword-only parameters with defaults are not supported yet")
+                pos_defaults = emit_arg_exps(args.defaults) if args.defaults else "#noArgs"
+                kw_defaults_exp = kw_defaults if kw_defaults is not None else "#noArgs"
+                return f"#lambdaPosKwDefaults({emit_id_items(names)}, {pos_defaults}, {emit_id_items(kw_names)}, {kw_defaults_exp}, {emit_exp(body)})"
             return f"#lambdaPosKwOnly({emit_id_items(names)}, {emit_id_items(kw_names)}, {emit_exp(body)})"
         if kw_defaults is not None:
             return f"#lambdaKwDefaults({emit_id_items(kw_names)}, {kw_defaults}, {emit_exp(body)})"
@@ -322,7 +324,9 @@ def emit_function_def(
         names = [arg.arg for arg in args.args]
         if names:
             if args.defaults or kw_defaults is not None:
-                raise unsupported(node, "mixed positional and keyword-only parameters with defaults are not supported yet")
+                pos_defaults = emit_arg_exps(args.defaults) if args.defaults else "#noArgs"
+                kw_defaults_exp = kw_defaults if kw_defaults is not None else "#noArgs"
+                return f"#defPosKwDefaults({name}, {emit_id_items(names)}, {pos_defaults}, {emit_id_items(kw_names)}, {kw_defaults_exp}, {emit_block(body)})"
             return f"#defPosKwOnly({name}, {emit_id_items(names)}, {emit_id_items(kw_names)}, {emit_block(body)})"
         if kw_defaults is not None:
             return f"#defKwDefaults({name}, {emit_id_items(kw_names)}, {kw_defaults}, {emit_block(body)})"

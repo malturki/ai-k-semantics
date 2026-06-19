@@ -19,6 +19,7 @@ The base modules should model portable Python semantics from the official docs. 
 - expression statements
 - `pass`
 - single-name assignment
+- adapter-backed flat sequence unpacking assignment to simple names
 - integer literals
 - `True`, `False`, and `None`
 - simple string literals as K `String` tokens

@@ -333,6 +333,27 @@
       "coverage": ["multi-target-assignment", "simple-name-targets", "single-rhs-evaluation", "ordinary-python-source-adapter"]
     },
     {
+      "id": "adapter-unpack-tuple",
+      "source": "../adapter/adapter-unpack-tuple.py",
+      "reference": "Python Language Reference 7.2 Assignment statements",
+      "expected_result": "True ~> .K",
+      "coverage": ["sequence-unpacking-assignment", "tuple-target", "flat-name-targets", "ordinary-python-source-adapter"]
+    },
+    {
+      "id": "adapter-unpack-list",
+      "source": "../adapter/adapter-unpack-list.py",
+      "reference": "Python Language Reference 7.2 Assignment statements",
+      "expected_result": "True ~> .K",
+      "coverage": ["sequence-unpacking-assignment", "list-target", "flat-name-targets", "ordinary-python-source-adapter"]
+    },
+    {
+      "id": "adapter-unpack-expression-rhs",
+      "source": "../adapter/adapter-unpack-expression-rhs.py",
+      "reference": "Python Language Reference 7.2 Assignment statements; 6.16 Evaluation order",
+      "expected_result": "True ~> .K",
+      "coverage": ["sequence-unpacking-assignment", "expression-rhs", "flat-name-targets", "ordinary-python-source-adapter"]
+    },
+    {
       "id": "adapter-augmented-more",
       "source": "../adapter/adapter-augmented-more.py",
       "reference": "Python Language Reference 7.2.1 Augmented assignment statements",

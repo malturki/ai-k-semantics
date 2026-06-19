@@ -76,6 +76,7 @@ module PYTHON-SYNTAX
                 | Id "|=" Exp [symbol(augBitOrStmt)]
                 | "#floorDivAssign" "(" Id "," Exp ")" [symbol(augFloorDivStmt)]
                 | "#assignMany" "(" IdItems ";" Exp ")" [symbol(assignManyStmt), strict(2)]
+                | "#unpackAssign" "(" IdItems ";" Exp ")" [symbol(unpackAssignStmt), strict(2)]
                 | "return" Exp [symbol(returnStmt), strict]
                 | "#def" "(" Id "," Id "," Block ")" [symbol(functionDefStmt)]
                 | "#defArgs" "(" Id "," IdItems "," Block ")" [symbol(functionDefArgsStmt)]
@@ -203,6 +204,7 @@ module PYTHON
                 | singletonIdentity(Val) [function, symbol(singletonIdentity)]
                 | valsEq(ValItems, ValItems) [function, symbol(valsEq)]
                 | sameArity(IdItems, ArgVals) [function, symbol(sameArity)]
+                | sameIdValArity(IdItems, ValItems) [function, symbol(sameIdValArity)]
                 | emptyArgVals(ArgVals) [function, symbol(emptyArgVals)]
                 | emptyDictVals(DictVals) [function, symbol(emptyDictVals)]
                 | containsVal(Val, ValItems) [function, symbol(containsVal)]
@@ -221,6 +223,7 @@ module PYTHON
                     | dictValsCons(Val, Val, DictVals) [symbol(dictValsCons)]
                     | appendDictVal(DictVals, Val, Val) [function, symbol(appendDictVal)]
   syntax Map ::= bindArgs(Map, IdItems, ArgVals) [function, symbol(bindArgs)]
+  syntax Map ::= bindVals(Map, IdItems, ValItems) [function, symbol(bindVals)]
   syntax ValItems ::= argValsToValItems(ArgVals) [function, symbol(argValsToValItems)]
   syntax DictItems ::= dictValsToDictItems(DictVals) [function, symbol(dictValsToDictItems)]
   syntax Val ::= listGet(ValItems, Int) [function, symbol(listGet)]
@@ -462,6 +465,12 @@ module PYTHON
   rule sameArity(idItemsCons(_:Id, _:IdItems), #noArgVals) => false
   rule sameArity(idItemsCons(_:Id, IDS:IdItems), argValsCons(_:Val, VS:ArgVals)) => sameArity(IDS, VS)
 
+  rule sameIdValArity(idItemsLast(_:Id), valItemsLast(_:Val)) => true
+  rule sameIdValArity(idItemsLast(_:Id), valItemsCons(_:Val, _:ValItems)) => false
+  rule sameIdValArity(idItemsCons(_:Id, _:IdItems), valItemsLast(_:Val)) => false
+  rule sameIdValArity(idItemsCons(_:Id, IDS:IdItems), valItemsCons(_:Val, VS:ValItems)) =>
+    sameIdValArity(IDS, VS)
+
   rule emptyArgVals(#noArgVals) => true
   rule emptyArgVals(argValsCons(_:Val, _:ArgVals)) => false
 
@@ -480,6 +489,10 @@ module PYTHON
   rule bindArgs(Rho:Map, idItemsLast(X:Id), argValsCons(V:Val, #noArgVals)) => Rho [ X <- V ]
   rule bindArgs(Rho:Map, idItemsCons(X:Id, IDS:IdItems), argValsCons(V:Val, VS:ArgVals)) =>
     bindArgs(Rho [ X <- V ], IDS, VS)
+
+  rule bindVals(Rho:Map, idItemsLast(X:Id), valItemsLast(V:Val)) => Rho [ X <- V ]
+  rule bindVals(Rho:Map, idItemsCons(X:Id, IDS:IdItems), valItemsCons(V:Val, VS:ValItems)) =>
+    bindVals(Rho [ X <- V ], IDS, VS)
 
   rule argValsToValItems(argValsCons(V:Val, #noArgVals)) => valItemsLast(V)
   rule argValsToValItems(argValsCons(V:Val, VS:ArgVals)) =>
@@ -758,6 +771,15 @@ module PYTHON
   rule <k> assignMany(idItemsCons(X:Id, IDS:IdItems), V:Val) => assignMany(IDS, V) ... </k>
        <env> Rho => Rho [ X <- V ] </env>
        <result> _ => .K </result>
+
+  rule <k> unpackAssignStmt(IDS:IdItems, listVal(VS:ValItems)) => stmtNoResult ... </k>
+       <env> Rho => bindVals(Rho, IDS, VS) </env>
+       <result> _ => .K </result>
+    requires sameIdValArity(IDS, VS)
+  rule <k> unpackAssignStmt(IDS:IdItems, tupleVal(VS:ValItems)) => stmtNoResult ... </k>
+       <env> Rho => bindVals(Rho, IDS, VS) </env>
+       <result> _ => .K </result>
+    requires sameIdValArity(IDS, VS)
 
   rule <k> functionDefStmt(F:Id, X:Id, Body:Block) => stmtNoResult ... </k>
        <env> Rho => Rho [ F <- functionVal(X, Body) ] </env>

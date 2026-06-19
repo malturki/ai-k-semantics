@@ -483,9 +483,9 @@
               "section": "Assignment statements"
             }
           ],
-          "k_coverage": ["semantics/python.k: single-name assignment for Val; simple-name augmented assignment for +=, -=, *=, %=, **=, //=, <<=, >>=, &=, ^=, |=", "semantics/python.k: internal #assignMany for adapter-backed multi-target simple-name assignment"],
-          "test_coverage": ["tests/examples/smoke-assignment.py", "tests/examples/smoke-comparisons.py", "tests/examples/smoke-augmented-assignment.py", "tests/adapter/adapter-assign-many.py", "tests/adapter/adapter-augmented-more.py"],
-          "gaps": ["Need target lists, unpacking, attributes, subscriptions, annotations, true-division augmented assignment, matrix-multiplication augmented assignment, and target evaluation order beyond simple names."]
+          "k_coverage": ["semantics/python.k: single-name assignment for Val; simple-name augmented assignment for +=, -=, *=, %=, **=, //=, <<=, >>=, &=, ^=, |=", "semantics/python.k: internal #assignMany for adapter-backed multi-target simple-name assignment", "semantics/python.k: internal #unpackAssign for flat list/tuple assignment targets over list/tuple RHS values"],
+          "test_coverage": ["tests/examples/smoke-assignment.py", "tests/examples/smoke-comparisons.py", "tests/examples/smoke-augmented-assignment.py", "tests/adapter/adapter-assign-many.py", "tests/adapter/adapter-unpack-tuple.py", "tests/adapter/adapter-unpack-list.py", "tests/adapter/adapter-unpack-expression-rhs.py", "tests/adapter/adapter-augmented-more.py"],
+          "gaps": ["Need nested/starred unpacking, attributes, subscriptions, annotations, true-division augmented assignment, matrix-multiplication augmented assignment, ValueError diagnostics for unpacking arity mismatch, and target evaluation order beyond simple names."]
         },
         {
           "id": "stmt.assert",

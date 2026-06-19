@@ -242,16 +242,33 @@ def emit_function_def(
 
 
 def emit_assign(node: ast.AST, targets: list[ast.expr], value: ast.expr) -> str:
+    if len(targets) == 1:
+        target = targets[0]
+        if isinstance(target, ast.Name):
+            return f"{target.id} = {emit_exp(value)}"
+        if isinstance(target, ast.Tuple | ast.List):
+            return f"#unpackAssign({emit_id_items(emit_flat_target_names(target))}; {emit_exp(value)})"
+        raise unsupported(target, "only simple-name and flat sequence assignment targets are supported")
+
     names: list[str] = []
     for target in targets:
         if not isinstance(target, ast.Name):
-            raise unsupported(target, "only simple-name assignment targets are supported")
+            raise unsupported(target, "only simple-name chained assignment targets are supported")
         names.append(target.id)
-    if len(names) == 1:
-        return f"{names[0]} = {emit_exp(value)}"
     if len(names) < 1:
         raise unsupported(node, "assignment needs at least one target")
     return f"#assignMany({emit_id_items(names)}; {emit_exp(value)})"
+
+
+def emit_flat_target_names(target: ast.Tuple | ast.List) -> list[str]:
+    names: list[str] = []
+    for elt in target.elts:
+        if not isinstance(elt, ast.Name):
+            raise unsupported(elt, "only flat name sequence assignment targets are supported")
+        names.append(elt.id)
+    if not names:
+        raise unsupported(target, "empty sequence assignment targets are not supported yet")
+    return names
 
 
 def emit_id_items(names: list[str]) -> str:

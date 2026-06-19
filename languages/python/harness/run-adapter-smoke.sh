@@ -90,4 +90,7 @@ run_case "adapter-dict-expressions" "$ROOT/tests/adapter/adapter-dict-expression
 run_case "adapter-set" "$ROOT/tests/adapter/adapter-set.py" "True ~> .K"
 run_case "adapter-set-expressions" "$ROOT/tests/adapter/adapter-set-expressions.py" "True ~> .K"
 run_case "adapter-assign-many" "$ROOT/tests/adapter/adapter-assign-many.py" "True ~> .K"
+run_case "adapter-unpack-tuple" "$ROOT/tests/adapter/adapter-unpack-tuple.py" "True ~> .K"
+run_case "adapter-unpack-list" "$ROOT/tests/adapter/adapter-unpack-list.py" "True ~> .K"
+run_case "adapter-unpack-expression-rhs" "$ROOT/tests/adapter/adapter-unpack-expression-rhs.py" "True ~> .K"
 run_case "adapter-augmented-more" "$ROOT/tests/adapter/adapter-augmented-more.py" "True ~> .K"

@@ -26,7 +26,7 @@ The base modules should model portable Python semantics from the official docs. 
 - name lookup in a single environment
 - unary `+`, unary `-`, and integer/bool `+`, `-`, and `*`
 - integer/bool `%`, `//`, shifts, bitwise operators, bitwise inversion, and nonnegative exponentiation
-- string concatenation with `+`, repetition with integer/bool `*`, and nonzero-step slicing
+- string concatenation with `+`, repetition with integer/bool `*`, nonzero-step slicing, substring membership, and positive/negative integer indexing
 - truth-value testing for integers, booleans, and `None`
 - truth-value testing for strings
 - short-circuiting `and` and `or`

@@ -565,6 +565,7 @@ module PYTHON
   rule cmpHolds(#ne, V1:Val, V2:Val) => notBool valEq(V1, V2)
   rule cmpHolds(#is, V1:Val, V2:Val) => valIs(V1, V2)
   rule cmpHolds(#isNot, V1:Val, V2:Val) => notBool valIs(V1, V2)
+  rule cmpHolds(#in, Needle:String, Haystack:String) => findString(Haystack, Needle, 0) >=Int 0
   rule cmpHolds(#in, _V:Val, []) => false
   rule cmpHolds(#in, V:Val, listVal(VS:ValItems)) => containsVal(V, VS)
   rule cmpHolds(#in, _V:Val, ()) => false
@@ -1003,6 +1004,7 @@ module PYTHON
   rule <k> compareFrom(L:Val, Chain:CmpChain) =>
            L ~> compareChain(Chain)
        ... </k>
+  rule Needle:String in Haystack:String => boolValue(findString(Haystack, Needle, 0) >=Int 0)
   rule _V:Val in [] => False
   rule V:Val in listVal(VS:ValItems) => boolValue(containsVal(V, VS))
   rule _V:Val in () => False
@@ -1010,6 +1012,7 @@ module PYTHON
   rule _V:Val in {} => False
   rule V:Val in dictVal(DS:DictItems) => boolValue(containsKey(V, DS))
   rule V:Val in setVal(VS:ValItems) => boolValue(containsVal(V, VS))
+  rule Needle:String not in Haystack:String => boolValue(findString(Haystack, Needle, 0) <Int 0)
   rule _V:Val not in [] => True
   rule V:Val not in listVal(VS:ValItems) => boolValue(notBool containsVal(V, VS))
   rule _V:Val not in () => True
@@ -1017,6 +1020,13 @@ module PYTHON
   rule _V:Val not in {} => True
   rule V:Val not in dictVal(DS:DictItems) => boolValue(notBool containsKey(V, DS))
   rule V:Val not in setVal(VS:ValItems) => boolValue(notBool containsVal(V, VS))
+  rule subscriptExp(S:String, I:Val) => substrString(S, intValue(I), intValue(I) +Int 1)
+    requires isIntLike(I) andBool intValue(I) >=Int 0 andBool intValue(I) <Int lengthString(S)
+  rule subscriptExp(S:String, I:Val) =>
+    substrString(S, lengthString(S) +Int intValue(I), lengthString(S) +Int intValue(I) +Int 1)
+    requires isIntLike(I)
+     andBool intValue(I) <Int 0
+     andBool lengthString(S) +Int intValue(I) >=Int 0
   rule subscriptExp(listVal(VS:ValItems), I:Val) => listGet(VS, intValue(I))
     requires isIntLike(I) andBool intValue(I) >=Int 0
   rule subscriptExp(listVal(VS:ValItems), I:Val) => listGet(VS, valItemsLen(VS) +Int intValue(I))

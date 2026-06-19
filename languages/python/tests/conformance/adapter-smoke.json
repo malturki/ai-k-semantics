@@ -18,6 +18,20 @@
       "coverage": ["string-repetition", "sequence-repetition", "zero-and-negative-sequence-repetition", "bool-as-int-repetition-count", "ordinary-python-source-adapter"]
     },
     {
+      "id": "adapter-string-index",
+      "source": "../adapter/adapter-string-index.py",
+      "reference": "Python Language Reference 6.3.2 Subscriptions; Standard Library sequence types",
+      "expected_result": "True ~> .K",
+      "coverage": ["string-subscription", "positive-string-index", "negative-sequence-index", "bool-as-int-index", "ordinary-python-source-adapter"]
+    },
+    {
+      "id": "adapter-string-membership",
+      "source": "../adapter/adapter-string-membership.py",
+      "reference": "Python Language Reference 6.10.2 Membership test operations; Standard Library sequence types",
+      "expected_result": "True ~> .K",
+      "coverage": ["string-membership", "substring-membership", "empty-string-membership", "ordinary-python-source-adapter"]
+    },
+    {
       "id": "adapter-string-slice",
       "source": "../adapter/adapter-string-slice.py",
       "reference": "Python Language Reference 6.3.3 Slicings; Standard Library sequence types",

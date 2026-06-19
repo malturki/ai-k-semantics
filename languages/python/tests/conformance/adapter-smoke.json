@@ -410,6 +410,13 @@
       "coverage": ["lambda-expression", "multi-positional-call", "ordinary-python-source-adapter"]
     },
     {
+      "id": "adapter-lambda-defaults",
+      "source": "../adapter/adapter-lambda-defaults.py",
+      "reference": "Python Language Reference 6.14 Lambdas; 6.3.4 Calls; 6.16 Evaluation order",
+      "expected_result": "True ~> .K",
+      "coverage": ["lambda-expression", "default-parameter-values", "lambda-definition-time-default-evaluation", "positional-call-default-filling", "ordinary-python-source-adapter"]
+    },
+    {
       "id": "adapter-for-list",
       "source": "../adapter/adapter-for-list.py",
       "reference": "Python Language Reference 8.3 The for statement",

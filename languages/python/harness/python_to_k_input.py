@@ -248,12 +248,13 @@ def emit_lambda(node: ast.AST, args: ast.arguments, body: ast.expr) -> str:
         args.posonlyargs
         or args.kwonlyargs
         or args.kw_defaults
-        or args.defaults
         or args.vararg is not None
         or args.kwarg is not None
     ):
-        raise unsupported(node, "lambda defaults, keyword-only parameters, varargs, and kwargs are not supported yet")
+        raise unsupported(node, "lambda positional-only, keyword-only, varargs, and kwargs are not supported yet")
     names = [arg.arg for arg in args.args]
+    if args.defaults:
+        return f"#lambdaDefaults({emit_id_items(names)}, {emit_arg_exps(args.defaults)}, {emit_exp(body)})"
     if len(names) == 1:
         return f"(lambda {names[0]}: {emit_exp(body)})"
     return f"#lambdaArgs({emit_id_items(names)}, {emit_exp(body)})"

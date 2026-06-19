@@ -68,6 +68,7 @@ The base modules should model portable Python semantics from the official docs. 
 - single-argument `lambda` expressions
 - single-positional-argument calls to lambda closure values
 - adapter-backed zero- and multi-positional-argument calls, functions, and lambdas without keywords
+- adapter-backed positional lambda default values, evaluated when the lambda expression is evaluated
 - adapter-backed positional function default values, evaluated at function definition time
 - an internal `#floorDiv(E1, E2)` parser bridge form emitted by the AST adapter
 - adapter-backed `if` statements with optional `else`

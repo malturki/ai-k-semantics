@@ -159,6 +159,7 @@ module PYTHON-SYNTAX
                > Exp "if" Exp "else" Exp [symbol(ifExp), right]
                > "lambda" Id ":" Exp [symbol(lambdaExp)]
                | "#lambdaArgs" "(" IdItems "," Exp ")" [symbol(lambdaArgsExp)]
+               | "#lambdaDefaults" "(" IdItems "," ArgExps "," Exp ")" [symbol(lambdaDefaultsExp)]
 endmodule
 
 module PYTHON
@@ -170,6 +171,7 @@ module PYTHON
 
   syntax Val ::= closure(Id, Exp) [symbol(closure)]
                | closureArgs(IdItems, Exp) [symbol(closureArgs)]
+               | closureDefaults(IdItems, ArgVals, Exp) [symbol(closureDefaults)]
                | functionVal(Id, Block) [symbol(functionVal)]
                | functionValArgs(IdItems, Block) [symbol(functionValArgs)]
                | functionValDefaults(IdItems, ArgVals, Block) [symbol(functionValDefaults)]
@@ -191,6 +193,7 @@ module PYTHON
                  | evalArgs(ArgExps, ArgVals) [symbol(evalArgs)]
                  | evalArgNext(ArgExps, ArgVals) [symbol(evalArgNext)]
                  | callApplyArgs(Val) [symbol(callApplyArgs)]
+                 | bindLambdaDefaults(IdItems, Exp) [symbol(bindLambdaDefaults)]
                  | "buildList" [symbol(buildList)]
                  | "buildTuple" [symbol(buildTuple)]
                  | "buildSet" [symbol(buildSet)]
@@ -347,6 +350,7 @@ module PYTHON
   rule truthy(setVal(_:ValItems)) => true
   rule truthy(closure(_:Id, _:Exp)) => true
   rule truthy(closureArgs(_:IdItems, _:Exp)) => true
+  rule truthy(closureDefaults(_:IdItems, _:ArgVals, _:Exp)) => true
   rule truthy(functionVal(_:Id, _:Block)) => true
   rule truthy(functionValArgs(_:IdItems, _:Block)) => true
   rule truthy(functionValDefaults(_:IdItems, _:ArgVals, _:Block)) => true
@@ -371,6 +375,7 @@ module PYTHON
   rule isIntLike(setVal(_:ValItems)) => false
   rule isIntLike(closure(_:Id, _:Exp)) => false
   rule isIntLike(closureArgs(_:IdItems, _:Exp)) => false
+  rule isIntLike(closureDefaults(_:IdItems, _:ArgVals, _:Exp)) => false
   rule isIntLike(functionVal(_:Id, _:Block)) => false
   rule isIntLike(functionValArgs(_:IdItems, _:Block)) => false
   rule isIntLike(functionValDefaults(_:IdItems, _:ArgVals, _:Block)) => false
@@ -394,6 +399,7 @@ module PYTHON
   rule singletonIdentity(setVal(_:ValItems)) => false
   rule singletonIdentity(closure(_:Id, _:Exp)) => false
   rule singletonIdentity(closureArgs(_:IdItems, _:Exp)) => false
+  rule singletonIdentity(closureDefaults(_:IdItems, _:ArgVals, _:Exp)) => false
   rule singletonIdentity(functionVal(_:Id, _:Block)) => false
   rule singletonIdentity(functionValArgs(_:IdItems, _:Block)) => false
   rule singletonIdentity(functionValDefaults(_:IdItems, _:ArgVals, _:Block)) => false
@@ -1020,6 +1026,7 @@ module PYTHON
   rule isListSequence(setVal(_:ValItems)) => false
   rule isListSequence(closure(_:Id, _:Exp)) => false
   rule isListSequence(closureArgs(_:IdItems, _:Exp)) => false
+  rule isListSequence(closureDefaults(_:IdItems, _:ArgVals, _:Exp)) => false
   rule isListSequence(functionVal(_:Id, _:Block)) => false
   rule isListSequence(functionValArgs(_:IdItems, _:Block)) => false
   rule isListSequence(functionValDefaults(_:IdItems, _:ArgVals, _:Block)) => false
@@ -1043,6 +1050,7 @@ module PYTHON
   rule isTupleSequence(setVal(_:ValItems)) => false
   rule isTupleSequence(closure(_:Id, _:Exp)) => false
   rule isTupleSequence(closureArgs(_:IdItems, _:Exp)) => false
+  rule isTupleSequence(closureDefaults(_:IdItems, _:ArgVals, _:Exp)) => false
   rule isTupleSequence(functionVal(_:Id, _:Block)) => false
   rule isTupleSequence(functionValArgs(_:IdItems, _:Block)) => false
   rule isTupleSequence(functionValDefaults(_:IdItems, _:ArgVals, _:Block)) => false
@@ -1396,10 +1404,21 @@ module PYTHON
 
   rule <k> lambdaExp(X:Id, Body:Exp) => closure(X, Body) ... </k>
   rule <k> lambdaArgsExp(IDS:IdItems, Body:Exp) => closureArgs(IDS, Body) ... </k>
+  rule <k> lambdaDefaultsExp(IDS:IdItems, Defaults:ArgExps, Body:Exp) =>
+           evalArgs(Defaults, #noArgVals) ~> bindLambdaDefaults(IDS, Body)
+       ... </k>
+  rule <k> argsVal(Defaults:ArgVals) ~> bindLambdaDefaults(IDS:IdItems, Body:Exp) =>
+           closureDefaults(IDS, Defaults, Body)
+       ... </k>
   rule <k> callExp(F:Exp, Arg:Exp) => F ~> callArg(Arg) ... </k>
   rule <k> F:Val ~> callArg(Arg:Exp) => Arg ~> callApply(F) ... </k>
   rule <k> A:Val ~> callApply(closure(X:Id, Body:Exp)) => Body ~> restoreEnv(Rho) ... </k>
        <env> Rho => Rho [ X <- A ] </env>
+  rule <k> A:Val ~> callApply(closureDefaults(IDS:IdItems, Defaults:ArgVals, Body:Exp)) =>
+           Body ~> restoreEnv(Rho)
+       ... </k>
+       <env> Rho => bindArgs(Rho, IDS, completeDefaultArgs(IDS, argValsCons(A, #noArgVals), Defaults)) </env>
+    requires defaultsCallArityOk(IDS, argValsCons(A, #noArgVals), Defaults)
   rule <k> A:Val ~> callApply(functionVal(X:Id, block(SS:Stmts))) =>
            SS ~> functionDone(Rho)
        ... </k>
@@ -1440,6 +1459,11 @@ module PYTHON
        ... </k>
        <env> Rho => bindArgs(Rho, IDS, VS) </env>
     requires sameArity(IDS, VS)
+  rule <k> argsVal(VS:ArgVals) ~> callApplyArgs(closureDefaults(IDS:IdItems, Defaults:ArgVals, Body:Exp)) =>
+           Body ~> restoreEnv(Rho)
+       ... </k>
+       <env> Rho => bindArgs(Rho, IDS, completeDefaultArgs(IDS, VS, Defaults)) </env>
+    requires defaultsCallArityOk(IDS, VS, Defaults)
   rule <k> argsVal(VS:ArgVals) ~> callApplyArgs(functionValArgs(IDS:IdItems, block(SS:Stmts))) =>
            SS ~> functionDone(Rho)
        ... </k>

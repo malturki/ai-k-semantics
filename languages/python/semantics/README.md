@@ -54,22 +54,22 @@ The base modules should model portable Python semantics from the official docs. 
 - truthy `assert`, including adapter-backed optional assertion messages that are not evaluated on success
 - module-scope single-name and multi-name `global` declarations as no-ops
 - list literals in a trailing-comma value-element subset
-- adapter-backed list displays with supported expression elements
+- adapter-backed list displays with supported expression elements and starred unpacking over current ordered concrete iterables
 - list truthiness, equality, lexicographic ordering, same-type concatenation, repetition with integer/bool `*`, nonzero-step slicing, membership, and positive/negative integer indexing
 - tuple literals in a trailing-comma value-element subset
-- adapter-backed tuple displays with supported expression elements
+- adapter-backed tuple displays with supported expression elements and starred unpacking over current ordered concrete iterables
 - tuple truthiness, equality, lexicographic ordering, same-type concatenation, repetition with integer/bool `*`, nonzero-step slicing, membership, and positive/negative integer indexing
 - dictionary literals in a trailing-comma key/value subset
 - adapter-backed dictionary displays with supported key/value expressions, including duplicate key replacement in the supported key-equality subset
 - dictionary truthiness, equality, key membership, key subscription lookup, and key iteration in `for` loops
 - nonempty set literals in a trailing-comma value subset
-- adapter-backed set displays with supported expression elements, including duplicate element normalization, plus empty `set()`
+- adapter-backed set displays with supported expression elements and starred unpacking over current ordered concrete iterables, including duplicate element normalization, plus empty `set()`
 - set truthiness, equality, set-to-set ordering comparisons, membership, and length
 - adapter-backed no-argument `list()`, `tuple()`, `dict()`, and `set()` constructors as explicit internal constructor expressions
 - adapter-backed `list(x)` and `tuple(x)` for current ordered concrete string/list/tuple/dict/range values, with dictionaries yielding keys
 - single-argument `lambda` expressions
 - single-positional-argument calls to lambda closure values
-- adapter-backed zero- and multi-positional-argument calls, keyword-only calls, mixed positional/keyword calls, functions, and lambdas
+- adapter-backed zero- and multi-positional-argument calls, keyword-only calls, mixed positional/keyword calls, starred positional call arguments over current ordered concrete iterables, functions, and lambdas
 - adapter-backed positional lambda default values, evaluated when the lambda expression is evaluated
 - adapter-backed positional function default values, evaluated at function definition time
 - an internal `#floorDiv(E1, E2)` parser bridge form emitted by the AST adapter
@@ -87,7 +87,7 @@ The coverage ledger in `../notes/full-language-coverage.md` is the source of tru
 
 Current parser caveat: the K frontend treats `//` in direct K input files as a comment before it can be parsed as Python floor division. The `floorDivExp` syntax and semantics are present, and `harness/python_to_k_input.py` now translates real Python `//` nodes to the internal `#floorDiv(E1, E2)` form for adapter smoke tests.
 
-Current container caveat: direct concrete list, tuple, dict, and set smoke tests use Python-valid trailing commas, such as `[1, 2,]`, `(1, 2,)`, `{"x": 1,}`, and `{1, 2,}`, because the first executable K container grammar avoids ambiguities caused by un-delimited element productions. The AST adapter now accepts ordinary Python list, tuple, dict, set displays, no-argument `list()`, `tuple()`, `dict()`, and `set()` constructors, and `list(x)`/`tuple(x)` over current ordered concrete string/list/tuple/dict/range values for the supported expression subset and emits explicit internal forms. Full displays still need unpacking, mutation, comprehensions, dictionary unpacking, set-to-list/tuple conversion order, zero-step slice diagnostics, non-integer repetition diagnostics, mutable-element aliasing behavior for repeated lists, cross-type ordering/concatenation diagnostics, hashability/error behavior, and complete error behavior.
+Current container caveat: direct concrete list, tuple, dict, and set smoke tests use Python-valid trailing commas, such as `[1, 2,]`, `(1, 2,)`, `{"x": 1,}`, and `{1, 2,}`, because the first executable K container grammar avoids ambiguities caused by un-delimited element productions. The AST adapter now accepts ordinary Python list, tuple, dict, set displays, starred list/tuple/set display unpacking over current ordered concrete string/list/tuple/dict/range values, no-argument `list()`, `tuple()`, `dict()`, and `set()` constructors, and `list(x)`/`tuple(x)` over current ordered concrete string/list/tuple/dict/range values for the supported expression subset and emits explicit internal forms. Full displays still need mutation, comprehensions, dictionary unpacking, nonempty set unpacking/order profiles, set-to-list/tuple conversion order profile, zero-step slice diagnostics, non-integer repetition diagnostics, mutable-element aliasing behavior for repeated lists, cross-type ordering/concatenation diagnostics, hashability/error behavior, and complete error behavior.
 
 Current compound-statement caveat: the K parser does not yet accept Python indentation syntax directly. The AST adapter emits internal `#if`, `#while`, `#whileElse`, `#for`, `#forElse`, unpacking-`for`, and `#def` statements with explicit blocks for the supported subset. `for` iteration is defined only for current concrete string/list/tuple/dict/range values, with dictionaries iterating over keys. General iterator protocol, `try`, `with`, `match`, full function definitions, class definitions, and async compound statements remain unsupported.
 
@@ -99,7 +99,7 @@ Current assignment-expression caveat: adapter-backed `NAME := expr` evaluates `e
 
 Current unpacking caveat: flat and starred assignment targets are adapter-backed for simple names and current concrete list/tuple RHS values, and flat/starred `for` targets are adapter-backed over current concrete list/tuple item values. A starred target receives a list of remaining values, possibly empty, and prefix/star/suffix name binding follows left-to-right target order. General iterable unpacking, nested targets, unpacking diagnostics, and attribute/subscript targets remain unsupported.
 
-Current function caveat: adapter-backed `#def`, `#defArgs`, and `#defDefaults` cover zero or more positional parameters, optional suffix defaults evaluated at function definition time, keyword-only calls without positional arguments, mixed positional/keyword calls without starred argument unpacking or `**kwargs`, no decorators, no annotations, no positional-only or keyword-only parameters, no varargs/kwargs, and an environment-restore model. Full Python function objects need real frames, cells/closures, globals/nonlocals, descriptors, methods, and argument binding diagnostics.
+Current function caveat: adapter-backed `#def`, `#defArgs`, and `#defDefaults` cover zero or more positional parameters, optional suffix defaults evaluated at function definition time, keyword-only calls without positional arguments, mixed positional/keyword calls, starred positional call unpacking over current ordered concrete string/list/tuple/dict/range values, no `**kwargs`, no decorators, no annotations, no positional-only or keyword-only parameters, no varargs/kwargs, and an environment-restore model. Full Python function objects need real frames, cells/closures, globals/nonlocals, descriptors, methods, and argument binding diagnostics.
 
 Current augmented-assignment caveat: matrix-multiplication `@=` remains unsupported because there is no matrix protocol, and augmented assignment is otherwise limited to simple-name targets in the current value/operator subsets rather than full in-place/special-method dispatch.
 

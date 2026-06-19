@@ -424,9 +424,14 @@ def emit_id_items(names: list[str]) -> str:
 def emit_arg_exps(args: list[ast.expr]) -> str:
     if not args:
         return "#noArgs"
+    head = args[0]
+    if isinstance(head, ast.Starred):
+        if len(args) == 1:
+            return f"#starArg({emit_exp(head.value)})"
+        return f"#starArgs({emit_exp(head.value)}, {emit_arg_exps(args[1:])})"
     if len(args) == 1:
-        return f"#arg({emit_exp(args[0])})"
-    return f"#args({emit_exp(args[0])}, {emit_arg_exps(args[1:])})"
+        return f"#arg({emit_exp(head)})"
+    return f"#args({emit_exp(head)}, {emit_arg_exps(args[1:])})"
 
 
 def emit_kw_arg_exps(node: ast.AST, keywords: list[ast.keyword]) -> str:

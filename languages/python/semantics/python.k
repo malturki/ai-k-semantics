@@ -34,6 +34,8 @@ module PYTHON-SYNTAX
   syntax ArgExps ::= "#noArgs" [symbol(noArgExps)]
                    | "#arg" "(" Exp ")" [symbol(argExp)]
                    | "#args" "(" Exp "," ArgExps ")" [symbol(argExpsCons)]
+                   | "#starArg" "(" Exp ")" [symbol(starArgExp)]
+                   | "#starArgs" "(" Exp "," ArgExps ")" [symbol(starArgExpsCons)]
 
   syntax KwArgExps ::= "#noKwArgs" [symbol(noKwArgExps)]
                      | "#kwArg" "(" Id "," Exp ")" [symbol(kwArgExp)]
@@ -211,6 +213,7 @@ module PYTHON
                  | callArgs(ArgExps) [symbol(callArgs)]
                  | evalArgs(ArgExps, ArgVals) [symbol(evalArgs)]
                  | evalArgNext(ArgExps, ArgVals) [symbol(evalArgNext)]
+                 | evalStarArgNext(ArgExps, ArgVals) [symbol(evalStarArgNext)]
                  | callApplyArgs(Val) [symbol(callApplyArgs)]
                  | callKwArgs(KwArgExps) [symbol(callKwArgs)]
                  | evalKwArgs(KwArgExps, KwArgVals) [symbol(evalKwArgs)]
@@ -352,6 +355,8 @@ module PYTHON
                    | completeDefaultArgs(IdItems, ArgVals, ArgVals) [function, symbol(completeDefaultArgs)]
                    | buildKwDefaultArgs(IdItems, KwArgVals, ArgVals) [function, symbol(buildKwDefaultArgs)]
                    | buildMixedDefaultArgs(IdItems, ArgVals, KwArgVals, ArgVals) [function, symbol(buildMixedDefaultArgs)]
+                   | valItemsToArgVals(ValItems) [function, symbol(valItemsToArgVals)]
+                   | iterableArgVals(Val) [function, symbol(iterableArgVals)]
   syntax KwArgVals ::= "#noKwArgVals" [symbol(noKwArgVals)]
                      | kwArgValsCons(Id, Val, KwArgVals) [symbol(kwArgValsCons)]
                      | appendKwArgVal(KwArgVals, Id, Val) [function, symbol(appendKwArgVal)]
@@ -896,6 +901,32 @@ module PYTHON
   rule dropArgVals(VS:ArgVals, 0) => VS
   rule dropArgVals(argValsCons(_:Val, VS:ArgVals), N:Int) => dropArgVals(VS, N -Int 1)
     requires N >Int 0
+
+  rule valItemsToArgVals(valItemsLast(V:Val)) => argValsCons(V, #noArgVals)
+  rule valItemsToArgVals(valItemsCons(V:Val, VS:ValItems)) =>
+    argValsCons(V, valItemsToArgVals(VS))
+
+  rule iterableArgVals([]) => #noArgVals
+  rule iterableArgVals(listVal(VS:ValItems)) => valItemsToArgVals(VS)
+  rule iterableArgVals(()) => #noArgVals
+  rule iterableArgVals(tupleVal(VS:ValItems)) => valItemsToArgVals(VS)
+  rule iterableArgVals(S:String) => #noArgVals
+    requires lengthString(S) ==Int 0
+  rule iterableArgVals(S:String) => valItemsToArgVals(stringToValItems(S, 0, lengthString(S)))
+    requires lengthString(S) >Int 0
+  rule iterableArgVals(({}):Val) => #noArgVals
+  rule iterableArgVals(dictVal(DS:DictItems)) => valItemsToArgVals(dictKeysToValItems(DS))
+  rule iterableArgVals(set()) => #noArgVals
+  rule iterableArgVals(rangeVal(Start:Int, Stop:Int)) => #noArgVals
+    requires pyRangeLen(Start, Stop, 1) ==Int 0
+  rule iterableArgVals(rangeVal(Start:Int, Stop:Int)) =>
+    valItemsToArgVals(rangeToValItems(Start, Stop, 1, 0, pyRangeLen(Start, Stop, 1)))
+    requires pyRangeLen(Start, Stop, 1) >Int 0
+  rule iterableArgVals(rangeVal(Start:Int, Stop:Int, Step:Int)) => #noArgVals
+    requires Step =/=Int 0 andBool pyRangeLen(Start, Stop, Step) ==Int 0
+  rule iterableArgVals(rangeVal(Start:Int, Stop:Int, Step:Int)) =>
+    valItemsToArgVals(rangeToValItems(Start, Stop, Step, 0, pyRangeLen(Start, Stop, Step)))
+    requires Step =/=Int 0 andBool pyRangeLen(Start, Stop, Step) >Int 0
 
   rule completeDefaultArgs(IDS:IdItems, VS:ArgVals, Defaults:ArgVals) =>
     concatArgVals(
@@ -1663,8 +1694,17 @@ module PYTHON
   rule <k> evalArgs(argExpsCons(E:Exp, ES:ArgExps), VS:ArgVals) =>
            E ~> evalArgNext(ES, VS)
        ... </k>
+  rule <k> evalArgs(starArgExp(E:Exp), VS:ArgVals) =>
+           E ~> evalStarArgNext(#noArgs, VS)
+       ... </k>
+  rule <k> evalArgs(starArgExpsCons(E:Exp, ES:ArgExps), VS:ArgVals) =>
+           E ~> evalStarArgNext(ES, VS)
+       ... </k>
   rule <k> V:Val ~> evalArgNext(ES:ArgExps, VS:ArgVals) =>
            evalArgs(ES, appendArgVal(VS, V))
+       ... </k>
+  rule <k> V:Val ~> evalStarArgNext(ES:ArgExps, VS:ArgVals) =>
+           evalArgs(ES, concatArgVals(VS, iterableArgVals(V)))
        ... </k>
   rule <k> argsVal(VS:ArgVals) ~> callApplyArgs(closureArgs(IDS:IdItems, Body:Exp)) =>
            Body ~> restoreEnv(Rho)

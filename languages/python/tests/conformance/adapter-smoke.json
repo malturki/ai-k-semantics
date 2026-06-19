@@ -480,6 +480,13 @@
       "coverage": ["mixed-positional-keyword-call", "argument-expression-evaluation-order", "keyword-default-filling", "function-call", "lambda-call", "ordinary-python-source-adapter"]
     },
     {
+      "id": "adapter-starred-call",
+      "source": "../adapter/adapter-starred-call.py",
+      "reference": "Python Language Reference 6.3.4 Calls; 6.16 Evaluation order",
+      "expected_result": "True ~> .K",
+      "coverage": ["starred-positional-call", "argument-unpacking", "ordered-concrete-iterable-profile", "mixed-positional-keyword-call", "ordinary-python-source-adapter"]
+    },
+    {
       "id": "adapter-for-list",
       "source": "../adapter/adapter-for-list.py",
       "reference": "Python Language Reference 8.3 The for statement",
@@ -751,6 +758,13 @@
       "reference": "Python Language Reference 6.2.6 Set displays; 6.16 Evaluation order",
       "expected_result": "True ~> .K",
       "coverage": ["set-display", "expression-list-evaluation", "set-membership", "ordinary-python-source-adapter"]
+    },
+    {
+      "id": "adapter-starred-displays",
+      "source": "../adapter/adapter-starred-displays.py",
+      "reference": "Python Language Reference 6.2.4 Displays for lists, sets and dictionaries; 6.2.5 List displays; 6.2.6 Set displays; 6.16 Evaluation order",
+      "expected_result": "True ~> .K",
+      "coverage": ["starred-expression-list", "list-display-unpacking", "tuple-display-unpacking", "set-display-unpacking", "ordered-concrete-iterable-profile", "ordinary-python-source-adapter"]
     },
     {
       "id": "adapter-set-empty",

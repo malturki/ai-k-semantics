@@ -221,6 +221,13 @@
       "coverage": ["identity-comparison", "bool-singletons", "ordinary-python-source-adapter"]
     },
     {
+      "id": "adapter-bool-constructor",
+      "source": "../adapter/adapter-bool-constructor.py",
+      "reference": "Python Standard Library Built-in Types bool; Truth Value Testing",
+      "expected_result": "True ~> .K",
+      "coverage": ["bool-constructor", "truth-value-testing", "bool-singletons", "ordinary-python-source-adapter"]
+    },
+    {
       "id": "adapter-chained-comparison",
       "source": "../adapter/adapter-chained-comparison.py",
       "reference": "Python Language Reference 6.10 Comparisons; 6.16 Evaluation order",

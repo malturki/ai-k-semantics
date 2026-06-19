@@ -29,6 +29,7 @@ The base modules should model portable Python semantics from the official docs. 
 - string concatenation with `+`, repetition with integer/bool `*`, nonzero-step slicing, substring membership, lexicographic ordering, and positive/negative integer indexing
 - truth-value testing for integers, booleans, and `None`
 - truth-value testing for strings
+- adapter-backed `bool()` and `bool(x)` for the current truth-value subset
 - short-circuiting `and` and `or`
 - `not`
 - binary comparisons for int-like values and equality over integers, booleans, and `None`
@@ -78,7 +79,7 @@ Current compound-statement caveat: the K parser does not yet accept Python inden
 
 Current range caveat: adapter-backed `range` support is an internal `rangeVal` subset used by `for` loops, `len`, equality, truthiness, integer-like containment, indexing, and nonzero-step slicing, including positive and negative integer steps. Zero-step `ValueError`, range object attributes, non-integer containment fallback, out-of-range `IndexError`, and the general iterator protocol remain unsupported.
 
-Current builtin caveat: `len` is defined only for the current concrete string/container/range values, and the current type constructors cover only no-argument `list()`, `tuple()`, `dict()`, and `set()`. General builtins namespace lookup, constructor arguments, `__len__` dispatch, overflow/error behavior, and user-defined objects remain unsupported.
+Current builtin caveat: `len` is defined only for the current concrete string/container/range values, `bool` is defined only through the current truth-value subset, and the current container type constructors cover only no-argument `list()`, `tuple()`, `dict()`, and `set()`. General builtins namespace lookup, constructor arguments, `__bool__`/`__len__` dispatch, overflow/error behavior, and user-defined objects remain unsupported.
 
 Current function caveat: adapter-backed `#def` and `#defArgs` cover zero or more positional parameters, no decorators, no defaults, no annotations, no keyword arguments, no varargs/kwargs, and an environment-restore model. Full Python function objects need real frames, cells/closures, default evaluation, globals/nonlocals, descriptors, methods, and argument binding diagnostics.
 

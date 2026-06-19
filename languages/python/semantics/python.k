@@ -102,6 +102,8 @@ module PYTHON-SYNTAX
                | "#tupleCtor" "(" ")" [symbol(tupleCtorExp)]
                | "#dictCtor" "(" ")" [symbol(dictCtorExp)]
                | "#setCtor" "(" ")" [symbol(setCtorExp)]
+               | "#boolCtor" "(" ")" [symbol(boolCtor0Exp)]
+               | "#boolCtor" "(" Exp ")" [symbol(boolCtor1Exp), strict]
                | "#compareChain" "(" Exp "," CmpChain ")" [symbol(compareChainExp)]
                | "#len" "(" Exp ")" [symbol(lenExp), strict]
                | "#floorDiv" "(" Exp "," Exp ")" [symbol(floorDivInternal), strict]
@@ -1288,6 +1290,8 @@ module PYTHON
   rule #tupleCtor() => ()
   rule #dictCtor() => ({}):Val
   rule #setCtor() => set()
+  rule #boolCtor() => False
+  rule #boolCtor(V:Val) => boolValue(truthy(V))
 
   rule range1Exp(N:Val) => rangeVal(0, intValue(N))
     requires isIntLike(N)

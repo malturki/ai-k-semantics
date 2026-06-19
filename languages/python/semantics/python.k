@@ -133,6 +133,7 @@ module PYTHON-SYNTAX
                | "#abs" "(" Exp ")" [symbol(absExp), strict]
                | "#divmod" "(" Exp "," Exp ")" [symbol(divmodExp), strict]
                | "#pow" "(" Exp "," Exp ")" [symbol(powBuiltinExp), strict]
+               | "#pow" "(" Exp "," Exp "," Exp ")" [symbol(powModBuiltinExp), strict]
                | "#compareChain" "(" Exp "," CmpChain ")" [symbol(compareChainExp)]
                | "#len" "(" Exp ")" [symbol(lenExp), strict]
                | "#floorDiv" "(" Exp "," Exp ")" [symbol(floorDivInternal), strict]
@@ -1987,6 +1988,12 @@ module PYTHON
     requires isIntLike(V1) andBool isIntLike(V2) andBool intValue(V2) >=Int 0
   rule #pow(V1:Val, V2:Val) => Int2Float(intValue(V1), 53, 11) ^Float Int2Float(intValue(V2), 53, 11)
     requires isIntLike(V1) andBool isIntLike(V2) andBool intValue(V1) =/=Int 0 andBool intValue(V2) <Int 0
+  rule #pow(V1:Val, V2:Val, V3:Val) => pyModulo(intValue(V1) ^Int intValue(V2), intValue(V3))
+    requires isIntLike(V1)
+      andBool isIntLike(V2)
+      andBool isIntLike(V3)
+      andBool intValue(V2) >=Int 0
+      andBool intValue(V3) =/=Int 0
 
   rule range1Exp(N:Val) => rangeVal(0, intValue(N))
     requires isIntLike(N)

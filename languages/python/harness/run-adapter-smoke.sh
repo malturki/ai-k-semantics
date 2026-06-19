@@ -108,6 +108,8 @@ run_case "adapter-range-break-continue" "$ROOT/tests/adapter/adapter-range-break
 run_case "adapter-range-step" "$ROOT/tests/adapter/adapter-range-step.py" "True ~> .K"
 run_case "adapter-range-negative-step" "$ROOT/tests/adapter/adapter-range-negative-step.py" "True ~> .K"
 run_case "adapter-range-step-else" "$ROOT/tests/adapter/adapter-range-step-else.py" "True ~> .K"
+run_case "adapter-range-membership" "$ROOT/tests/adapter/adapter-range-membership.py" "True ~> .K"
+run_case "adapter-range-equality" "$ROOT/tests/adapter/adapter-range-equality.py" "True ~> .K"
 run_case "adapter-len-containers" "$ROOT/tests/adapter/adapter-len-containers.py" "True ~> .K"
 run_case "adapter-len-string-range" "$ROOT/tests/adapter/adapter-len-string-range.py" "True ~> .K"
 run_case "adapter-len-range-step" "$ROOT/tests/adapter/adapter-len-range-step.py" "True ~> .K"

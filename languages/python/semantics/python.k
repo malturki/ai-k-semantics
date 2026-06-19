@@ -234,6 +234,9 @@ module PYTHON
                 | emptyDictVals(DictVals) [function, symbol(emptyDictVals)]
                 | containsVal(Val, ValItems) [function, symbol(containsVal)]
                 | containsKey(Val, DictItems) [function, symbol(containsKey)]
+                | rangeContains(Val, Int, Int) [function, symbol(rangeContains)]
+                | rangeContains(Val, Int, Int, Int) [function, symbol(rangeContainsStep)]
+                | rangeEq(Int, Int, Int, Int, Int, Int) [function, symbol(rangeEq)]
 
   syntax Int ::= intValue(Val) [function, symbol(intValue)]
                | pyFloorDiv(Int, Int) [function, symbol(pyFloorDiv)]
@@ -366,6 +369,31 @@ module PYTHON
     requires (Step >Int 0 andBool Start >=Int Stop)
       orBool (Step <Int 0 andBool Start <=Int Stop)
 
+  rule rangeContains(V:Val, _Start:Int, _Stop:Int) => false
+    requires notBool isIntLike(V)
+  rule rangeContains(V:Val, Start:Int, Stop:Int) =>
+    intValue(V) >=Int Start andBool intValue(V) <Int Stop
+    requires isIntLike(V)
+  rule rangeContains(V:Val, _Start:Int, _Stop:Int, Step:Int) => false
+    requires notBool isIntLike(V) andBool Step =/=Int 0
+  rule rangeContains(V:Val, Start:Int, Stop:Int, Step:Int) =>
+    intValue(V) >=Int Start
+      andBool intValue(V) <Int Stop
+      andBool ((intValue(V) -Int Start) %Int Step ==Int 0)
+    requires isIntLike(V) andBool Step >Int 0
+  rule rangeContains(V:Val, Start:Int, Stop:Int, Step:Int) =>
+    intValue(V) <=Int Start
+      andBool intValue(V) >Int Stop
+      andBool ((Start -Int intValue(V)) %Int (0 -Int Step) ==Int 0)
+    requires isIntLike(V) andBool Step <Int 0
+
+  rule rangeEq(Start1:Int, Stop1:Int, Step1:Int, Start2:Int, Stop2:Int, Step2:Int) =>
+    pyRangeLen(Start1, Stop1, Step1) ==Int pyRangeLen(Start2, Stop2, Step2)
+      andBool (pyRangeLen(Start1, Stop1, Step1) ==Int 0
+        orBool (Start1 ==Int Start2
+          andBool (pyRangeLen(Start1, Stop1, Step1) ==Int 1 orBool Step1 ==Int Step2)))
+    requires Step1 =/=Int 0 andBool Step2 =/=Int 0
+
   rule pySliceLower(None, _:Int) => 0
   rule pySliceLower(True, Len:Int) => pySliceIndex(1, Len)
   rule pySliceLower(False, Len:Int) => pySliceIndex(0, Len)
@@ -442,6 +470,14 @@ module PYTHON
   rule valEq(dictVal(_:DictItems), {}) => false
   rule valEq(dictVal(DS1:DictItems), dictVal(DS2:DictItems)) => dictsEq(DS1, DS2)
   rule valEq(setVal(VS1:ValItems), setVal(VS2:ValItems)) => setsEq(VS1, VS2)
+  rule valEq(rangeVal(Start1:Int, Stop1:Int), rangeVal(Start2:Int, Stop2:Int)) =>
+    rangeEq(Start1, Stop1, 1, Start2, Stop2, 1)
+  rule valEq(rangeVal(Start1:Int, Stop1:Int), rangeVal(Start2:Int, Stop2:Int, Step2:Int)) =>
+    rangeEq(Start1, Stop1, 1, Start2, Stop2, Step2)
+  rule valEq(rangeVal(Start1:Int, Stop1:Int, Step1:Int), rangeVal(Start2:Int, Stop2:Int)) =>
+    rangeEq(Start1, Stop1, Step1, Start2, Stop2, 1)
+  rule valEq(rangeVal(Start1:Int, Stop1:Int, Step1:Int), rangeVal(Start2:Int, Stop2:Int, Step2:Int)) =>
+    rangeEq(Start1, Stop1, Step1, Start2, Stop2, Step2)
   rule valEq((), []) => false
   rule valEq([], ()) => false
   rule valEq((), listVal(_:ValItems)) => false
@@ -577,6 +613,8 @@ module PYTHON
   rule cmpHolds(#in, _V:Val, {}) => false
   rule cmpHolds(#in, V:Val, dictVal(DS:DictItems)) => containsKey(V, DS)
   rule cmpHolds(#in, V:Val, setVal(VS:ValItems)) => containsVal(V, VS)
+  rule cmpHolds(#in, V:Val, rangeVal(Start:Int, Stop:Int)) => rangeContains(V, Start, Stop)
+  rule cmpHolds(#in, V:Val, rangeVal(Start:Int, Stop:Int, Step:Int)) => rangeContains(V, Start, Stop, Step)
   rule cmpHolds(#notIn, V1:Val, V2:Val) => notBool cmpHolds(#in, V1, V2)
 
   rule sameArity(#noIds, #noArgVals) => true
@@ -1020,6 +1058,8 @@ module PYTHON
   rule _V:Val in {} => False
   rule V:Val in dictVal(DS:DictItems) => boolValue(containsKey(V, DS))
   rule V:Val in setVal(VS:ValItems) => boolValue(containsVal(V, VS))
+  rule V:Val in rangeVal(Start:Int, Stop:Int) => boolValue(rangeContains(V, Start, Stop))
+  rule V:Val in rangeVal(Start:Int, Stop:Int, Step:Int) => boolValue(rangeContains(V, Start, Stop, Step))
   rule Needle:String not in Haystack:String => boolValue(findString(Haystack, Needle, 0) <Int 0)
   rule _V:Val not in [] => True
   rule V:Val not in listVal(VS:ValItems) => boolValue(notBool containsVal(V, VS))
@@ -1028,6 +1068,8 @@ module PYTHON
   rule _V:Val not in {} => True
   rule V:Val not in dictVal(DS:DictItems) => boolValue(notBool containsKey(V, DS))
   rule V:Val not in setVal(VS:ValItems) => boolValue(notBool containsVal(V, VS))
+  rule V:Val not in rangeVal(Start:Int, Stop:Int) => boolValue(notBool rangeContains(V, Start, Stop))
+  rule V:Val not in rangeVal(Start:Int, Stop:Int, Step:Int) => boolValue(notBool rangeContains(V, Start, Stop, Step))
   rule subscriptExp(S:String, I:Val) => substrString(S, intValue(I), intValue(I) +Int 1)
     requires isIntLike(I) andBool intValue(I) >=Int 0 andBool intValue(I) <Int lengthString(S)
   rule subscriptExp(S:String, I:Val) =>

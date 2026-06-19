@@ -459,6 +459,20 @@
       "coverage": ["for-statement", "range-negative-step-subset", "loop-else-normal-completion", "ordinary-python-source-adapter"]
     },
     {
+      "id": "adapter-range-membership",
+      "source": "../adapter/adapter-range-membership.py",
+      "reference": "Python Language Reference 6.10.2 Membership test operations; Standard Library range type",
+      "expected_result": "True ~> .K",
+      "coverage": ["range-membership", "positive-range-step", "negative-range-step", "empty-range-membership", "bool-as-int-membership", "ordinary-python-source-adapter"]
+    },
+    {
+      "id": "adapter-range-equality",
+      "source": "../adapter/adapter-range-equality.py",
+      "reference": "Python Language Reference 6.10 Comparisons; Standard Library range type",
+      "expected_result": "True ~> .K",
+      "coverage": ["range-equality", "range-sequence-equality", "empty-range-equality", "single-element-range-equality", "bool-as-int-range-argument", "ordinary-python-source-adapter"]
+    },
+    {
       "id": "adapter-len-containers",
       "source": "../adapter/adapter-len-containers.py",
       "reference": "Python Standard Library Built-in Functions len(); Built-in Types sequence, mapping, and set length",

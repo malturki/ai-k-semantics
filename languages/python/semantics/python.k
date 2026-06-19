@@ -95,6 +95,7 @@ module PYTHON-SYNTAX
                 | "#def" "(" Id "," Id "," Block ")" [symbol(functionDefStmt)]
                 | "#defArgs" "(" Id "," IdItems "," Block ")" [symbol(functionDefArgsStmt)]
                 | "#defDefaults" "(" Id "," IdItems "," ArgExps "," Block ")" [symbol(functionDefDefaultsStmt)]
+                | "#defVarArgs" "(" Id "," IdItems "," Id "," Block ")" [symbol(functionDefVarArgsStmt)]
                 | "#if" "(" Exp "," Block "," Block ")" [symbol(ifStmt)]
                 | "#while" "(" Exp "," Block ")" [symbol(whileStmt)]
                 | "#whileElse" "(" Exp "," Block "," Block ")" [symbol(whileElseStmt)]
@@ -180,6 +181,7 @@ module PYTHON-SYNTAX
                > "lambda" Id ":" Exp [symbol(lambdaExp)]
                | "#lambdaArgs" "(" IdItems "," Exp ")" [symbol(lambdaArgsExp)]
                | "#lambdaDefaults" "(" IdItems "," ArgExps "," Exp ")" [symbol(lambdaDefaultsExp)]
+               | "#lambdaVarArgs" "(" IdItems "," Id "," Exp ")" [symbol(lambdaVarArgsExp)]
 endmodule
 
 module PYTHON
@@ -193,9 +195,11 @@ module PYTHON
   syntax Val ::= closure(Id, Exp) [symbol(closure)]
                | closureArgs(IdItems, Exp) [symbol(closureArgs)]
                | closureDefaults(IdItems, ArgVals, Exp) [symbol(closureDefaults)]
+               | closureVarArgs(IdItems, Id, Exp) [symbol(closureVarArgs)]
                | functionVal(Id, Block) [symbol(functionVal)]
                | functionValArgs(IdItems, Block) [symbol(functionValArgs)]
                | functionValDefaults(IdItems, ArgVals, Block) [symbol(functionValDefaults)]
+               | functionValVarArgs(IdItems, Id, Block) [symbol(functionValVarArgs)]
                | rangeVal(Int, Int) [symbol(rangeVal)]
                | rangeVal(Int, Int, Int) [symbol(rangeValStep)]
                | argsVal(ArgVals) [symbol(argsVal)]
@@ -293,6 +297,7 @@ module PYTHON
                 | setsEq(ValItems, ValItems) [function, symbol(setsEq)]
                 | setItemsSubset(ValItems, ValItems) [function, symbol(setItemsSubset)]
                 | sameArity(IdItems, ArgVals) [function, symbol(sameArity)]
+                | varArgsCallArityOk(IdItems, ArgVals) [function, symbol(varArgsCallArityOk)]
                 | sameIdValArity(IdItems, ValItems) [function, symbol(sameIdValArity)]
                 | starUnpackArityOk(IdItems, IdItems, Int) [function, symbol(starUnpackArityOk)]
                 | defaultsCallArityOk(IdItems, ArgVals, ArgVals) [function, symbol(defaultsCallArityOk)]
@@ -357,6 +362,7 @@ module PYTHON
                    | buildMixedDefaultArgs(IdItems, ArgVals, KwArgVals, ArgVals) [function, symbol(buildMixedDefaultArgs)]
                    | valItemsToArgVals(ValItems) [function, symbol(valItemsToArgVals)]
                    | iterableArgVals(Val) [function, symbol(iterableArgVals)]
+  syntax Val ::= argValsToTupleVal(ArgVals) [function, symbol(argValsToTupleVal)]
   syntax KwArgVals ::= "#noKwArgVals" [symbol(noKwArgVals)]
                      | kwArgValsCons(Id, Val, KwArgVals) [symbol(kwArgValsCons)]
                      | appendKwArgVal(KwArgVals, Id, Val) [function, symbol(appendKwArgVal)]
@@ -364,6 +370,7 @@ module PYTHON
                     | dictValsCons(Val, Val, DictVals) [symbol(dictValsCons)]
                     | appendDictVal(DictVals, Val, Val) [function, symbol(appendDictVal)]
   syntax Map ::= bindArgs(Map, IdItems, ArgVals) [function, symbol(bindArgs)]
+  syntax Map ::= bindVarArgs(Map, IdItems, Id, ArgVals) [function, symbol(bindVarArgs)]
   syntax Map ::= bindVals(Map, IdItems, ValItems) [function, symbol(bindVals)]
   syntax Map ::= delIds(Map, IdItems) [function, symbol(delIds)]
   syntax Map ::= bindPrefixVals(Map, IdItems, ValItems) [function, symbol(bindPrefixVals)]
@@ -410,9 +417,11 @@ module PYTHON
   rule truthy(closure(_:Id, _:Exp)) => true
   rule truthy(closureArgs(_:IdItems, _:Exp)) => true
   rule truthy(closureDefaults(_:IdItems, _:ArgVals, _:Exp)) => true
+  rule truthy(closureVarArgs(_:IdItems, _:Id, _:Exp)) => true
   rule truthy(functionVal(_:Id, _:Block)) => true
   rule truthy(functionValArgs(_:IdItems, _:Block)) => true
   rule truthy(functionValDefaults(_:IdItems, _:ArgVals, _:Block)) => true
+  rule truthy(functionValVarArgs(_:IdItems, _:Id, _:Block)) => true
   rule truthy(rangeVal(Start:Int, Stop:Int)) => Start <Int Stop
   rule truthy(rangeVal(Start:Int, Stop:Int, Step:Int)) => pyRangeLen(Start, Stop, Step) >Int 0
     requires Step =/=Int 0
@@ -436,9 +445,11 @@ module PYTHON
   rule isIntLike(closure(_:Id, _:Exp)) => false
   rule isIntLike(closureArgs(_:IdItems, _:Exp)) => false
   rule isIntLike(closureDefaults(_:IdItems, _:ArgVals, _:Exp)) => false
+  rule isIntLike(closureVarArgs(_:IdItems, _:Id, _:Exp)) => false
   rule isIntLike(functionVal(_:Id, _:Block)) => false
   rule isIntLike(functionValArgs(_:IdItems, _:Block)) => false
   rule isIntLike(functionValDefaults(_:IdItems, _:ArgVals, _:Block)) => false
+  rule isIntLike(functionValVarArgs(_:IdItems, _:Id, _:Block)) => false
   rule isIntLike(rangeVal(_:Int, _:Int)) => false
   rule isIntLike(rangeVal(_:Int, _:Int, _:Int)) => false
   rule isIntLike(argsVal(_:ArgVals)) => false
@@ -461,9 +472,11 @@ module PYTHON
   rule singletonIdentity(closure(_:Id, _:Exp)) => false
   rule singletonIdentity(closureArgs(_:IdItems, _:Exp)) => false
   rule singletonIdentity(closureDefaults(_:IdItems, _:ArgVals, _:Exp)) => false
+  rule singletonIdentity(closureVarArgs(_:IdItems, _:Id, _:Exp)) => false
   rule singletonIdentity(functionVal(_:Id, _:Block)) => false
   rule singletonIdentity(functionValArgs(_:IdItems, _:Block)) => false
   rule singletonIdentity(functionValDefaults(_:IdItems, _:ArgVals, _:Block)) => false
+  rule singletonIdentity(functionValVarArgs(_:IdItems, _:Id, _:Block)) => false
   rule singletonIdentity(rangeVal(_:Int, _:Int)) => false
   rule singletonIdentity(rangeVal(_:Int, _:Int, _:Int)) => false
   rule singletonIdentity(argsVal(_:ArgVals)) => false
@@ -797,6 +810,8 @@ module PYTHON
   rule sameArity(idItemsCons(_:Id, _:IdItems), #noArgVals) => false
   rule sameArity(idItemsCons(_:Id, IDS:IdItems), argValsCons(_:Val, VS:ArgVals)) => sameArity(IDS, VS)
 
+  rule varArgsCallArityOk(IDS:IdItems, VS:ArgVals) => argValsLen(VS) >=Int idItemsLen(IDS)
+
   rule sameIdValArity(idItemsLast(_:Id), valItemsLast(_:Val)) => true
   rule sameIdValArity(idItemsLast(_:Id), valItemsCons(_:Val, _:ValItems)) => false
   rule sameIdValArity(idItemsCons(_:Id, _:IdItems), valItemsLast(_:Val)) => false
@@ -987,6 +1002,13 @@ module PYTHON
   rule bindArgs(Rho:Map, idItemsCons(X:Id, IDS:IdItems), argValsCons(V:Val, VS:ArgVals)) =>
     bindArgs(Rho [ X <- V ], IDS, VS)
 
+  rule bindVarArgs(Rho:Map, #noIds, Var:Id, VS:ArgVals) =>
+    Rho [ Var <- argValsToTupleVal(VS) ]
+  rule bindVarArgs(Rho:Map, idItemsLast(X:Id), Var:Id, argValsCons(V:Val, VS:ArgVals)) =>
+    (Rho [ X <- V ]) [ Var <- argValsToTupleVal(VS) ]
+  rule bindVarArgs(Rho:Map, idItemsCons(X:Id, IDS:IdItems), Var:Id, argValsCons(V:Val, VS:ArgVals)) =>
+    bindVarArgs(Rho [ X <- V ], IDS, Var, VS)
+
   rule bindVals(Rho:Map, idItemsLast(X:Id), valItemsLast(V:Val)) => Rho [ X <- V ]
   rule bindVals(Rho:Map, idItemsCons(X:Id, IDS:IdItems), valItemsCons(V:Val, VS:ValItems)) =>
     bindVals(Rho [ X <- V ], IDS, VS)
@@ -1021,6 +1043,10 @@ module PYTHON
   rule argValsToValItems(argValsCons(V:Val, #noArgVals)) => valItemsLast(V)
   rule argValsToValItems(argValsCons(V:Val, VS:ArgVals)) =>
     valItemsCons(V, argValsToValItems(VS))
+    requires notBool emptyArgVals(VS)
+
+  rule argValsToTupleVal(#noArgVals) => ()
+  rule argValsToTupleVal(VS:ArgVals) => tupleVal(argValsToValItems(VS))
     requires notBool emptyArgVals(VS)
 
   rule argValsToSetItems(argValsCons(V:Val, #noArgVals)) => valItemsLast(V)
@@ -1261,9 +1287,11 @@ module PYTHON
   rule isListSequence(closure(_:Id, _:Exp)) => false
   rule isListSequence(closureArgs(_:IdItems, _:Exp)) => false
   rule isListSequence(closureDefaults(_:IdItems, _:ArgVals, _:Exp)) => false
+  rule isListSequence(closureVarArgs(_:IdItems, _:Id, _:Exp)) => false
   rule isListSequence(functionVal(_:Id, _:Block)) => false
   rule isListSequence(functionValArgs(_:IdItems, _:Block)) => false
   rule isListSequence(functionValDefaults(_:IdItems, _:ArgVals, _:Block)) => false
+  rule isListSequence(functionValVarArgs(_:IdItems, _:Id, _:Block)) => false
   rule isListSequence(rangeVal(_:Int, _:Int)) => false
   rule isListSequence(rangeVal(_:Int, _:Int, _:Int)) => false
   rule isListSequence(argsVal(_:ArgVals)) => false
@@ -1286,9 +1314,11 @@ module PYTHON
   rule isTupleSequence(closure(_:Id, _:Exp)) => false
   rule isTupleSequence(closureArgs(_:IdItems, _:Exp)) => false
   rule isTupleSequence(closureDefaults(_:IdItems, _:ArgVals, _:Exp)) => false
+  rule isTupleSequence(closureVarArgs(_:IdItems, _:Id, _:Exp)) => false
   rule isTupleSequence(functionVal(_:Id, _:Block)) => false
   rule isTupleSequence(functionValArgs(_:IdItems, _:Block)) => false
   rule isTupleSequence(functionValDefaults(_:IdItems, _:ArgVals, _:Block)) => false
+  rule isTupleSequence(functionValVarArgs(_:IdItems, _:Id, _:Block)) => false
   rule isTupleSequence(rangeVal(_:Int, _:Int)) => false
   rule isTupleSequence(rangeVal(_:Int, _:Int, _:Int)) => false
   rule isTupleSequence(argsVal(_:ArgVals)) => false
@@ -1653,6 +1683,7 @@ module PYTHON
   rule <k> argsVal(Defaults:ArgVals) ~> bindLambdaDefaults(IDS:IdItems, Body:Exp) =>
            closureDefaults(IDS, Defaults, Body)
        ... </k>
+  rule <k> lambdaVarArgsExp(IDS:IdItems, Var:Id, Body:Exp) => closureVarArgs(IDS, Var, Body) ... </k>
   rule <k> callExp(F:Exp, Arg:Exp) => F ~> callArg(Arg) ... </k>
   rule <k> F:Val ~> callArg(Arg:Exp) => Arg ~> callApply(F) ... </k>
   rule <k> A:Val ~> callApply(closure(X:Id, Body:Exp)) => Body ~> restoreEnv(Rho) ... </k>
@@ -1662,6 +1693,11 @@ module PYTHON
        ... </k>
        <env> Rho => bindArgs(Rho, IDS, completeDefaultArgs(IDS, argValsCons(A, #noArgVals), Defaults)) </env>
     requires defaultsCallArityOk(IDS, argValsCons(A, #noArgVals), Defaults)
+  rule <k> A:Val ~> callApply(closureVarArgs(IDS:IdItems, Var:Id, Body:Exp)) =>
+           Body ~> restoreEnv(Rho)
+       ... </k>
+       <env> Rho => bindVarArgs(Rho, IDS, Var, argValsCons(A, #noArgVals)) </env>
+    requires varArgsCallArityOk(IDS, argValsCons(A, #noArgVals))
   rule <k> A:Val ~> callApply(functionVal(X:Id, block(SS:Stmts))) =>
            SS ~> functionDone(Rho)
        ... </k>
@@ -1680,6 +1716,16 @@ module PYTHON
        ... </k>
        <env> Rho => bindArgs(Rho, IDS, completeDefaultArgs(IDS, argValsCons(A, #noArgVals), Defaults)) </env>
     requires defaultsCallArityOk(IDS, argValsCons(A, #noArgVals), Defaults)
+  rule <k> A:Val ~> callApply(functionValVarArgs(IDS:IdItems, Var:Id, block(SS:Stmts))) =>
+           SS ~> functionDone(Rho)
+       ... </k>
+       <env> Rho => bindVarArgs(Rho, IDS, Var, argValsCons(A, #noArgVals)) </env>
+    requires varArgsCallArityOk(IDS, argValsCons(A, #noArgVals))
+  rule <k> A:Val ~> callApply(functionValVarArgs(IDS:IdItems, Var:Id, {})) =>
+           None ~> restoreEnv(Rho)
+       ... </k>
+       <env> Rho => bindVarArgs(Rho, IDS, Var, argValsCons(A, #noArgVals)) </env>
+    requires varArgsCallArityOk(IDS, argValsCons(A, #noArgVals))
   rule <k> V:Val ~> restoreEnv(Rho:Map) => V ... </k>
        <env> _ => Rho </env>
 
@@ -1716,6 +1762,11 @@ module PYTHON
        ... </k>
        <env> Rho => bindArgs(Rho, IDS, completeDefaultArgs(IDS, VS, Defaults)) </env>
     requires defaultsCallArityOk(IDS, VS, Defaults)
+  rule <k> argsVal(VS:ArgVals) ~> callApplyArgs(closureVarArgs(IDS:IdItems, Var:Id, Body:Exp)) =>
+           Body ~> restoreEnv(Rho)
+       ... </k>
+       <env> Rho => bindVarArgs(Rho, IDS, Var, VS) </env>
+    requires varArgsCallArityOk(IDS, VS)
   rule <k> argsVal(VS:ArgVals) ~> callApplyArgs(functionValArgs(IDS:IdItems, block(SS:Stmts))) =>
            SS ~> functionDone(Rho)
        ... </k>
@@ -1736,6 +1787,16 @@ module PYTHON
        ... </k>
        <env> Rho => bindArgs(Rho, IDS, completeDefaultArgs(IDS, VS, Defaults)) </env>
     requires defaultsCallArityOk(IDS, VS, Defaults)
+  rule <k> argsVal(VS:ArgVals) ~> callApplyArgs(functionValVarArgs(IDS:IdItems, Var:Id, block(SS:Stmts))) =>
+           SS ~> functionDone(Rho)
+       ... </k>
+       <env> Rho => bindVarArgs(Rho, IDS, Var, VS) </env>
+    requires varArgsCallArityOk(IDS, VS)
+  rule <k> argsVal(VS:ArgVals) ~> callApplyArgs(functionValVarArgs(IDS:IdItems, Var:Id, {})) =>
+           None ~> restoreEnv(Rho)
+       ... </k>
+       <env> Rho => bindVarArgs(Rho, IDS, Var, VS) </env>
+    requires varArgsCallArityOk(IDS, VS)
 
   rule <k> callKwArgsExp(F:Exp, KWS:KwArgExps) => F ~> callKwArgs(KWS) ... </k>
   rule <k> F:Val ~> callKwArgs(KWS:KwArgExps) =>
@@ -2106,6 +2167,9 @@ module PYTHON
        <result> _ => .K </result>
   rule <k> functionDefArgsStmt(F:Id, IDS:IdItems, Body:Block) => stmtNoResult ... </k>
        <env> Rho => Rho [ F <- functionValArgs(IDS, Body) ] </env>
+       <result> _ => .K </result>
+  rule <k> functionDefVarArgsStmt(F:Id, IDS:IdItems, Var:Id, Body:Block) => stmtNoResult ... </k>
+       <env> Rho => Rho [ F <- functionValVarArgs(IDS, Var, Body) ] </env>
        <result> _ => .K </result>
   rule <k> functionDefDefaultsStmt(F:Id, IDS:IdItems, Defaults:ArgExps, Body:Block) =>
            evalArgs(Defaults, #noArgVals) ~> bindFunctionDefaults(F, IDS, Body)

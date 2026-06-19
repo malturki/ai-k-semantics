@@ -452,6 +452,13 @@
       "coverage": ["function-definition", "default-parameter-values", "definition-time-default-evaluation", "positional-call-default-filling", "ordinary-python-source-adapter"]
     },
     {
+      "id": "adapter-function-varargs",
+      "source": "../adapter/adapter-function-varargs.py",
+      "reference": "Python Language Reference 8.7 Function definitions; 6.3.4 Calls",
+      "expected_result": "True ~> .K",
+      "coverage": ["function-definition", "varargs-parameter", "positional-call", "collected-arguments-tuple", "ordinary-python-source-adapter"]
+    },
+    {
       "id": "adapter-lambda-multi-arg",
       "source": "../adapter/adapter-lambda-multi-arg.py",
       "reference": "Python Language Reference 6.14 Lambdas; 6.3.4 Calls",
@@ -464,6 +471,13 @@
       "reference": "Python Language Reference 6.14 Lambdas; 6.3.4 Calls; 6.16 Evaluation order",
       "expected_result": "True ~> .K",
       "coverage": ["lambda-expression", "default-parameter-values", "lambda-definition-time-default-evaluation", "positional-call-default-filling", "ordinary-python-source-adapter"]
+    },
+    {
+      "id": "adapter-lambda-varargs",
+      "source": "../adapter/adapter-lambda-varargs.py",
+      "reference": "Python Language Reference 6.14 Lambdas; 6.3.4 Calls",
+      "expected_result": "True ~> .K",
+      "coverage": ["lambda-expression", "varargs-parameter", "positional-call", "collected-arguments-tuple", "ordinary-python-source-adapter"]
     },
     {
       "id": "adapter-keyword-calls",

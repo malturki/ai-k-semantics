@@ -143,6 +143,8 @@ def emit_exp(exp: ast.expr) -> str:
             return f"#intCtor({emit_exp(arg)})"
         case ast.Call(func=ast.Name(id="abs"), args=[arg], keywords=[]):
             return f"#abs({emit_exp(arg)})"
+        case ast.Call(func=ast.Name(id="divmod"), args=[left, right], keywords=[]):
+            return f"#divmod({emit_exp(left)}, {emit_exp(right)})"
         case ast.Call(func=func, args=[arg], keywords=[]):
             return f"({emit_exp(func)}({emit_exp(arg)}))"
         case ast.Call(func=func, args=args, keywords=[]):

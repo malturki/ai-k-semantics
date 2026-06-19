@@ -107,6 +107,7 @@ module PYTHON-SYNTAX
                | "#intCtor" "(" ")" [symbol(intCtor0Exp)]
                | "#intCtor" "(" Exp ")" [symbol(intCtor1Exp), strict]
                | "#abs" "(" Exp ")" [symbol(absExp), strict]
+               | "#divmod" "(" Exp "," Exp ")" [symbol(divmodExp), strict]
                | "#compareChain" "(" Exp "," CmpChain ")" [symbol(compareChainExp)]
                | "#len" "(" Exp ")" [symbol(lenExp), strict]
                | "#floorDiv" "(" Exp "," Exp ")" [symbol(floorDivInternal), strict]
@@ -1302,6 +1303,9 @@ module PYTHON
     requires isIntLike(V) andBool intValue(V) <Int 0
   rule #abs(V:Val) => intValue(V)
     requires isIntLike(V) andBool intValue(V) >=Int 0
+  rule #divmod(V1:Val, V2:Val) =>
+    tupleVal(valItemsCons(pyFloorDiv(intValue(V1), intValue(V2)), valItemsLast(pyModulo(intValue(V1), intValue(V2)))))
+    requires isIntLike(V1) andBool isIntLike(V2) andBool intValue(V2) =/=Int 0
 
   rule range1Exp(N:Val) => rangeVal(0, intValue(N))
     requires isIntLike(N)

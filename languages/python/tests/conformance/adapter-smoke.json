@@ -242,6 +242,13 @@
       "coverage": ["abs-builtin", "integer-absolute-value", "bool-as-int-absolute-value", "ordinary-python-source-adapter"]
     },
     {
+      "id": "adapter-divmod-int",
+      "source": "../adapter/adapter-divmod-int.py",
+      "reference": "Python Standard Library Built-in Functions divmod; Python Language Reference floor division and modulo",
+      "expected_result": "True ~> .K",
+      "coverage": ["divmod-builtin", "floor-division", "modulo", "negative-integer-divmod", "bool-as-int-divmod", "ordinary-python-source-adapter"]
+    },
+    {
       "id": "adapter-chained-comparison",
       "source": "../adapter/adapter-chained-comparison.py",
       "reference": "Python Language Reference 6.10 Comparisons; 6.16 Evaluation order",

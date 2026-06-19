@@ -106,6 +106,7 @@ module PYTHON-SYNTAX
                | "#boolCtor" "(" Exp ")" [symbol(boolCtor1Exp), strict]
                | "#intCtor" "(" ")" [symbol(intCtor0Exp)]
                | "#intCtor" "(" Exp ")" [symbol(intCtor1Exp), strict]
+               | "#abs" "(" Exp ")" [symbol(absExp), strict]
                | "#compareChain" "(" Exp "," CmpChain ")" [symbol(compareChainExp)]
                | "#len" "(" Exp ")" [symbol(lenExp), strict]
                | "#floorDiv" "(" Exp "," Exp ")" [symbol(floorDivInternal), strict]
@@ -1297,6 +1298,10 @@ module PYTHON
   rule #intCtor() => 0
   rule #intCtor(V:Val) => intValue(V)
     requires isIntLike(V)
+  rule #abs(V:Val) => 0 -Int intValue(V)
+    requires isIntLike(V) andBool intValue(V) <Int 0
+  rule #abs(V:Val) => intValue(V)
+    requires isIntLike(V) andBool intValue(V) >=Int 0
 
   rule range1Exp(N:Val) => rangeVal(0, intValue(N))
     requires isIntLike(N)

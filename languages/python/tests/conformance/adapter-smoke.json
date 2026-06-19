@@ -235,6 +235,13 @@
       "coverage": ["int-constructor", "bool-to-int-conversion", "integer-identity-conversion", "ordinary-python-source-adapter"]
     },
     {
+      "id": "adapter-abs-int",
+      "source": "../adapter/adapter-abs-int.py",
+      "reference": "Python Standard Library Built-in Functions abs",
+      "expected_result": "True ~> .K",
+      "coverage": ["abs-builtin", "integer-absolute-value", "bool-as-int-absolute-value", "ordinary-python-source-adapter"]
+    },
+    {
       "id": "adapter-chained-comparison",
       "source": "../adapter/adapter-chained-comparison.py",
       "reference": "Python Language Reference 6.10 Comparisons; 6.16 Evaluation order",

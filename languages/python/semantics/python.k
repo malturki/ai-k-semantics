@@ -20,6 +20,7 @@ module PYTHON-SYNTAX
                | "{" DictItems "}" [symbol(dictVal)]
                | "set" "(" ")" [symbol(emptySetVal)]
                | "{" ValItems "}" [symbol(setVal)]
+               | "#kwDefaultMissing" [symbol(kwDefaultMissing)]
 
   syntax ValItems ::= Val "," [symbol(valItemsLast)]
                     | Val "," ValItems [symbol(valItemsCons)]
@@ -367,6 +368,9 @@ module PYTHON
                 | kwAllInIds(KwArgVals, IdItems) [function, symbol(kwAllInIds)]
                 | kwAllInEitherIds(KwArgVals, IdItems, IdItems) [function, symbol(kwAllInEitherIds)]
                 | kwRequiredPresent(IdItems, KwArgVals, ArgVals) [function, symbol(kwRequiredPresent)]
+                | kwRequiredAlignedPresent(IdItems, KwArgVals, ArgVals) [function, symbol(kwRequiredAlignedPresent)]
+                | hasKwDefaultMissing(ArgVals) [function, symbol(hasKwDefaultMissing)]
+                | isKwDefaultMissing(Val) [function, symbol(isKwDefaultMissing)]
                 | containsVal(Val, ValItems) [function, symbol(containsVal)]
                 | containsKey(Val, DictItems) [function, symbol(containsKey)]
                 | rangeContains(Val, Int, Int) [function, symbol(rangeContains)]
@@ -478,6 +482,7 @@ module PYTHON
   rule truthy(dictVal(_:DictItems)) => true
   rule truthy(set()) => false
   rule truthy(setVal(_:ValItems)) => true
+  rule truthy(#kwDefaultMissing) => false
   rule truthy(closure(_:Id, _:Exp)) => true
   rule truthy(closureArgs(_:IdItems, _:Exp)) => true
   rule truthy(closureDefaults(_:IdItems, _:ArgVals, _:Exp)) => true
@@ -520,6 +525,7 @@ module PYTHON
   rule isIntLike(dictVal(_:DictItems)) => false
   rule isIntLike(set()) => false
   rule isIntLike(setVal(_:ValItems)) => false
+  rule isIntLike(#kwDefaultMissing) => false
   rule isIntLike(closure(_:Id, _:Exp)) => false
   rule isIntLike(closureArgs(_:IdItems, _:Exp)) => false
   rule isIntLike(closureDefaults(_:IdItems, _:ArgVals, _:Exp)) => false
@@ -561,6 +567,7 @@ module PYTHON
   rule singletonIdentity(dictVal(_:DictItems)) => false
   rule singletonIdentity(set()) => false
   rule singletonIdentity(setVal(_:ValItems)) => false
+  rule singletonIdentity(#kwDefaultMissing) => false
   rule singletonIdentity(closure(_:Id, _:Exp)) => false
   rule singletonIdentity(closureArgs(_:IdItems, _:Exp)) => false
   rule singletonIdentity(closureDefaults(_:IdItems, _:ArgVals, _:Exp)) => false
@@ -1082,13 +1089,36 @@ module PYTHON
   rule kwAllInEitherIds(kwArgValsCons(X:Id, _:Val, KWS:KwArgVals), Pos:IdItems, KwOnly:IdItems) =>
     (idContains(X, Pos) orBool idContains(X, KwOnly)) andBool kwAllInEitherIds(KWS, Pos, KwOnly)
 
+  rule isKwDefaultMissing(#kwDefaultMissing) => true
+  rule isKwDefaultMissing(_:Val) => false
+    [owise]
+
+  rule hasKwDefaultMissing(#noArgVals) => false
+  rule hasKwDefaultMissing(argValsCons(V:Val, VS:ArgVals)) =>
+    isKwDefaultMissing(V) orBool hasKwDefaultMissing(VS)
+
   rule kwRequiredPresent(#noIds, _:KwArgVals, _:ArgVals) => true
   rule kwRequiredPresent(idItemsLast(X:Id), KWS:KwArgVals, #noArgVals) => kwContains(X, KWS)
   rule kwRequiredPresent(IDS:IdItems, _:KwArgVals, Defaults:ArgVals) => true
     requires idItemsLen(IDS) <=Int argValsLen(Defaults)
+      andBool notBool hasKwDefaultMissing(Defaults)
+  rule kwRequiredPresent(IDS:IdItems, KWS:KwArgVals, Defaults:ArgVals) =>
+    kwRequiredAlignedPresent(IDS, KWS, Defaults)
+    requires idItemsLen(IDS) ==Int argValsLen(Defaults)
+      andBool hasKwDefaultMissing(Defaults)
   rule kwRequiredPresent(idItemsCons(X:Id, IDS:IdItems), KWS:KwArgVals, Defaults:ArgVals) =>
     kwContains(X, KWS) andBool kwRequiredPresent(IDS, KWS, Defaults)
     requires idItemsLen(idItemsCons(X, IDS)) >Int argValsLen(Defaults)
+
+  rule kwRequiredAlignedPresent(#noIds, _:KwArgVals, #noArgVals) => true
+  rule kwRequiredAlignedPresent(idItemsLast(X:Id), KWS:KwArgVals, argValsCons(Default:Val, #noArgVals)) =>
+    kwContains(X, KWS)
+    requires isKwDefaultMissing(Default)
+  rule kwRequiredAlignedPresent(idItemsLast(_:Id), _:KwArgVals, argValsCons(Default:Val, #noArgVals)) => true
+    requires notBool isKwDefaultMissing(Default)
+  rule kwRequiredAlignedPresent(idItemsCons(X:Id, IDS:IdItems), KWS:KwArgVals, argValsCons(Default:Val, Defaults:ArgVals)) =>
+    ((notBool isKwDefaultMissing(Default)) orBool kwContains(X, KWS))
+      andBool kwRequiredAlignedPresent(IDS, KWS, Defaults)
 
   rule mixedNoPosKeyword(#noIds, argValsCons(_:Val, _:ArgVals), _:KwArgVals) => false
   rule mixedNoPosKeyword(_:IdItems, #noArgVals, _:KwArgVals) => true
@@ -1208,6 +1238,7 @@ module PYTHON
   rule buildKwDefaultArgs(idItemsLast(X:Id), KWS:KwArgVals, argValsCons(Default:Val, #noArgVals)) =>
     argValsCons(Default, #noArgVals)
     requires notBool kwContains(X, KWS)
+      andBool notBool isKwDefaultMissing(Default)
   rule buildKwDefaultArgs(idItemsCons(X:Id, IDS:IdItems), KWS:KwArgVals, Defaults:ArgVals) =>
     argValsCons(kwLookup(X, KWS), buildKwDefaultArgs(IDS, KWS, Defaults))
     requires idItemsLen(idItemsCons(X, IDS)) >Int argValsLen(Defaults)
@@ -1220,6 +1251,7 @@ module PYTHON
     argValsCons(Default, buildKwDefaultArgs(IDS, KWS, Defaults))
     requires idItemsLen(idItemsCons(X, IDS)) ==Int argValsLen(argValsCons(Default, Defaults))
       andBool notBool kwContains(X, KWS)
+      andBool notBool isKwDefaultMissing(Default)
 
   rule buildMixedDefaultArgs(IDS:IdItems, #noArgVals, KWS:KwArgVals, Defaults:ArgVals) =>
     buildKwDefaultArgs(IDS, KWS, Defaults)
@@ -1552,6 +1584,7 @@ module PYTHON
   rule isListSequence(dictVal(_:DictItems)) => false
   rule isListSequence(set()) => false
   rule isListSequence(setVal(_:ValItems)) => false
+  rule isListSequence(#kwDefaultMissing) => false
   rule isListSequence(closure(_:Id, _:Exp)) => false
   rule isListSequence(closureArgs(_:IdItems, _:Exp)) => false
   rule isListSequence(closureDefaults(_:IdItems, _:ArgVals, _:Exp)) => false
@@ -1593,6 +1626,7 @@ module PYTHON
   rule isTupleSequence(dictVal(_:DictItems)) => false
   rule isTupleSequence(set()) => false
   rule isTupleSequence(setVal(_:ValItems)) => false
+  rule isTupleSequence(#kwDefaultMissing) => false
   rule isTupleSequence(closure(_:Id, _:Exp)) => false
   rule isTupleSequence(closureArgs(_:IdItems, _:Exp)) => false
   rule isTupleSequence(closureDefaults(_:IdItems, _:ArgVals, _:Exp)) => false

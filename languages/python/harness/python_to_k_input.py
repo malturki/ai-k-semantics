@@ -257,14 +257,22 @@ def emit_slice_bound(bound: ast.expr | None) -> str:
     return emit_exp(bound)
 
 
-def emit_suffix_kw_defaults(node: ast.AST, defaults: list[ast.expr | None]) -> str | None:
-    first_default = next((index for index, default in enumerate(defaults) if default is not None), len(defaults))
-    if first_default == len(defaults):
+def emit_arg_exp_texts(items: list[str]) -> str:
+    if not items:
+        return "#noArgs"
+    head = items[0]
+    if len(items) == 1:
+        return f"#arg({head})"
+    return f"#args({head}, {emit_arg_exp_texts(items[1:])})"
+
+
+def emit_kw_defaults(defaults: list[ast.expr | None]) -> str | None:
+    if all(default is None for default in defaults):
         return None
-    suffix = defaults[first_default:]
-    if any(default is None for default in suffix):
-        raise unsupported(node, "keyword-only defaults are supported only as a suffix")
-    return emit_arg_exps([default for default in suffix if default is not None])
+    return emit_arg_exp_texts([
+        "#kwDefaultMissing" if default is None else emit_exp(default)
+        for default in defaults
+    ])
 
 
 def emit_lambda(node: ast.AST, args: ast.arguments, body: ast.expr) -> str:
@@ -272,7 +280,7 @@ def emit_lambda(node: ast.AST, args: ast.arguments, body: ast.expr) -> str:
         if args.posonlyargs or args.vararg is not None or args.kwarg is not None:
             raise unsupported(node, "lambda keyword-only parameters are supported only without positional-only parameters, varargs, or kwargs")
         kw_names = [arg.arg for arg in args.kwonlyargs]
-        kw_defaults = emit_suffix_kw_defaults(node, args.kw_defaults)
+        kw_defaults = emit_kw_defaults(args.kw_defaults)
         names = [arg.arg for arg in args.args]
         if names:
             if args.defaults or kw_defaults is not None:
@@ -328,7 +336,7 @@ def emit_function_def(
         if args.posonlyargs or args.vararg is not None or args.kwarg is not None:
             raise unsupported(node, "keyword-only parameters are supported only without positional-only parameters, varargs, or kwargs")
         kw_names = [arg.arg for arg in args.kwonlyargs]
-        kw_defaults = emit_suffix_kw_defaults(node, args.kw_defaults)
+        kw_defaults = emit_kw_defaults(args.kw_defaults)
         names = [arg.arg for arg in args.args]
         if names:
             if args.defaults or kw_defaults is not None:

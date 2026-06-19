@@ -501,6 +501,13 @@
       "coverage": ["function-definition", "keyword-only-parameter", "keyword-only-default", "definition-time-default-evaluation", "keyword-call", "ordinary-python-source-adapter"]
     },
     {
+      "id": "adapter-function-kw-defaults-nonsuffix",
+      "source": "../adapter/adapter-function-kw-defaults-nonsuffix.py",
+      "reference": "Python Language Reference 8.7 Function definitions; 6.3.4 Calls; 6.16 Evaluation order",
+      "expected_result": "True ~> .K",
+      "coverage": ["function-definition", "keyword-only-parameter", "non-suffix-keyword-only-default", "definition-time-default-evaluation", "keyword-call", "ordinary-python-source-adapter"]
+    },
+    {
       "id": "adapter-function-pos-kw-only",
       "source": "../adapter/adapter-function-pos-kw-only.py",
       "reference": "Python Language Reference 8.7 Function definitions; 6.3.4 Calls",
@@ -513,6 +520,13 @@
       "reference": "Python Language Reference 8.7 Function definitions; 6.3.4 Calls; 6.16 Evaluation order",
       "expected_result": "True ~> .K",
       "coverage": ["function-definition", "positional-or-keyword-parameter", "keyword-only-parameter", "default-parameter-values", "definition-time-default-evaluation", "mixed-positional-keyword-call", "all-keyword-call", "positional-call-default-filling", "ordinary-python-source-adapter"]
+    },
+    {
+      "id": "adapter-function-pos-kw-defaults-nonsuffix",
+      "source": "../adapter/adapter-function-pos-kw-defaults-nonsuffix.py",
+      "reference": "Python Language Reference 8.7 Function definitions; 6.3.4 Calls; 6.16 Evaluation order",
+      "expected_result": "True ~> .K",
+      "coverage": ["function-definition", "positional-or-keyword-parameter", "keyword-only-parameter", "non-suffix-keyword-only-default", "definition-time-default-evaluation", "mixed-positional-keyword-call", "ordinary-python-source-adapter"]
     },
     {
       "id": "adapter-lambda-multi-arg",
@@ -578,6 +592,13 @@
       "coverage": ["lambda-expression", "keyword-only-parameter", "keyword-only-default", "lambda-definition-time-default-evaluation", "keyword-call", "ordinary-python-source-adapter"]
     },
     {
+      "id": "adapter-lambda-kw-defaults-nonsuffix",
+      "source": "../adapter/adapter-lambda-kw-defaults-nonsuffix.py",
+      "reference": "Python Language Reference 6.14 Lambdas; 6.3.4 Calls; 6.16 Evaluation order",
+      "expected_result": "True ~> .K",
+      "coverage": ["lambda-expression", "keyword-only-parameter", "non-suffix-keyword-only-default", "lambda-definition-time-default-evaluation", "keyword-call", "ordinary-python-source-adapter"]
+    },
+    {
       "id": "adapter-lambda-pos-kw-only",
       "source": "../adapter/adapter-lambda-pos-kw-only.py",
       "reference": "Python Language Reference 6.14 Lambdas; 6.3.4 Calls",
@@ -590,6 +611,13 @@
       "reference": "Python Language Reference 6.14 Lambdas; 6.3.4 Calls; 6.16 Evaluation order",
       "expected_result": "True ~> .K",
       "coverage": ["lambda-expression", "positional-or-keyword-parameter", "keyword-only-parameter", "default-parameter-values", "lambda-definition-time-default-evaluation", "mixed-positional-keyword-call", "all-keyword-call", "positional-call-default-filling", "ordinary-python-source-adapter"]
+    },
+    {
+      "id": "adapter-lambda-pos-kw-defaults-nonsuffix",
+      "source": "../adapter/adapter-lambda-pos-kw-defaults-nonsuffix.py",
+      "reference": "Python Language Reference 6.14 Lambdas; 6.3.4 Calls; 6.16 Evaluation order",
+      "expected_result": "True ~> .K",
+      "coverage": ["lambda-expression", "positional-or-keyword-parameter", "keyword-only-parameter", "non-suffix-keyword-only-default", "lambda-definition-time-default-evaluation", "mixed-positional-keyword-call", "ordinary-python-source-adapter"]
     },
     {
       "id": "adapter-keyword-calls",

@@ -487,6 +487,13 @@
       "coverage": ["range-slicing", "sequence-slicing", "omitted-slice-bounds", "negative-slice-bounds", "empty-slice-result", "ordinary-python-source-adapter"]
     },
     {
+      "id": "adapter-range-slice-step",
+      "source": "../adapter/adapter-range-slice-step.py",
+      "reference": "Python Language Reference 6.3.3 Slicings; Standard Library range type",
+      "expected_result": "True ~> .K",
+      "coverage": ["range-slicing", "positive-step-sequence-slicing", "negative-step-sequence-slicing", "omitted-slice-bounds", "negative-slice-bounds", "ordinary-python-source-adapter"]
+    },
+    {
       "id": "adapter-len-containers",
       "source": "../adapter/adapter-len-containers.py",
       "reference": "Python Standard Library Built-in Functions len(); Built-in Types sequence, mapping, and set length",

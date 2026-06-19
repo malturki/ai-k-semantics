@@ -51,6 +51,8 @@ run_case "adapter-tuple-expressions" "$ROOT/tests/adapter/adapter-tuple-expressi
 run_case "adapter-lambda-normal" "$ROOT/tests/adapter/adapter-lambda-normal.py" "7 ~> .K"
 run_case "adapter-if" "$ROOT/tests/adapter/adapter-if.py" "True ~> .K"
 run_case "adapter-if-no-else" "$ROOT/tests/adapter/adapter-if-no-else.py" "True ~> .K"
+run_case "adapter-is-none" "$ROOT/tests/adapter/adapter-is-none.py" "True ~> .K"
+run_case "adapter-is-bool" "$ROOT/tests/adapter/adapter-is-bool.py" "True ~> .K"
 run_case "adapter-while" "$ROOT/tests/adapter/adapter-while.py" "True ~> .K"
 run_case "adapter-while-else-normal" "$ROOT/tests/adapter/adapter-while-else-normal.py" "True ~> .K"
 run_case "adapter-while-else-break" "$ROOT/tests/adapter/adapter-while-else-break.py" "True ~> .K"

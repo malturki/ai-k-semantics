@@ -101,6 +101,8 @@ module PYTHON-SYNTAX
                | Exp ">=" Exp [symbol(geExp), strict]
                | Exp "==" Exp [symbol(eqExp), strict]
                | Exp "!=" Exp [symbol(neExp), strict]
+               | Exp "is" Exp [symbol(identityExp), strict]
+               | Exp "is" "not" Exp [symbol(identityNotExp), strict]
                | Exp "in" Exp [symbol(inExp), strict]
                | Exp "not" "in" Exp [symbol(notInExp), strict]
                | Exp "[" Exp "]" [symbol(subscriptExp), strict]
@@ -176,6 +178,8 @@ module PYTHON
   syntax Bool ::= truthy(Val) [function, symbol(truthy)]
                 | isIntLike(Val) [function, symbol(isIntLike)]
                 | valEq(Val, Val) [function, symbol(valEq)]
+                | valIs(Val, Val) [function, symbol(valIs)]
+                | singletonIdentity(Val) [function, symbol(singletonIdentity)]
                 | valsEq(ValItems, ValItems) [function, symbol(valsEq)]
                 | sameArity(IdItems, ArgVals) [function, symbol(sameArity)]
                 | emptyArgVals(ArgVals) [function, symbol(emptyArgVals)]
@@ -239,6 +243,26 @@ module PYTHON
   rule isIntLike(rangeVal(_:Int, _:Int)) => false
   rule isIntLike(argsVal(_:ArgVals)) => false
   rule isIntLike(dictArgsVal(_:DictVals)) => false
+
+  rule singletonIdentity(True) => true
+  rule singletonIdentity(False) => true
+  rule singletonIdentity(None) => true
+  rule singletonIdentity(_:Int) => false
+  rule singletonIdentity(_:String) => false
+  rule singletonIdentity([]) => false
+  rule singletonIdentity(listVal(_:ValItems)) => false
+  rule singletonIdentity(()) => false
+  rule singletonIdentity(tupleVal(_:ValItems)) => false
+  rule singletonIdentity({}) => false
+  rule singletonIdentity(dictVal(_:DictItems)) => false
+  rule singletonIdentity(setVal(_:ValItems)) => false
+  rule singletonIdentity(closure(_:Id, _:Exp)) => false
+  rule singletonIdentity(closureArgs(_:IdItems, _:Exp)) => false
+  rule singletonIdentity(functionVal(_:Id, _:Block)) => false
+  rule singletonIdentity(functionValArgs(_:IdItems, _:Block)) => false
+  rule singletonIdentity(rangeVal(_:Int, _:Int)) => false
+  rule singletonIdentity(argsVal(_:ArgVals)) => false
+  rule singletonIdentity(dictArgsVal(_:DictVals)) => false
 
   rule intValue(I:Int) => I
   rule intValue(True) => 1
@@ -358,6 +382,13 @@ module PYTHON
   rule valEq(None, False) => false
   rule valEq(True, None) => false
   rule valEq(False, None) => false
+
+  rule valIs(V1:Val, V2:Val) => valEq(V1, V2)
+    requires singletonIdentity(V1) andBool singletonIdentity(V2)
+  rule valIs(V1:Val, V2:Val) => false
+    requires singletonIdentity(V1) andBool notBool singletonIdentity(V2)
+  rule valIs(V1:Val, V2:Val) => false
+    requires notBool singletonIdentity(V1) andBool singletonIdentity(V2)
 
   rule sameArity(#noIds, #noArgVals) => true
   rule sameArity(#noIds, argValsCons(_:Val, _:ArgVals)) => false
@@ -481,6 +512,8 @@ module PYTHON
     requires isIntLike(V1) andBool isIntLike(V2)
   rule V1:Val == V2:Val => boolValue(valEq(V1, V2))
   rule V1:Val != V2:Val => boolValue(notBool valEq(V1, V2))
+  rule V1:Val is V2:Val => boolValue(valIs(V1, V2))
+  rule V1:Val is not V2:Val => boolValue(notBool valIs(V1, V2))
   rule _V:Val in [] => False
   rule V:Val in listVal(VS:ValItems) => boolValue(containsVal(V, VS))
   rule _V:Val in () => False

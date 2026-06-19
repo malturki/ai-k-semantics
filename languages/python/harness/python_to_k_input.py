@@ -365,6 +365,10 @@ def emit_cmp_op(op: ast.cmpop) -> str:
         return "in"
     if isinstance(op, ast.NotIn):
         return "not in"
+    if isinstance(op, ast.Is):
+        return "is"
+    if isinstance(op, ast.IsNot):
+        return "is not"
     raise unsupported(op, "comparison operator is not supported")
 
 

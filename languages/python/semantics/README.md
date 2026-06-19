@@ -32,6 +32,7 @@ The base modules should model portable Python semantics from the official docs. 
 - `not`
 - binary comparisons for int-like values and equality over integers, booleans, and `None`
 - string equality
+- singleton identity comparisons with `is` and `is not` for `None`, `True`, and `False`
 - conditional expressions
 - simple-name `+=`, `-=`, `*=`, `%=`, `**=`, `//=`, `<<=`, `>>=`, `&=`, `^=`, and `|=`
 - multi-target simple-name assignment through the AST adapter
@@ -74,3 +75,5 @@ Current range caveat: adapter-backed `range` support is an internal `rangeVal(st
 Current function caveat: adapter-backed `#def` and `#defArgs` cover zero or more positional parameters, no decorators, no defaults, no annotations, no keyword arguments, no varargs/kwargs, and an environment-restore model. Full Python function objects need real frames, cells/closures, default evaluation, globals/nonlocals, descriptors, methods, and argument binding diagnostics.
 
 Current augmented-assignment caveat: true-division `/=` and matrix-multiplication `@=` remain unsupported because the current value model has no float/numeric tower or matrix protocol.
+
+Current identity caveat: `is` and `is not` are defined only for the language singletons `None`, `True`, and `False` compared with singleton or non-singleton values. General object identity requires a heap/object model and remains unsupported.

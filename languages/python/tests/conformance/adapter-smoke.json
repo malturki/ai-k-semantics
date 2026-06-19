@@ -60,6 +60,20 @@
       "coverage": ["if-statement", "missing-else-empty-block", "truth-value-testing", "ordinary-python-source-adapter"]
     },
     {
+      "id": "adapter-is-none",
+      "source": "../adapter/adapter-is-none.py",
+      "reference": "Python Language Reference 6.10.3 Identity comparisons",
+      "expected_result": "True ~> .K",
+      "coverage": ["identity-comparison", "none-singleton", "ordinary-python-source-adapter"]
+    },
+    {
+      "id": "adapter-is-bool",
+      "source": "../adapter/adapter-is-bool.py",
+      "reference": "Python Language Reference 6.10.3 Identity comparisons",
+      "expected_result": "True ~> .K",
+      "coverage": ["identity-comparison", "bool-singletons", "ordinary-python-source-adapter"]
+    },
+    {
       "id": "adapter-while",
       "source": "../adapter/adapter-while.py",
       "reference": "Python Language Reference 8.2 The while statement",

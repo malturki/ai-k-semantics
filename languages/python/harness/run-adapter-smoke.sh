@@ -64,3 +64,4 @@ run_case "adapter-for-return" "$ROOT/tests/adapter/adapter-for-return.py" "True 
 run_case "adapter-dict" "$ROOT/tests/adapter/adapter-dict.py" "True ~> .K"
 run_case "adapter-dict-truthy" "$ROOT/tests/adapter/adapter-dict-truthy.py" "True ~> .K"
 run_case "adapter-set" "$ROOT/tests/adapter/adapter-set.py" "True ~> .K"
+run_case "adapter-assign-many" "$ROOT/tests/adapter/adapter-assign-many.py" "True ~> .K"

@@ -34,6 +34,7 @@ The base modules should model portable Python semantics from the official docs. 
 - string equality
 - conditional expressions
 - simple-name `+=`, `-=`, and `*=`
+- multi-target simple-name assignment through the AST adapter
 - simple-name `del`
 - truthy `assert`
 - module-scope `global` declarations as no-ops

@@ -483,9 +483,9 @@
               "section": "Assignment statements"
             }
           ],
-          "k_coverage": ["semantics/python.k: single-name assignment for Val; simple-name +=, -=, *="],
-          "test_coverage": ["tests/examples/smoke-assignment.py", "tests/examples/smoke-comparisons.py", "tests/examples/smoke-augmented-assignment.py"],
-          "gaps": ["Need target lists, unpacking, attributes, subscriptions, annotations, all remaining augmented operators, and target evaluation order."]
+          "k_coverage": ["semantics/python.k: single-name assignment for Val; simple-name +=, -=, *=", "semantics/python.k: internal #assignMany for adapter-backed multi-target simple-name assignment"],
+          "test_coverage": ["tests/examples/smoke-assignment.py", "tests/examples/smoke-comparisons.py", "tests/examples/smoke-augmented-assignment.py", "tests/adapter/adapter-assign-many.py"],
+          "gaps": ["Need target lists, unpacking, attributes, subscriptions, annotations, all remaining augmented operators, and target evaluation order beyond simple names."]
         },
         {
           "id": "stmt.assert",

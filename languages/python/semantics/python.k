@@ -24,6 +24,9 @@ module PYTHON-SYNTAX
   syntax DictItems ::= Val ":" Val "," [symbol(dictItemsLast)]
                      | Val ":" Val "," DictItems [symbol(dictItemsCons)]
 
+  syntax IdItems ::= "#id" "(" Id ")" [symbol(idItemsLast)]
+                   | "#ids" "(" Id "," IdItems ")" [symbol(idItemsCons)]
+
   syntax Stmts ::= Stmt ";" Stmts [symbol(stmtsCons)]
                  | Stmt ";" [symbol(stmtsLast)]
 
@@ -41,6 +44,7 @@ module PYTHON-SYNTAX
                 | Id "+=" Exp [symbol(augAddStmt)]
                 | Id "-=" Exp [symbol(augSubStmt)]
                 | Id "*=" Exp [symbol(augMulStmt)]
+                | "#assignMany" "(" IdItems ";" Exp ")" [symbol(assignManyStmt), strict(2)]
                 | "return" Exp [symbol(returnStmt), strict]
                 | "#def" "(" Id "," Id "," Block ")" [symbol(functionDefStmt)]
                 | "#if" "(" Exp "," Block "," Block ")" [symbol(ifStmt)]
@@ -113,6 +117,7 @@ module PYTHON
                  | "continueSignal" [symbol(continueSignal)]
                  | returnSignal(Val) [symbol(returnSignal)]
                  | functionDone(Map) [symbol(functionDone)]
+                 | assignMany(IdItems, Val) [symbol(assignMany)]
 
   syntax Bool ::= truthy(Val) [function, symbol(truthy)]
                 | isIntLike(Val) [function, symbol(isIntLike)]
@@ -427,6 +432,14 @@ module PYTHON
   rule <k> augAddStmt(X:Id, E:Exp) => assignStmt(X, X + E) ... </k>
   rule <k> augSubStmt(X:Id, E:Exp) => assignStmt(X, X - E) ... </k>
   rule <k> augMulStmt(X:Id, E:Exp) => assignStmt(X, X * E) ... </k>
+
+  rule <k> assignManyStmt(IDS:IdItems, V:Val) => assignMany(IDS, V) ... </k>
+  rule <k> assignMany(idItemsLast(X:Id), V:Val) => stmtNoResult ... </k>
+       <env> Rho => Rho [ X <- V ] </env>
+       <result> _ => .K </result>
+  rule <k> assignMany(idItemsCons(X:Id, IDS:IdItems), V:Val) => assignMany(IDS, V) ... </k>
+       <env> Rho => Rho [ X <- V ] </env>
+       <result> _ => .K </result>
 
   rule <k> functionDefStmt(F:Id, X:Id, Body:Block) => stmtNoResult ... </k>
        <env> Rho => Rho [ F <- functionVal(X, Body) ] </env>

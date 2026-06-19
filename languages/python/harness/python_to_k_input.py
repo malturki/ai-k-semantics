@@ -64,10 +64,8 @@ def emit_stmt(stmt: ast.stmt) -> str:
             return f"del {name}"
         case ast.Delete():
             raise unsupported(stmt, "only simple-name del is supported")
-        case ast.Assign(targets=[ast.Name(id=name)], value=value):
-            return f"{name} = {emit_exp(value)}"
-        case ast.Assign():
-            raise unsupported(stmt, "only single-target simple-name assignment is supported")
+        case ast.Assign(targets=targets, value=value):
+            return emit_assign(stmt, targets, value)
         case ast.AugAssign(target=ast.Name(id=name), op=op, value=value):
             return f"{name} {emit_aug_op(op)}= {emit_exp(value)}"
         case ast.AugAssign():
@@ -225,6 +223,25 @@ def emit_function_def(
     ):
         raise unsupported(node, "only one positional function parameter is supported")
     return f"#def({name}, {args.args[0].arg}, {emit_block(body)})"
+
+
+def emit_assign(node: ast.AST, targets: list[ast.expr], value: ast.expr) -> str:
+    names: list[str] = []
+    for target in targets:
+        if not isinstance(target, ast.Name):
+            raise unsupported(target, "only simple-name assignment targets are supported")
+        names.append(target.id)
+    if len(names) == 1:
+        return f"{names[0]} = {emit_exp(value)}"
+    if len(names) < 1:
+        raise unsupported(node, "assignment needs at least one target")
+    return f"#assignMany({emit_id_items(names)}; {emit_exp(value)})"
+
+
+def emit_id_items(names: list[str]) -> str:
+    if len(names) == 1:
+        return f"#id({names[0]})"
+    return f"#ids({names[0]}, {emit_id_items(names[1:])})"
 
 
 def emit_list(elts: list[ast.expr]) -> str:

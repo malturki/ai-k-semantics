@@ -395,9 +395,9 @@
               "section": "Operator precedence"
             }
           ],
-          "k_coverage": ["semantics/python.k: unary +, -, ~; integer and bool +, -, *, //, %, <<, >>, &, ^, |, nonnegative **; string +; internal #floorDiv adapter form"],
-          "test_coverage": ["tests/examples/smoke-arithmetic.py", "tests/examples/smoke-comparisons.py", "tests/examples/smoke-strings.py", "tests/examples/smoke-int-operators.py", "tests/adapter/adapter-floor-div.py"],
-          "gaps": ["Need true division, negative-exponent power returning float, matrix multiplication, reflected/in-place methods, full type coercion behavior, error cases, and direct concrete-source testing for // once K frontend comment handling is avoided or replaced by a full parser."]
+          "k_coverage": ["semantics/python.k: unary +, -, ~; integer and bool +, -, *, //, %, <<, >>, &, ^, |, nonnegative **; string +; list/tuple same-type concatenation; internal #floorDiv adapter form"],
+          "test_coverage": ["tests/examples/smoke-arithmetic.py", "tests/examples/smoke-comparisons.py", "tests/examples/smoke-strings.py", "tests/examples/smoke-int-operators.py", "tests/adapter/adapter-floor-div.py", "tests/adapter/adapter-list-concat.py", "tests/adapter/adapter-tuple-concat.py"],
+          "gaps": ["Need true division, negative-exponent power returning float, matrix multiplication, sequence repetition, cross-type concatenation diagnostics, reflected/in-place methods, full type coercion behavior, error cases, and direct concrete-source testing for // once K frontend comment handling is avoided or replaced by a full parser."]
         },
         {
           "id": "expr.comparisons-boolean",
@@ -818,7 +818,7 @@
             }
           ],
           "k_coverage": ["semantics/python.k: internal integer, string, list, tuple, dict, set, bool, None, and range subset"],
-          "test_coverage": ["tests/examples/smoke-arithmetic.py", "tests/examples/smoke-bool-constants.py", "tests/examples/smoke-bool-ops.py", "tests/examples/smoke-comparisons.py", "tests/examples/smoke-strings.py", "tests/examples/smoke-int-operators.py", "tests/examples/smoke-lists.py", "tests/examples/smoke-tuples.py", "tests/adapter/adapter-floor-div.py", "tests/adapter/adapter-list-normal.py", "tests/adapter/adapter-list-ordering.py", "tests/adapter/adapter-tuple-normal.py", "tests/adapter/adapter-tuple-ordering.py", "tests/adapter/adapter-dict.py", "tests/adapter/adapter-dict-truthy.py", "tests/adapter/adapter-dict-equality.py", "tests/adapter/adapter-set.py", "tests/adapter/adapter-set-equality.py", "tests/adapter/adapter-set-ordering.py", "tests/adapter/adapter-range-for.py", "tests/adapter/adapter-range-start-stop.py", "tests/adapter/adapter-range-step.py", "tests/adapter/adapter-range-negative-step.py", "tests/adapter/adapter-len-containers.py", "tests/adapter/adapter-len-string-range.py", "tests/adapter/adapter-len-range-step.py"],
+          "test_coverage": ["tests/examples/smoke-arithmetic.py", "tests/examples/smoke-bool-constants.py", "tests/examples/smoke-bool-ops.py", "tests/examples/smoke-comparisons.py", "tests/examples/smoke-strings.py", "tests/examples/smoke-int-operators.py", "tests/examples/smoke-lists.py", "tests/examples/smoke-tuples.py", "tests/adapter/adapter-floor-div.py", "tests/adapter/adapter-list-normal.py", "tests/adapter/adapter-list-ordering.py", "tests/adapter/adapter-list-concat.py", "tests/adapter/adapter-tuple-normal.py", "tests/adapter/adapter-tuple-ordering.py", "tests/adapter/adapter-tuple-concat.py", "tests/adapter/adapter-dict.py", "tests/adapter/adapter-dict-truthy.py", "tests/adapter/adapter-dict-equality.py", "tests/adapter/adapter-set.py", "tests/adapter/adapter-set-equality.py", "tests/adapter/adapter-set-ordering.py", "tests/adapter/adapter-range-for.py", "tests/adapter/adapter-range-start-stop.py", "tests/adapter/adapter-range-step.py", "tests/adapter/adapter-range-negative-step.py", "tests/adapter/adapter-len-containers.py", "tests/adapter/adapter-len-string-range.py", "tests/adapter/adapter-len-range-step.py"],
           "gaps": ["Need real object/type hierarchy, numeric tower, sequences, mappings, sets, full range type behavior, context-manager types, memoryview, and iterator protocols."]
         },
         {

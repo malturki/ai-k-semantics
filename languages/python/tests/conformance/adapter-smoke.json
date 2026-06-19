@@ -39,6 +39,13 @@
       "coverage": ["list-ordering-comparisons", "lexicographic-sequence-comparison", "shorter-prefix-sequence-ordering", "chained-comparison", "ordinary-python-source-adapter"]
     },
     {
+      "id": "adapter-list-concat",
+      "source": "../adapter/adapter-list-concat.py",
+      "reference": "Python Language Reference 6.7 Binary arithmetic operations; Standard Library sequence types",
+      "expected_result": "True ~> .K",
+      "coverage": ["list-concatenation", "same-type-sequence-concatenation", "empty-sequence-concatenation", "ordinary-python-source-adapter"]
+    },
+    {
       "id": "adapter-tuple-normal",
       "source": "../adapter/adapter-tuple-normal.py",
       "reference": "Python Language Reference 6.2.3 Parenthesized forms; 6.3.2 Subscriptions",
@@ -65,6 +72,13 @@
       "reference": "Python Language Reference 6.10 Comparisons; Standard Library sequence types",
       "expected_result": "True ~> .K",
       "coverage": ["tuple-ordering-comparisons", "lexicographic-sequence-comparison", "shorter-prefix-sequence-ordering", "chained-comparison", "ordinary-python-source-adapter"]
+    },
+    {
+      "id": "adapter-tuple-concat",
+      "source": "../adapter/adapter-tuple-concat.py",
+      "reference": "Python Language Reference 6.7 Binary arithmetic operations; Standard Library sequence types",
+      "expected_result": "True ~> .K",
+      "coverage": ["tuple-concatenation", "same-type-sequence-concatenation", "empty-sequence-concatenation", "ordinary-python-source-adapter"]
     },
     {
       "id": "adapter-lambda-normal",

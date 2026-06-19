@@ -250,6 +250,7 @@ module PYTHON
   syntax Map ::= bindVals(Map, IdItems, ValItems) [function, symbol(bindVals)]
   syntax ValItems ::= argValsToValItems(ArgVals) [function, symbol(argValsToValItems)]
   syntax ValItems ::= argValsToSetItems(ArgVals) [function, symbol(argValsToSetItems)]
+  syntax ValItems ::= concatValItems(ValItems, ValItems) [function, symbol(concatValItems)]
   syntax DictItems ::= dictValsToDictItems(DictVals) [function, symbol(dictValsToDictItems)]
   syntax Val ::= listGet(ValItems, Int) [function, symbol(listGet)]
   syntax Val ::= dictGet(DictItems, Val) [function, symbol(dictGet)]
@@ -572,6 +573,10 @@ module PYTHON
     requires notBool emptyArgVals(VS)
       andBool notBool containsVal(V, argValsToSetItems(VS))
 
+  rule concatValItems(valItemsLast(V:Val), VS:ValItems) => valItemsCons(V, VS)
+  rule concatValItems(valItemsCons(V:Val, VS1:ValItems), VS2:ValItems) =>
+    valItemsCons(V, concatValItems(VS1, VS2))
+
   rule dictValsToDictItems(dictValsCons(K:Val, V:Val, #noDictVals)) => dictItemsLast(K, V)
   rule dictValsToDictItems(dictValsCons(K:Val, V:Val, DVS:DictVals)) =>
     dictItemsCons(K, V, dictValsToDictItems(DVS))
@@ -746,6 +751,14 @@ module PYTHON
   rule V1:Val | V2:Val => intValue(V1) |Int intValue(V2)
     requires isIntLike(V1) andBool isIntLike(V2)
   rule S1:String + S2:String => S1 +String S2
+  rule [] + [] => []
+  rule [] + listVal(VS:ValItems) => listVal(VS)
+  rule listVal(VS:ValItems) + [] => listVal(VS)
+  rule listVal(VS1:ValItems) + listVal(VS2:ValItems) => listVal(concatValItems(VS1, VS2))
+  rule () + () => ()
+  rule () + tupleVal(VS:ValItems) => tupleVal(VS)
+  rule tupleVal(VS:ValItems) + () => tupleVal(VS)
+  rule tupleVal(VS1:ValItems) + tupleVal(VS2:ValItems) => tupleVal(concatValItems(VS1, VS2))
   rule lenExp(V:Val) => pyLen(V)
 
   rule V1:Val < V2:Val => boolValue(intValue(V1) <Int intValue(V2))

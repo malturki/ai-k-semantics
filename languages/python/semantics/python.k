@@ -94,6 +94,8 @@ module PYTHON-SYNTAX
                 | "#forElse" "(" Id "," Exp "," Block "," Block ")" [symbol(forElseStmt)]
                 | "#forUnpack" "(" IdItems "," Exp "," Block ")" [symbol(forUnpackStmt)]
                 | "#forUnpackElse" "(" IdItems "," Exp "," Block "," Block ")" [symbol(forUnpackElseStmt)]
+                | "#forStarUnpack" "(" IdItems "," Id "," IdItems "," Exp "," Block ")" [symbol(forStarUnpackStmt)]
+                | "#forStarUnpackElse" "(" IdItems "," Id "," IdItems "," Exp "," Block "," Block ")" [symbol(forStarUnpackElseStmt)]
 
   syntax Exp ::= Val
                | Id
@@ -230,6 +232,8 @@ module PYTHON
                  | forItems(Id, ValItems, Block) [symbol(forItems)]
                  | forUnpackIter(IdItems, Block) [symbol(forUnpackIter)]
                  | forUnpackItems(IdItems, ValItems, Block) [symbol(forUnpackItems)]
+                 | forStarUnpackIter(IdItems, Id, IdItems, Block) [symbol(forStarUnpackIter)]
+                 | forStarUnpackItems(IdItems, Id, IdItems, ValItems, Block) [symbol(forStarUnpackItems)]
                  | forRange(Id, Int, Int, Block) [symbol(forRange)]
                  | forRangeAgain(Id, Int, Int, Block) [symbol(forRangeAgain)]
                  | forRangeStep(Id, Int, Int, Int, Block) [symbol(forRangeStep)]
@@ -240,6 +244,8 @@ module PYTHON
                  | forUnpackElseIter(IdItems, Block, Block) [symbol(forUnpackElseIter)]
                  | forUnpackElseItems(IdItems, ValItems, Block, Block) [symbol(forUnpackElseItems)]
                  | forUnpackElseDone(Block) [symbol(forUnpackElseDone)]
+                 | forStarUnpackElseIter(IdItems, Id, IdItems, Block, Block) [symbol(forStarUnpackElseIter)]
+                 | forStarUnpackElseItems(IdItems, Id, IdItems, ValItems, Block, Block) [symbol(forStarUnpackElseItems)]
                  | forElseRange(Id, Int, Int, Block, Block) [symbol(forElseRange)]
                  | forElseRangeAgain(Id, Int, Int, Block, Block) [symbol(forElseRangeAgain)]
                  | forElseRangeStep(Id, Int, Int, Int, Block, Block) [symbol(forElseRangeStep)]
@@ -2151,6 +2157,99 @@ module PYTHON
        <env> Rho => bindVals(Rho, IDS, VS) </env>
     requires sameIdValArity(IDS, VS)
 
+  rule <k> forStarUnpackStmt(Prefix:IdItems, Star:Id, Suffix:IdItems, E:Exp, Body:Block) =>
+           E ~> forStarUnpackIter(Prefix, Star, Suffix, Body)
+       ... </k>
+  rule <k> [] ~> forStarUnpackIter(_:IdItems, _:Id, _:IdItems, _:Block) => stmtNoResult ... </k>
+  rule <k> listVal(VS:ValItems) ~> forStarUnpackIter(Prefix:IdItems, Star:Id, Suffix:IdItems, Body:Block) =>
+           forStarUnpackItems(Prefix, Star, Suffix, VS, Body)
+       ... </k>
+  rule <k> () ~> forStarUnpackIter(_:IdItems, _:Id, _:IdItems, _:Block) => stmtNoResult ... </k>
+  rule <k> tupleVal(VS:ValItems) ~> forStarUnpackIter(Prefix:IdItems, Star:Id, Suffix:IdItems, Body:Block) =>
+           forStarUnpackItems(Prefix, Star, Suffix, VS, Body)
+       ... </k>
+
+  rule <k> forStarUnpackItems(Prefix:IdItems, Star:Id, Suffix:IdItems, valItemsCons(listVal(VS:ValItems), Rest:ValItems), block(SS:Stmts)) =>
+           SS ~> forStarUnpackItems(Prefix, Star, Suffix, Rest, block(SS))
+       ... </k>
+       <env> Rho => bindStarUnpack(Rho, Prefix, Star, Suffix, VS) </env>
+    requires starUnpackArityOk(Prefix, Suffix, valItemsLen(VS))
+  rule <k> forStarUnpackItems(Prefix:IdItems, Star:Id, Suffix:IdItems, valItemsCons(tupleVal(VS:ValItems), Rest:ValItems), block(SS:Stmts)) =>
+           SS ~> forStarUnpackItems(Prefix, Star, Suffix, Rest, block(SS))
+       ... </k>
+       <env> Rho => bindStarUnpack(Rho, Prefix, Star, Suffix, VS) </env>
+    requires starUnpackArityOk(Prefix, Suffix, valItemsLen(VS))
+  rule <k> forStarUnpackItems(Prefix:IdItems, Star:Id, Suffix:IdItems, valItemsCons([], Rest:ValItems), block(SS:Stmts)) =>
+           SS ~> forStarUnpackItems(Prefix, Star, Suffix, Rest, block(SS))
+       ... </k>
+       <env> Rho => Rho [ Star <- [] ] </env>
+    requires idItemsLen(Prefix) +Int idItemsLen(Suffix) ==Int 0
+  rule <k> forStarUnpackItems(Prefix:IdItems, Star:Id, Suffix:IdItems, valItemsCons((), Rest:ValItems), block(SS:Stmts)) =>
+           SS ~> forStarUnpackItems(Prefix, Star, Suffix, Rest, block(SS))
+       ... </k>
+       <env> Rho => Rho [ Star <- [] ] </env>
+    requires idItemsLen(Prefix) +Int idItemsLen(Suffix) ==Int 0
+  rule <k> forStarUnpackItems(Prefix:IdItems, Star:Id, Suffix:IdItems, valItemsLast(listVal(VS:ValItems)), block(SS:Stmts)) =>
+           SS ~> forDone
+       ... </k>
+       <env> Rho => bindStarUnpack(Rho, Prefix, Star, Suffix, VS) </env>
+    requires starUnpackArityOk(Prefix, Suffix, valItemsLen(VS))
+  rule <k> forStarUnpackItems(Prefix:IdItems, Star:Id, Suffix:IdItems, valItemsLast(tupleVal(VS:ValItems)), block(SS:Stmts)) =>
+           SS ~> forDone
+       ... </k>
+       <env> Rho => bindStarUnpack(Rho, Prefix, Star, Suffix, VS) </env>
+    requires starUnpackArityOk(Prefix, Suffix, valItemsLen(VS))
+  rule <k> forStarUnpackItems(Prefix:IdItems, Star:Id, Suffix:IdItems, valItemsLast([]), block(SS:Stmts)) =>
+           SS ~> forDone
+       ... </k>
+       <env> Rho => Rho [ Star <- [] ] </env>
+    requires idItemsLen(Prefix) +Int idItemsLen(Suffix) ==Int 0
+  rule <k> forStarUnpackItems(Prefix:IdItems, Star:Id, Suffix:IdItems, valItemsLast(()), block(SS:Stmts)) =>
+           SS ~> forDone
+       ... </k>
+       <env> Rho => Rho [ Star <- [] ] </env>
+    requires idItemsLen(Prefix) +Int idItemsLen(Suffix) ==Int 0
+  rule <k> forStarUnpackItems(Prefix:IdItems, Star:Id, Suffix:IdItems, valItemsCons(listVal(VS:ValItems), Rest:ValItems), {}) =>
+           forStarUnpackItems(Prefix, Star, Suffix, Rest, {})
+       ... </k>
+       <env> Rho => bindStarUnpack(Rho, Prefix, Star, Suffix, VS) </env>
+    requires starUnpackArityOk(Prefix, Suffix, valItemsLen(VS))
+  rule <k> forStarUnpackItems(Prefix:IdItems, Star:Id, Suffix:IdItems, valItemsCons(tupleVal(VS:ValItems), Rest:ValItems), {}) =>
+           forStarUnpackItems(Prefix, Star, Suffix, Rest, {})
+       ... </k>
+       <env> Rho => bindStarUnpack(Rho, Prefix, Star, Suffix, VS) </env>
+    requires starUnpackArityOk(Prefix, Suffix, valItemsLen(VS))
+  rule <k> forStarUnpackItems(Prefix:IdItems, Star:Id, Suffix:IdItems, valItemsCons([], Rest:ValItems), {}) =>
+           forStarUnpackItems(Prefix, Star, Suffix, Rest, {})
+       ... </k>
+       <env> Rho => Rho [ Star <- [] ] </env>
+    requires idItemsLen(Prefix) +Int idItemsLen(Suffix) ==Int 0
+  rule <k> forStarUnpackItems(Prefix:IdItems, Star:Id, Suffix:IdItems, valItemsCons((), Rest:ValItems), {}) =>
+           forStarUnpackItems(Prefix, Star, Suffix, Rest, {})
+       ... </k>
+       <env> Rho => Rho [ Star <- [] ] </env>
+    requires idItemsLen(Prefix) +Int idItemsLen(Suffix) ==Int 0
+  rule <k> forStarUnpackItems(Prefix:IdItems, Star:Id, Suffix:IdItems, valItemsLast(listVal(VS:ValItems)), {}) =>
+           stmtNoResult
+       ... </k>
+       <env> Rho => bindStarUnpack(Rho, Prefix, Star, Suffix, VS) </env>
+    requires starUnpackArityOk(Prefix, Suffix, valItemsLen(VS))
+  rule <k> forStarUnpackItems(Prefix:IdItems, Star:Id, Suffix:IdItems, valItemsLast(tupleVal(VS:ValItems)), {}) =>
+           stmtNoResult
+       ... </k>
+       <env> Rho => bindStarUnpack(Rho, Prefix, Star, Suffix, VS) </env>
+    requires starUnpackArityOk(Prefix, Suffix, valItemsLen(VS))
+  rule <k> forStarUnpackItems(Prefix:IdItems, Star:Id, Suffix:IdItems, valItemsLast([]), {}) =>
+           stmtNoResult
+       ... </k>
+       <env> Rho => Rho [ Star <- [] ] </env>
+    requires idItemsLen(Prefix) +Int idItemsLen(Suffix) ==Int 0
+  rule <k> forStarUnpackItems(Prefix:IdItems, Star:Id, Suffix:IdItems, valItemsLast(()), {}) =>
+           stmtNoResult
+       ... </k>
+       <env> Rho => Rho [ Star <- [] ] </env>
+    requires idItemsLen(Prefix) +Int idItemsLen(Suffix) ==Int 0
+
   rule <k> forRange(X:Id, I:Int, Stop:Int, block(SS:Stmts)) =>
            SS ~> forRangeAgain(X, I +Int 1, Stop, block(SS))
        ... </k>
@@ -2287,6 +2386,99 @@ module PYTHON
     requires sameIdValArity(IDS, VS)
   rule <k> forUnpackElseDone(Else:Block) => runLoopElse(Else) ... </k>
 
+  rule <k> forStarUnpackElseStmt(Prefix:IdItems, Star:Id, Suffix:IdItems, E:Exp, Body:Block, Else:Block) =>
+           E ~> forStarUnpackElseIter(Prefix, Star, Suffix, Body, Else)
+       ... </k>
+  rule <k> [] ~> forStarUnpackElseIter(_:IdItems, _:Id, _:IdItems, _:Block, Else:Block) => runLoopElse(Else) ... </k>
+  rule <k> listVal(VS:ValItems) ~> forStarUnpackElseIter(Prefix:IdItems, Star:Id, Suffix:IdItems, Body:Block, Else:Block) =>
+           forStarUnpackElseItems(Prefix, Star, Suffix, VS, Body, Else)
+       ... </k>
+  rule <k> () ~> forStarUnpackElseIter(_:IdItems, _:Id, _:IdItems, _:Block, Else:Block) => runLoopElse(Else) ... </k>
+  rule <k> tupleVal(VS:ValItems) ~> forStarUnpackElseIter(Prefix:IdItems, Star:Id, Suffix:IdItems, Body:Block, Else:Block) =>
+           forStarUnpackElseItems(Prefix, Star, Suffix, VS, Body, Else)
+       ... </k>
+
+  rule <k> forStarUnpackElseItems(Prefix:IdItems, Star:Id, Suffix:IdItems, valItemsCons(listVal(VS:ValItems), Rest:ValItems), block(SS:Stmts), Else:Block) =>
+           SS ~> forStarUnpackElseItems(Prefix, Star, Suffix, Rest, block(SS), Else)
+       ... </k>
+       <env> Rho => bindStarUnpack(Rho, Prefix, Star, Suffix, VS) </env>
+    requires starUnpackArityOk(Prefix, Suffix, valItemsLen(VS))
+  rule <k> forStarUnpackElseItems(Prefix:IdItems, Star:Id, Suffix:IdItems, valItemsCons(tupleVal(VS:ValItems), Rest:ValItems), block(SS:Stmts), Else:Block) =>
+           SS ~> forStarUnpackElseItems(Prefix, Star, Suffix, Rest, block(SS), Else)
+       ... </k>
+       <env> Rho => bindStarUnpack(Rho, Prefix, Star, Suffix, VS) </env>
+    requires starUnpackArityOk(Prefix, Suffix, valItemsLen(VS))
+  rule <k> forStarUnpackElseItems(Prefix:IdItems, Star:Id, Suffix:IdItems, valItemsCons([], Rest:ValItems), block(SS:Stmts), Else:Block) =>
+           SS ~> forStarUnpackElseItems(Prefix, Star, Suffix, Rest, block(SS), Else)
+       ... </k>
+       <env> Rho => Rho [ Star <- [] ] </env>
+    requires idItemsLen(Prefix) +Int idItemsLen(Suffix) ==Int 0
+  rule <k> forStarUnpackElseItems(Prefix:IdItems, Star:Id, Suffix:IdItems, valItemsCons((), Rest:ValItems), block(SS:Stmts), Else:Block) =>
+           SS ~> forStarUnpackElseItems(Prefix, Star, Suffix, Rest, block(SS), Else)
+       ... </k>
+       <env> Rho => Rho [ Star <- [] ] </env>
+    requires idItemsLen(Prefix) +Int idItemsLen(Suffix) ==Int 0
+  rule <k> forStarUnpackElseItems(Prefix:IdItems, Star:Id, Suffix:IdItems, valItemsLast(listVal(VS:ValItems)), block(SS:Stmts), Else:Block) =>
+           SS ~> forUnpackElseDone(Else)
+       ... </k>
+       <env> Rho => bindStarUnpack(Rho, Prefix, Star, Suffix, VS) </env>
+    requires starUnpackArityOk(Prefix, Suffix, valItemsLen(VS))
+  rule <k> forStarUnpackElseItems(Prefix:IdItems, Star:Id, Suffix:IdItems, valItemsLast(tupleVal(VS:ValItems)), block(SS:Stmts), Else:Block) =>
+           SS ~> forUnpackElseDone(Else)
+       ... </k>
+       <env> Rho => bindStarUnpack(Rho, Prefix, Star, Suffix, VS) </env>
+    requires starUnpackArityOk(Prefix, Suffix, valItemsLen(VS))
+  rule <k> forStarUnpackElseItems(Prefix:IdItems, Star:Id, Suffix:IdItems, valItemsLast([]), block(SS:Stmts), Else:Block) =>
+           SS ~> forUnpackElseDone(Else)
+       ... </k>
+       <env> Rho => Rho [ Star <- [] ] </env>
+    requires idItemsLen(Prefix) +Int idItemsLen(Suffix) ==Int 0
+  rule <k> forStarUnpackElseItems(Prefix:IdItems, Star:Id, Suffix:IdItems, valItemsLast(()), block(SS:Stmts), Else:Block) =>
+           SS ~> forUnpackElseDone(Else)
+       ... </k>
+       <env> Rho => Rho [ Star <- [] ] </env>
+    requires idItemsLen(Prefix) +Int idItemsLen(Suffix) ==Int 0
+  rule <k> forStarUnpackElseItems(Prefix:IdItems, Star:Id, Suffix:IdItems, valItemsCons(listVal(VS:ValItems), Rest:ValItems), {}, Else:Block) =>
+           forStarUnpackElseItems(Prefix, Star, Suffix, Rest, {}, Else)
+       ... </k>
+       <env> Rho => bindStarUnpack(Rho, Prefix, Star, Suffix, VS) </env>
+    requires starUnpackArityOk(Prefix, Suffix, valItemsLen(VS))
+  rule <k> forStarUnpackElseItems(Prefix:IdItems, Star:Id, Suffix:IdItems, valItemsCons(tupleVal(VS:ValItems), Rest:ValItems), {}, Else:Block) =>
+           forStarUnpackElseItems(Prefix, Star, Suffix, Rest, {}, Else)
+       ... </k>
+       <env> Rho => bindStarUnpack(Rho, Prefix, Star, Suffix, VS) </env>
+    requires starUnpackArityOk(Prefix, Suffix, valItemsLen(VS))
+  rule <k> forStarUnpackElseItems(Prefix:IdItems, Star:Id, Suffix:IdItems, valItemsCons([], Rest:ValItems), {}, Else:Block) =>
+           forStarUnpackElseItems(Prefix, Star, Suffix, Rest, {}, Else)
+       ... </k>
+       <env> Rho => Rho [ Star <- [] ] </env>
+    requires idItemsLen(Prefix) +Int idItemsLen(Suffix) ==Int 0
+  rule <k> forStarUnpackElseItems(Prefix:IdItems, Star:Id, Suffix:IdItems, valItemsCons((), Rest:ValItems), {}, Else:Block) =>
+           forStarUnpackElseItems(Prefix, Star, Suffix, Rest, {}, Else)
+       ... </k>
+       <env> Rho => Rho [ Star <- [] ] </env>
+    requires idItemsLen(Prefix) +Int idItemsLen(Suffix) ==Int 0
+  rule <k> forStarUnpackElseItems(Prefix:IdItems, Star:Id, Suffix:IdItems, valItemsLast(listVal(VS:ValItems)), {}, Else:Block) =>
+           runLoopElse(Else)
+       ... </k>
+       <env> Rho => bindStarUnpack(Rho, Prefix, Star, Suffix, VS) </env>
+    requires starUnpackArityOk(Prefix, Suffix, valItemsLen(VS))
+  rule <k> forStarUnpackElseItems(Prefix:IdItems, Star:Id, Suffix:IdItems, valItemsLast(tupleVal(VS:ValItems)), {}, Else:Block) =>
+           runLoopElse(Else)
+       ... </k>
+       <env> Rho => bindStarUnpack(Rho, Prefix, Star, Suffix, VS) </env>
+    requires starUnpackArityOk(Prefix, Suffix, valItemsLen(VS))
+  rule <k> forStarUnpackElseItems(Prefix:IdItems, Star:Id, Suffix:IdItems, valItemsLast([]), {}, Else:Block) =>
+           runLoopElse(Else)
+       ... </k>
+       <env> Rho => Rho [ Star <- [] ] </env>
+    requires idItemsLen(Prefix) +Int idItemsLen(Suffix) ==Int 0
+  rule <k> forStarUnpackElseItems(Prefix:IdItems, Star:Id, Suffix:IdItems, valItemsLast(()), {}, Else:Block) =>
+           runLoopElse(Else)
+       ... </k>
+       <env> Rho => Rho [ Star <- [] ] </env>
+    requires idItemsLen(Prefix) +Int idItemsLen(Suffix) ==Int 0
+
   rule <k> forElseRange(X:Id, I:Int, Stop:Int, block(SS:Stmts), Else:Block) =>
            SS ~> forElseRangeAgain(X, I +Int 1, Stop, block(SS), Else)
        ... </k>
@@ -2361,6 +2553,11 @@ module PYTHON
            forUnpackItems(IDS, VS, Body)
        ... </k>
   rule <k> returnSignal(V:Val) ~> forUnpackItems(_:IdItems, _:ValItems, _:Block) => returnSignal(V) ... </k>
+  rule <k> breakSignal ~> forStarUnpackItems(_:IdItems, _:Id, _:IdItems, _:ValItems, _:Block) => stmtNoResult ... </k>
+  rule <k> continueSignal ~> forStarUnpackItems(Prefix:IdItems, Star:Id, Suffix:IdItems, VS:ValItems, Body:Block) =>
+           forStarUnpackItems(Prefix, Star, Suffix, VS, Body)
+       ... </k>
+  rule <k> returnSignal(V:Val) ~> forStarUnpackItems(_:IdItems, _:Id, _:IdItems, _:ValItems, _:Block) => returnSignal(V) ... </k>
   rule <k> breakSignal ~> forRangeAgain(_:Id, _:Int, _:Int, _:Block) => stmtNoResult ... </k>
   rule <k> continueSignal ~> forRangeAgain(X:Id, I:Int, Stop:Int, Body:Block) =>
            forRange(X, I, Stop, Body)
@@ -2387,6 +2584,11 @@ module PYTHON
   rule <k> continueSignal ~> forUnpackElseDone(Else:Block) => runLoopElse(Else) ... </k>
   rule <k> returnSignal(V:Val) ~> forUnpackElseItems(_:IdItems, _:ValItems, _:Block, _:Block) => returnSignal(V) ... </k>
   rule <k> returnSignal(V:Val) ~> forUnpackElseDone(_:Block) => returnSignal(V) ... </k>
+  rule <k> breakSignal ~> forStarUnpackElseItems(_:IdItems, _:Id, _:IdItems, _:ValItems, _:Block, _:Block) => stmtNoResult ... </k>
+  rule <k> continueSignal ~> forStarUnpackElseItems(Prefix:IdItems, Star:Id, Suffix:IdItems, VS:ValItems, Body:Block, Else:Block) =>
+           forStarUnpackElseItems(Prefix, Star, Suffix, VS, Body, Else)
+       ... </k>
+  rule <k> returnSignal(V:Val) ~> forStarUnpackElseItems(_:IdItems, _:Id, _:IdItems, _:ValItems, _:Block, _:Block) => returnSignal(V) ... </k>
   rule <k> breakSignal ~> forElseRangeAgain(_:Id, _:Int, _:Int, _:Block, _:Block) => stmtNoResult ... </k>
   rule <k> continueSignal ~> forElseRangeAgain(X:Id, I:Int, Stop:Int, Body:Block, Else:Block) =>
            forElseRange(X, I, Stop, Body, Else)

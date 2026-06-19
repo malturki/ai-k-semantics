@@ -114,6 +114,7 @@ run_case "adapter-for-unpack" "$ROOT/tests/adapter/adapter-for-unpack.py" "True 
 run_case "adapter-for-unpack-list-target" "$ROOT/tests/adapter/adapter-for-unpack-list-target.py" "True ~> .K"
 run_case "adapter-for-unpack-break-continue" "$ROOT/tests/adapter/adapter-for-unpack-break-continue.py" "True ~> .K"
 run_case "adapter-for-unpack-else" "$ROOT/tests/adapter/adapter-for-unpack-else.py" "True ~> .K"
+run_case "adapter-for-star-unpack" "$ROOT/tests/adapter/adapter-for-star-unpack.py" "True ~> .K"
 run_case "adapter-for-else-normal" "$ROOT/tests/adapter/adapter-for-else-normal.py" "True ~> .K"
 run_case "adapter-for-else-break" "$ROOT/tests/adapter/adapter-for-else-break.py" "True ~> .K"
 run_case "adapter-for-else-continue" "$ROOT/tests/adapter/adapter-for-else-continue.py" "True ~> .K"

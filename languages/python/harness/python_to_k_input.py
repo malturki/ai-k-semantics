@@ -307,11 +307,23 @@ def emit_for_stmt(
             return f"#for({target.id}, {emit_exp(iter_)}, {emit_block(body)})"
         return f"#forElse({target.id}, {emit_exp(iter_)}, {emit_block(body)}, {emit_block(orelse)})"
     if isinstance(target, ast.Tuple | ast.List):
+        star_parts = emit_starred_target_parts(target, "for")
+        if star_parts is not None:
+            prefix, star, suffix = star_parts
+            if not orelse:
+                return (
+                    f"#forStarUnpack({emit_id_items(prefix)}, {star}, {emit_id_items(suffix)}, "
+                    f"{emit_exp(iter_)}, {emit_block(body)})"
+                )
+            return (
+                f"#forStarUnpackElse({emit_id_items(prefix)}, {star}, {emit_id_items(suffix)}, "
+                f"{emit_exp(iter_)}, {emit_block(body)}, {emit_block(orelse)})"
+            )
         ids = emit_id_items(emit_flat_target_names(target))
         if not orelse:
             return f"#forUnpack({ids}, {emit_exp(iter_)}, {emit_block(body)})"
         return f"#forUnpackElse({ids}, {emit_exp(iter_)}, {emit_block(body)}, {emit_block(orelse)})"
-    raise unsupported(node, "only simple-name and flat sequence for targets are supported")
+    raise unsupported(node, "only simple-name and flat/starred sequence for targets are supported")
 
 
 def emit_assign(node: ast.AST, targets: list[ast.expr], value: ast.expr) -> str:
@@ -334,23 +346,34 @@ def emit_assign(node: ast.AST, targets: list[ast.expr], value: ast.expr) -> str:
 
 
 def emit_sequence_assign(target: ast.Tuple | ast.List, value: ast.expr) -> str:
+    star_parts = emit_starred_target_parts(target, "assignment")
+    if star_parts is None:
+        return f"#unpackAssign({emit_id_items(emit_flat_target_names(target))}; {emit_exp(value)})"
+    prefix, star, suffix = star_parts
+    return (
+        f"#unpackStarAssign({emit_id_items(prefix)}; {star}; "
+        f"{emit_id_items(suffix)}; {emit_exp(value)})"
+    )
+
+
+def emit_starred_target_parts(
+    target: ast.Tuple | ast.List,
+    context: str,
+) -> tuple[list[str], str, list[str]] | None:
     star_indexes = [index for index, elt in enumerate(target.elts) if isinstance(elt, ast.Starred)]
     if not star_indexes:
-        return f"#unpackAssign({emit_id_items(emit_flat_target_names(target))}; {emit_exp(value)})"
+        return None
     if len(star_indexes) > 1:
-        raise unsupported(target.elts[star_indexes[1]], "only one starred assignment target is allowed")
+        raise unsupported(target.elts[star_indexes[1]], f"only one starred {context} target is allowed")
 
     star_index = star_indexes[0]
     star = target.elts[star_index]
     if not isinstance(star, ast.Starred) or not isinstance(star.value, ast.Name):
-        raise unsupported(star, "only simple-name starred assignment targets are supported")
+        raise unsupported(star, f"only simple-name starred {context} targets are supported")
 
     prefix = emit_flat_target_names_from_elts(target.elts[:star_index])
     suffix = emit_flat_target_names_from_elts(target.elts[star_index + 1 :])
-    return (
-        f"#unpackStarAssign({emit_id_items(prefix)}; {star.value.id}; "
-        f"{emit_id_items(suffix)}; {emit_exp(value)})"
-    )
+    return prefix, star.value.id, suffix
 
 
 def emit_flat_target_names(target: ast.Tuple | ast.List) -> list[str]:

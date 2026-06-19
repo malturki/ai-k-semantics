@@ -74,7 +74,7 @@ The base modules should model portable Python semantics from the official docs. 
 - adapter-backed `if` statements with optional `else`
 - adapter-backed `while` loops with `break`, `continue`, and loop `else`
 - adapter-backed `for` loops over the current string/list/tuple/dict value subset, including `break`, `continue`, and `return` propagation
-- adapter-backed flat sequence unpacking targets in `for` loops
+- adapter-backed flat and starred sequence unpacking targets in `for` loops
 - adapter-backed `while`/`for` loop `else` clauses for the current loop subsets
 - adapter-backed `range(stop)`, `range(start, stop)`, and `range(start, stop, step)` values in `for` loops
 - adapter-backed range truthiness, equality, integer-like membership, indexing, nonzero-step slicing, and length
@@ -87,7 +87,7 @@ Current parser caveat: the K frontend treats `//` in direct K input files as a c
 
 Current container caveat: direct concrete list, tuple, dict, and set smoke tests use Python-valid trailing commas, such as `[1, 2,]`, `(1, 2,)`, `{"x": 1,}`, and `{1, 2,}`, because the first executable K container grammar avoids ambiguities caused by un-delimited element productions. The AST adapter now accepts ordinary Python list, tuple, dict, set displays, no-argument `list()`, `tuple()`, `dict()`, and `set()` constructors, and `list(x)`/`tuple(x)` over current ordered concrete string/list/tuple/dict/range values for the supported expression subset and emits explicit internal forms. Full displays still need unpacking, mutation, comprehensions, dictionary unpacking, set-to-list/tuple conversion order, zero-step slice diagnostics, non-integer repetition diagnostics, mutable-element aliasing behavior for repeated lists, cross-type ordering/concatenation diagnostics, hashability/error behavior, and complete error behavior.
 
-Current compound-statement caveat: the K parser does not yet accept Python indentation syntax directly. The AST adapter emits internal `#if`, `#while`, `#whileElse`, `#for`, `#forElse`, and `#def` statements with explicit blocks for the supported subset. `for` iteration is defined only for current concrete string/list/tuple/dict/range values, with dictionaries iterating over keys. General iterator protocol, `try`, `with`, `match`, full function definitions, class definitions, and async compound statements remain unsupported.
+Current compound-statement caveat: the K parser does not yet accept Python indentation syntax directly. The AST adapter emits internal `#if`, `#while`, `#whileElse`, `#for`, `#forElse`, unpacking-`for`, and `#def` statements with explicit blocks for the supported subset. `for` iteration is defined only for current concrete string/list/tuple/dict/range values, with dictionaries iterating over keys. General iterator protocol, `try`, `with`, `match`, full function definitions, class definitions, and async compound statements remain unsupported.
 
 Current range caveat: adapter-backed `range` support is an internal `rangeVal` subset used by `for` loops, `len`, equality, truthiness, integer-like containment, indexing, and nonzero-step slicing, including positive and negative integer steps. Zero-step `ValueError`, range object attributes, non-integer containment fallback, out-of-range `IndexError`, and the general iterator protocol remain unsupported.
 
@@ -95,7 +95,7 @@ Current builtin caveat: `len` is defined only for the current concrete string/co
 
 Current assignment-expression caveat: adapter-backed `NAME := expr` evaluates `expr`, binds the resulting value to `NAME` in the current single environment, and yields that value. Full named-expression support still needs concrete parser integration, grammar-position restrictions and diagnostics, comprehension scope behavior, and interaction with real module/function/class scopes.
 
-Current unpacking-assignment caveat: flat and starred assignment targets are adapter-backed for simple names and current concrete list/tuple RHS values. A starred target receives a list of remaining values, possibly empty, and prefix/star/suffix name binding follows left-to-right target order. General iterable unpacking, nested targets, starred targets in `for`, unpacking diagnostics, and attribute/subscript targets remain unsupported.
+Current unpacking caveat: flat and starred assignment targets are adapter-backed for simple names and current concrete list/tuple RHS values, and flat/starred `for` targets are adapter-backed over current concrete list/tuple item values. A starred target receives a list of remaining values, possibly empty, and prefix/star/suffix name binding follows left-to-right target order. General iterable unpacking, nested targets, unpacking diagnostics, and attribute/subscript targets remain unsupported.
 
 Current function caveat: adapter-backed `#def`, `#defArgs`, and `#defDefaults` cover zero or more positional parameters, optional suffix defaults evaluated at function definition time, keyword-only calls without positional arguments, mixed positional/keyword calls without starred argument unpacking or `**kwargs`, no decorators, no annotations, no positional-only or keyword-only parameters, no varargs/kwargs, and an environment-restore model. Full Python function objects need real frames, cells/closures, globals/nonlocals, descriptors, methods, and argument binding diagnostics.
 

@@ -501,6 +501,13 @@
       "coverage": ["for-statement", "sequence-unpacking-target", "loop-else-normal-completion", "ordinary-python-source-adapter"]
     },
     {
+      "id": "adapter-for-star-unpack",
+      "source": "../adapter/adapter-for-star-unpack.py",
+      "reference": "Python Language Reference 8.3 The for statement; 7.2 Assignment statements; PEP 3132 Extended Iterable Unpacking",
+      "expected_result": "True ~> .K",
+      "coverage": ["for-statement", "starred-target-unpacking", "empty-starred-rest-list", "loop-else-normal-completion", "loop-else-break-suppression", "break-statement", "continue-statement", "return-statement", "ordinary-python-source-adapter"]
+    },
+    {
       "id": "adapter-for-else-normal",
       "source": "../adapter/adapter-for-else-normal.py",
       "reference": "Python Language Reference 8.3 The for statement",

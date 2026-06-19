@@ -661,9 +661,9 @@
               "section": "Function definitions"
             }
           ],
-          "k_coverage": ["semantics/python.k: functionVal(Id, Block) for one positional parameter; functionValArgs(IdItems, Block) for adapter-backed zero/multi-positional #defArgs; return/fallthrough call execution with environment restoration"],
-          "test_coverage": ["tests/adapter/adapter-function-return.py", "tests/adapter/adapter-function-local.py", "tests/adapter/adapter-function-fallthrough.py", "tests/adapter/adapter-function-recursion.py", "tests/adapter/adapter-function-zero-arg.py", "tests/adapter/adapter-function-multi-arg.py", "tests/adapter/adapter-function-arg-expressions.py"],
-          "gaps": ["Need full function object identity and attributes, real frames, cells and closures, global/nonlocal handling, default and annotation evaluation, decorators, varargs, kwargs, keyword-only parameters, positional-only parameters, type parameters, descriptors/method binding, argument-binding diagnostics, and diagnostic behavior."]
+          "k_coverage": ["semantics/python.k: functionVal(Id, Block) for one positional parameter; functionValArgs(IdItems, Block) for adapter-backed zero/multi-positional #defArgs; functionValDefaults(IdItems, ArgVals, Block) for adapter-backed positional suffix defaults evaluated at definition time; return/fallthrough call execution with environment restoration"],
+          "test_coverage": ["tests/adapter/adapter-function-return.py", "tests/adapter/adapter-function-local.py", "tests/adapter/adapter-function-fallthrough.py", "tests/adapter/adapter-function-recursion.py", "tests/adapter/adapter-function-zero-arg.py", "tests/adapter/adapter-function-multi-arg.py", "tests/adapter/adapter-function-arg-expressions.py", "tests/adapter/adapter-function-defaults.py"],
+          "gaps": ["Need full function object identity and attributes, real frames, cells and closures, global/nonlocal handling, lambda defaults, annotation evaluation, decorators, varargs, kwargs, keyword-only parameters, positional-only parameters, type parameters, descriptors/method binding, argument-binding diagnostics, and diagnostic behavior."]
         },
         {
           "id": "compound.class-def",

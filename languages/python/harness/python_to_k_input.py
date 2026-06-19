@@ -278,12 +278,13 @@ def emit_function_def(
         args.posonlyargs
         or args.kwonlyargs
         or args.kw_defaults
-        or args.defaults
         or args.vararg is not None
         or args.kwarg is not None
     ):
-        raise unsupported(node, "function defaults, keyword-only parameters, varargs, and kwargs are not supported yet")
+        raise unsupported(node, "positional-only, keyword-only, varargs, and kwargs are not supported yet")
     names = [arg.arg for arg in args.args]
+    if args.defaults:
+        return f"#defDefaults({name}, {emit_id_items(names)}, {emit_arg_exps(args.defaults)}, {emit_block(body)})"
     if len(names) == 1:
         return f"#def({name}, {names[0]}, {emit_block(body)})"
     return f"#defArgs({name}, {emit_id_items(names)}, {emit_block(body)})"

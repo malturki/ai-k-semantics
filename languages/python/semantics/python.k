@@ -82,6 +82,7 @@ module PYTHON-SYNTAX
                 | "return" Exp [symbol(returnStmt), strict]
                 | "#def" "(" Id "," Id "," Block ")" [symbol(functionDefStmt)]
                 | "#defArgs" "(" Id "," IdItems "," Block ")" [symbol(functionDefArgsStmt)]
+                | "#defDefaults" "(" Id "," IdItems "," ArgExps "," Block ")" [symbol(functionDefDefaultsStmt)]
                 | "#if" "(" Exp "," Block "," Block ")" [symbol(ifStmt)]
                 | "#while" "(" Exp "," Block ")" [symbol(whileStmt)]
                 | "#whileElse" "(" Exp "," Block "," Block ")" [symbol(whileElseStmt)]
@@ -171,6 +172,7 @@ module PYTHON
                | closureArgs(IdItems, Exp) [symbol(closureArgs)]
                | functionVal(Id, Block) [symbol(functionVal)]
                | functionValArgs(IdItems, Block) [symbol(functionValArgs)]
+               | functionValDefaults(IdItems, ArgVals, Block) [symbol(functionValDefaults)]
                | rangeVal(Int, Int) [symbol(rangeVal)]
                | rangeVal(Int, Int, Int) [symbol(rangeValStep)]
                | argsVal(ArgVals) [symbol(argsVal)]
@@ -231,6 +233,7 @@ module PYTHON
                  | "continueSignal" [symbol(continueSignal)]
                  | returnSignal(Val) [symbol(returnSignal)]
                  | functionDone(Map) [symbol(functionDone)]
+                 | bindFunctionDefaults(Id, IdItems, Block) [symbol(bindFunctionDefaults)]
                  | assignMany(IdItems, Val) [symbol(assignMany)]
 
   syntax Bool ::= truthy(Val) [function, symbol(truthy)]
@@ -253,6 +256,7 @@ module PYTHON
                 | sameArity(IdItems, ArgVals) [function, symbol(sameArity)]
                 | sameIdValArity(IdItems, ValItems) [function, symbol(sameIdValArity)]
                 | starUnpackArityOk(IdItems, IdItems, Int) [function, symbol(starUnpackArityOk)]
+                | defaultsCallArityOk(IdItems, ArgVals, ArgVals) [function, symbol(defaultsCallArityOk)]
                 | emptyArgVals(ArgVals) [function, symbol(emptyArgVals)]
                 | emptyDictVals(DictVals) [function, symbol(emptyDictVals)]
                 | containsVal(Val, ValItems) [function, symbol(containsVal)]
@@ -279,6 +283,7 @@ module PYTHON
                | pySliceIndexNeg(Int, Int) [function, symbol(pySliceIndexNeg)]
                | valItemsLen(ValItems) [function, symbol(valItemsLen)]
                | idItemsLen(IdItems) [function, symbol(idItemsLen)]
+               | argValsLen(ArgVals) [function, symbol(argValsLen)]
                | dictItemsLen(DictItems) [function, symbol(dictItemsLen)]
                | rangeGet(Int, Int, Int, Int) [function, symbol(rangeGet)]
                | sumValItems(ValItems) [function, symbol(sumValItems)]
@@ -293,6 +298,9 @@ module PYTHON
   syntax ArgVals ::= "#noArgVals" [symbol(noArgVals)]
                    | argValsCons(Val, ArgVals) [symbol(argValsCons)]
                    | appendArgVal(ArgVals, Val) [function, symbol(appendArgVal)]
+                   | concatArgVals(ArgVals, ArgVals) [function, symbol(concatArgVals)]
+                   | dropArgVals(ArgVals, Int) [function, symbol(dropArgVals)]
+                   | completeDefaultArgs(IdItems, ArgVals, ArgVals) [function, symbol(completeDefaultArgs)]
   syntax DictVals ::= "#noDictVals" [symbol(noDictVals)]
                     | dictValsCons(Val, Val, DictVals) [symbol(dictValsCons)]
                     | appendDictVal(DictVals, Val, Val) [function, symbol(appendDictVal)]
@@ -341,6 +349,7 @@ module PYTHON
   rule truthy(closureArgs(_:IdItems, _:Exp)) => true
   rule truthy(functionVal(_:Id, _:Block)) => true
   rule truthy(functionValArgs(_:IdItems, _:Block)) => true
+  rule truthy(functionValDefaults(_:IdItems, _:ArgVals, _:Block)) => true
   rule truthy(rangeVal(Start:Int, Stop:Int)) => Start <Int Stop
   rule truthy(rangeVal(Start:Int, Stop:Int, Step:Int)) => pyRangeLen(Start, Stop, Step) >Int 0
     requires Step =/=Int 0
@@ -364,6 +373,7 @@ module PYTHON
   rule isIntLike(closureArgs(_:IdItems, _:Exp)) => false
   rule isIntLike(functionVal(_:Id, _:Block)) => false
   rule isIntLike(functionValArgs(_:IdItems, _:Block)) => false
+  rule isIntLike(functionValDefaults(_:IdItems, _:ArgVals, _:Block)) => false
   rule isIntLike(rangeVal(_:Int, _:Int)) => false
   rule isIntLike(rangeVal(_:Int, _:Int, _:Int)) => false
   rule isIntLike(argsVal(_:ArgVals)) => false
@@ -386,6 +396,7 @@ module PYTHON
   rule singletonIdentity(closureArgs(_:IdItems, _:Exp)) => false
   rule singletonIdentity(functionVal(_:Id, _:Block)) => false
   rule singletonIdentity(functionValArgs(_:IdItems, _:Block)) => false
+  rule singletonIdentity(functionValDefaults(_:IdItems, _:ArgVals, _:Block)) => false
   rule singletonIdentity(rangeVal(_:Int, _:Int)) => false
   rule singletonIdentity(rangeVal(_:Int, _:Int, _:Int)) => false
   rule singletonIdentity(argsVal(_:ArgVals)) => false
@@ -497,6 +508,9 @@ module PYTHON
   rule idItemsLen(#noIds) => 0
   rule idItemsLen(idItemsLast(_:Id)) => 1
   rule idItemsLen(idItemsCons(_:Id, IDS:IdItems)) => 1 +Int idItemsLen(IDS)
+
+  rule argValsLen(#noArgVals) => 0
+  rule argValsLen(argValsCons(_:Val, VS:ArgVals)) => 1 +Int argValsLen(VS)
 
   rule dictItemsLen(dictItemsLast(_:Val, _:Val)) => 1
   rule dictItemsLen(dictItemsCons(_:Val, _:Val, DS:DictItems)) => 1 +Int dictItemsLen(DS)
@@ -713,6 +727,11 @@ module PYTHON
   rule starUnpackArityOk(Prefix:IdItems, Suffix:IdItems, Len:Int) =>
     idItemsLen(Prefix) +Int idItemsLen(Suffix) <=Int Len
 
+  rule defaultsCallArityOk(IDS:IdItems, VS:ArgVals, Defaults:ArgVals) =>
+    argValsLen(VS) <=Int idItemsLen(IDS)
+      andBool idItemsLen(IDS) -Int argValsLen(VS) <=Int argValsLen(Defaults)
+      andBool argValsLen(Defaults) <=Int idItemsLen(IDS)
+
   rule emptyArgVals(#noArgVals) => true
   rule emptyArgVals(argValsCons(_:Val, _:ArgVals)) => false
 
@@ -722,6 +741,22 @@ module PYTHON
   rule appendArgVal(#noArgVals, V:Val) => argValsCons(V, #noArgVals)
   rule appendArgVal(argValsCons(V0:Val, VS:ArgVals), V:Val) =>
     argValsCons(V0, appendArgVal(VS, V))
+
+  rule concatArgVals(#noArgVals, VS:ArgVals) => VS
+  rule concatArgVals(argValsCons(V:Val, VS1:ArgVals), VS2:ArgVals) =>
+    argValsCons(V, concatArgVals(VS1, VS2))
+
+  rule dropArgVals(VS:ArgVals, 0) => VS
+  rule dropArgVals(argValsCons(_:Val, VS:ArgVals), N:Int) => dropArgVals(VS, N -Int 1)
+    requires N >Int 0
+
+  rule completeDefaultArgs(IDS:IdItems, VS:ArgVals, Defaults:ArgVals) =>
+    concatArgVals(
+      VS,
+      dropArgVals(
+        Defaults,
+        argValsLen(Defaults) -Int (idItemsLen(IDS) -Int argValsLen(VS))))
+    requires defaultsCallArityOk(IDS, VS, Defaults)
 
   rule appendDictVal(#noDictVals, K:Val, V:Val) => dictValsCons(K, V, #noDictVals)
   rule appendDictVal(dictValsCons(K0:Val, _:Val, DVS:DictVals), K:Val, V:Val) =>
@@ -987,6 +1022,7 @@ module PYTHON
   rule isListSequence(closureArgs(_:IdItems, _:Exp)) => false
   rule isListSequence(functionVal(_:Id, _:Block)) => false
   rule isListSequence(functionValArgs(_:IdItems, _:Block)) => false
+  rule isListSequence(functionValDefaults(_:IdItems, _:ArgVals, _:Block)) => false
   rule isListSequence(rangeVal(_:Int, _:Int)) => false
   rule isListSequence(rangeVal(_:Int, _:Int, _:Int)) => false
   rule isListSequence(argsVal(_:ArgVals)) => false
@@ -1009,6 +1045,7 @@ module PYTHON
   rule isTupleSequence(closureArgs(_:IdItems, _:Exp)) => false
   rule isTupleSequence(functionVal(_:Id, _:Block)) => false
   rule isTupleSequence(functionValArgs(_:IdItems, _:Block)) => false
+  rule isTupleSequence(functionValDefaults(_:IdItems, _:ArgVals, _:Block)) => false
   rule isTupleSequence(rangeVal(_:Int, _:Int)) => false
   rule isTupleSequence(rangeVal(_:Int, _:Int, _:Int)) => false
   rule isTupleSequence(argsVal(_:ArgVals)) => false
@@ -1371,6 +1408,16 @@ module PYTHON
            None ~> restoreEnv(Rho)
        ... </k>
        <env> Rho => Rho [ X <- A ] </env>
+  rule <k> A:Val ~> callApply(functionValDefaults(IDS:IdItems, Defaults:ArgVals, block(SS:Stmts))) =>
+           SS ~> functionDone(Rho)
+       ... </k>
+       <env> Rho => bindArgs(Rho, IDS, completeDefaultArgs(IDS, argValsCons(A, #noArgVals), Defaults)) </env>
+    requires defaultsCallArityOk(IDS, argValsCons(A, #noArgVals), Defaults)
+  rule <k> A:Val ~> callApply(functionValDefaults(IDS:IdItems, Defaults:ArgVals, {})) =>
+           None ~> restoreEnv(Rho)
+       ... </k>
+       <env> Rho => bindArgs(Rho, IDS, completeDefaultArgs(IDS, argValsCons(A, #noArgVals), Defaults)) </env>
+    requires defaultsCallArityOk(IDS, argValsCons(A, #noArgVals), Defaults)
   rule <k> V:Val ~> restoreEnv(Rho:Map) => V ... </k>
        <env> _ => Rho </env>
 
@@ -1403,6 +1450,16 @@ module PYTHON
        ... </k>
        <env> Rho => bindArgs(Rho, IDS, VS) </env>
     requires sameArity(IDS, VS)
+  rule <k> argsVal(VS:ArgVals) ~> callApplyArgs(functionValDefaults(IDS:IdItems, Defaults:ArgVals, block(SS:Stmts))) =>
+           SS ~> functionDone(Rho)
+       ... </k>
+       <env> Rho => bindArgs(Rho, IDS, completeDefaultArgs(IDS, VS, Defaults)) </env>
+    requires defaultsCallArityOk(IDS, VS, Defaults)
+  rule <k> argsVal(VS:ArgVals) ~> callApplyArgs(functionValDefaults(IDS:IdItems, Defaults:ArgVals, {})) =>
+           None ~> restoreEnv(Rho)
+       ... </k>
+       <env> Rho => bindArgs(Rho, IDS, completeDefaultArgs(IDS, VS, Defaults)) </env>
+    requires defaultsCallArityOk(IDS, VS, Defaults)
 
   rule <k> listDisplayExp(Args:ArgExps) => evalArgs(Args, #noArgVals) ~> buildList ... </k>
   rule <k> argsVal(#noArgVals) ~> buildList => [] ... </k>
@@ -1645,6 +1702,12 @@ module PYTHON
        <result> _ => .K </result>
   rule <k> functionDefArgsStmt(F:Id, IDS:IdItems, Body:Block) => stmtNoResult ... </k>
        <env> Rho => Rho [ F <- functionValArgs(IDS, Body) ] </env>
+       <result> _ => .K </result>
+  rule <k> functionDefDefaultsStmt(F:Id, IDS:IdItems, Defaults:ArgExps, Body:Block) =>
+           evalArgs(Defaults, #noArgVals) ~> bindFunctionDefaults(F, IDS, Body)
+       ... </k>
+  rule <k> argsVal(Defaults:ArgVals) ~> bindFunctionDefaults(F:Id, IDS:IdItems, Body:Block) => stmtNoResult ... </k>
+       <env> Rho => Rho [ F <- functionValDefaults(IDS, Defaults, Body) ] </env>
        <result> _ => .K </result>
 
   rule <k> ifStmt(C:Exp, Then:Block, Else:Block) =>

@@ -396,6 +396,13 @@
       "coverage": ["function-definition", "multi-positional-call", "argument-expression-evaluation", "ordinary-python-source-adapter"]
     },
     {
+      "id": "adapter-function-defaults",
+      "source": "../adapter/adapter-function-defaults.py",
+      "reference": "Python Language Reference 8.7 Function definitions; 6.3.4 Calls; 6.16 Evaluation order",
+      "expected_result": "True ~> .K",
+      "coverage": ["function-definition", "default-parameter-values", "definition-time-default-evaluation", "positional-call-default-filling", "ordinary-python-source-adapter"]
+    },
+    {
       "id": "adapter-lambda-multi-arg",
       "source": "../adapter/adapter-lambda-multi-arg.py",
       "reference": "Python Language Reference 6.14 Lambdas; 6.3.4 Calls",

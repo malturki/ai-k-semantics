@@ -45,7 +45,9 @@ run_case() {
 
 run_case "adapter-floor-div" "$ROOT/tests/adapter/adapter-floor-div.py" "True ~> .K"
 run_case "adapter-list-normal" "$ROOT/tests/adapter/adapter-list-normal.py" "True ~> .K"
+run_case "adapter-list-expressions" "$ROOT/tests/adapter/adapter-list-expressions.py" "True ~> .K"
 run_case "adapter-tuple-normal" "$ROOT/tests/adapter/adapter-tuple-normal.py" "True ~> .K"
+run_case "adapter-tuple-expressions" "$ROOT/tests/adapter/adapter-tuple-expressions.py" "True ~> .K"
 run_case "adapter-lambda-normal" "$ROOT/tests/adapter/adapter-lambda-normal.py" "7 ~> .K"
 run_case "adapter-if" "$ROOT/tests/adapter/adapter-if.py" "True ~> .K"
 run_case "adapter-if-no-else" "$ROOT/tests/adapter/adapter-if-no-else.py" "True ~> .K"
@@ -70,6 +72,8 @@ run_case "adapter-range-start-stop" "$ROOT/tests/adapter/adapter-range-start-sto
 run_case "adapter-range-break-continue" "$ROOT/tests/adapter/adapter-range-break-continue.py" "True ~> .K"
 run_case "adapter-dict" "$ROOT/tests/adapter/adapter-dict.py" "True ~> .K"
 run_case "adapter-dict-truthy" "$ROOT/tests/adapter/adapter-dict-truthy.py" "True ~> .K"
+run_case "adapter-dict-expressions" "$ROOT/tests/adapter/adapter-dict-expressions.py" "True ~> .K"
 run_case "adapter-set" "$ROOT/tests/adapter/adapter-set.py" "True ~> .K"
+run_case "adapter-set-expressions" "$ROOT/tests/adapter/adapter-set-expressions.py" "True ~> .K"
 run_case "adapter-assign-many" "$ROOT/tests/adapter/adapter-assign-many.py" "True ~> .K"
 run_case "adapter-augmented-more" "$ROOT/tests/adapter/adapter-augmented-more.py" "True ~> .K"

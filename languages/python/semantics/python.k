@@ -32,6 +32,10 @@ module PYTHON-SYNTAX
                    | "#arg" "(" Exp ")" [symbol(argExp)]
                    | "#args" "(" Exp "," ArgExps ")" [symbol(argExpsCons)]
 
+  syntax DictExps ::= "#noDictItems" [symbol(noDictExps)]
+                    | "#dictItem" "(" Exp "," Exp ")" [symbol(dictExpItem)]
+                    | "#dictItems" "(" Exp "," Exp "," DictExps ")" [symbol(dictExpsCons)]
+
   syntax Stmts ::= Stmt ";" Stmts [symbol(stmtsCons)]
                  | Stmt ";" [symbol(stmtsLast)]
 
@@ -70,6 +74,10 @@ module PYTHON-SYNTAX
                | "(" Exp ")" [bracket]
                | Exp "(" Exp ")" [symbol(callExp)]
                | "#call" "(" Exp "," ArgExps ")" [symbol(callArgsExp)]
+               | "#list" "(" ArgExps ")" [symbol(listDisplayExp)]
+               | "#tuple" "(" ArgExps ")" [symbol(tupleDisplayExp)]
+               | "#dict" "(" DictExps ")" [symbol(dictDisplayExp)]
+               | "#set" "(" ArgExps ")" [symbol(setDisplayExp)]
                | "#floorDiv" "(" Exp "," Exp ")" [symbol(floorDivInternal), strict]
                | "+" Exp [symbol(posExp), strict]
                | "-" Exp [symbol(negExp), strict]
@@ -117,6 +125,7 @@ module PYTHON
                | functionValArgs(IdItems, Block) [symbol(functionValArgs)]
                | rangeVal(Int, Int) [symbol(rangeVal)]
                | argsVal(ArgVals) [symbol(argsVal)]
+               | dictArgsVal(DictVals) [symbol(dictArgsVal)]
 
   syntax KResult ::= Val
   syntax KItem ::= stmtNext(Stmts) [symbol(stmtNext)]
@@ -131,6 +140,13 @@ module PYTHON
                  | evalArgs(ArgExps, ArgVals) [symbol(evalArgs)]
                  | evalArgNext(ArgExps, ArgVals) [symbol(evalArgNext)]
                  | callApplyArgs(Val) [symbol(callApplyArgs)]
+                 | "buildList" [symbol(buildList)]
+                 | "buildTuple" [symbol(buildTuple)]
+                 | "buildSet" [symbol(buildSet)]
+                 | evalDict(DictExps, DictVals) [symbol(evalDict)]
+                 | evalDictValue(Exp, DictExps, DictVals) [symbol(evalDictValue)]
+                 | evalDictNext(DictExps, DictVals, Val) [symbol(evalDictNext)]
+                 | "buildDict" [symbol(buildDict)]
                  | restoreEnv(Map) [symbol(restoreEnv)]
                  | ifStmtBranch(Block, Block) [symbol(ifStmtBranch)]
                  | "ifStmtDone" [symbol(ifStmtDone)]
@@ -152,6 +168,8 @@ module PYTHON
                 | valEq(Val, Val) [function, symbol(valEq)]
                 | valsEq(ValItems, ValItems) [function, symbol(valsEq)]
                 | sameArity(IdItems, ArgVals) [function, symbol(sameArity)]
+                | emptyArgVals(ArgVals) [function, symbol(emptyArgVals)]
+                | emptyDictVals(DictVals) [function, symbol(emptyDictVals)]
                 | containsVal(Val, ValItems) [function, symbol(containsVal)]
                 | containsKey(Val, DictItems) [function, symbol(containsKey)]
 
@@ -161,7 +179,12 @@ module PYTHON
   syntax ArgVals ::= "#noArgVals" [symbol(noArgVals)]
                    | argValsCons(Val, ArgVals) [symbol(argValsCons)]
                    | appendArgVal(ArgVals, Val) [function, symbol(appendArgVal)]
+  syntax DictVals ::= "#noDictVals" [symbol(noDictVals)]
+                    | dictValsCons(Val, Val, DictVals) [symbol(dictValsCons)]
+                    | appendDictVal(DictVals, Val, Val) [function, symbol(appendDictVal)]
   syntax Map ::= bindArgs(Map, IdItems, ArgVals) [function, symbol(bindArgs)]
+  syntax ValItems ::= argValsToValItems(ArgVals) [function, symbol(argValsToValItems)]
+  syntax DictItems ::= dictValsToDictItems(DictVals) [function, symbol(dictValsToDictItems)]
   syntax Val ::= listGet(ValItems, Int) [function, symbol(listGet)]
   syntax Val ::= dictGet(DictItems, Val) [function, symbol(dictGet)]
   syntax Val ::= boolValue(Bool) [function, symbol(boolValue)]
@@ -185,6 +208,7 @@ module PYTHON
   rule truthy(functionValArgs(_:IdItems, _:Block)) => true
   rule truthy(rangeVal(Start:Int, Stop:Int)) => Start <Int Stop
   rule truthy(argsVal(_:ArgVals)) => true
+  rule truthy(dictArgsVal(_:DictVals)) => true
 
   rule isIntLike(_:Int) => true
   rule isIntLike(_:String) => false
@@ -204,6 +228,7 @@ module PYTHON
   rule isIntLike(functionValArgs(_:IdItems, _:Block)) => false
   rule isIntLike(rangeVal(_:Int, _:Int)) => false
   rule isIntLike(argsVal(_:ArgVals)) => false
+  rule isIntLike(dictArgsVal(_:DictVals)) => false
 
   rule intValue(I:Int) => I
   rule intValue(True) => 1
@@ -332,14 +357,34 @@ module PYTHON
   rule sameArity(idItemsCons(_:Id, _:IdItems), #noArgVals) => false
   rule sameArity(idItemsCons(_:Id, IDS:IdItems), argValsCons(_:Val, VS:ArgVals)) => sameArity(IDS, VS)
 
+  rule emptyArgVals(#noArgVals) => true
+  rule emptyArgVals(argValsCons(_:Val, _:ArgVals)) => false
+
+  rule emptyDictVals(#noDictVals) => true
+  rule emptyDictVals(dictValsCons(_:Val, _:Val, _:DictVals)) => false
+
   rule appendArgVal(#noArgVals, V:Val) => argValsCons(V, #noArgVals)
   rule appendArgVal(argValsCons(V0:Val, VS:ArgVals), V:Val) =>
     argValsCons(V0, appendArgVal(VS, V))
+
+  rule appendDictVal(#noDictVals, K:Val, V:Val) => dictValsCons(K, V, #noDictVals)
+  rule appendDictVal(dictValsCons(K0:Val, V0:Val, DVS:DictVals), K:Val, V:Val) =>
+    dictValsCons(K0, V0, appendDictVal(DVS, K, V))
 
   rule bindArgs(Rho:Map, #noIds, #noArgVals) => Rho
   rule bindArgs(Rho:Map, idItemsLast(X:Id), argValsCons(V:Val, #noArgVals)) => Rho [ X <- V ]
   rule bindArgs(Rho:Map, idItemsCons(X:Id, IDS:IdItems), argValsCons(V:Val, VS:ArgVals)) =>
     bindArgs(Rho [ X <- V ], IDS, VS)
+
+  rule argValsToValItems(argValsCons(V:Val, #noArgVals)) => valItemsLast(V)
+  rule argValsToValItems(argValsCons(V:Val, VS:ArgVals)) =>
+    valItemsCons(V, argValsToValItems(VS))
+    requires notBool emptyArgVals(VS)
+
+  rule dictValsToDictItems(dictValsCons(K:Val, V:Val, #noDictVals)) => dictItemsLast(K, V)
+  rule dictValsToDictItems(dictValsCons(K:Val, V:Val, DVS:DictVals)) =>
+    dictItemsCons(K, V, dictValsToDictItems(DVS))
+    requires notBool emptyDictVals(DVS)
 
   rule valsEq(valItemsLast(V1:Val), valItemsLast(V2:Val)) => valEq(V1, V2)
   rule valsEq(valItemsCons(V1:Val, VS1:ValItems), valItemsCons(V2:Val, VS2:ValItems)) =>
@@ -513,6 +558,38 @@ module PYTHON
        ... </k>
        <env> Rho => bindArgs(Rho, IDS, VS) </env>
     requires sameArity(IDS, VS)
+
+  rule <k> listDisplayExp(Args:ArgExps) => evalArgs(Args, #noArgVals) ~> buildList ... </k>
+  rule <k> argsVal(#noArgVals) ~> buildList => [] ... </k>
+  rule <k> argsVal(VS:ArgVals) ~> buildList => listVal(argValsToValItems(VS)) ... </k>
+    requires notBool emptyArgVals(VS)
+
+  rule <k> tupleDisplayExp(Args:ArgExps) => evalArgs(Args, #noArgVals) ~> buildTuple ... </k>
+  rule <k> argsVal(#noArgVals) ~> buildTuple => () ... </k>
+  rule <k> argsVal(VS:ArgVals) ~> buildTuple => tupleVal(argValsToValItems(VS)) ... </k>
+    requires notBool emptyArgVals(VS)
+
+  rule <k> setDisplayExp(Args:ArgExps) => evalArgs(Args, #noArgVals) ~> buildSet ... </k>
+  rule <k> argsVal(VS:ArgVals) ~> buildSet => setVal(argValsToValItems(VS)) ... </k>
+    requires notBool emptyArgVals(VS)
+
+  rule <k> dictDisplayExp(Items:DictExps) => evalDict(Items, #noDictVals) ~> buildDict ... </k>
+  rule <k> evalDict(#noDictItems, DVS:DictVals) => dictArgsVal(DVS) ... </k>
+  rule <k> evalDict(dictExpItem(K:Exp, V:Exp), DVS:DictVals) =>
+           K ~> evalDictValue(V, #noDictItems, DVS)
+       ... </k>
+  rule <k> evalDict(dictExpsCons(K:Exp, V:Exp, Rest:DictExps), DVS:DictVals) =>
+           K ~> evalDictValue(V, Rest, DVS)
+       ... </k>
+  rule <k> K:Val ~> evalDictValue(V:Exp, Rest:DictExps, DVS:DictVals) =>
+           V ~> evalDictNext(Rest, DVS, K)
+       ... </k>
+  rule <k> V:Val ~> evalDictNext(Rest:DictExps, DVS:DictVals, K:Val) =>
+           evalDict(Rest, appendDictVal(DVS, K, V))
+       ... </k>
+  rule <k> dictArgsVal(#noDictVals) ~> buildDict => ({}):Val ... </k>
+  rule <k> dictArgsVal(DVS:DictVals) ~> buildDict => dictVal(dictValsToDictItems(DVS)) ... </k>
+    requires notBool emptyDictVals(DVS)
 
   rule range1Exp(N:Val) => rangeVal(0, intValue(N))
     requires isIntLike(N)

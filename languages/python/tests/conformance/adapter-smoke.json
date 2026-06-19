@@ -18,11 +18,25 @@
       "coverage": ["list-display-normal-spelling", "list-equality", "positive-list-index", "ordinary-python-source-adapter"]
     },
     {
+      "id": "adapter-list-expressions",
+      "source": "../adapter/adapter-list-expressions.py",
+      "reference": "Python Language Reference 6.2.4 Displays for lists, sets and dictionaries; 6.16 Evaluation order",
+      "expected_result": "True ~> .K",
+      "coverage": ["list-display", "expression-list-evaluation", "positive-list-index", "ordinary-python-source-adapter"]
+    },
+    {
       "id": "adapter-tuple-normal",
       "source": "../adapter/adapter-tuple-normal.py",
       "reference": "Python Language Reference 6.2.3 Parenthesized forms; 6.3.2 Subscriptions",
       "expected_result": "True ~> .K",
       "coverage": ["tuple-display-normal-spelling", "tuple-equality", "positive-tuple-index", "ordinary-python-source-adapter"]
+    },
+    {
+      "id": "adapter-tuple-expressions",
+      "source": "../adapter/adapter-tuple-expressions.py",
+      "reference": "Python Language Reference 6.2.3 Parenthesized forms; 6.16 Evaluation order",
+      "expected_result": "True ~> .K",
+      "coverage": ["tuple-display", "expression-list-evaluation", "positive-tuple-index", "ordinary-python-source-adapter"]
     },
     {
       "id": "adapter-lambda-normal",
@@ -193,11 +207,25 @@
       "coverage": ["dict-display-value-subset", "dict-truthiness", "ordinary-python-source-adapter"]
     },
     {
+      "id": "adapter-dict-expressions",
+      "source": "../adapter/adapter-dict-expressions.py",
+      "reference": "Python Language Reference 6.2.7 Dictionary displays; 6.16 Evaluation order",
+      "expected_result": "True ~> .K",
+      "coverage": ["dict-display", "key-value-expression-evaluation", "dict-subscription", "ordinary-python-source-adapter"]
+    },
+    {
       "id": "adapter-set",
       "source": "../adapter/adapter-set.py",
       "reference": "Python Language Reference 6.2.6 Set displays; 6.10 Comparisons; Standard Library truth value testing",
       "expected_result": "True ~> .K",
       "coverage": ["set-display-value-subset", "set-membership", "set-truthiness", "ordinary-python-source-adapter"]
+    },
+    {
+      "id": "adapter-set-expressions",
+      "source": "../adapter/adapter-set-expressions.py",
+      "reference": "Python Language Reference 6.2.6 Set displays; 6.16 Evaluation order",
+      "expected_result": "True ~> .K",
+      "coverage": ["set-display", "expression-list-evaluation", "set-membership", "ordinary-python-source-adapter"]
     },
     {
       "id": "adapter-assign-many",

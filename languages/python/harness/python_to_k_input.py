@@ -269,48 +269,35 @@ def emit_arg_exps(args: list[ast.expr]) -> str:
 
 
 def emit_list(elts: list[ast.expr]) -> str:
-    if not elts:
-        return "[]"
-    return "[" + ", ".join(emit_val_exp(elt) for elt in elts) + ",]"
+    return f"#list({emit_arg_exps(elts)})"
 
 
 def emit_tuple(elts: list[ast.expr]) -> str:
-    if not elts:
-        return "()"
-    return "(" + ", ".join(emit_val_exp(elt) for elt in elts) + ",)"
-
-
-def emit_val_exp(exp: ast.expr) -> str:
-    match exp:
-        case ast.Constant(value=value):
-            return emit_constant(exp, value)
-        case ast.List(elts=elts, ctx=ast.Load()):
-            return emit_list(elts)
-        case ast.Tuple(elts=elts, ctx=ast.Load()):
-            return emit_tuple(elts)
-        case ast.Dict(keys=keys, values=values):
-            return emit_dict(exp, keys, values)
-        case ast.Set(elts=elts):
-            return emit_set(elts)
-        case _:
-            raise unsupported(exp, "container displays currently support only value elements")
+    return f"#tuple({emit_arg_exps(elts)})"
 
 
 def emit_dict(node: ast.AST, keys: list[ast.expr | None], values: list[ast.expr]) -> str:
-    if not keys:
-        return "{}"
-    items: list[str] = []
+    pairs: list[tuple[ast.expr, ast.expr]] = []
     for key, value in zip(keys, values, strict=True):
         if key is None:
             raise unsupported(node, "dictionary unpacking is not supported yet")
-        items.append(f"{emit_val_exp(key)}: {emit_val_exp(value)}")
-    return "{" + ", ".join(items) + ",}"
+        pairs.append((key, value))
+    return f"#dict({emit_dict_exps(pairs)})"
+
+
+def emit_dict_exps(items: list[tuple[ast.expr, ast.expr]]) -> str:
+    if not items:
+        return "#noDictItems"
+    key, value = items[0]
+    if len(items) == 1:
+        return f"#dictItem({emit_exp(key)}, {emit_exp(value)})"
+    return f"#dictItems({emit_exp(key)}, {emit_exp(value)}, {emit_dict_exps(items[1:])})"
 
 
 def emit_set(elts: list[ast.expr]) -> str:
     if not elts:
         raise UnsupportedPythonSubset("empty set displays are not Python syntax; set() is not supported yet")
-    return "{" + ", ".join(emit_val_exp(elt) for elt in elts) + ",}"
+    return f"#set({emit_arg_exps(elts)})"
 
 
 def emit_aug_op(op: ast.operator) -> str:

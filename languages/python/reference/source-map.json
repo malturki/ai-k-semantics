@@ -335,8 +335,8 @@
               "section": "Atoms"
             }
           ],
-          "k_coverage": ["semantics/python.k: integer, simple string, trailing-comma list/tuple/dict/set values, True, False, None, names, and parenthesized expressions", "harness/python_to_k_input.py: AST adapter for the currently supported atom/display subset"],
-          "test_coverage": ["tests/examples/smoke-arithmetic.py", "tests/examples/smoke-assignment.py", "tests/examples/smoke-bool-constants.py", "tests/examples/smoke-strings.py", "tests/examples/smoke-lists.py", "tests/examples/smoke-tuples.py", "tests/adapter/adapter-list-normal.py", "tests/adapter/adapter-tuple-normal.py", "tests/adapter/adapter-dict.py", "tests/adapter/adapter-dict-truthy.py", "tests/adapter/adapter-set.py"],
+          "k_coverage": ["semantics/python.k: integer, simple string, trailing-comma list/tuple/dict/set values, adapter-backed expression display forms, True, False, None, names, and parenthesized expressions", "harness/python_to_k_input.py: AST adapter for the currently supported atom/display subset"],
+          "test_coverage": ["tests/examples/smoke-arithmetic.py", "tests/examples/smoke-assignment.py", "tests/examples/smoke-bool-constants.py", "tests/examples/smoke-strings.py", "tests/examples/smoke-lists.py", "tests/examples/smoke-tuples.py", "tests/adapter/adapter-list-normal.py", "tests/adapter/adapter-list-expressions.py", "tests/adapter/adapter-tuple-normal.py", "tests/adapter/adapter-tuple-expressions.py", "tests/adapter/adapter-dict.py", "tests/adapter/adapter-dict-truthy.py", "tests/adapter/adapter-dict-expressions.py", "tests/adapter/adapter-set.py", "tests/adapter/adapter-set-expressions.py"],
           "gaps": ["Need bytes, full containers, comprehensions, yield expressions, and ellipsis."]
         },
         {
@@ -350,9 +350,9 @@
               "section": "Displays for lists, sets and dictionaries"
             }
           ],
-          "k_coverage": ["semantics/python.k: trailing-comma list, tuple, dict, and nonempty set value display subset", "harness/python_to_k_input.py: ordinary Python list/tuple/dict/nonempty set displays translated to the current value-element subset"],
-          "test_coverage": ["tests/examples/smoke-lists.py", "tests/examples/smoke-tuples.py", "tests/adapter/adapter-list-normal.py", "tests/adapter/adapter-tuple-normal.py", "tests/adapter/adapter-dict.py", "tests/adapter/adapter-dict-truthy.py", "tests/adapter/adapter-set.py"],
-          "gaps": ["Need expression-list evaluation, direct non-trailing comma parser support, unpacking, mutation, scope behavior, async comprehensions, empty set constructor, duplicate dict-key overwrite behavior, and full dict/set rules."]
+          "k_coverage": ["semantics/python.k: trailing-comma list, tuple, dict, and nonempty set value display subset", "semantics/python.k: internal #list/#tuple/#dict/#set display forms evaluate supported element expressions left to right", "harness/python_to_k_input.py: ordinary Python list/tuple/dict/nonempty set displays translated to explicit internal display forms"],
+          "test_coverage": ["tests/examples/smoke-lists.py", "tests/examples/smoke-tuples.py", "tests/adapter/adapter-list-normal.py", "tests/adapter/adapter-list-expressions.py", "tests/adapter/adapter-tuple-normal.py", "tests/adapter/adapter-tuple-expressions.py", "tests/adapter/adapter-dict.py", "tests/adapter/adapter-dict-truthy.py", "tests/adapter/adapter-dict-expressions.py", "tests/adapter/adapter-set.py", "tests/adapter/adapter-set-expressions.py"],
+          "gaps": ["Need direct non-trailing comma parser support, unpacking, mutation, scope behavior, async comprehensions, empty set constructor, duplicate dict-key overwrite behavior, and full dict/set rules."]
         },
         {
           "id": "expr.primaries",

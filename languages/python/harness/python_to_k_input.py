@@ -125,6 +125,8 @@ def emit_exp(exp: ast.expr) -> str:
             return f"#range({emit_exp(start)}, {emit_exp(stop)}, {emit_exp(step)})"
         case ast.Call(func=ast.Name(id="len"), args=[arg], keywords=[]):
             return f"#len({emit_exp(arg)})"
+        case ast.Call(func=ast.Name(id="set"), args=[], keywords=[]):
+            return "set()"
         case ast.Call(func=func, args=[arg], keywords=[]):
             return f"({emit_exp(func)}({emit_exp(arg)}))"
         case ast.Call(func=func, args=args, keywords=[]):

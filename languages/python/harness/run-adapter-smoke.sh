@@ -123,6 +123,7 @@ run_case "adapter-dict-duplicate-keys" "$ROOT/tests/adapter/adapter-dict-duplica
 run_case "adapter-dict-equality" "$ROOT/tests/adapter/adapter-dict-equality.py" "True ~> .K"
 run_case "adapter-set" "$ROOT/tests/adapter/adapter-set.py" "True ~> .K"
 run_case "adapter-set-expressions" "$ROOT/tests/adapter/adapter-set-expressions.py" "True ~> .K"
+run_case "adapter-set-empty" "$ROOT/tests/adapter/adapter-set-empty.py" "True ~> .K"
 run_case "adapter-set-equality" "$ROOT/tests/adapter/adapter-set-equality.py" "True ~> .K"
 run_case "adapter-set-ordering" "$ROOT/tests/adapter/adapter-set-ordering.py" "True ~> .K"
 run_case "adapter-assign-many" "$ROOT/tests/adapter/adapter-assign-many.py" "True ~> .K"

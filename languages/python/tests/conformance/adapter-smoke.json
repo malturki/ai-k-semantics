@@ -564,6 +564,13 @@
       "coverage": ["set-display", "expression-list-evaluation", "set-membership", "ordinary-python-source-adapter"]
     },
     {
+      "id": "adapter-set-empty",
+      "source": "../adapter/adapter-set-empty.py",
+      "reference": "Python Standard Library set type; Python Language Reference 6.10 Comparisons",
+      "expected_result": "True ~> .K",
+      "coverage": ["empty-set-constructor", "set-truthiness", "set-length", "set-membership", "set-equality", "set-ordering-comparisons", "ordinary-python-source-adapter"]
+    },
+    {
       "id": "adapter-set-equality",
       "source": "../adapter/adapter-set-equality.py",
       "reference": "Python Language Reference 6.10 Comparisons; Standard Library set types",

@@ -51,8 +51,8 @@ The base modules should model portable Python semantics from the official docs. 
 - adapter-backed dictionary displays with supported key/value expressions, including duplicate key replacement in the supported key-equality subset
 - dictionary truthiness, equality, key membership, and key subscription lookup
 - nonempty set literals in a trailing-comma value subset
-- adapter-backed nonempty set displays with supported expression elements, including duplicate element normalization
-- set truthiness, equality, set-to-set ordering comparisons, and membership
+- adapter-backed set displays with supported expression elements, including duplicate element normalization, plus empty `set()`
+- set truthiness, equality, set-to-set ordering comparisons, membership, and length
 - single-argument `lambda` expressions
 - single-positional-argument calls to lambda closure values
 - adapter-backed zero- and multi-positional-argument calls, functions, and lambdas without defaults or keywords
@@ -71,7 +71,7 @@ The coverage ledger in `../notes/full-language-coverage.md` is the source of tru
 
 Current parser caveat: the K frontend treats `//` in direct K input files as a comment before it can be parsed as Python floor division. The `floorDivExp` syntax and semantics are present, and `harness/python_to_k_input.py` now translates real Python `//` nodes to the internal `#floorDiv(E1, E2)` form for adapter smoke tests.
 
-Current container caveat: direct concrete list, tuple, dict, and set smoke tests use Python-valid trailing commas, such as `[1, 2,]`, `(1, 2,)`, `{"x": 1,}`, and `{1, 2,}`, because the first executable K container grammar avoids ambiguities caused by un-delimited element productions. The AST adapter now accepts ordinary Python list, tuple, dict, and nonempty set displays for the supported expression subset and emits explicit internal display forms. Full displays still need unpacking, mutation, comprehensions, dictionary unpacking, empty set construction, zero-step slice diagnostics, non-integer repetition diagnostics, mutable-element aliasing behavior for repeated lists, cross-type ordering/concatenation diagnostics, hashability/error behavior, and complete error behavior.
+Current container caveat: direct concrete list, tuple, dict, and set smoke tests use Python-valid trailing commas, such as `[1, 2,]`, `(1, 2,)`, `{"x": 1,}`, and `{1, 2,}`, because the first executable K container grammar avoids ambiguities caused by un-delimited element productions. The AST adapter now accepts ordinary Python list, tuple, dict, set displays, and empty `set()` for the supported expression subset and emits explicit internal forms. Full displays still need unpacking, mutation, comprehensions, dictionary unpacking, zero-step slice diagnostics, non-integer repetition diagnostics, mutable-element aliasing behavior for repeated lists, cross-type ordering/concatenation diagnostics, hashability/error behavior, and complete error behavior.
 
 Current compound-statement caveat: the K parser does not yet accept Python indentation syntax directly. The AST adapter emits internal `#if`, `#while`, `#whileElse`, `#for`, `#forElse`, and `#def` statements with explicit blocks for the supported subset. General iterator protocol, `try`, `with`, `match`, full function definitions, class definitions, and async compound statements remain unsupported.
 

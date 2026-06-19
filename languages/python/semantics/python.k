@@ -16,6 +16,7 @@ module PYTHON-SYNTAX
                | "(" ValItems ")" [symbol(tupleVal)]
                | "{" "}" [symbol(emptyDictVal)]
                | "{" DictItems "}" [symbol(dictVal)]
+               | "set" "(" ")" [symbol(emptySetVal)]
                | "{" ValItems "}" [symbol(setVal)]
 
   syntax ValItems ::= Val "," [symbol(valItemsLast)]
@@ -292,6 +293,7 @@ module PYTHON
   rule truthy(tupleVal(_:ValItems)) => true
   rule truthy({}) => false
   rule truthy(dictVal(_:DictItems)) => true
+  rule truthy(set()) => false
   rule truthy(setVal(_:ValItems)) => true
   rule truthy(closure(_:Id, _:Exp)) => true
   rule truthy(closureArgs(_:IdItems, _:Exp)) => true
@@ -314,6 +316,7 @@ module PYTHON
   rule isIntLike(tupleVal(_:ValItems)) => false
   rule isIntLike({}) => false
   rule isIntLike(dictVal(_:DictItems)) => false
+  rule isIntLike(set()) => false
   rule isIntLike(setVal(_:ValItems)) => false
   rule isIntLike(closure(_:Id, _:Exp)) => false
   rule isIntLike(closureArgs(_:IdItems, _:Exp)) => false
@@ -335,6 +338,7 @@ module PYTHON
   rule singletonIdentity(tupleVal(_:ValItems)) => false
   rule singletonIdentity({}) => false
   rule singletonIdentity(dictVal(_:DictItems)) => false
+  rule singletonIdentity(set()) => false
   rule singletonIdentity(setVal(_:ValItems)) => false
   rule singletonIdentity(closure(_:Id, _:Exp)) => false
   rule singletonIdentity(closureArgs(_:IdItems, _:Exp)) => false
@@ -356,6 +360,7 @@ module PYTHON
   rule pyLen(tupleVal(VS:ValItems)) => valItemsLen(VS)
   rule pyLen({}) => 0
   rule pyLen(dictVal(DS:DictItems)) => dictItemsLen(DS)
+  rule pyLen(set()) => 0
   rule pyLen(setVal(VS:ValItems)) => valItemsLen(VS)
   rule pyLen(rangeVal(Start:Int, Stop:Int)) => Stop -Int Start
     requires Start <Int Stop
@@ -481,6 +486,9 @@ module PYTHON
   rule valEq({}, dictVal(_:DictItems)) => false
   rule valEq(dictVal(_:DictItems), {}) => false
   rule valEq(dictVal(DS1:DictItems), dictVal(DS2:DictItems)) => dictsEq(DS1, DS2)
+  rule valEq(set(), set()) => true
+  rule valEq(set(), setVal(_:ValItems)) => false
+  rule valEq(setVal(_:ValItems), set()) => false
   rule valEq(setVal(VS1:ValItems), setVal(VS2:ValItems)) => setsEq(VS1, VS2)
   rule valEq(rangeVal(Start1:Int, Stop1:Int), rangeVal(Start2:Int, Stop2:Int)) =>
     rangeEq(Start1, Stop1, 1, Start2, Stop2, 1)
@@ -592,6 +600,9 @@ module PYTHON
     requires seqOrderComparable(V1, V2)
   rule cmpHolds(#lt, setVal(VS1:ValItems), setVal(VS2:ValItems)) =>
     setItemsSubset(VS1, VS2) andBool notBool setsEq(VS1, VS2)
+  rule cmpHolds(#lt, set(), set()) => false
+  rule cmpHolds(#lt, set(), setVal(_:ValItems)) => true
+  rule cmpHolds(#lt, setVal(_:ValItems), set()) => false
   rule cmpHolds(#le, V1:Val, V2:Val) => intValue(V1) <=Int intValue(V2)
     requires isIntLike(V1) andBool isIntLike(V2)
   rule cmpHolds(#le, S1:String, S2:String) => S1 <=String S2
@@ -599,6 +610,9 @@ module PYTHON
     requires seqOrderComparable(V1, V2)
   rule cmpHolds(#le, setVal(VS1:ValItems), setVal(VS2:ValItems)) =>
     setItemsSubset(VS1, VS2)
+  rule cmpHolds(#le, set(), set()) => true
+  rule cmpHolds(#le, set(), setVal(_:ValItems)) => true
+  rule cmpHolds(#le, setVal(_:ValItems), set()) => false
   rule cmpHolds(#gt, V1:Val, V2:Val) => intValue(V1) >Int intValue(V2)
     requires isIntLike(V1) andBool isIntLike(V2)
   rule cmpHolds(#gt, S1:String, S2:String) => S1 >String S2
@@ -606,6 +620,9 @@ module PYTHON
     requires seqOrderComparable(V1, V2)
   rule cmpHolds(#gt, setVal(VS1:ValItems), setVal(VS2:ValItems)) =>
     setItemsSubset(VS2, VS1) andBool notBool setsEq(VS1, VS2)
+  rule cmpHolds(#gt, set(), set()) => false
+  rule cmpHolds(#gt, set(), setVal(_:ValItems)) => false
+  rule cmpHolds(#gt, setVal(_:ValItems), set()) => true
   rule cmpHolds(#ge, V1:Val, V2:Val) => intValue(V1) >=Int intValue(V2)
     requires isIntLike(V1) andBool isIntLike(V2)
   rule cmpHolds(#ge, S1:String, S2:String) => S1 >=String S2
@@ -613,6 +630,9 @@ module PYTHON
     requires seqOrderComparable(V1, V2)
   rule cmpHolds(#ge, setVal(VS1:ValItems), setVal(VS2:ValItems)) =>
     setItemsSubset(VS2, VS1)
+  rule cmpHolds(#ge, set(), set()) => true
+  rule cmpHolds(#ge, set(), setVal(_:ValItems)) => false
+  rule cmpHolds(#ge, setVal(_:ValItems), set()) => true
   rule cmpHolds(#eq, V1:Val, V2:Val) => valEq(V1, V2)
   rule cmpHolds(#ne, V1:Val, V2:Val) => notBool valEq(V1, V2)
   rule cmpHolds(#is, V1:Val, V2:Val) => valIs(V1, V2)
@@ -624,6 +644,7 @@ module PYTHON
   rule cmpHolds(#in, V:Val, tupleVal(VS:ValItems)) => containsVal(V, VS)
   rule cmpHolds(#in, _V:Val, {}) => false
   rule cmpHolds(#in, V:Val, dictVal(DS:DictItems)) => containsKey(V, DS)
+  rule cmpHolds(#in, _V:Val, set()) => false
   rule cmpHolds(#in, V:Val, setVal(VS:ValItems)) => containsVal(V, VS)
   rule cmpHolds(#in, V:Val, rangeVal(Start:Int, Stop:Int)) => rangeContains(V, Start, Stop)
   rule cmpHolds(#in, V:Val, rangeVal(Start:Int, Stop:Int, Step:Int)) => rangeContains(V, Start, Stop, Step)
@@ -806,6 +827,7 @@ module PYTHON
   rule isListSequence(None) => false
   rule isListSequence({}) => false
   rule isListSequence(dictVal(_:DictItems)) => false
+  rule isListSequence(set()) => false
   rule isListSequence(setVal(_:ValItems)) => false
   rule isListSequence(closure(_:Id, _:Exp)) => false
   rule isListSequence(closureArgs(_:IdItems, _:Exp)) => false
@@ -827,6 +849,7 @@ module PYTHON
   rule isTupleSequence(None) => false
   rule isTupleSequence({}) => false
   rule isTupleSequence(dictVal(_:DictItems)) => false
+  rule isTupleSequence(set()) => false
   rule isTupleSequence(setVal(_:ValItems)) => false
   rule isTupleSequence(closure(_:Id, _:Exp)) => false
   rule isTupleSequence(closureArgs(_:IdItems, _:Exp)) => false
@@ -1031,6 +1054,9 @@ module PYTHON
     requires seqOrderComparable(V1, V2)
   rule setVal(VS1:ValItems) < setVal(VS2:ValItems) =>
     boolValue(cmpHolds(#lt, setVal(VS1), setVal(VS2)))
+  rule set() < set() => False
+  rule set() < setVal(_:ValItems) => True
+  rule setVal(_:ValItems) < set() => False
   rule V1:Val <= V2:Val => boolValue(intValue(V1) <=Int intValue(V2))
     requires isIntLike(V1) andBool isIntLike(V2)
   rule S1:String <= S2:String => boolValue(S1 <=String S2)
@@ -1038,6 +1064,9 @@ module PYTHON
     requires seqOrderComparable(V1, V2)
   rule setVal(VS1:ValItems) <= setVal(VS2:ValItems) =>
     boolValue(cmpHolds(#le, setVal(VS1), setVal(VS2)))
+  rule set() <= set() => True
+  rule set() <= setVal(_:ValItems) => True
+  rule setVal(_:ValItems) <= set() => False
   rule V1:Val > V2:Val => boolValue(intValue(V1) >Int intValue(V2))
     requires isIntLike(V1) andBool isIntLike(V2)
   rule S1:String > S2:String => boolValue(S1 >String S2)
@@ -1045,6 +1074,9 @@ module PYTHON
     requires seqOrderComparable(V1, V2)
   rule setVal(VS1:ValItems) > setVal(VS2:ValItems) =>
     boolValue(cmpHolds(#gt, setVal(VS1), setVal(VS2)))
+  rule set() > set() => False
+  rule set() > setVal(_:ValItems) => False
+  rule setVal(_:ValItems) > set() => True
   rule V1:Val >= V2:Val => boolValue(intValue(V1) >=Int intValue(V2))
     requires isIntLike(V1) andBool isIntLike(V2)
   rule S1:String >= S2:String => boolValue(S1 >=String S2)
@@ -1052,6 +1084,9 @@ module PYTHON
     requires seqOrderComparable(V1, V2)
   rule setVal(VS1:ValItems) >= setVal(VS2:ValItems) =>
     boolValue(cmpHolds(#ge, setVal(VS1), setVal(VS2)))
+  rule set() >= set() => True
+  rule set() >= setVal(_:ValItems) => False
+  rule setVal(_:ValItems) >= set() => True
   rule V1:Val == V2:Val => boolValue(valEq(V1, V2))
   rule V1:Val != V2:Val => boolValue(notBool valEq(V1, V2))
   rule V1:Val is V2:Val => boolValue(valIs(V1, V2))
@@ -1086,6 +1121,7 @@ module PYTHON
   rule V:Val in tupleVal(VS:ValItems) => boolValue(containsVal(V, VS))
   rule _V:Val in {} => False
   rule V:Val in dictVal(DS:DictItems) => boolValue(containsKey(V, DS))
+  rule _V:Val in set() => False
   rule V:Val in setVal(VS:ValItems) => boolValue(containsVal(V, VS))
   rule V:Val in rangeVal(Start:Int, Stop:Int) => boolValue(rangeContains(V, Start, Stop))
   rule V:Val in rangeVal(Start:Int, Stop:Int, Step:Int) => boolValue(rangeContains(V, Start, Stop, Step))
@@ -1096,6 +1132,7 @@ module PYTHON
   rule V:Val not in tupleVal(VS:ValItems) => boolValue(notBool containsVal(V, VS))
   rule _V:Val not in {} => True
   rule V:Val not in dictVal(DS:DictItems) => boolValue(notBool containsKey(V, DS))
+  rule _V:Val not in set() => True
   rule V:Val not in setVal(VS:ValItems) => boolValue(notBool containsVal(V, VS))
   rule V:Val not in rangeVal(Start:Int, Stop:Int) => boolValue(notBool rangeContains(V, Start, Stop))
   rule V:Val not in rangeVal(Start:Int, Stop:Int, Step:Int) => boolValue(notBool rangeContains(V, Start, Stop, Step))
@@ -1221,6 +1258,7 @@ module PYTHON
     requires notBool emptyArgVals(VS)
 
   rule <k> setDisplayExp(Args:ArgExps) => evalArgs(Args, #noArgVals) ~> buildSet ... </k>
+  rule <k> argsVal(#noArgVals) ~> buildSet => set() ... </k>
   rule <k> argsVal(VS:ArgVals) ~> buildSet => setVal(argValsToSetItems(VS)) ... </k>
     requires notBool emptyArgVals(VS)
 

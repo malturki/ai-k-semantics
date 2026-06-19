@@ -563,8 +563,8 @@
               "section": "The type statement"
             }
           ],
-          "k_coverage": ["semantics/python.k: module-scope global declaration no-op"],
-          "test_coverage": ["tests/examples/smoke-assert-global.py"],
+          "k_coverage": ["semantics/python.k: module-scope single-name and multi-name global declaration no-op"],
+          "test_coverage": ["tests/examples/smoke-assert-global.py", "tests/adapter/adapter-global-many.py"],
           "gaps": ["Need global inside function scopes, nonlocal, parser directives, scope analysis, annotation scopes, and lazy type alias objects."]
         }
       ]

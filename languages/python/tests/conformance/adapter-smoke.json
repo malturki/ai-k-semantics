@@ -347,6 +347,13 @@
       "coverage": ["del-statement", "multi-target-delete", "simple-name-targets", "ordinary-python-source-adapter"]
     },
     {
+      "id": "adapter-global-many",
+      "source": "../adapter/adapter-global-many.py",
+      "reference": "Python Language Reference 7.12 The global statement",
+      "expected_result": "True ~> .K",
+      "coverage": ["global-statement", "multi-name-global", "module-scope-no-op-profile", "ordinary-python-source-adapter"]
+    },
+    {
       "id": "adapter-while",
       "source": "../adapter/adapter-while.py",
       "reference": "Python Language Reference 8.2 The while statement",

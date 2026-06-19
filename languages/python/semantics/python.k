@@ -70,6 +70,7 @@ module PYTHON-SYNTAX
                 | "assert" Exp [symbol(assertStmt), strict]
                 | "#assertMsg" "(" Exp "," Exp ")" [symbol(assertMsgStmt), strict(1)]
                 | "global" Id [symbol(globalStmt)]
+                | "#globalMany" "(" IdItems ")" [symbol(globalManyStmt)]
                 | "del" Id [symbol(delNameStmt)]
                 | "#delMany" "(" IdItems ")" [symbol(delManyStmt)]
                 | Id "=" Exp [symbol(assignStmt), strict(2)]
@@ -2690,6 +2691,7 @@ module PYTHON
   rule <k> assertMsgStmt(V:Val, _Msg:Exp) => stmtNoResult ... </k>
     requires truthy(V)
   rule <k> globalStmt(_:Id) => stmtNoResult ... </k>
+  rule <k> globalManyStmt(_:IdItems) => stmtNoResult ... </k>
 
   rule <k> stmtNoResult ~> stmtNext(SS:Stmts) => SS ... </k>
   rule <k> stmtNoResult ~> stmtEnd => .K ... </k>

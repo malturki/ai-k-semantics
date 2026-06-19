@@ -58,8 +58,8 @@ def emit_stmt(stmt: ast.stmt) -> str:
             return f"#assertMsg({emit_exp(test)}, {emit_exp(msg)})"
         case ast.Global(names=[name]):
             return f"global {name}"
-        case ast.Global():
-            raise unsupported(stmt, "only one name per global statement is supported")
+        case ast.Global(names=names):
+            return f"#globalMany({emit_id_items(names)})"
         case ast.Delete(targets=[ast.Name(id=name)]):
             return f"del {name}"
         case ast.Delete(targets=targets):

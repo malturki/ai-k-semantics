@@ -52,7 +52,7 @@ The base modules should model portable Python semantics from the official docs. 
 - multi-target simple-name assignment through the AST adapter
 - simple-name `del` and adapter-backed multi-target `del` for simple names
 - truthy `assert`, including adapter-backed optional assertion messages that are not evaluated on success
-- module-scope `global` declarations as no-ops
+- module-scope single-name and multi-name `global` declarations as no-ops
 - list literals in a trailing-comma value-element subset
 - adapter-backed list displays with supported expression elements
 - list truthiness, equality, lexicographic ordering, same-type concatenation, repetition with integer/bool `*`, nonzero-step slicing, membership, and positive/negative integer indexing

@@ -340,6 +340,13 @@
       "coverage": ["assert-statement", "optional-assert-message", "truthy-assert", "message-not-evaluated-on-success", "ordinary-python-source-adapter"]
     },
     {
+      "id": "adapter-del-many",
+      "source": "../adapter/adapter-del-many.py",
+      "reference": "Python Language Reference 7.5 The del statement",
+      "expected_result": "True ~> .K",
+      "coverage": ["del-statement", "multi-target-delete", "simple-name-targets", "ordinary-python-source-adapter"]
+    },
+    {
       "id": "adapter-while",
       "source": "../adapter/adapter-while.py",
       "reference": "Python Language Reference 8.2 The while statement",

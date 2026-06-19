@@ -50,7 +50,7 @@ The base modules should model portable Python semantics from the official docs. 
 - adapter-backed assignment expressions `NAME := expr` for simple-name targets in the current environment
 - simple-name `+=`, `-=`, `*=`, `/=`, `%=`, `**=`, `//=`, `<<=`, `>>=`, `&=`, `^=`, and `|=`
 - multi-target simple-name assignment through the AST adapter
-- simple-name `del`
+- simple-name `del` and adapter-backed multi-target `del` for simple names
 - truthy `assert`, including adapter-backed optional assertion messages that are not evaluated on success
 - module-scope `global` declarations as no-ops
 - list literals in a trailing-comma value-element subset

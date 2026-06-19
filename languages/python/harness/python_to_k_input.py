@@ -62,8 +62,8 @@ def emit_stmt(stmt: ast.stmt) -> str:
             raise unsupported(stmt, "only one name per global statement is supported")
         case ast.Delete(targets=[ast.Name(id=name)]):
             return f"del {name}"
-        case ast.Delete():
-            raise unsupported(stmt, "only simple-name del is supported")
+        case ast.Delete(targets=targets):
+            return emit_delete(stmt, targets)
         case ast.Assign(targets=targets, value=value):
             return emit_assign(stmt, targets, value)
         case ast.AugAssign(target=ast.Name(id=name), op=op, value=value):
@@ -353,6 +353,17 @@ def emit_assign(node: ast.AST, targets: list[ast.expr], value: ast.expr) -> str:
     if len(names) < 1:
         raise unsupported(node, "assignment needs at least one target")
     return f"#assignMany({emit_id_items(names)}; {emit_exp(value)})"
+
+
+def emit_delete(node: ast.AST, targets: list[ast.expr]) -> str:
+    names: list[str] = []
+    for target in targets:
+        if not isinstance(target, ast.Name):
+            raise unsupported(target, "only simple-name delete targets are supported")
+        names.append(target.id)
+    if len(names) < 1:
+        raise unsupported(node, "delete statement needs at least one target")
+    return f"#delMany({emit_id_items(names)})"
 
 
 def emit_sequence_assign(target: ast.Tuple | ast.List, value: ast.expr) -> str:

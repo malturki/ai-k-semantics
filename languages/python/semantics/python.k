@@ -71,6 +71,7 @@ module PYTHON-SYNTAX
                 | "#assertMsg" "(" Exp "," Exp ")" [symbol(assertMsgStmt), strict(1)]
                 | "global" Id [symbol(globalStmt)]
                 | "del" Id [symbol(delNameStmt)]
+                | "#delMany" "(" IdItems ")" [symbol(delManyStmt)]
                 | Id "=" Exp [symbol(assignStmt), strict(2)]
                 | Id "+=" Exp [symbol(augAddStmt)]
                 | Id "-=" Exp [symbol(augSubStmt)]
@@ -358,6 +359,7 @@ module PYTHON
                     | appendDictVal(DictVals, Val, Val) [function, symbol(appendDictVal)]
   syntax Map ::= bindArgs(Map, IdItems, ArgVals) [function, symbol(bindArgs)]
   syntax Map ::= bindVals(Map, IdItems, ValItems) [function, symbol(bindVals)]
+  syntax Map ::= delIds(Map, IdItems) [function, symbol(delIds)]
   syntax Map ::= bindPrefixVals(Map, IdItems, ValItems) [function, symbol(bindPrefixVals)]
   syntax Map ::= bindSuffixVals(Map, IdItems, ValItems, Int) [function, symbol(bindSuffixVals)]
   syntax Map ::= bindOneVal(Map, Id, Val) [function, symbol(bindOneVal)]
@@ -956,6 +958,10 @@ module PYTHON
   rule bindVals(Rho:Map, idItemsLast(X:Id), valItemsLast(V:Val)) => Rho [ X <- V ]
   rule bindVals(Rho:Map, idItemsCons(X:Id, IDS:IdItems), valItemsCons(V:Val, VS:ValItems)) =>
     bindVals(Rho [ X <- V ], IDS, VS)
+
+  rule delIds(Rho:Map, #noIds) => Rho
+  rule delIds(Rho:Map, idItemsLast(X:Id)) => Rho [ X <- undef ]
+  rule delIds(Rho:Map, idItemsCons(X:Id, IDS:IdItems)) => delIds(Rho [ X <- undef ], IDS)
 
   rule bindPrefixVals(Rho:Map, #noIds, _:ValItems) => Rho
   rule bindPrefixVals(Rho:Map, idItemsLast(X:Id), valItemsLast(V:Val)) => Rho [ X <- V ]
@@ -2673,6 +2679,9 @@ module PYTHON
 
   rule <k> delNameStmt(X:Id) => stmtNoResult ... </k>
        <env> Rho => Rho [ X <- undef ] </env>
+       <result> _ => .K </result>
+  rule <k> delManyStmt(IDS:IdItems) => stmtNoResult ... </k>
+       <env> Rho => delIds(Rho, IDS) </env>
        <result> _ => .K </result>
 
   rule <k> pass => stmtNoResult ... </k>

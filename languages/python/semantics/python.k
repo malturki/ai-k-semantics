@@ -278,6 +278,7 @@ module PYTHON
   syntax ValItems ::= argValsToValItems(ArgVals) [function, symbol(argValsToValItems)]
   syntax ValItems ::= argValsToSetItems(ArgVals) [function, symbol(argValsToSetItems)]
   syntax ValItems ::= stringToValItems(String, Int, Int) [function, symbol(stringToValItems)]
+  syntax ValItems ::= dictKeysToValItems(DictItems) [function, symbol(dictKeysToValItems)]
   syntax ValItems ::= concatValItems(ValItems, ValItems) [function, symbol(concatValItems)]
   syntax ValItems ::= repeatValItems(ValItems, Int) [function, symbol(repeatValItems)]
   syntax ValItems ::= sliceValItems(ValItems, Int, Int) [function, symbol(sliceValItems)]
@@ -723,6 +724,10 @@ module PYTHON
   rule stringToValItems(S:String, I:Int, Len:Int) =>
     valItemsCons(substrString(S, I, I +Int 1), stringToValItems(S, I +Int 1, Len))
     requires I +Int 1 <Int Len
+
+  rule dictKeysToValItems(dictItemsLast(K:Val, _:Val)) => valItemsLast(K)
+  rule dictKeysToValItems(dictItemsCons(K:Val, _:Val, DS:DictItems)) =>
+    valItemsCons(K, dictKeysToValItems(DS))
 
   rule concatValItems(valItemsLast(V:Val), VS:ValItems) => valItemsCons(V, VS)
   rule concatValItems(valItemsCons(V:Val, VS1:ValItems), VS2:ValItems) =>
@@ -1448,6 +1453,10 @@ module PYTHON
            forRangeStep(X, Start, Stop, Step, Body)
        ... </k>
     requires Step =/=Int 0
+  rule <k> ({}):Val ~> forIter(_:Id, _:Block) => stmtNoResult ... </k>
+  rule <k> dictVal(DS:DictItems) ~> forIter(X:Id, Body:Block) =>
+           forItems(X, dictKeysToValItems(DS), Body)
+       ... </k>
 
   rule <k> forItems(X:Id, valItemsCons(V:Val, VS:ValItems), block(SS:Stmts)) =>
            SS ~> forItems(X, VS, block(SS))
@@ -1579,6 +1588,10 @@ module PYTHON
            forElseRangeStep(X, Start, Stop, Step, Body, Else)
        ... </k>
     requires Step =/=Int 0
+  rule <k> ({}):Val ~> forElseIter(_:Id, _:Block, Else:Block) => runLoopElse(Else) ... </k>
+  rule <k> dictVal(DS:DictItems) ~> forElseIter(X:Id, Body:Block, Else:Block) =>
+           forElseItems(X, dictKeysToValItems(DS), Body, Else)
+       ... </k>
 
   rule <k> forElseItems(X:Id, valItemsCons(V:Val, VS:ValItems), block(SS:Stmts), Else:Block) =>
            SS ~> forElseItems(X, VS, block(SS), Else)

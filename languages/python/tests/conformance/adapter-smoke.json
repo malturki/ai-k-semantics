@@ -396,6 +396,13 @@
       "coverage": ["for-statement", "string-iteration-subset", "simple-name-target", "break-statement", "continue-statement", "ordinary-python-source-adapter"]
     },
     {
+      "id": "adapter-for-dict",
+      "source": "../adapter/adapter-for-dict.py",
+      "reference": "Python Language Reference 8.3 The for statement; Python Standard Library Built-in Types dict",
+      "expected_result": "True ~> .K",
+      "coverage": ["for-statement", "dict-key-iteration-subset", "insertion-order", "simple-name-target", "break-statement", "continue-statement", "ordinary-python-source-adapter"]
+    },
+    {
       "id": "adapter-for-break-continue",
       "source": "../adapter/adapter-for-break-continue.py",
       "reference": "Python Language Reference 8.3 The for statement; 7.9 The break statement; 7.10 The continue statement",
@@ -464,6 +471,13 @@
       "reference": "Python Language Reference 8.3 The for statement; Python Standard Library Built-in Types str",
       "expected_result": "True ~> .K",
       "coverage": ["for-statement", "string-iteration-subset", "empty-string-iteration", "loop-else-normal-completion", "loop-else-break-suppression", "ordinary-python-source-adapter"]
+    },
+    {
+      "id": "adapter-for-dict-else",
+      "source": "../adapter/adapter-for-dict-else.py",
+      "reference": "Python Language Reference 8.3 The for statement; Python Standard Library Built-in Types dict",
+      "expected_result": "True ~> .K",
+      "coverage": ["for-statement", "dict-key-iteration-subset", "empty-dict-iteration", "loop-else-normal-completion", "loop-else-break-suppression", "ordinary-python-source-adapter"]
     },
     {
       "id": "adapter-range-for",

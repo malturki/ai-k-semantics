@@ -501,6 +501,13 @@
       "coverage": ["len-builtin", "list-length", "tuple-length", "dict-length", "set-length", "ordinary-python-source-adapter"]
     },
     {
+      "id": "adapter-empty-container-constructors",
+      "source": "../adapter/adapter-empty-container-constructors.py",
+      "reference": "Python Standard Library Built-in Types list, tuple, dict, and set constructors",
+      "expected_result": "True ~> .K",
+      "coverage": ["empty-list-constructor", "empty-tuple-constructor", "empty-dict-constructor", "empty-set-constructor", "container-truthiness", "container-length", "container-membership", "ordinary-python-source-adapter"]
+    },
+    {
       "id": "adapter-len-string-range",
       "source": "../adapter/adapter-len-string-range.py",
       "reference": "Python Standard Library Built-in Functions len(); Built-in Types str and range",

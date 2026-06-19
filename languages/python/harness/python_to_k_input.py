@@ -125,8 +125,14 @@ def emit_exp(exp: ast.expr) -> str:
             return f"#range({emit_exp(start)}, {emit_exp(stop)}, {emit_exp(step)})"
         case ast.Call(func=ast.Name(id="len"), args=[arg], keywords=[]):
             return f"#len({emit_exp(arg)})"
+        case ast.Call(func=ast.Name(id="list"), args=[], keywords=[]):
+            return "#listCtor()"
+        case ast.Call(func=ast.Name(id="tuple"), args=[], keywords=[]):
+            return "#tupleCtor()"
+        case ast.Call(func=ast.Name(id="dict"), args=[], keywords=[]):
+            return "#dictCtor()"
         case ast.Call(func=ast.Name(id="set"), args=[], keywords=[]):
-            return "set()"
+            return "#setCtor()"
         case ast.Call(func=func, args=[arg], keywords=[]):
             return f"({emit_exp(func)}({emit_exp(arg)}))"
         case ast.Call(func=func, args=args, keywords=[]):
@@ -342,7 +348,7 @@ def emit_dict_exps(items: list[tuple[ast.expr, ast.expr]]) -> str:
 
 def emit_set(elts: list[ast.expr]) -> str:
     if not elts:
-        raise UnsupportedPythonSubset("empty set displays are not Python syntax; set() is not supported yet")
+        raise UnsupportedPythonSubset("empty set displays are not Python syntax; use set()")
     return f"#set({emit_arg_exps(elts)})"
 
 

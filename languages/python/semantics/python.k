@@ -98,6 +98,10 @@ module PYTHON-SYNTAX
                | "#tuple" "(" ArgExps ")" [symbol(tupleDisplayExp)]
                | "#dict" "(" DictExps ")" [symbol(dictDisplayExp)]
                | "#set" "(" ArgExps ")" [symbol(setDisplayExp)]
+               | "#listCtor" "(" ")" [symbol(listCtorExp)]
+               | "#tupleCtor" "(" ")" [symbol(tupleCtorExp)]
+               | "#dictCtor" "(" ")" [symbol(dictCtorExp)]
+               | "#setCtor" "(" ")" [symbol(setCtorExp)]
                | "#compareChain" "(" Exp "," CmpChain ")" [symbol(compareChainExp)]
                | "#len" "(" Exp ")" [symbol(lenExp), strict]
                | "#floorDiv" "(" Exp "," Exp ")" [symbol(floorDivInternal), strict]
@@ -1279,6 +1283,11 @@ module PYTHON
   rule <k> dictArgsVal(#noDictVals) ~> buildDict => ({}):Val ... </k>
   rule <k> dictArgsVal(DVS:DictVals) ~> buildDict => dictVal(dictValsToDictItems(DVS)) ... </k>
     requires notBool emptyDictVals(DVS)
+
+  rule #listCtor() => []
+  rule #tupleCtor() => ()
+  rule #dictCtor() => ({}):Val
+  rule #setCtor() => set()
 
   rule range1Exp(N:Val) => rangeVal(0, intValue(N))
     requires isIntLike(N)

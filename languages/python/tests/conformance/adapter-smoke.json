@@ -142,6 +142,13 @@
       "reference": "Python Language Reference 6.2.7 Dictionary displays; Standard Library truth value testing",
       "expected_result": "True ~> .K",
       "coverage": ["dict-display-value-subset", "dict-truthiness", "ordinary-python-source-adapter"]
+    },
+    {
+      "id": "adapter-set",
+      "source": "../adapter/adapter-set.py",
+      "reference": "Python Language Reference 6.2.6 Set displays; 6.10 Comparisons; Standard Library truth value testing",
+      "expected_result": "True ~> .K",
+      "coverage": ["set-display-value-subset", "set-membership", "set-truthiness", "ordinary-python-source-adapter"]
     }
   ]
 }

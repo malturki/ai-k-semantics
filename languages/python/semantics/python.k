@@ -16,6 +16,7 @@ module PYTHON-SYNTAX
                | "(" ValItems ")" [symbol(tupleVal)]
                | "{" "}" [symbol(emptyDictVal)]
                | "{" DictItems "}" [symbol(dictVal)]
+               | "{" ValItems "}" [symbol(setVal)]
 
   syntax ValItems ::= Val "," [symbol(valItemsLast)]
                     | Val "," ValItems [symbol(valItemsCons)]
@@ -139,6 +140,7 @@ module PYTHON
   rule truthy(tupleVal(_:ValItems)) => true
   rule truthy({}) => false
   rule truthy(dictVal(_:DictItems)) => true
+  rule truthy(setVal(_:ValItems)) => true
   rule truthy(closure(_:Id, _:Exp)) => true
   rule truthy(functionVal(_:Id, _:Block)) => true
 
@@ -153,6 +155,7 @@ module PYTHON
   rule isIntLike(tupleVal(_:ValItems)) => false
   rule isIntLike({}) => false
   rule isIntLike(dictVal(_:DictItems)) => false
+  rule isIntLike(setVal(_:ValItems)) => false
   rule isIntLike(closure(_:Id, _:Exp)) => false
   rule isIntLike(functionVal(_:Id, _:Block)) => false
 
@@ -366,12 +369,14 @@ module PYTHON
   rule V:Val in tupleVal(VS:ValItems) => boolValue(containsVal(V, VS))
   rule _V:Val in {} => False
   rule V:Val in dictVal(DS:DictItems) => boolValue(containsKey(V, DS))
+  rule V:Val in setVal(VS:ValItems) => boolValue(containsVal(V, VS))
   rule _V:Val not in [] => True
   rule V:Val not in listVal(VS:ValItems) => boolValue(notBool containsVal(V, VS))
   rule _V:Val not in () => True
   rule V:Val not in tupleVal(VS:ValItems) => boolValue(notBool containsVal(V, VS))
   rule _V:Val not in {} => True
   rule V:Val not in dictVal(DS:DictItems) => boolValue(notBool containsKey(V, DS))
+  rule V:Val not in setVal(VS:ValItems) => boolValue(notBool containsVal(V, VS))
   rule subscriptExp(listVal(VS:ValItems), I:Val) => listGet(VS, intValue(I))
     requires isIntLike(I) andBool intValue(I) >=Int 0
   rule subscriptExp(tupleVal(VS:ValItems), I:Val) => listGet(VS, intValue(I))

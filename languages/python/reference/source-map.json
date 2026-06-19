@@ -533,9 +533,9 @@
               "section": "The return statement"
             }
           ],
-          "k_coverage": ["semantics/python.k: pass statement and simple-name del", "semantics/python.k: break/continue abrupt-completion signals resolved by the nearest supported while loop"],
-          "test_coverage": ["tests/examples/smoke-pass.py", "tests/examples/smoke-del-name.py", "tests/adapter/adapter-break.py", "tests/adapter/adapter-continue.py"],
-          "gaps": ["Need full del targets, NameError behavior, SyntaxError diagnostics for break/continue outside loops, return, yield, raise, and function/generator/exception integration."]
+          "k_coverage": ["semantics/python.k: pass statement and simple-name del", "semantics/python.k: break/continue abrupt-completion signals resolved by the nearest supported while loop", "semantics/python.k: returnSignal resolved by the supported function-call marker"],
+          "test_coverage": ["tests/examples/smoke-pass.py", "tests/examples/smoke-del-name.py", "tests/adapter/adapter-break.py", "tests/adapter/adapter-continue.py", "tests/adapter/adapter-function-return.py", "tests/adapter/adapter-function-recursion.py"],
+          "gaps": ["Need full del targets, NameError behavior, SyntaxError diagnostics for break/continue/return outside valid contexts, bare return diagnostics outside functions, yield, raise, and function/generator/exception integration."]
         },
         {
           "id": "stmt.import",
@@ -643,7 +643,7 @@
         {
           "id": "compound.function-def",
           "title": "Function definitions, decorators, parameters, defaults, and type parameters",
-          "status": "not-started",
+          "status": "partial",
           "references": [
             {
               "title": "Compound statements",
@@ -651,9 +651,9 @@
               "section": "Function definitions"
             }
           ],
-          "k_coverage": [],
-          "test_coverage": [],
-          "gaps": ["Need function object construction, decorators, default evaluation, closures, calls, annotations, and type parameters."]
+          "k_coverage": ["semantics/python.k: functionVal(Id, Block) for one positional parameter; adapter-backed #def statement; return/fallthrough call execution with environment restoration"],
+          "test_coverage": ["tests/adapter/adapter-function-return.py", "tests/adapter/adapter-function-local.py", "tests/adapter/adapter-function-fallthrough.py", "tests/adapter/adapter-function-recursion.py"],
+          "gaps": ["Need full function object identity and attributes, real frames, cells and closures, global/nonlocal handling, default and annotation evaluation, decorators, varargs, kwargs, keyword-only parameters, positional-only parameters, type parameters, descriptors/method binding, and diagnostic behavior."]
         },
         {
           "id": "compound.class-def",

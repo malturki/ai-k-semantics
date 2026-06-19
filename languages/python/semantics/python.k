@@ -35,6 +35,8 @@ module PYTHON-SYNTAX
                 | Id "+=" Exp [symbol(augAddStmt)]
                 | Id "-=" Exp [symbol(augSubStmt)]
                 | Id "*=" Exp [symbol(augMulStmt)]
+                | "return" Exp [symbol(returnStmt), strict]
+                | "#def" "(" Id "," Id "," Block ")" [symbol(functionDefStmt)]
                 | "#if" "(" Exp "," Block "," Block ")" [symbol(ifStmt)]
                 | "#while" "(" Exp "," Block ")" [symbol(whileStmt)]
 
@@ -81,6 +83,7 @@ module PYTHON
   imports MAP
 
   syntax Val ::= closure(Id, Exp) [symbol(closure)]
+               | functionVal(Id, Block) [symbol(functionVal)]
 
   syntax KResult ::= Val
   syntax KItem ::= stmtNext(Stmts) [symbol(stmtNext)]
@@ -98,6 +101,8 @@ module PYTHON
                  | whileStmtAgain(Exp, Block) [symbol(whileStmtAgain)]
                  | "breakSignal" [symbol(breakSignal)]
                  | "continueSignal" [symbol(continueSignal)]
+                 | returnSignal(Val) [symbol(returnSignal)]
+                 | functionDone(Map) [symbol(functionDone)]
 
   syntax Bool ::= truthy(Val) [function, symbol(truthy)]
                 | isIntLike(Val) [function, symbol(isIntLike)]
@@ -122,6 +127,7 @@ module PYTHON
   rule truthy(()) => false
   rule truthy(tupleVal(_:ValItems)) => true
   rule truthy(closure(_:Id, _:Exp)) => true
+  rule truthy(functionVal(_:Id, _:Block)) => true
 
   rule isIntLike(_:Int) => true
   rule isIntLike(_:String) => false
@@ -133,6 +139,7 @@ module PYTHON
   rule isIntLike(()) => false
   rule isIntLike(tupleVal(_:ValItems)) => false
   rule isIntLike(closure(_:Id, _:Exp)) => false
+  rule isIntLike(functionVal(_:Id, _:Block)) => false
 
   rule intValue(I:Int) => I
   rule intValue(True) => 1
@@ -365,6 +372,14 @@ module PYTHON
   rule <k> F:Val ~> callArg(Arg:Exp) => Arg ~> callApply(F) ... </k>
   rule <k> A:Val ~> callApply(closure(X:Id, Body:Exp)) => Body ~> restoreEnv(Rho) ... </k>
        <env> Rho => Rho [ X <- A ] </env>
+  rule <k> A:Val ~> callApply(functionVal(X:Id, block(SS:Stmts))) =>
+           SS ~> functionDone(Rho)
+       ... </k>
+       <env> Rho => Rho [ X <- A ] </env>
+  rule <k> A:Val ~> callApply(functionVal(X:Id, {})) =>
+           None ~> restoreEnv(Rho)
+       ... </k>
+       <env> Rho => Rho [ X <- A ] </env>
   rule <k> V:Val ~> restoreEnv(Rho:Map) => V ... </k>
        <env> _ => Rho </env>
 
@@ -375,6 +390,10 @@ module PYTHON
   rule <k> augAddStmt(X:Id, E:Exp) => assignStmt(X, X + E) ... </k>
   rule <k> augSubStmt(X:Id, E:Exp) => assignStmt(X, X - E) ... </k>
   rule <k> augMulStmt(X:Id, E:Exp) => assignStmt(X, X * E) ... </k>
+
+  rule <k> functionDefStmt(F:Id, X:Id, Body:Block) => stmtNoResult ... </k>
+       <env> Rho => Rho [ F <- functionVal(X, Body) ] </env>
+       <result> _ => .K </result>
 
   rule <k> ifStmt(C:Exp, Then:Block, Else:Block) =>
            C ~> ifStmtBranch(Then, Else)
@@ -418,17 +437,24 @@ module PYTHON
 
   rule <k> break => breakSignal ... </k>
   rule <k> continue => continueSignal ... </k>
+  rule <k> returnStmt(V:Val) => returnSignal(V) ... </k>
 
   rule <k> breakSignal ~> stmtNext(_:Stmts) => breakSignal ... </k>
   rule <k> continueSignal ~> stmtNext(_:Stmts) => continueSignal ... </k>
+  rule <k> returnSignal(V:Val) ~> stmtNext(_:Stmts) => returnSignal(V) ... </k>
   rule <k> breakSignal ~> stmtEnd => breakSignal ... </k>
   rule <k> continueSignal ~> stmtEnd => continueSignal ... </k>
+  rule <k> returnSignal(V:Val) ~> stmtEnd => returnSignal(V) ... </k>
   rule <k> breakSignal ~> ifStmtDone => breakSignal ... </k>
   rule <k> continueSignal ~> ifStmtDone => continueSignal ... </k>
+  rule <k> returnSignal(V:Val) ~> ifStmtDone => returnSignal(V) ... </k>
   rule <k> breakSignal ~> whileStmtAgain(_:Exp, _:Block) => stmtNoResult ... </k>
   rule <k> continueSignal ~> whileStmtAgain(C:Exp, Body:Block) =>
            whileStmt(C, Body)
        ... </k>
+  rule <k> returnSignal(V:Val) ~> whileStmtAgain(_:Exp, _:Block) => returnSignal(V) ... </k>
+  rule <k> returnSignal(V:Val) ~> functionDone(Rho:Map) => V ~> restoreEnv(Rho) ... </k>
+  rule <k> functionDone(Rho:Map) => None ~> restoreEnv(Rho) ... </k>
 
   rule <k> delNameStmt(X:Id) => stmtNoResult ... </k>
        <env> Rho => Rho [ X <- undef ] </env>

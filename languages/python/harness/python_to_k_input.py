@@ -72,6 +72,19 @@ def emit_stmt(stmt: ast.stmt) -> str:
             return f"{name} {emit_aug_op(op)}= {emit_exp(value)}"
         case ast.AugAssign():
             raise unsupported(stmt, "only simple-name +=, -=, and *= are supported")
+        case ast.Return(value=None):
+            return "return None"
+        case ast.Return(value=value):
+            return f"return {emit_exp(value)}"
+        case ast.FunctionDef(
+            name=name,
+            args=args,
+            body=body,
+            decorator_list=decorators,
+            returns=returns,
+            type_comment=type_comment,
+        ):
+            return emit_function_def(stmt, name, args, body, decorators, returns, type_comment)
         case ast.If(test=test, body=body, orelse=orelse):
             return f"#if({emit_exp(test)}, {emit_block(body)}, {emit_block(orelse)})"
         case ast.While(test=test, body=body, orelse=[]):
@@ -174,6 +187,34 @@ def emit_lambda(node: ast.AST, args: ast.arguments, body: ast.expr) -> str:
     ):
         raise unsupported(node, "only a single positional lambda parameter is supported")
     return f"(lambda {args.args[0].arg}: {emit_exp(body)})"
+
+
+def emit_function_def(
+    node: ast.AST,
+    name: str,
+    args: ast.arguments,
+    body: list[ast.stmt],
+    decorators: list[ast.expr],
+    returns: ast.expr | None,
+    type_comment: str | None,
+) -> str:
+    if decorators:
+        raise unsupported(decorators[0], "function decorators are not supported yet")
+    if returns is not None:
+        raise unsupported(returns, "function return annotations are not supported yet")
+    if type_comment is not None:
+        raise unsupported(node, "function type comments are not supported yet")
+    if (
+        args.posonlyargs
+        or args.kwonlyargs
+        or args.kw_defaults
+        or args.defaults
+        or args.vararg is not None
+        or args.kwarg is not None
+        or len(args.args) != 1
+    ):
+        raise unsupported(node, "only one positional function parameter is supported")
+    return f"#def({name}, {args.args[0].arg}, {emit_block(body)})"
 
 
 def emit_list(elts: list[ast.expr]) -> str:

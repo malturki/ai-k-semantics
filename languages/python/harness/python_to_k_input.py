@@ -139,6 +139,10 @@ def emit_exp(exp: ast.expr) -> str:
             return emit_dict(exp, keys, values)
         case ast.Set(elts=elts):
             return emit_set(elts)
+        case ast.Subscript(value=value, slice=ast.Slice(lower=lower, upper=upper, step=None), ctx=ast.Load()):
+            return f"#slice({emit_exp(value)}, {emit_slice_bound(lower)}, {emit_slice_bound(upper)})"
+        case ast.Subscript(value=_value, slice=ast.Slice(step=step), ctx=ast.Load()) if step is not None:
+            raise unsupported(step, "slice steps are not supported yet")
         case ast.Subscript(value=value, slice=slice_, ctx=ast.Load()):
             return f"({emit_exp(value)}[{emit_exp(slice_)}])"
         case _:
@@ -189,6 +193,12 @@ def emit_bool_op(node: ast.AST, op: ast.boolop, values: list[ast.expr]) -> str:
     for value in values[1:]:
         result = f"({result} {symbol} {emit_exp(value)})"
     return result
+
+
+def emit_slice_bound(bound: ast.expr | None) -> str:
+    if bound is None:
+        return "None"
+    return emit_exp(bound)
 
 
 def emit_lambda(node: ast.AST, args: ast.arguments, body: ast.expr) -> str:

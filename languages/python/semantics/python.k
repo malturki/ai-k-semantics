@@ -100,6 +100,7 @@ module PYTHON-SYNTAX
                | "#compareChain" "(" Exp "," CmpChain ")" [symbol(compareChainExp)]
                | "#len" "(" Exp ")" [symbol(lenExp), strict]
                | "#floorDiv" "(" Exp "," Exp ")" [symbol(floorDivInternal), strict]
+               | "#slice" "(" Exp "," Exp "," Exp ")" [symbol(sliceExp), strict]
                | "+" Exp [symbol(posExp), strict]
                | "-" Exp [symbol(negExp), strict]
                | "~" Exp [symbol(invertExp), strict]
@@ -238,9 +239,13 @@ module PYTHON
                | pyModulo(Int, Int) [function, symbol(pyModulo)]
                | pyLen(Val) [function, symbol(pyLen)]
                | pyRangeLen(Int, Int, Int) [function, symbol(pyRangeLen)]
+               | pySliceLower(Val, Int) [function, symbol(pySliceLower)]
+               | pySliceUpper(Val, Int) [function, symbol(pySliceUpper)]
+               | pySliceIndex(Int, Int) [function, symbol(pySliceIndex)]
                | valItemsLen(ValItems) [function, symbol(valItemsLen)]
                | dictItemsLen(DictItems) [function, symbol(dictItemsLen)]
   syntax String ::= repeatString(String, Int) [function, symbol(repeatString)]
+                  | sliceString(String, Int, Int) [function, symbol(sliceString)]
   syntax ArgVals ::= "#noArgVals" [symbol(noArgVals)]
                    | argValsCons(Val, ArgVals) [symbol(argValsCons)]
                    | appendArgVal(ArgVals, Val) [function, symbol(appendArgVal)]
@@ -253,8 +258,11 @@ module PYTHON
   syntax ValItems ::= argValsToSetItems(ArgVals) [function, symbol(argValsToSetItems)]
   syntax ValItems ::= concatValItems(ValItems, ValItems) [function, symbol(concatValItems)]
   syntax ValItems ::= repeatValItems(ValItems, Int) [function, symbol(repeatValItems)]
+  syntax ValItems ::= sliceValItems(ValItems, Int, Int) [function, symbol(sliceValItems)]
   syntax DictItems ::= dictValsToDictItems(DictVals) [function, symbol(dictValsToDictItems)]
-  syntax Val ::= listGet(ValItems, Int) [function, symbol(listGet)]
+  syntax Val ::= listSlice(ValItems, Int, Int) [function, symbol(listSlice)]
+               | tupleSlice(ValItems, Int, Int) [function, symbol(tupleSlice)]
+               | listGet(ValItems, Int) [function, symbol(listGet)]
   syntax Val ::= dictGet(DictItems, Val) [function, symbol(dictGet)]
   syntax Val ::= boolValue(Bool) [function, symbol(boolValue)]
 
@@ -349,6 +357,25 @@ module PYTHON
   rule pyRangeLen(Start:Int, Stop:Int, Step:Int) => 0
     requires (Step >Int 0 andBool Start >=Int Stop)
       orBool (Step <Int 0 andBool Start <=Int Stop)
+
+  rule pySliceLower(None, _:Int) => 0
+  rule pySliceLower(True, Len:Int) => pySliceIndex(1, Len)
+  rule pySliceLower(False, Len:Int) => pySliceIndex(0, Len)
+  rule pySliceLower(I:Int, Len:Int) => pySliceIndex(I, Len)
+
+  rule pySliceUpper(None, Len:Int) => Len
+  rule pySliceUpper(True, Len:Int) => pySliceIndex(1, Len)
+  rule pySliceUpper(False, Len:Int) => pySliceIndex(0, Len)
+  rule pySliceUpper(I:Int, Len:Int) => pySliceIndex(I, Len)
+
+  rule pySliceIndex(I:Int, Len:Int) => 0
+    requires I <Int 0 -Int Len
+  rule pySliceIndex(I:Int, Len:Int) => Len +Int I
+    requires I <Int 0 andBool I >=Int 0 -Int Len
+  rule pySliceIndex(I:Int, Len:Int) => Len
+    requires I >Int Len
+  rule pySliceIndex(I:Int, Len:Int) => I
+    requires I >=Int 0 andBool I <=Int Len
 
   rule valItemsLen(valItemsLast(_:Val)) => 1
   rule valItemsLen(valItemsCons(_:Val, VS:ValItems)) => 1 +Int valItemsLen(VS)
@@ -588,6 +615,28 @@ module PYTHON
   rule repeatValItems(VS:ValItems, N:Int) => concatValItems(VS, repeatValItems(VS, N -Int 1))
     requires N >Int 1
 
+  rule sliceString(_:String, Start:Int, Stop:Int) => "" requires Start >=Int Stop
+  rule sliceString(S:String, Start:Int, Stop:Int) => substrString(S, Start, Stop)
+    requires Start <Int Stop
+
+  rule listSlice(_:ValItems, Start:Int, Stop:Int) => [] requires Start >=Int Stop
+  rule listSlice(VS:ValItems, Start:Int, Stop:Int) => listVal(sliceValItems(VS, Start, Stop))
+    requires Start <Int Stop
+
+  rule tupleSlice(_:ValItems, Start:Int, Stop:Int) => () requires Start >=Int Stop
+  rule tupleSlice(VS:ValItems, Start:Int, Stop:Int) => tupleVal(sliceValItems(VS, Start, Stop))
+    requires Start <Int Stop
+
+  rule sliceValItems(valItemsLast(V:Val), 0, Stop:Int) => valItemsLast(V)
+    requires Stop >Int 0
+  rule sliceValItems(valItemsCons(V:Val, _:ValItems), 0, 1) => valItemsLast(V)
+  rule sliceValItems(valItemsCons(V:Val, VS:ValItems), 0, Stop:Int) =>
+    valItemsCons(V, sliceValItems(VS, 0, Stop -Int 1))
+    requires Stop >Int 1
+  rule sliceValItems(valItemsCons(_:Val, VS:ValItems), Start:Int, Stop:Int) =>
+    sliceValItems(VS, Start -Int 1, Stop -Int 1)
+    requires Start >Int 0
+
   rule dictValsToDictItems(dictValsCons(K:Val, V:Val, #noDictVals)) => dictItemsLast(K, V)
   rule dictValsToDictItems(dictValsCons(K:Val, V:Val, DVS:DictVals)) =>
     dictItemsCons(K, V, dictValsToDictItems(DVS))
@@ -799,6 +848,14 @@ module PYTHON
   rule tupleVal(VS:ValItems) + () => tupleVal(VS)
   rule tupleVal(VS1:ValItems) + tupleVal(VS2:ValItems) => tupleVal(concatValItems(VS1, VS2))
   rule lenExp(V:Val) => pyLen(V)
+  rule sliceExp(S:String, Lower:Val, Upper:Val) =>
+    sliceString(S, pySliceLower(Lower, lengthString(S)), pySliceUpper(Upper, lengthString(S)))
+  rule sliceExp([], _Lower:Val, _Upper:Val) => []
+  rule sliceExp(listVal(VS:ValItems), Lower:Val, Upper:Val) =>
+    listSlice(VS, pySliceLower(Lower, valItemsLen(VS)), pySliceUpper(Upper, valItemsLen(VS)))
+  rule sliceExp((), _Lower:Val, _Upper:Val) => ()
+  rule sliceExp(tupleVal(VS:ValItems), Lower:Val, Upper:Val) =>
+    tupleSlice(VS, pySliceLower(Lower, valItemsLen(VS)), pySliceUpper(Upper, valItemsLen(VS)))
 
   rule V1:Val < V2:Val => boolValue(intValue(V1) <Int intValue(V2))
     requires isIntLike(V1) andBool isIntLike(V2)

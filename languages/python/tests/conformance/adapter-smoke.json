@@ -32,6 +32,13 @@
       "coverage": ["string-slicing", "positive-step-sequence-slicing", "omitted-slice-bounds", "slice-bound-clamping", "empty-slice-result", "ordinary-python-source-adapter"]
     },
     {
+      "id": "adapter-string-slice-negative-step",
+      "source": "../adapter/adapter-string-slice-negative-step.py",
+      "reference": "Python Language Reference 6.3.3 Slicings; Standard Library sequence types",
+      "expected_result": "True ~> .K",
+      "coverage": ["string-slicing", "negative-step-sequence-slicing", "omitted-slice-bounds", "negative-slice-bounds", "slice-bound-clamping", "ordinary-python-source-adapter"]
+    },
+    {
       "id": "adapter-list-normal",
       "source": "../adapter/adapter-list-normal.py",
       "reference": "Python Language Reference 6.2.4 Displays for lists, sets and dictionaries; 6.3.2 Subscriptions",
@@ -88,6 +95,13 @@
       "coverage": ["list-slicing", "positive-step-sequence-slicing", "omitted-slice-bounds", "slice-bound-clamping", "empty-slice-result", "ordinary-python-source-adapter"]
     },
     {
+      "id": "adapter-list-slice-negative-step",
+      "source": "../adapter/adapter-list-slice-negative-step.py",
+      "reference": "Python Language Reference 6.3.3 Slicings; Standard Library sequence types",
+      "expected_result": "True ~> .K",
+      "coverage": ["list-slicing", "negative-step-sequence-slicing", "omitted-slice-bounds", "negative-slice-bounds", "slice-bound-clamping", "ordinary-python-source-adapter"]
+    },
+    {
       "id": "adapter-tuple-normal",
       "source": "../adapter/adapter-tuple-normal.py",
       "reference": "Python Language Reference 6.2.3 Parenthesized forms; 6.3.2 Subscriptions",
@@ -142,6 +156,13 @@
       "reference": "Python Language Reference 6.3.3 Slicings; Standard Library sequence types",
       "expected_result": "True ~> .K",
       "coverage": ["tuple-slicing", "positive-step-sequence-slicing", "omitted-slice-bounds", "slice-bound-clamping", "empty-slice-result", "ordinary-python-source-adapter"]
+    },
+    {
+      "id": "adapter-tuple-slice-negative-step",
+      "source": "../adapter/adapter-tuple-slice-negative-step.py",
+      "reference": "Python Language Reference 6.3.3 Slicings; Standard Library sequence types",
+      "expected_result": "True ~> .K",
+      "coverage": ["tuple-slicing", "negative-step-sequence-slicing", "omitted-slice-bounds", "negative-slice-bounds", "slice-bound-clamping", "ordinary-python-source-adapter"]
     },
     {
       "id": "adapter-lambda-normal",

@@ -243,6 +243,9 @@ module PYTHON
                | pySliceLower(Val, Int) [function, symbol(pySliceLower)]
                | pySliceUpper(Val, Int) [function, symbol(pySliceUpper)]
                | pySliceIndex(Int, Int) [function, symbol(pySliceIndex)]
+               | pySliceLowerNeg(Val, Int) [function, symbol(pySliceLowerNeg)]
+               | pySliceUpperNeg(Val, Int) [function, symbol(pySliceUpperNeg)]
+               | pySliceIndexNeg(Int, Int) [function, symbol(pySliceIndexNeg)]
                | valItemsLen(ValItems) [function, symbol(valItemsLen)]
                | dictItemsLen(DictItems) [function, symbol(dictItemsLen)]
   syntax String ::= repeatString(String, Int) [function, symbol(repeatString)]
@@ -381,6 +384,25 @@ module PYTHON
     requires I >Int Len
   rule pySliceIndex(I:Int, Len:Int) => I
     requires I >=Int 0 andBool I <=Int Len
+
+  rule pySliceLowerNeg(None, Len:Int) => Len -Int 1
+  rule pySliceLowerNeg(True, Len:Int) => pySliceIndexNeg(1, Len)
+  rule pySliceLowerNeg(False, Len:Int) => pySliceIndexNeg(0, Len)
+  rule pySliceLowerNeg(I:Int, Len:Int) => pySliceIndexNeg(I, Len)
+
+  rule pySliceUpperNeg(None, _:Int) => -1
+  rule pySliceUpperNeg(True, Len:Int) => pySliceIndexNeg(1, Len)
+  rule pySliceUpperNeg(False, Len:Int) => pySliceIndexNeg(0, Len)
+  rule pySliceUpperNeg(I:Int, Len:Int) => pySliceIndexNeg(I, Len)
+
+  rule pySliceIndexNeg(I:Int, Len:Int) => -1
+    requires I <Int 0 -Int Len
+  rule pySliceIndexNeg(I:Int, Len:Int) => Len +Int I
+    requires I <Int 0 andBool I >=Int 0 -Int Len
+  rule pySliceIndexNeg(I:Int, Len:Int) => Len -Int 1
+    requires I >=Int Len
+  rule pySliceIndexNeg(I:Int, Len:Int) => I
+    requires I >=Int 0 andBool I <Int Len
 
   rule valItemsLen(valItemsLast(_:Val)) => 1
   rule valItemsLen(valItemsCons(_:Val, VS:ValItems)) => 1 +Int valItemsLen(VS)
@@ -624,11 +646,16 @@ module PYTHON
   rule sliceString(S:String, Start:Int, Stop:Int) => substrString(S, Start, Stop)
     requires Start <Int Stop
 
-  rule sliceStepString(_:String, Start:Int, Stop:Int, _Step:Int) => ""
-    requires Start >=Int Stop
+  rule sliceStepString(_:String, Start:Int, Stop:Int, Step:Int) => ""
+    requires Start >=Int Stop andBool Step >Int 0
   rule sliceStepString(S:String, Start:Int, Stop:Int, Step:Int) =>
     substrString(S, Start, Start +Int 1) +String sliceStepString(S, Start +Int Step, Stop, Step)
     requires Start <Int Stop andBool Step >Int 0
+  rule sliceStepString(_:String, Start:Int, Stop:Int, Step:Int) => ""
+    requires Start <=Int Stop andBool Step <Int 0
+  rule sliceStepString(S:String, Start:Int, Stop:Int, Step:Int) =>
+    substrString(S, Start, Start +Int 1) +String sliceStepString(S, Start +Int Step, Stop, Step)
+    requires Start >Int Stop andBool Step <Int 0
 
   rule listSlice(_:ValItems, Start:Int, Stop:Int) => [] requires Start >=Int Stop
   rule listSlice(VS:ValItems, Start:Int, Stop:Int) => listVal(sliceValItems(VS, Start, Stop))
@@ -638,17 +665,27 @@ module PYTHON
   rule tupleSlice(VS:ValItems, Start:Int, Stop:Int) => tupleVal(sliceValItems(VS, Start, Stop))
     requires Start <Int Stop
 
-  rule listSliceStep(_:ValItems, Start:Int, Stop:Int, _Step:Int) => []
-    requires Start >=Int Stop
+  rule listSliceStep(_:ValItems, Start:Int, Stop:Int, Step:Int) => []
+    requires Start >=Int Stop andBool Step >Int 0
   rule listSliceStep(VS:ValItems, Start:Int, Stop:Int, Step:Int) =>
     listVal(sliceStepValItems(VS, Start, Stop, Step))
     requires Start <Int Stop andBool Step >Int 0
+  rule listSliceStep(_:ValItems, Start:Int, Stop:Int, Step:Int) => []
+    requires Start <=Int Stop andBool Step <Int 0
+  rule listSliceStep(VS:ValItems, Start:Int, Stop:Int, Step:Int) =>
+    listVal(sliceStepValItems(VS, Start, Stop, Step))
+    requires Start >Int Stop andBool Step <Int 0
 
-  rule tupleSliceStep(_:ValItems, Start:Int, Stop:Int, _Step:Int) => ()
-    requires Start >=Int Stop
+  rule tupleSliceStep(_:ValItems, Start:Int, Stop:Int, Step:Int) => ()
+    requires Start >=Int Stop andBool Step >Int 0
   rule tupleSliceStep(VS:ValItems, Start:Int, Stop:Int, Step:Int) =>
     tupleVal(sliceStepValItems(VS, Start, Stop, Step))
     requires Start <Int Stop andBool Step >Int 0
+  rule tupleSliceStep(_:ValItems, Start:Int, Stop:Int, Step:Int) => ()
+    requires Start <=Int Stop andBool Step <Int 0
+  rule tupleSliceStep(VS:ValItems, Start:Int, Stop:Int, Step:Int) =>
+    tupleVal(sliceStepValItems(VS, Start, Stop, Step))
+    requires Start >Int Stop andBool Step <Int 0
 
   rule sliceValItems(valItemsLast(V:Val), 0, Stop:Int) => valItemsLast(V)
     requires Stop >Int 0
@@ -666,6 +703,12 @@ module PYTHON
   rule sliceStepValItems(VS:ValItems, Start:Int, Stop:Int, Step:Int) =>
     valItemsCons(listGet(VS, Start), sliceStepValItems(VS, Start +Int Step, Stop, Step))
     requires Start <Int Stop andBool Start +Int Step <Int Stop
+  rule sliceStepValItems(VS:ValItems, Start:Int, Stop:Int, Step:Int) =>
+    valItemsLast(listGet(VS, Start))
+    requires Start >Int Stop andBool Start +Int Step <=Int Stop
+  rule sliceStepValItems(VS:ValItems, Start:Int, Stop:Int, Step:Int) =>
+    valItemsCons(listGet(VS, Start), sliceStepValItems(VS, Start +Int Step, Stop, Step))
+    requires Start >Int Stop andBool Start +Int Step >Int Stop
 
   rule dictValsToDictItems(dictValsCons(K:Val, V:Val, #noDictVals)) => dictItemsLast(K, V)
   rule dictValsToDictItems(dictValsCons(K:Val, V:Val, DVS:DictVals)) =>
@@ -889,16 +932,25 @@ module PYTHON
   rule sliceStepExp(S:String, Lower:Val, Upper:Val, Step:Val) =>
     sliceStepString(S, pySliceLower(Lower, lengthString(S)), pySliceUpper(Upper, lengthString(S)), intValue(Step))
     requires isIntLike(Step) andBool intValue(Step) >Int 0
+  rule sliceStepExp(S:String, Lower:Val, Upper:Val, Step:Val) =>
+    sliceStepString(S, pySliceLowerNeg(Lower, lengthString(S)), pySliceUpperNeg(Upper, lengthString(S)), intValue(Step))
+    requires isIntLike(Step) andBool intValue(Step) <Int 0
   rule sliceStepExp([], _Lower:Val, _Upper:Val, Step:Val) => []
-    requires isIntLike(Step) andBool intValue(Step) >Int 0
+    requires isIntLike(Step) andBool intValue(Step) =/=Int 0
   rule sliceStepExp(listVal(VS:ValItems), Lower:Val, Upper:Val, Step:Val) =>
     listSliceStep(VS, pySliceLower(Lower, valItemsLen(VS)), pySliceUpper(Upper, valItemsLen(VS)), intValue(Step))
     requires isIntLike(Step) andBool intValue(Step) >Int 0
+  rule sliceStepExp(listVal(VS:ValItems), Lower:Val, Upper:Val, Step:Val) =>
+    listSliceStep(VS, pySliceLowerNeg(Lower, valItemsLen(VS)), pySliceUpperNeg(Upper, valItemsLen(VS)), intValue(Step))
+    requires isIntLike(Step) andBool intValue(Step) <Int 0
   rule sliceStepExp((), _Lower:Val, _Upper:Val, Step:Val) => ()
-    requires isIntLike(Step) andBool intValue(Step) >Int 0
+    requires isIntLike(Step) andBool intValue(Step) =/=Int 0
   rule sliceStepExp(tupleVal(VS:ValItems), Lower:Val, Upper:Val, Step:Val) =>
     tupleSliceStep(VS, pySliceLower(Lower, valItemsLen(VS)), pySliceUpper(Upper, valItemsLen(VS)), intValue(Step))
     requires isIntLike(Step) andBool intValue(Step) >Int 0
+  rule sliceStepExp(tupleVal(VS:ValItems), Lower:Val, Upper:Val, Step:Val) =>
+    tupleSliceStep(VS, pySliceLowerNeg(Lower, valItemsLen(VS)), pySliceUpperNeg(Upper, valItemsLen(VS)), intValue(Step))
+    requires isIntLike(Step) andBool intValue(Step) <Int 0
 
   rule V1:Val < V2:Val => boolValue(intValue(V1) <Int intValue(V2))
     requires isIntLike(V1) andBool isIntLike(V2)

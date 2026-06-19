@@ -251,6 +251,7 @@ module PYTHON
                | pySliceIndexNeg(Int, Int) [function, symbol(pySliceIndexNeg)]
                | valItemsLen(ValItems) [function, symbol(valItemsLen)]
                | dictItemsLen(DictItems) [function, symbol(dictItemsLen)]
+               | rangeGet(Int, Int, Int, Int) [function, symbol(rangeGet)]
   syntax String ::= repeatString(String, Int) [function, symbol(repeatString)]
                   | sliceString(String, Int, Int) [function, symbol(sliceString)]
                   | sliceStepString(String, Int, Int, Int) [function, symbol(sliceStepString)]
@@ -274,7 +275,7 @@ module PYTHON
                | listSliceStep(ValItems, Int, Int, Int) [function, symbol(listSliceStep)]
                | tupleSliceStep(ValItems, Int, Int, Int) [function, symbol(tupleSliceStep)]
                | listGet(ValItems, Int) [function, symbol(listGet)]
-               | rangeGet(Int, Int, Int, Int) [function, symbol(rangeGet)]
+               | rangeSlice(Int, Int, Int, Int, Int) [function, symbol(rangeSlice)]
   syntax Val ::= dictGet(DictItems, Val) [function, symbol(dictGet)]
   syntax Val ::= boolValue(Bool) [function, symbol(boolValue)]
 
@@ -396,6 +397,9 @@ module PYTHON
     requires Step1 =/=Int 0 andBool Step2 =/=Int 0
 
   rule rangeGet(Start:Int, _Stop:Int, Step:Int, Index:Int) => Start +Int (Step *Int Index)
+    requires Step =/=Int 0
+  rule rangeSlice(Start:Int, Stop:Int, Step:Int, Lower:Int, Upper:Int) =>
+    rangeVal(rangeGet(Start, Stop, Step, Lower), rangeGet(Start, Stop, Step, Upper), Step)
     requires Step =/=Int 0
 
   rule pySliceLower(None, _:Int) => 0
@@ -976,6 +980,11 @@ module PYTHON
   rule sliceExp((), _Lower:Val, _Upper:Val) => ()
   rule sliceExp(tupleVal(VS:ValItems), Lower:Val, Upper:Val) =>
     tupleSlice(VS, pySliceLower(Lower, valItemsLen(VS)), pySliceUpper(Upper, valItemsLen(VS)))
+  rule sliceExp(rangeVal(Start:Int, Stop:Int), Lower:Val, Upper:Val) =>
+    rangeSlice(Start, Stop, 1, pySliceLower(Lower, pyRangeLen(Start, Stop, 1)), pySliceUpper(Upper, pyRangeLen(Start, Stop, 1)))
+  rule sliceExp(rangeVal(Start:Int, Stop:Int, Step:Int), Lower:Val, Upper:Val) =>
+    rangeSlice(Start, Stop, Step, pySliceLower(Lower, pyRangeLen(Start, Stop, Step)), pySliceUpper(Upper, pyRangeLen(Start, Stop, Step)))
+    requires Step =/=Int 0
   rule sliceStepExp(S:String, Lower:Val, Upper:Val, Step:Val) =>
     sliceStepString(S, pySliceLower(Lower, lengthString(S)), pySliceUpper(Upper, lengthString(S)), intValue(Step))
     requires isIntLike(Step) andBool intValue(Step) >Int 0

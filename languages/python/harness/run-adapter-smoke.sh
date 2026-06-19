@@ -111,6 +111,7 @@ run_case "adapter-range-step-else" "$ROOT/tests/adapter/adapter-range-step-else.
 run_case "adapter-range-membership" "$ROOT/tests/adapter/adapter-range-membership.py" "True ~> .K"
 run_case "adapter-range-equality" "$ROOT/tests/adapter/adapter-range-equality.py" "True ~> .K"
 run_case "adapter-range-index" "$ROOT/tests/adapter/adapter-range-index.py" "True ~> .K"
+run_case "adapter-range-slice" "$ROOT/tests/adapter/adapter-range-slice.py" "True ~> .K"
 run_case "adapter-len-containers" "$ROOT/tests/adapter/adapter-len-containers.py" "True ~> .K"
 run_case "adapter-len-string-range" "$ROOT/tests/adapter/adapter-len-string-range.py" "True ~> .K"
 run_case "adapter-len-range-step" "$ROOT/tests/adapter/adapter-len-range-step.py" "True ~> .K"

@@ -510,8 +510,12 @@ module PYTHON
     argValsCons(V0, appendArgVal(VS, V))
 
   rule appendDictVal(#noDictVals, K:Val, V:Val) => dictValsCons(K, V, #noDictVals)
+  rule appendDictVal(dictValsCons(K0:Val, _:Val, DVS:DictVals), K:Val, V:Val) =>
+    dictValsCons(K0, V, DVS)
+    requires valEq(K, K0)
   rule appendDictVal(dictValsCons(K0:Val, V0:Val, DVS:DictVals), K:Val, V:Val) =>
     dictValsCons(K0, V0, appendDictVal(DVS, K, V))
+    requires notBool valEq(K, K0)
 
   rule bindArgs(Rho:Map, #noIds, #noArgVals) => Rho
   rule bindArgs(Rho:Map, idItemsLast(X:Id), argValsCons(V:Val, #noArgVals)) => Rho [ X <- V ]

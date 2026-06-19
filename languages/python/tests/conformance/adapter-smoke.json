@@ -368,6 +368,13 @@
       "coverage": ["dict-display", "key-value-expression-evaluation", "dict-subscription", "ordinary-python-source-adapter"]
     },
     {
+      "id": "adapter-dict-duplicate-keys",
+      "source": "../adapter/adapter-dict-duplicate-keys.py",
+      "reference": "Python Language Reference 6.2.7 Dictionary displays; Python Data Model dictionary insertion order; Standard Library dict",
+      "expected_result": "True ~> .K",
+      "coverage": ["dict-display", "dict-duplicate-key-overwrite", "dict-key-equality", "ordinary-python-source-adapter"]
+    },
+    {
       "id": "adapter-set",
       "source": "../adapter/adapter-set.py",
       "reference": "Python Language Reference 6.2.6 Set displays; 6.10 Comparisons; Standard Library truth value testing",

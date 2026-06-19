@@ -55,8 +55,9 @@ The base modules should model portable Python semantics from the official docs. 
 - adapter-backed zero- and multi-positional-argument calls, functions, and lambdas without defaults or keywords
 - an internal `#floorDiv(E1, E2)` parser bridge form emitted by the AST adapter
 - adapter-backed `if` statements with optional `else`
-- adapter-backed `while` loops with `break` and `continue`, without loop `else`
+- adapter-backed `while` loops with `break`, `continue`, and loop `else`
 - adapter-backed `for` loops over the current list/tuple value subset, including `break`, `continue`, and `return` propagation
+- adapter-backed `while`/`for` loop `else` clauses for the current loop subsets
 - adapter-backed `range(stop)` and `range(start, stop)` values in `for` loops
 - adapter-backed single-parameter `def` functions, `return`, fallthrough to `None`, and recursive calls in the single-environment subset
 
@@ -66,7 +67,7 @@ Current parser caveat: the K frontend treats `//` in direct K input files as a c
 
 Current container caveat: direct concrete list, tuple, dict, and set smoke tests use Python-valid trailing commas, such as `[1, 2,]`, `(1, 2,)`, `{"x": 1,}`, and `{1, 2,}`, because the first executable K container grammar avoids ambiguities caused by un-delimited element productions. The AST adapter now accepts ordinary Python list, tuple, dict, and nonempty set displays for the supported expression subset and emits explicit internal display forms. Full displays still need unpacking, mutation, comprehensions, duplicate dict-key overwrite semantics, and complete error behavior.
 
-Current compound-statement caveat: the K parser does not yet accept Python indentation syntax directly. The AST adapter emits internal `#if`, `#while`, `#for`, and `#def` statements with explicit blocks for the supported subset. Loop `else`, general iterator protocol, `try`, `with`, `match`, full function definitions, class definitions, and async compound statements remain unsupported.
+Current compound-statement caveat: the K parser does not yet accept Python indentation syntax directly. The AST adapter emits internal `#if`, `#while`, `#whileElse`, `#for`, `#forElse`, and `#def` statements with explicit blocks for the supported subset. General iterator protocol, `try`, `with`, `match`, full function definitions, class definitions, and async compound statements remain unsupported.
 
 Current range caveat: adapter-backed `range` support is an internal `rangeVal(start, stop)` subset with an implicit positive step of `1`, used only by `for` loops. Step arguments, negative steps, range object attributes, range equality, indexing, slicing, containment arithmetic, and the general iterator protocol remain unsupported.
 

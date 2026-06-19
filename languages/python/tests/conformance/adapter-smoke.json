@@ -67,6 +67,20 @@
       "coverage": ["while-statement", "loop-condition", "simple-name-augmented-assignment", "ordinary-python-source-adapter"]
     },
     {
+      "id": "adapter-while-else-normal",
+      "source": "../adapter/adapter-while-else-normal.py",
+      "reference": "Python Language Reference 8.2 The while statement",
+      "expected_result": "True ~> .K",
+      "coverage": ["while-statement", "loop-else-normal-completion", "ordinary-python-source-adapter"]
+    },
+    {
+      "id": "adapter-while-else-break",
+      "source": "../adapter/adapter-while-else-break.py",
+      "reference": "Python Language Reference 8.2 The while statement; 7.9 The break statement",
+      "expected_result": "True ~> .K",
+      "coverage": ["while-statement", "loop-else-break-suppression", "break-statement", "ordinary-python-source-adapter"]
+    },
+    {
       "id": "adapter-nested-if-while",
       "source": "../adapter/adapter-nested-if-while.py",
       "reference": "Python Language Reference 8.1 The if statement; 8.2 The while statement",
@@ -170,6 +184,27 @@
       "reference": "Python Language Reference 8.3 The for statement; 7.6 The return statement",
       "expected_result": "True ~> .K",
       "coverage": ["for-statement", "return-through-loop", "function-definition", "ordinary-python-source-adapter"]
+    },
+    {
+      "id": "adapter-for-else-normal",
+      "source": "../adapter/adapter-for-else-normal.py",
+      "reference": "Python Language Reference 8.3 The for statement",
+      "expected_result": "True ~> .K",
+      "coverage": ["for-statement", "loop-else-normal-completion", "range-single-stop-subset", "ordinary-python-source-adapter"]
+    },
+    {
+      "id": "adapter-for-else-break",
+      "source": "../adapter/adapter-for-else-break.py",
+      "reference": "Python Language Reference 8.3 The for statement; 7.9 The break statement",
+      "expected_result": "True ~> .K",
+      "coverage": ["for-statement", "loop-else-break-suppression", "break-statement", "ordinary-python-source-adapter"]
+    },
+    {
+      "id": "adapter-for-else-continue",
+      "source": "../adapter/adapter-for-else-continue.py",
+      "reference": "Python Language Reference 8.3 The for statement; 7.10 The continue statement",
+      "expected_result": "True ~> .K",
+      "coverage": ["for-statement", "loop-else-after-continue-exhaustion", "continue-statement", "ordinary-python-source-adapter"]
     },
     {
       "id": "adapter-range-for",

@@ -67,7 +67,9 @@ module PYTHON-SYNTAX
                 | "#defArgs" "(" Id "," IdItems "," Block ")" [symbol(functionDefArgsStmt)]
                 | "#if" "(" Exp "," Block "," Block ")" [symbol(ifStmt)]
                 | "#while" "(" Exp "," Block ")" [symbol(whileStmt)]
+                | "#whileElse" "(" Exp "," Block "," Block ")" [symbol(whileElseStmt)]
                 | "#for" "(" Id "," Exp "," Block ")" [symbol(forStmt)]
+                | "#forElse" "(" Id "," Exp "," Block "," Block ")" [symbol(forElseStmt)]
 
   syntax Exp ::= Val
                | Id
@@ -152,10 +154,18 @@ module PYTHON
                  | "ifStmtDone" [symbol(ifStmtDone)]
                  | whileStmtBranch(Exp, Block) [symbol(whileStmtBranch)]
                  | whileStmtAgain(Exp, Block) [symbol(whileStmtAgain)]
+                 | whileElseStmtBranch(Exp, Block, Block) [symbol(whileElseStmtBranch)]
+                 | whileElseStmtAgain(Exp, Block, Block) [symbol(whileElseStmtAgain)]
                  | forIter(Id, Block) [symbol(forIter)]
                  | forItems(Id, ValItems, Block) [symbol(forItems)]
                  | forRange(Id, Int, Int, Block) [symbol(forRange)]
                  | forRangeAgain(Id, Int, Int, Block) [symbol(forRangeAgain)]
+                 | forElseIter(Id, Block, Block) [symbol(forElseIter)]
+                 | forElseItems(Id, ValItems, Block, Block) [symbol(forElseItems)]
+                 | forElseDone(Block) [symbol(forElseDone)]
+                 | forElseRange(Id, Int, Int, Block, Block) [symbol(forElseRange)]
+                 | forElseRangeAgain(Id, Int, Int, Block, Block) [symbol(forElseRangeAgain)]
+                 | runLoopElse(Block) [symbol(runLoopElse)]
                  | "forDone" [symbol(forDone)]
                  | "breakSignal" [symbol(breakSignal)]
                  | "continueSignal" [symbol(continueSignal)]
@@ -667,6 +677,25 @@ module PYTHON
            whileStmt(C, Body)
        ... </k>
 
+  rule <k> whileElseStmt(C:Exp, Body:Block, Else:Block) =>
+           C ~> whileElseStmtBranch(C, Body, Else)
+       ... </k>
+  rule <k> V:Val ~> whileElseStmtBranch(C:Exp, block(SS:Stmts), Else:Block) =>
+           SS ~> whileElseStmtAgain(C, block(SS), Else)
+       ... </k>
+    requires truthy(V)
+  rule <k> V:Val ~> whileElseStmtBranch(C:Exp, {}, Else:Block) =>
+           whileElseStmt(C, {}, Else)
+       ... </k>
+    requires truthy(V)
+  rule <k> V:Val ~> whileElseStmtBranch(_:Exp, _:Block, Else:Block) =>
+           runLoopElse(Else)
+       ... </k>
+    requires notBool truthy(V)
+  rule <k> whileElseStmtAgain(C:Exp, Body:Block, Else:Block) =>
+           whileElseStmt(C, Body, Else)
+       ... </k>
+
   rule <k> forStmt(X:Id, E:Exp, Body:Block) =>
            E ~> forIter(X, Body)
        ... </k>
@@ -716,6 +745,58 @@ module PYTHON
            forRange(X, I, Stop, Body)
        ... </k>
 
+  rule <k> forElseStmt(X:Id, E:Exp, Body:Block, Else:Block) =>
+           E ~> forElseIter(X, Body, Else)
+       ... </k>
+  rule <k> [] ~> forElseIter(_:Id, _:Block, Else:Block) => runLoopElse(Else) ... </k>
+  rule <k> listVal(VS:ValItems) ~> forElseIter(X:Id, Body:Block, Else:Block) =>
+           forElseItems(X, VS, Body, Else)
+       ... </k>
+  rule <k> () ~> forElseIter(_:Id, _:Block, Else:Block) => runLoopElse(Else) ... </k>
+  rule <k> tupleVal(VS:ValItems) ~> forElseIter(X:Id, Body:Block, Else:Block) =>
+           forElseItems(X, VS, Body, Else)
+       ... </k>
+  rule <k> rangeVal(Start:Int, Stop:Int) ~> forElseIter(X:Id, Body:Block, Else:Block) =>
+           forElseRange(X, Start, Stop, Body, Else)
+       ... </k>
+
+  rule <k> forElseItems(X:Id, valItemsCons(V:Val, VS:ValItems), block(SS:Stmts), Else:Block) =>
+           SS ~> forElseItems(X, VS, block(SS), Else)
+       ... </k>
+       <env> Rho => Rho [ X <- V ] </env>
+  rule <k> forElseItems(X:Id, valItemsLast(V:Val), block(SS:Stmts), Else:Block) =>
+           SS ~> forElseDone(Else)
+       ... </k>
+       <env> Rho => Rho [ X <- V ] </env>
+  rule <k> forElseItems(X:Id, valItemsCons(V:Val, VS:ValItems), {}, Else:Block) =>
+           forElseItems(X, VS, {}, Else)
+       ... </k>
+       <env> Rho => Rho [ X <- V ] </env>
+  rule <k> forElseItems(X:Id, valItemsLast(V:Val), {}, Else:Block) =>
+           runLoopElse(Else)
+       ... </k>
+       <env> Rho => Rho [ X <- V ] </env>
+  rule <k> forElseDone(Else:Block) => runLoopElse(Else) ... </k>
+
+  rule <k> forElseRange(X:Id, I:Int, Stop:Int, block(SS:Stmts), Else:Block) =>
+           SS ~> forElseRangeAgain(X, I +Int 1, Stop, block(SS), Else)
+       ... </k>
+       <env> Rho => Rho [ X <- I ] </env>
+    requires I <Int Stop
+  rule <k> forElseRange(X:Id, I:Int, Stop:Int, {}, Else:Block) =>
+           forElseRange(X, I +Int 1, Stop, {}, Else)
+       ... </k>
+       <env> Rho => Rho [ X <- I ] </env>
+    requires I <Int Stop
+  rule <k> forElseRange(_:Id, I:Int, Stop:Int, _:Block, Else:Block) => runLoopElse(Else) ... </k>
+    requires I >=Int Stop
+  rule <k> forElseRangeAgain(X:Id, I:Int, Stop:Int, Body:Block, Else:Block) =>
+           forElseRange(X, I, Stop, Body, Else)
+       ... </k>
+
+  rule <k> runLoopElse(block(SS:Stmts)) => SS ~> ifStmtDone ... </k>
+  rule <k> runLoopElse({}) => stmtNoResult ... </k>
+
   rule <k> break => breakSignal ... </k>
   rule <k> continue => continueSignal ... </k>
   rule <k> returnStmt(V:Val) => returnSignal(V) ... </k>
@@ -734,6 +815,11 @@ module PYTHON
            whileStmt(C, Body)
        ... </k>
   rule <k> returnSignal(V:Val) ~> whileStmtAgain(_:Exp, _:Block) => returnSignal(V) ... </k>
+  rule <k> breakSignal ~> whileElseStmtAgain(_:Exp, _:Block, _:Block) => stmtNoResult ... </k>
+  rule <k> continueSignal ~> whileElseStmtAgain(C:Exp, Body:Block, Else:Block) =>
+           whileElseStmt(C, Body, Else)
+       ... </k>
+  rule <k> returnSignal(V:Val) ~> whileElseStmtAgain(_:Exp, _:Block, _:Block) => returnSignal(V) ... </k>
   rule <k> breakSignal ~> forItems(_:Id, _:ValItems, _:Block) => stmtNoResult ... </k>
   rule <k> breakSignal ~> forDone => stmtNoResult ... </k>
   rule <k> continueSignal ~> forItems(X:Id, VS:ValItems, Body:Block) =>
@@ -747,6 +833,19 @@ module PYTHON
            forRange(X, I, Stop, Body)
        ... </k>
   rule <k> returnSignal(V:Val) ~> forRangeAgain(_:Id, _:Int, _:Int, _:Block) => returnSignal(V) ... </k>
+  rule <k> breakSignal ~> forElseItems(_:Id, _:ValItems, _:Block, _:Block) => stmtNoResult ... </k>
+  rule <k> breakSignal ~> forElseDone(_:Block) => stmtNoResult ... </k>
+  rule <k> continueSignal ~> forElseItems(X:Id, VS:ValItems, Body:Block, Else:Block) =>
+           forElseItems(X, VS, Body, Else)
+       ... </k>
+  rule <k> continueSignal ~> forElseDone(Else:Block) => runLoopElse(Else) ... </k>
+  rule <k> returnSignal(V:Val) ~> forElseItems(_:Id, _:ValItems, _:Block, _:Block) => returnSignal(V) ... </k>
+  rule <k> returnSignal(V:Val) ~> forElseDone(_:Block) => returnSignal(V) ... </k>
+  rule <k> breakSignal ~> forElseRangeAgain(_:Id, _:Int, _:Int, _:Block, _:Block) => stmtNoResult ... </k>
+  rule <k> continueSignal ~> forElseRangeAgain(X:Id, I:Int, Stop:Int, Body:Block, Else:Block) =>
+           forElseRange(X, I, Stop, Body, Else)
+       ... </k>
+  rule <k> returnSignal(V:Val) ~> forElseRangeAgain(_:Id, _:Int, _:Int, _:Block, _:Block) => returnSignal(V) ... </k>
   rule <k> returnSignal(V:Val) ~> functionDone(Rho:Map) => V ~> restoreEnv(Rho) ... </k>
   rule <k> functionDone(Rho:Map) => None ~> restoreEnv(Rho) ... </k>
 

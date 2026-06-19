@@ -292,7 +292,7 @@ def emit_lambda(node: ast.AST, args: ast.arguments, body: ast.expr) -> str:
     names = [arg.arg for arg in args.args]
     if args.vararg is not None:
         if args.defaults:
-            raise unsupported(node, "lambda varargs with positional defaults are not supported yet")
+            return f"#lambdaVarArgsDefaults({emit_id_items(names)}, {emit_arg_exps(args.defaults)}, {args.vararg.arg}, {emit_exp(body)})"
         return f"#lambdaVarArgs({emit_id_items(names)}, {args.vararg.arg}, {emit_exp(body)})"
     if args.defaults:
         return f"#lambdaDefaults({emit_id_items(names)}, {emit_arg_exps(args.defaults)}, {emit_exp(body)})"
@@ -340,7 +340,7 @@ def emit_function_def(
     names = [arg.arg for arg in args.args]
     if args.vararg is not None:
         if args.defaults:
-            raise unsupported(node, "varargs with positional defaults are not supported yet")
+            return f"#defVarArgsDefaults({name}, {emit_id_items(names)}, {emit_arg_exps(args.defaults)}, {args.vararg.arg}, {emit_block(body)})"
         return f"#defVarArgs({name}, {emit_id_items(names)}, {args.vararg.arg}, {emit_block(body)})"
     if args.defaults:
         return f"#defDefaults({name}, {emit_id_items(names)}, {emit_arg_exps(args.defaults)}, {emit_block(body)})"

@@ -403,6 +403,13 @@
       "coverage": ["set-equality", "set-duplicate-element-normalization", "set-membership", "ordinary-python-source-adapter"]
     },
     {
+      "id": "adapter-set-ordering",
+      "source": "../adapter/adapter-set-ordering.py",
+      "reference": "Python Language Reference 6.10 Comparisons; Standard Library set types",
+      "expected_result": "True ~> .K",
+      "coverage": ["set-ordering-comparisons", "proper-subset", "subset", "proper-superset", "superset", "ordinary-python-source-adapter"]
+    },
+    {
       "id": "adapter-assign-many",
       "source": "../adapter/adapter-assign-many.py",
       "reference": "Python Language Reference 7.2 Assignment statements",

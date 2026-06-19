@@ -477,12 +477,20 @@ module PYTHON
 
   rule cmpHolds(#lt, V1:Val, V2:Val) => intValue(V1) <Int intValue(V2)
     requires isIntLike(V1) andBool isIntLike(V2)
+  rule cmpHolds(#lt, setVal(VS1:ValItems), setVal(VS2:ValItems)) =>
+    setItemsSubset(VS1, VS2) andBool notBool setsEq(VS1, VS2)
   rule cmpHolds(#le, V1:Val, V2:Val) => intValue(V1) <=Int intValue(V2)
     requires isIntLike(V1) andBool isIntLike(V2)
+  rule cmpHolds(#le, setVal(VS1:ValItems), setVal(VS2:ValItems)) =>
+    setItemsSubset(VS1, VS2)
   rule cmpHolds(#gt, V1:Val, V2:Val) => intValue(V1) >Int intValue(V2)
     requires isIntLike(V1) andBool isIntLike(V2)
+  rule cmpHolds(#gt, setVal(VS1:ValItems), setVal(VS2:ValItems)) =>
+    setItemsSubset(VS2, VS1) andBool notBool setsEq(VS1, VS2)
   rule cmpHolds(#ge, V1:Val, V2:Val) => intValue(V1) >=Int intValue(V2)
     requires isIntLike(V1) andBool isIntLike(V2)
+  rule cmpHolds(#ge, setVal(VS1:ValItems), setVal(VS2:ValItems)) =>
+    setItemsSubset(VS2, VS1)
   rule cmpHolds(#eq, V1:Val, V2:Val) => valEq(V1, V2)
   rule cmpHolds(#ne, V1:Val, V2:Val) => notBool valEq(V1, V2)
   rule cmpHolds(#is, V1:Val, V2:Val) => valIs(V1, V2)
@@ -655,12 +663,20 @@ module PYTHON
 
   rule V1:Val < V2:Val => boolValue(intValue(V1) <Int intValue(V2))
     requires isIntLike(V1) andBool isIntLike(V2)
+  rule setVal(VS1:ValItems) < setVal(VS2:ValItems) =>
+    boolValue(cmpHolds(#lt, setVal(VS1), setVal(VS2)))
   rule V1:Val <= V2:Val => boolValue(intValue(V1) <=Int intValue(V2))
     requires isIntLike(V1) andBool isIntLike(V2)
+  rule setVal(VS1:ValItems) <= setVal(VS2:ValItems) =>
+    boolValue(cmpHolds(#le, setVal(VS1), setVal(VS2)))
   rule V1:Val > V2:Val => boolValue(intValue(V1) >Int intValue(V2))
     requires isIntLike(V1) andBool isIntLike(V2)
+  rule setVal(VS1:ValItems) > setVal(VS2:ValItems) =>
+    boolValue(cmpHolds(#gt, setVal(VS1), setVal(VS2)))
   rule V1:Val >= V2:Val => boolValue(intValue(V1) >=Int intValue(V2))
     requires isIntLike(V1) andBool isIntLike(V2)
+  rule setVal(VS1:ValItems) >= setVal(VS2:ValItems) =>
+    boolValue(cmpHolds(#ge, setVal(VS1), setVal(VS2)))
   rule V1:Val == V2:Val => boolValue(valEq(V1, V2))
   rule V1:Val != V2:Val => boolValue(notBool valEq(V1, V2))
   rule V1:Val is V2:Val => boolValue(valIs(V1, V2))

@@ -127,8 +127,12 @@ def emit_exp(exp: ast.expr) -> str:
             return f"#len({emit_exp(arg)})"
         case ast.Call(func=ast.Name(id="list"), args=[], keywords=[]):
             return "#listCtor()"
+        case ast.Call(func=ast.Name(id="list"), args=[arg], keywords=[]):
+            return f"#listCtor({emit_exp(arg)})"
         case ast.Call(func=ast.Name(id="tuple"), args=[], keywords=[]):
             return "#tupleCtor()"
+        case ast.Call(func=ast.Name(id="tuple"), args=[arg], keywords=[]):
+            return f"#tupleCtor({emit_exp(arg)})"
         case ast.Call(func=ast.Name(id="dict"), args=[], keywords=[]):
             return "#dictCtor()"
         case ast.Call(func=ast.Name(id="set"), args=[], keywords=[]):

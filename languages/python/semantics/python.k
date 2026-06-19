@@ -99,7 +99,9 @@ module PYTHON-SYNTAX
                | "#dict" "(" DictExps ")" [symbol(dictDisplayExp)]
                | "#set" "(" ArgExps ")" [symbol(setDisplayExp)]
                | "#listCtor" "(" ")" [symbol(listCtorExp)]
+               | "#listCtor" "(" Exp ")" [symbol(listCtor1Exp), strict]
                | "#tupleCtor" "(" ")" [symbol(tupleCtorExp)]
+               | "#tupleCtor" "(" Exp ")" [symbol(tupleCtor1Exp), strict]
                | "#dictCtor" "(" ")" [symbol(dictCtorExp)]
                | "#setCtor" "(" ")" [symbol(setCtorExp)]
                | "#boolCtor" "(" ")" [symbol(boolCtor0Exp)]
@@ -296,6 +298,7 @@ module PYTHON
   syntax ValItems ::= argValsToSetItems(ArgVals) [function, symbol(argValsToSetItems)]
   syntax ValItems ::= stringToValItems(String, Int, Int) [function, symbol(stringToValItems)]
   syntax ValItems ::= dictKeysToValItems(DictItems) [function, symbol(dictKeysToValItems)]
+  syntax ValItems ::= rangeToValItems(Int, Int, Int, Int, Int) [function, symbol(rangeToValItems)]
   syntax ValItems ::= concatValItems(ValItems, ValItems) [function, symbol(concatValItems)]
   syntax ValItems ::= repeatValItems(ValItems, Int) [function, symbol(repeatValItems)]
   syntax ValItems ::= sliceValItems(ValItems, Int, Int) [function, symbol(sliceValItems)]
@@ -745,6 +748,13 @@ module PYTHON
   rule dictKeysToValItems(dictItemsLast(K:Val, _:Val)) => valItemsLast(K)
   rule dictKeysToValItems(dictItemsCons(K:Val, _:Val, DS:DictItems)) =>
     valItemsCons(K, dictKeysToValItems(DS))
+
+  rule rangeToValItems(Start:Int, Stop:Int, Step:Int, I:Int, Len:Int) =>
+    valItemsLast(rangeGet(Start, Stop, Step, I))
+    requires Step =/=Int 0 andBool I +Int 1 >=Int Len
+  rule rangeToValItems(Start:Int, Stop:Int, Step:Int, I:Int, Len:Int) =>
+    valItemsCons(rangeGet(Start, Stop, Step, I), rangeToValItems(Start, Stop, Step, I +Int 1, Len))
+    requires Step =/=Int 0 andBool I +Int 1 <Int Len
 
   rule allValItems(valItemsLast(V:Val)) => truthy(V)
   rule allValItems(valItemsCons(V:Val, VS:ValItems)) => truthy(V) andBool allValItems(VS)
@@ -1385,6 +1395,46 @@ module PYTHON
   rule #tupleCtor() => ()
   rule #dictCtor() => ({}):Val
   rule #setCtor() => set()
+  rule #listCtor([]) => []
+  rule #listCtor(listVal(VS:ValItems)) => listVal(VS)
+  rule #listCtor(()) => []
+  rule #listCtor(tupleVal(VS:ValItems)) => listVal(VS)
+  rule #listCtor(S:String) => []
+    requires lengthString(S) ==Int 0
+  rule #listCtor(S:String) => listVal(stringToValItems(S, 0, lengthString(S)))
+    requires lengthString(S) >Int 0
+  rule #listCtor(({}):Val) => []
+  rule #listCtor(dictVal(DS:DictItems)) => listVal(dictKeysToValItems(DS))
+  rule #listCtor(rangeVal(Start:Int, Stop:Int)) => []
+    requires pyRangeLen(Start, Stop, 1) ==Int 0
+  rule #listCtor(rangeVal(Start:Int, Stop:Int)) =>
+    listVal(rangeToValItems(Start, Stop, 1, 0, pyRangeLen(Start, Stop, 1)))
+    requires pyRangeLen(Start, Stop, 1) >Int 0
+  rule #listCtor(rangeVal(Start:Int, Stop:Int, Step:Int)) => []
+    requires Step =/=Int 0 andBool pyRangeLen(Start, Stop, Step) ==Int 0
+  rule #listCtor(rangeVal(Start:Int, Stop:Int, Step:Int)) =>
+    listVal(rangeToValItems(Start, Stop, Step, 0, pyRangeLen(Start, Stop, Step)))
+    requires Step =/=Int 0 andBool pyRangeLen(Start, Stop, Step) >Int 0
+  rule #tupleCtor([]) => ()
+  rule #tupleCtor(listVal(VS:ValItems)) => tupleVal(VS)
+  rule #tupleCtor(()) => ()
+  rule #tupleCtor(tupleVal(VS:ValItems)) => tupleVal(VS)
+  rule #tupleCtor(S:String) => ()
+    requires lengthString(S) ==Int 0
+  rule #tupleCtor(S:String) => tupleVal(stringToValItems(S, 0, lengthString(S)))
+    requires lengthString(S) >Int 0
+  rule #tupleCtor(({}):Val) => ()
+  rule #tupleCtor(dictVal(DS:DictItems)) => tupleVal(dictKeysToValItems(DS))
+  rule #tupleCtor(rangeVal(Start:Int, Stop:Int)) => ()
+    requires pyRangeLen(Start, Stop, 1) ==Int 0
+  rule #tupleCtor(rangeVal(Start:Int, Stop:Int)) =>
+    tupleVal(rangeToValItems(Start, Stop, 1, 0, pyRangeLen(Start, Stop, 1)))
+    requires pyRangeLen(Start, Stop, 1) >Int 0
+  rule #tupleCtor(rangeVal(Start:Int, Stop:Int, Step:Int)) => ()
+    requires Step =/=Int 0 andBool pyRangeLen(Start, Stop, Step) ==Int 0
+  rule #tupleCtor(rangeVal(Start:Int, Stop:Int, Step:Int)) =>
+    tupleVal(rangeToValItems(Start, Stop, Step, 0, pyRangeLen(Start, Stop, Step)))
+    requires Step =/=Int 0 andBool pyRangeLen(Start, Stop, Step) >Int 0
   rule #boolCtor() => False
   rule #boolCtor(V:Val) => boolValue(truthy(V))
   rule #all([]) => True

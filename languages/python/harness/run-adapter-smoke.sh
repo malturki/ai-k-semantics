@@ -127,6 +127,7 @@ run_case "adapter-range-slice" "$ROOT/tests/adapter/adapter-range-slice.py" "Tru
 run_case "adapter-range-slice-step" "$ROOT/tests/adapter/adapter-range-slice-step.py" "True ~> .K"
 run_case "adapter-len-containers" "$ROOT/tests/adapter/adapter-len-containers.py" "True ~> .K"
 run_case "adapter-empty-container-constructors" "$ROOT/tests/adapter/adapter-empty-container-constructors.py" "True ~> .K"
+run_case "adapter-list-tuple-constructors" "$ROOT/tests/adapter/adapter-list-tuple-constructors.py" "True ~> .K"
 run_case "adapter-len-string-range" "$ROOT/tests/adapter/adapter-len-string-range.py" "True ~> .K"
 run_case "adapter-len-range-step" "$ROOT/tests/adapter/adapter-len-range-step.py" "True ~> .K"
 run_case "adapter-dict" "$ROOT/tests/adapter/adapter-dict.py" "True ~> .K"

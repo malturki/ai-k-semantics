@@ -75,6 +75,7 @@ run_case "adapter-if-no-else" "$ROOT/tests/adapter/adapter-if-no-else.py" "True 
 run_case "adapter-is-none" "$ROOT/tests/adapter/adapter-is-none.py" "True ~> .K"
 run_case "adapter-is-bool" "$ROOT/tests/adapter/adapter-is-bool.py" "True ~> .K"
 run_case "adapter-bool-constructor" "$ROOT/tests/adapter/adapter-bool-constructor.py" "True ~> .K"
+run_case "adapter-int-constructor" "$ROOT/tests/adapter/adapter-int-constructor.py" "True ~> .K"
 run_case "adapter-chained-comparison" "$ROOT/tests/adapter/adapter-chained-comparison.py" "True ~> .K"
 run_case "adapter-chained-comparison-short-circuit" "$ROOT/tests/adapter/adapter-chained-comparison-short-circuit.py" "False ~> .K"
 run_case "adapter-chained-identity" "$ROOT/tests/adapter/adapter-chained-identity.py" "True ~> .K"

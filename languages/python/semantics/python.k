@@ -104,6 +104,8 @@ module PYTHON-SYNTAX
                | "#setCtor" "(" ")" [symbol(setCtorExp)]
                | "#boolCtor" "(" ")" [symbol(boolCtor0Exp)]
                | "#boolCtor" "(" Exp ")" [symbol(boolCtor1Exp), strict]
+               | "#intCtor" "(" ")" [symbol(intCtor0Exp)]
+               | "#intCtor" "(" Exp ")" [symbol(intCtor1Exp), strict]
                | "#compareChain" "(" Exp "," CmpChain ")" [symbol(compareChainExp)]
                | "#len" "(" Exp ")" [symbol(lenExp), strict]
                | "#floorDiv" "(" Exp "," Exp ")" [symbol(floorDivInternal), strict]
@@ -1292,6 +1294,9 @@ module PYTHON
   rule #setCtor() => set()
   rule #boolCtor() => False
   rule #boolCtor(V:Val) => boolValue(truthy(V))
+  rule #intCtor() => 0
+  rule #intCtor(V:Val) => intValue(V)
+    requires isIntLike(V)
 
   rule range1Exp(N:Val) => rangeVal(0, intValue(N))
     requires isIntLike(N)

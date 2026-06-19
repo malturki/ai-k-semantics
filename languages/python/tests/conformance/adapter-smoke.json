@@ -228,6 +228,13 @@
       "coverage": ["bool-constructor", "truth-value-testing", "bool-singletons", "ordinary-python-source-adapter"]
     },
     {
+      "id": "adapter-int-constructor",
+      "source": "../adapter/adapter-int-constructor.py",
+      "reference": "Python Standard Library Built-in Types int",
+      "expected_result": "True ~> .K",
+      "coverage": ["int-constructor", "bool-to-int-conversion", "integer-identity-conversion", "ordinary-python-source-adapter"]
+    },
+    {
       "id": "adapter-chained-comparison",
       "source": "../adapter/adapter-chained-comparison.py",
       "reference": "Python Language Reference 6.10 Comparisons; 6.16 Evaluation order",

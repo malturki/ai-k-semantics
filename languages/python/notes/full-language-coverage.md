@@ -29,7 +29,7 @@ Status values:
 | Compound statements | Language Reference, chapter 8 | partial | Adapter-backed `if`, `while`, list/tuple/range `for`, flat unpacking `for` targets, and positional-parameter `def` subsets exist, including `break`, `continue`, `return` propagation, and loop `else` for the current while/for subsets. General iteration, `try`, `with`, `match`, full functions, classes, coroutines, type parameter lists, annotations remain. |
 | Top-level components | Language Reference, chapter 9 | syntax | Initial kernel parses a small file-input subset. Interactive/eval modes remain. |
 | Full grammar | Language Reference, chapter 10 | syntax | A first construct-preserving CPython-AST adapter exists for the current executable subset, including ordinary `//`, list displays, and tuple displays. The full grammar must still be mirrored construct-by-construct or covered by documented parser front ends that preserve construct identity. |
-| Built-ins and core library | Standard Library reference | partial | Internal `range`, `len`, and `bool` subsets exist, plus no-argument `list()`, `tuple()`, `dict()`, and `set()` constructors for current concrete values; no full builtins namespace or general object protocol yet. |
+| Built-ins and core library | Standard Library reference | partial | Internal `range`, `len`, `bool`, and `int` subsets exist, plus no-argument `list()`, `tuple()`, `dict()`, and `set()` constructors for current concrete values; no full builtins namespace or general object protocol yet. |
 
 ## Construct Families
 
@@ -40,7 +40,7 @@ Status values:
 | Names, keywords, soft keywords | partial | Initial `Id` handling only; needs Python identifier Unicode rules and keyword/soft-keyword separation. |
 | Literals | partial | Int, simple string, bool, and None smoke coverage; bytes, floats, imaginary numbers, full Python string prefixes/escapes, f-strings, t-strings remain. |
 | Object model | partial | Minimal value model with singleton identity only; needs heap objects, general identity, type hierarchy, attributes, descriptors. |
-| Numeric operations | partial | Int/bool unary `+`/`-`/`~`, `+`, `-`, `*`, `%`, `//`, shifts, bitwise operators, and nonnegative `**`; adapter smoke now exercises real Python `//` spelling. Python numeric tower, true division, negative exponent float behavior, full coercions, and error behavior remain. |
+| Numeric operations | partial | Int/bool unary `+`/`-`/`~`, `+`, `-`, `*`, `%`, `//`, shifts, bitwise operators, nonnegative `**`, and adapter-backed `int()`/`int(x)` for current int-like values; adapter smoke now exercises real Python `//` spelling. Python numeric tower, true division, negative exponent float behavior, string/base int conversion, full coercions, and error behavior remain. |
 | Truth-value testing | partial | Simple int/string/list/tuple/dict/set/range/bool/None truthiness, adapter-backed `bool()`/`bool(x)` for those values, and short-circuit `and`/`or`; needs `__bool__`, `__len__`, full containers, and user-defined objects. |
 | Name binding and scope | partial | Single environment only; needs module/function/class scopes, globals, nonlocals, comprehensions, annotation scopes. |
 | Assignment | partial | Single-name assignment, adapter-backed multi-target simple-name assignment, flat sequence unpacking assignment to simple names, and simple-name augmented assignment for current integer-like operators; needs nested/starred unpacking, attributes, subscriptions, annotations, `/=`, `@=`, and full target evaluation order. |
@@ -54,7 +54,7 @@ Status values:
 | Pattern matching | not-started | Needs PEP 634/635/636 plus current docs mapping. |
 | Coroutines and async | not-started | Needs awaitables, async functions/generators, async with/for. |
 | Annotations and type syntax | not-started | Needs deferred annotations, type parameters, `type` statement, annotation scopes. |
-| Standard library interactions | partial | Internal `range(stop)`/`range(start, stop)`/`range(start, stop, step)` loop, equality, integer-like membership, indexing, nonzero-step slicing, truthiness, and length support exist; `len` and `bool` work for current concrete values; no-argument `list()`, `tuple()`, `dict()`, and `set()` constructors build current empty concrete values. Needs staged builtins/core library coverage, constructor arguments/iterable conversion, full range object behavior, zero-step diagnostics, general `__bool__`/`__len__`, and host profile boundaries. |
+| Standard library interactions | partial | Internal `range(stop)`/`range(start, stop)`/`range(start, stop, step)` loop, equality, integer-like membership, indexing, nonzero-step slicing, truthiness, and length support exist; `len`, `bool`, and int-like `int` work for current concrete values; no-argument `list()`, `tuple()`, `dict()`, and `set()` constructors build current empty concrete values. Needs staged builtins/core library coverage, constructor arguments/iterable conversion, string/base int conversion, full range object behavior, zero-step diagnostics, general `__bool__`/`__len__`/`__int__`, and host profile boundaries. |
 | CPython profile | not-started | Needs implementation notes, diagnostics, limits, and `Lib/test` classification. |
 
 ## Completeness Rule

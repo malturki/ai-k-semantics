@@ -29,7 +29,7 @@ Status values:
 | Compound statements | Language Reference, chapter 8 | partial | Adapter-backed `if`, `while`, list/tuple/range `for`, and positional-parameter `def` subsets exist, including `break`, `continue`, `return` propagation, and loop `else` for the current while/for subsets. General iteration, `try`, `with`, `match`, full functions, classes, coroutines, type parameter lists, annotations remain. |
 | Top-level components | Language Reference, chapter 9 | syntax | Initial kernel parses a small file-input subset. Interactive/eval modes remain. |
 | Full grammar | Language Reference, chapter 10 | syntax | A first construct-preserving CPython-AST adapter exists for the current executable subset, including ordinary `//`, list displays, and tuple displays. The full grammar must still be mirrored construct-by-construct or covered by documented parser front ends that preserve construct identity. |
-| Built-ins and core library | Standard Library reference | not-started | Initial kernel only has internal integers; no real Python builtins yet. |
+| Built-ins and core library | Standard Library reference | partial | Internal `range` and `len` subsets exist; no full builtins namespace or general object protocol yet. |
 
 ## Construct Families
 
@@ -54,7 +54,7 @@ Status values:
 | Pattern matching | not-started | Needs PEP 634/635/636 plus current docs mapping. |
 | Coroutines and async | not-started | Needs awaitables, async functions/generators, async with/for. |
 | Annotations and type syntax | not-started | Needs deferred annotations, type parameters, `type` statement, annotation scopes. |
-| Standard library interactions | partial | Internal `range(stop)`/`range(start, stop)` loop support exists. Needs staged builtins/core library coverage, full range object behavior, and host profile boundaries. |
+| Standard library interactions | partial | Internal `range(stop)`/`range(start, stop)` loop support and `len` for current concrete values exist. Needs staged builtins/core library coverage, full range object behavior, general `__len__`, and host profile boundaries. |
 | CPython profile | not-started | Needs implementation notes, diagnostics, limits, and `Lib/test` classification. |
 
 ## Completeness Rule

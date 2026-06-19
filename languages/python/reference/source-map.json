@@ -803,9 +803,9 @@
               "url": "https://docs.python.org/3/library/functions.html"
             }
           ],
-          "k_coverage": ["semantics/python.k: internal #range expression support for range(stop) and range(start, stop) in for loops"],
-          "test_coverage": ["tests/adapter/adapter-range-for.py", "tests/adapter/adapter-range-start-stop.py", "tests/adapter/adapter-range-break-continue.py"],
-          "gaps": ["Need builtins namespace, exceptions, object construction, full range object behavior, iteration helpers, eval/exec/open profiles, and __debug__."]
+          "k_coverage": ["semantics/python.k: internal #range expression support for range(stop) and range(start, stop) in for loops", "semantics/python.k: internal #len expression support for current string/container/range values"],
+          "test_coverage": ["tests/adapter/adapter-range-for.py", "tests/adapter/adapter-range-start-stop.py", "tests/adapter/adapter-range-break-continue.py", "tests/adapter/adapter-len-containers.py", "tests/adapter/adapter-len-string-range.py"],
+          "gaps": ["Need builtins namespace, exceptions, object construction, full range object behavior, general __len__ dispatch, iteration helpers, eval/exec/open profiles, and __debug__."]
         },
         {
           "id": "stdlib.builtin-types",
@@ -818,7 +818,7 @@
             }
           ],
           "k_coverage": ["semantics/python.k: internal integer, string, list, tuple, dict, set, bool, None, and range subset"],
-          "test_coverage": ["tests/examples/smoke-arithmetic.py", "tests/examples/smoke-bool-constants.py", "tests/examples/smoke-bool-ops.py", "tests/examples/smoke-comparisons.py", "tests/examples/smoke-strings.py", "tests/examples/smoke-int-operators.py", "tests/examples/smoke-lists.py", "tests/examples/smoke-tuples.py", "tests/adapter/adapter-floor-div.py", "tests/adapter/adapter-list-normal.py", "tests/adapter/adapter-tuple-normal.py", "tests/adapter/adapter-dict.py", "tests/adapter/adapter-dict-truthy.py", "tests/adapter/adapter-set.py", "tests/adapter/adapter-range-for.py", "tests/adapter/adapter-range-start-stop.py"],
+          "test_coverage": ["tests/examples/smoke-arithmetic.py", "tests/examples/smoke-bool-constants.py", "tests/examples/smoke-bool-ops.py", "tests/examples/smoke-comparisons.py", "tests/examples/smoke-strings.py", "tests/examples/smoke-int-operators.py", "tests/examples/smoke-lists.py", "tests/examples/smoke-tuples.py", "tests/adapter/adapter-floor-div.py", "tests/adapter/adapter-list-normal.py", "tests/adapter/adapter-tuple-normal.py", "tests/adapter/adapter-dict.py", "tests/adapter/adapter-dict-truthy.py", "tests/adapter/adapter-set.py", "tests/adapter/adapter-range-for.py", "tests/adapter/adapter-range-start-stop.py", "tests/adapter/adapter-len-containers.py", "tests/adapter/adapter-len-string-range.py"],
           "gaps": ["Need real object/type hierarchy, numeric tower, sequences, mappings, sets, full range type behavior, context-manager types, memoryview, and iterator protocols."]
         },
         {

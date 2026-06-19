@@ -127,6 +127,8 @@ def emit_exp(exp: ast.expr) -> str:
             return f"#range({emit_exp(start)}, {emit_exp(stop)})"
         case ast.Call(func=ast.Name(id="range"), args=[_start, _stop, step], keywords=[]):
             raise unsupported(step, "range step arguments are not supported yet")
+        case ast.Call(func=ast.Name(id="len"), args=[arg], keywords=[]):
+            return f"#len({emit_exp(arg)})"
         case ast.Call(func=func, args=[arg], keywords=[]):
             return f"({emit_exp(func)}({emit_exp(arg)}))"
         case ast.Call(func=func, args=args, keywords=[]):

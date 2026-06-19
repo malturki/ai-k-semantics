@@ -263,6 +263,20 @@
       "coverage": ["for-statement", "range-start-stop-subset", "break-statement", "continue-statement", "ordinary-python-source-adapter"]
     },
     {
+      "id": "adapter-len-containers",
+      "source": "../adapter/adapter-len-containers.py",
+      "reference": "Python Standard Library Built-in Functions len(); Built-in Types sequence, mapping, and set length",
+      "expected_result": "True ~> .K",
+      "coverage": ["len-builtin", "list-length", "tuple-length", "dict-length", "set-length", "ordinary-python-source-adapter"]
+    },
+    {
+      "id": "adapter-len-string-range",
+      "source": "../adapter/adapter-len-string-range.py",
+      "reference": "Python Standard Library Built-in Functions len(); Built-in Types str and range",
+      "expected_result": "True ~> .K",
+      "coverage": ["len-builtin", "string-length", "range-length", "ordinary-python-source-adapter"]
+    },
+    {
       "id": "adapter-dict",
       "source": "../adapter/adapter-dict.py",
       "reference": "Python Language Reference 6.2.7 Dictionary displays; 6.3.2 Subscriptions; 6.10 Comparisons",

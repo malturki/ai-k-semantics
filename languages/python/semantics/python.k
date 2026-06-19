@@ -95,6 +95,7 @@ module PYTHON-SYNTAX
                | "#dict" "(" DictExps ")" [symbol(dictDisplayExp)]
                | "#set" "(" ArgExps ")" [symbol(setDisplayExp)]
                | "#compareChain" "(" Exp "," CmpChain ")" [symbol(compareChainExp)]
+               | "#len" "(" Exp ")" [symbol(lenExp), strict]
                | "#floorDiv" "(" Exp "," Exp ")" [symbol(floorDivInternal), strict]
                | "+" Exp [symbol(posExp), strict]
                | "-" Exp [symbol(negExp), strict]
@@ -210,6 +211,9 @@ module PYTHON
   syntax Int ::= intValue(Val) [function, symbol(intValue)]
                | pyFloorDiv(Int, Int) [function, symbol(pyFloorDiv)]
                | pyModulo(Int, Int) [function, symbol(pyModulo)]
+               | pyLen(Val) [function, symbol(pyLen)]
+               | valItemsLen(ValItems) [function, symbol(valItemsLen)]
+               | dictItemsLen(DictItems) [function, symbol(dictItemsLen)]
   syntax ArgVals ::= "#noArgVals" [symbol(noArgVals)]
                    | argValsCons(Val, ArgVals) [symbol(argValsCons)]
                    | appendArgVal(ArgVals, Val) [function, symbol(appendArgVal)]
@@ -287,6 +291,25 @@ module PYTHON
   rule intValue(I:Int) => I
   rule intValue(True) => 1
   rule intValue(False) => 0
+
+  rule pyLen(S:String) => lengthString(S)
+  rule pyLen([]) => 0
+  rule pyLen(listVal(VS:ValItems)) => valItemsLen(VS)
+  rule pyLen(()) => 0
+  rule pyLen(tupleVal(VS:ValItems)) => valItemsLen(VS)
+  rule pyLen({}) => 0
+  rule pyLen(dictVal(DS:DictItems)) => dictItemsLen(DS)
+  rule pyLen(setVal(VS:ValItems)) => valItemsLen(VS)
+  rule pyLen(rangeVal(Start:Int, Stop:Int)) => Stop -Int Start
+    requires Start <Int Stop
+  rule pyLen(rangeVal(Start:Int, Stop:Int)) => 0
+    requires Start >=Int Stop
+
+  rule valItemsLen(valItemsLast(_:Val)) => 1
+  rule valItemsLen(valItemsCons(_:Val, VS:ValItems)) => 1 +Int valItemsLen(VS)
+
+  rule dictItemsLen(dictItemsLast(_:Val, _:Val)) => 1
+  rule dictItemsLen(dictItemsCons(_:Val, _:Val, DS:DictItems)) => 1 +Int dictItemsLen(DS)
 
   rule pyFloorDiv(I1:Int, I2:Int) => (I1 /Int I2) -Int 1
     requires I2 =/=Int 0
@@ -542,6 +565,7 @@ module PYTHON
   rule V1:Val | V2:Val => intValue(V1) |Int intValue(V2)
     requires isIntLike(V1) andBool isIntLike(V2)
   rule S1:String + S2:String => S1 +String S2
+  rule lenExp(V:Val) => pyLen(V)
 
   rule V1:Val < V2:Val => boolValue(intValue(V1) <Int intValue(V2))
     requires isIntLike(V1) andBool isIntLike(V2)

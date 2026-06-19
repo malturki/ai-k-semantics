@@ -108,6 +108,8 @@ module PYTHON-SYNTAX
                | "#any" "(" Exp ")" [symbol(anyExp), strict]
                | "#sum" "(" Exp ")" [symbol(sum1Exp), strict]
                | "#sum" "(" Exp "," Exp ")" [symbol(sum2Exp), strict]
+               | "#min" "(" Exp ")" [symbol(minExp), strict]
+               | "#max" "(" Exp ")" [symbol(maxExp), strict]
                | "#intCtor" "(" ")" [symbol(intCtor0Exp)]
                | "#intCtor" "(" Exp ")" [symbol(intCtor1Exp), strict]
                | "#abs" "(" Exp ")" [symbol(absExp), strict]
@@ -275,6 +277,10 @@ module PYTHON
                | rangeGet(Int, Int, Int, Int) [function, symbol(rangeGet)]
                | sumValItems(ValItems) [function, symbol(sumValItems)]
                | rangeSum(Int, Int, Int) [function, symbol(rangeSum)]
+               | minValItems(ValItems) [function, symbol(minValItems)]
+               | maxValItems(ValItems) [function, symbol(maxValItems)]
+               | rangeMin(Int, Int, Int) [function, symbol(rangeMin)]
+               | rangeMax(Int, Int, Int) [function, symbol(rangeMax)]
   syntax String ::= repeatString(String, Int) [function, symbol(repeatString)]
                   | sliceString(String, Int, Int) [function, symbol(sliceString)]
                   | sliceStepString(String, Int, Int, Int) [function, symbol(sliceStepString)]
@@ -769,6 +775,36 @@ module PYTHON
   rule rangeSum(Start:Int, Stop:Int, Step:Int) =>
     (pyRangeLen(Start, Stop, Step) *Int ((2 *Int Start) +Int ((pyRangeLen(Start, Stop, Step) -Int 1) *Int Step))) /Int 2
     requires Step =/=Int 0
+  rule minValItems(valItemsLast(V:Val)) => intValue(V)
+    requires isIntLike(V)
+  rule minValItems(valItemsCons(V:Val, VS:ValItems)) => intValue(V)
+    requires isIntLike(V)
+      andBool valItemsAllIntLike(VS)
+      andBool intValue(V) <=Int minValItems(VS)
+  rule minValItems(valItemsCons(V:Val, VS:ValItems)) => minValItems(VS)
+    requires isIntLike(V)
+      andBool valItemsAllIntLike(VS)
+      andBool intValue(V) >Int minValItems(VS)
+  rule maxValItems(valItemsLast(V:Val)) => intValue(V)
+    requires isIntLike(V)
+  rule maxValItems(valItemsCons(V:Val, VS:ValItems)) => intValue(V)
+    requires isIntLike(V)
+      andBool valItemsAllIntLike(VS)
+      andBool intValue(V) >=Int maxValItems(VS)
+  rule maxValItems(valItemsCons(V:Val, VS:ValItems)) => maxValItems(VS)
+    requires isIntLike(V)
+      andBool valItemsAllIntLike(VS)
+      andBool intValue(V) <Int maxValItems(VS)
+  rule rangeMin(Start:Int, Stop:Int, Step:Int) => Start
+    requires Step >Int 0 andBool pyRangeLen(Start, Stop, Step) >Int 0
+  rule rangeMin(Start:Int, Stop:Int, Step:Int) =>
+    rangeGet(Start, Stop, Step, pyRangeLen(Start, Stop, Step) -Int 1)
+    requires Step <Int 0 andBool pyRangeLen(Start, Stop, Step) >Int 0
+  rule rangeMax(Start:Int, Stop:Int, Step:Int) =>
+    rangeGet(Start, Stop, Step, pyRangeLen(Start, Stop, Step) -Int 1)
+    requires Step >Int 0 andBool pyRangeLen(Start, Stop, Step) >Int 0
+  rule rangeMax(Start:Int, Stop:Int, Step:Int) => Start
+    requires Step <Int 0 andBool pyRangeLen(Start, Stop, Step) >Int 0
 
   rule concatValItems(valItemsLast(V:Val), VS:ValItems) => valItemsCons(V, VS)
   rule concatValItems(valItemsCons(V:Val, VS1:ValItems), VS2:ValItems) =>
@@ -1414,6 +1450,30 @@ module PYTHON
     requires isIntLike(Seed) andBool Step =/=Int 0 andBool pyRangeLen(Start, Stop, Step) ==Int 0
   rule #sum(rangeVal(Start:Int, Stop:Int, Step:Int), Seed:Val) => intValue(Seed) +Int rangeSum(Start, Stop, Step)
     requires isIntLike(Seed) andBool Step =/=Int 0 andBool pyRangeLen(Start, Stop, Step) >Int 0
+  rule #min(listVal(VS:ValItems)) => minValItems(VS)
+    requires valItemsAllIntLike(VS)
+  rule #min(tupleVal(VS:ValItems)) => minValItems(VS)
+    requires valItemsAllIntLike(VS)
+  rule #min(dictVal(DS:DictItems)) => minValItems(dictKeysToValItems(DS))
+    requires valItemsAllIntLike(dictKeysToValItems(DS))
+  rule #min(setVal(VS:ValItems)) => minValItems(VS)
+    requires valItemsAllIntLike(VS)
+  rule #min(rangeVal(Start:Int, Stop:Int)) => rangeMin(Start, Stop, 1)
+    requires pyRangeLen(Start, Stop, 1) >Int 0
+  rule #min(rangeVal(Start:Int, Stop:Int, Step:Int)) => rangeMin(Start, Stop, Step)
+    requires Step =/=Int 0 andBool pyRangeLen(Start, Stop, Step) >Int 0
+  rule #max(listVal(VS:ValItems)) => maxValItems(VS)
+    requires valItemsAllIntLike(VS)
+  rule #max(tupleVal(VS:ValItems)) => maxValItems(VS)
+    requires valItemsAllIntLike(VS)
+  rule #max(dictVal(DS:DictItems)) => maxValItems(dictKeysToValItems(DS))
+    requires valItemsAllIntLike(dictKeysToValItems(DS))
+  rule #max(setVal(VS:ValItems)) => maxValItems(VS)
+    requires valItemsAllIntLike(VS)
+  rule #max(rangeVal(Start:Int, Stop:Int)) => rangeMax(Start, Stop, 1)
+    requires pyRangeLen(Start, Stop, 1) >Int 0
+  rule #max(rangeVal(Start:Int, Stop:Int, Step:Int)) => rangeMax(Start, Stop, Step)
+    requires Step =/=Int 0 andBool pyRangeLen(Start, Stop, Step) >Int 0
   rule #intCtor() => 0
   rule #intCtor(V:Val) => intValue(V)
     requires isIntLike(V)

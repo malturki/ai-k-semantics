@@ -242,6 +242,13 @@
       "coverage": ["sum-builtin", "int-like-sum", "start-argument", "empty-iterable-start", "dict-key-iteration-subset", "range-iteration-subset", "ordinary-python-source-adapter"]
     },
     {
+      "id": "adapter-min-max-int",
+      "source": "../adapter/adapter-min-max-int.py",
+      "reference": "Python Standard Library Built-in Functions min and max; Built-in Types list, tuple, dict, set, and range",
+      "expected_result": "True ~> .K",
+      "coverage": ["min-builtin", "max-builtin", "int-like-ordering", "nonempty-concrete-iterable-subset", "dict-key-iteration-subset", "range-iteration-subset", "ordinary-python-source-adapter"]
+    },
+    {
       "id": "adapter-int-constructor",
       "source": "../adapter/adapter-int-constructor.py",
       "reference": "Python Standard Library Built-in Types int",

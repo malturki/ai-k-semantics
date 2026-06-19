@@ -145,6 +145,10 @@ def emit_exp(exp: ast.expr) -> str:
             return f"#sum({emit_exp(arg)})"
         case ast.Call(func=ast.Name(id="sum"), args=[arg, start], keywords=[]):
             return f"#sum({emit_exp(arg)}, {emit_exp(start)})"
+        case ast.Call(func=ast.Name(id="min"), args=[arg], keywords=[]):
+            return f"#min({emit_exp(arg)})"
+        case ast.Call(func=ast.Name(id="max"), args=[arg], keywords=[]):
+            return f"#max({emit_exp(arg)})"
         case ast.Call(func=ast.Name(id="int"), args=[], keywords=[]):
             return "#intCtor()"
         case ast.Call(func=ast.Name(id="int"), args=[arg], keywords=[]):

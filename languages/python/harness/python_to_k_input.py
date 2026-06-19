@@ -91,12 +91,8 @@ def emit_stmt(stmt: ast.stmt) -> str:
             return f"#while({emit_exp(test)}, {emit_block(body)})"
         case ast.While(test=test, body=body, orelse=orelse):
             return f"#whileElse({emit_exp(test)}, {emit_block(body)}, {emit_block(orelse)})"
-        case ast.For(target=ast.Name(id=name), iter=iter_, body=body, orelse=[]):
-            return f"#for({name}, {emit_exp(iter_)}, {emit_block(body)})"
-        case ast.For(target=ast.Name(id=name), iter=iter_, body=body, orelse=orelse):
-            return f"#forElse({name}, {emit_exp(iter_)}, {emit_block(body)}, {emit_block(orelse)})"
-        case ast.For():
-            raise unsupported(stmt, "only simple-name for targets are supported")
+        case ast.For(target=target, iter=iter_, body=body, orelse=orelse):
+            return emit_for_stmt(stmt, target, iter_, body, orelse)
         case _:
             raise unsupported(stmt, "statement is not supported by the current K subset")
 
@@ -239,6 +235,25 @@ def emit_function_def(
     if len(names) == 1:
         return f"#def({name}, {names[0]}, {emit_block(body)})"
     return f"#defArgs({name}, {emit_id_items(names)}, {emit_block(body)})"
+
+
+def emit_for_stmt(
+    node: ast.AST,
+    target: ast.expr,
+    iter_: ast.expr,
+    body: list[ast.stmt],
+    orelse: list[ast.stmt],
+) -> str:
+    if isinstance(target, ast.Name):
+        if not orelse:
+            return f"#for({target.id}, {emit_exp(iter_)}, {emit_block(body)})"
+        return f"#forElse({target.id}, {emit_exp(iter_)}, {emit_block(body)}, {emit_block(orelse)})"
+    if isinstance(target, ast.Tuple | ast.List):
+        ids = emit_id_items(emit_flat_target_names(target))
+        if not orelse:
+            return f"#forUnpack({ids}, {emit_exp(iter_)}, {emit_block(body)})"
+        return f"#forUnpackElse({ids}, {emit_exp(iter_)}, {emit_block(body)}, {emit_block(orelse)})"
+    raise unsupported(node, "only simple-name and flat sequence for targets are supported")
 
 
 def emit_assign(node: ast.AST, targets: list[ast.expr], value: ast.expr) -> str:

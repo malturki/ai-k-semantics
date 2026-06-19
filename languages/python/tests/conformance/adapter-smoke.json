@@ -235,6 +235,34 @@
       "coverage": ["for-statement", "return-through-loop", "function-definition", "ordinary-python-source-adapter"]
     },
     {
+      "id": "adapter-for-unpack",
+      "source": "../adapter/adapter-for-unpack.py",
+      "reference": "Python Language Reference 8.3 The for statement; 7.2 Assignment statements",
+      "expected_result": "True ~> .K",
+      "coverage": ["for-statement", "sequence-unpacking-target", "tuple-target", "ordinary-python-source-adapter"]
+    },
+    {
+      "id": "adapter-for-unpack-list-target",
+      "source": "../adapter/adapter-for-unpack-list-target.py",
+      "reference": "Python Language Reference 8.3 The for statement; 7.2 Assignment statements",
+      "expected_result": "True ~> .K",
+      "coverage": ["for-statement", "sequence-unpacking-target", "list-target", "ordinary-python-source-adapter"]
+    },
+    {
+      "id": "adapter-for-unpack-break-continue",
+      "source": "../adapter/adapter-for-unpack-break-continue.py",
+      "reference": "Python Language Reference 8.3 The for statement; 7.9 The break statement; 7.10 The continue statement",
+      "expected_result": "True ~> .K",
+      "coverage": ["for-statement", "sequence-unpacking-target", "break-statement", "continue-statement", "ordinary-python-source-adapter"]
+    },
+    {
+      "id": "adapter-for-unpack-else",
+      "source": "../adapter/adapter-for-unpack-else.py",
+      "reference": "Python Language Reference 8.3 The for statement; 7.2 Assignment statements",
+      "expected_result": "True ~> .K",
+      "coverage": ["for-statement", "sequence-unpacking-target", "loop-else-normal-completion", "ordinary-python-source-adapter"]
+    },
+    {
       "id": "adapter-for-else-normal",
       "source": "../adapter/adapter-for-else-normal.py",
       "reference": "Python Language Reference 8.3 The for statement",

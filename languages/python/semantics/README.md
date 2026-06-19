@@ -60,6 +60,7 @@ The base modules should model portable Python semantics from the official docs. 
 - adapter-backed `if` statements with optional `else`
 - adapter-backed `while` loops with `break`, `continue`, and loop `else`
 - adapter-backed `for` loops over the current list/tuple value subset, including `break`, `continue`, and `return` propagation
+- adapter-backed flat sequence unpacking targets in `for` loops
 - adapter-backed `while`/`for` loop `else` clauses for the current loop subsets
 - adapter-backed `range(stop)` and `range(start, stop)` values in `for` loops
 - adapter-backed `len(...)` for strings, lists, tuples, dictionaries, sets, and current range values

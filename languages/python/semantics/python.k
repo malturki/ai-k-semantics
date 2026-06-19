@@ -85,6 +85,8 @@ module PYTHON-SYNTAX
                 | "#whileElse" "(" Exp "," Block "," Block ")" [symbol(whileElseStmt)]
                 | "#for" "(" Id "," Exp "," Block ")" [symbol(forStmt)]
                 | "#forElse" "(" Id "," Exp "," Block "," Block ")" [symbol(forElseStmt)]
+                | "#forUnpack" "(" IdItems "," Exp "," Block ")" [symbol(forUnpackStmt)]
+                | "#forUnpackElse" "(" IdItems "," Exp "," Block "," Block ")" [symbol(forUnpackElseStmt)]
 
   syntax Exp ::= Val
                | Id
@@ -181,11 +183,16 @@ module PYTHON
                  | whileElseStmtAgain(Exp, Block, Block) [symbol(whileElseStmtAgain)]
                  | forIter(Id, Block) [symbol(forIter)]
                  | forItems(Id, ValItems, Block) [symbol(forItems)]
+                 | forUnpackIter(IdItems, Block) [symbol(forUnpackIter)]
+                 | forUnpackItems(IdItems, ValItems, Block) [symbol(forUnpackItems)]
                  | forRange(Id, Int, Int, Block) [symbol(forRange)]
                  | forRangeAgain(Id, Int, Int, Block) [symbol(forRangeAgain)]
                  | forElseIter(Id, Block, Block) [symbol(forElseIter)]
                  | forElseItems(Id, ValItems, Block, Block) [symbol(forElseItems)]
                  | forElseDone(Block) [symbol(forElseDone)]
+                 | forUnpackElseIter(IdItems, Block, Block) [symbol(forUnpackElseIter)]
+                 | forUnpackElseItems(IdItems, ValItems, Block, Block) [symbol(forUnpackElseItems)]
+                 | forUnpackElseDone(Block) [symbol(forUnpackElseDone)]
                  | forElseRange(Id, Int, Int, Block, Block) [symbol(forElseRange)]
                  | forElseRangeAgain(Id, Int, Int, Block, Block) [symbol(forElseRangeAgain)]
                  | runLoopElse(Block) [symbol(runLoopElse)]
@@ -880,6 +887,59 @@ module PYTHON
        <env> Rho => Rho [ X <- V ] </env>
   rule <k> forDone => stmtNoResult ... </k>
 
+  rule <k> forUnpackStmt(IDS:IdItems, E:Exp, Body:Block) =>
+           E ~> forUnpackIter(IDS, Body)
+       ... </k>
+  rule <k> [] ~> forUnpackIter(_:IdItems, _:Block) => stmtNoResult ... </k>
+  rule <k> listVal(VS:ValItems) ~> forUnpackIter(IDS:IdItems, Body:Block) =>
+           forUnpackItems(IDS, VS, Body)
+       ... </k>
+  rule <k> () ~> forUnpackIter(_:IdItems, _:Block) => stmtNoResult ... </k>
+  rule <k> tupleVal(VS:ValItems) ~> forUnpackIter(IDS:IdItems, Body:Block) =>
+           forUnpackItems(IDS, VS, Body)
+       ... </k>
+
+  rule <k> forUnpackItems(IDS:IdItems, valItemsCons(listVal(VS:ValItems), Rest:ValItems), block(SS:Stmts)) =>
+           SS ~> forUnpackItems(IDS, Rest, block(SS))
+       ... </k>
+       <env> Rho => bindVals(Rho, IDS, VS) </env>
+    requires sameIdValArity(IDS, VS)
+  rule <k> forUnpackItems(IDS:IdItems, valItemsCons(tupleVal(VS:ValItems), Rest:ValItems), block(SS:Stmts)) =>
+           SS ~> forUnpackItems(IDS, Rest, block(SS))
+       ... </k>
+       <env> Rho => bindVals(Rho, IDS, VS) </env>
+    requires sameIdValArity(IDS, VS)
+  rule <k> forUnpackItems(IDS:IdItems, valItemsLast(listVal(VS:ValItems)), block(SS:Stmts)) =>
+           SS ~> forDone
+       ... </k>
+       <env> Rho => bindVals(Rho, IDS, VS) </env>
+    requires sameIdValArity(IDS, VS)
+  rule <k> forUnpackItems(IDS:IdItems, valItemsLast(tupleVal(VS:ValItems)), block(SS:Stmts)) =>
+           SS ~> forDone
+       ... </k>
+       <env> Rho => bindVals(Rho, IDS, VS) </env>
+    requires sameIdValArity(IDS, VS)
+  rule <k> forUnpackItems(IDS:IdItems, valItemsCons(listVal(VS:ValItems), Rest:ValItems), {}) =>
+           forUnpackItems(IDS, Rest, {})
+       ... </k>
+       <env> Rho => bindVals(Rho, IDS, VS) </env>
+    requires sameIdValArity(IDS, VS)
+  rule <k> forUnpackItems(IDS:IdItems, valItemsCons(tupleVal(VS:ValItems), Rest:ValItems), {}) =>
+           forUnpackItems(IDS, Rest, {})
+       ... </k>
+       <env> Rho => bindVals(Rho, IDS, VS) </env>
+    requires sameIdValArity(IDS, VS)
+  rule <k> forUnpackItems(IDS:IdItems, valItemsLast(listVal(VS:ValItems)), {}) =>
+           stmtNoResult
+       ... </k>
+       <env> Rho => bindVals(Rho, IDS, VS) </env>
+    requires sameIdValArity(IDS, VS)
+  rule <k> forUnpackItems(IDS:IdItems, valItemsLast(tupleVal(VS:ValItems)), {}) =>
+           stmtNoResult
+       ... </k>
+       <env> Rho => bindVals(Rho, IDS, VS) </env>
+    requires sameIdValArity(IDS, VS)
+
   rule <k> forRange(X:Id, I:Int, Stop:Int, block(SS:Stmts)) =>
            SS ~> forRangeAgain(X, I +Int 1, Stop, block(SS))
        ... </k>
@@ -928,6 +988,60 @@ module PYTHON
        ... </k>
        <env> Rho => Rho [ X <- V ] </env>
   rule <k> forElseDone(Else:Block) => runLoopElse(Else) ... </k>
+
+  rule <k> forUnpackElseStmt(IDS:IdItems, E:Exp, Body:Block, Else:Block) =>
+           E ~> forUnpackElseIter(IDS, Body, Else)
+       ... </k>
+  rule <k> [] ~> forUnpackElseIter(_:IdItems, _:Block, Else:Block) => runLoopElse(Else) ... </k>
+  rule <k> listVal(VS:ValItems) ~> forUnpackElseIter(IDS:IdItems, Body:Block, Else:Block) =>
+           forUnpackElseItems(IDS, VS, Body, Else)
+       ... </k>
+  rule <k> () ~> forUnpackElseIter(_:IdItems, _:Block, Else:Block) => runLoopElse(Else) ... </k>
+  rule <k> tupleVal(VS:ValItems) ~> forUnpackElseIter(IDS:IdItems, Body:Block, Else:Block) =>
+           forUnpackElseItems(IDS, VS, Body, Else)
+       ... </k>
+
+  rule <k> forUnpackElseItems(IDS:IdItems, valItemsCons(listVal(VS:ValItems), Rest:ValItems), block(SS:Stmts), Else:Block) =>
+           SS ~> forUnpackElseItems(IDS, Rest, block(SS), Else)
+       ... </k>
+       <env> Rho => bindVals(Rho, IDS, VS) </env>
+    requires sameIdValArity(IDS, VS)
+  rule <k> forUnpackElseItems(IDS:IdItems, valItemsCons(tupleVal(VS:ValItems), Rest:ValItems), block(SS:Stmts), Else:Block) =>
+           SS ~> forUnpackElseItems(IDS, Rest, block(SS), Else)
+       ... </k>
+       <env> Rho => bindVals(Rho, IDS, VS) </env>
+    requires sameIdValArity(IDS, VS)
+  rule <k> forUnpackElseItems(IDS:IdItems, valItemsLast(listVal(VS:ValItems)), block(SS:Stmts), Else:Block) =>
+           SS ~> forUnpackElseDone(Else)
+       ... </k>
+       <env> Rho => bindVals(Rho, IDS, VS) </env>
+    requires sameIdValArity(IDS, VS)
+  rule <k> forUnpackElseItems(IDS:IdItems, valItemsLast(tupleVal(VS:ValItems)), block(SS:Stmts), Else:Block) =>
+           SS ~> forUnpackElseDone(Else)
+       ... </k>
+       <env> Rho => bindVals(Rho, IDS, VS) </env>
+    requires sameIdValArity(IDS, VS)
+  rule <k> forUnpackElseItems(IDS:IdItems, valItemsCons(listVal(VS:ValItems), Rest:ValItems), {}, Else:Block) =>
+           forUnpackElseItems(IDS, Rest, {}, Else)
+       ... </k>
+       <env> Rho => bindVals(Rho, IDS, VS) </env>
+    requires sameIdValArity(IDS, VS)
+  rule <k> forUnpackElseItems(IDS:IdItems, valItemsCons(tupleVal(VS:ValItems), Rest:ValItems), {}, Else:Block) =>
+           forUnpackElseItems(IDS, Rest, {}, Else)
+       ... </k>
+       <env> Rho => bindVals(Rho, IDS, VS) </env>
+    requires sameIdValArity(IDS, VS)
+  rule <k> forUnpackElseItems(IDS:IdItems, valItemsLast(listVal(VS:ValItems)), {}, Else:Block) =>
+           runLoopElse(Else)
+       ... </k>
+       <env> Rho => bindVals(Rho, IDS, VS) </env>
+    requires sameIdValArity(IDS, VS)
+  rule <k> forUnpackElseItems(IDS:IdItems, valItemsLast(tupleVal(VS:ValItems)), {}, Else:Block) =>
+           runLoopElse(Else)
+       ... </k>
+       <env> Rho => bindVals(Rho, IDS, VS) </env>
+    requires sameIdValArity(IDS, VS)
+  rule <k> forUnpackElseDone(Else:Block) => runLoopElse(Else) ... </k>
 
   rule <k> forElseRange(X:Id, I:Int, Stop:Int, block(SS:Stmts), Else:Block) =>
            SS ~> forElseRangeAgain(X, I +Int 1, Stop, block(SS), Else)
@@ -979,6 +1093,11 @@ module PYTHON
   rule <k> continueSignal ~> forDone => stmtNoResult ... </k>
   rule <k> returnSignal(V:Val) ~> forItems(_:Id, _:ValItems, _:Block) => returnSignal(V) ... </k>
   rule <k> returnSignal(V:Val) ~> forDone => returnSignal(V) ... </k>
+  rule <k> breakSignal ~> forUnpackItems(_:IdItems, _:ValItems, _:Block) => stmtNoResult ... </k>
+  rule <k> continueSignal ~> forUnpackItems(IDS:IdItems, VS:ValItems, Body:Block) =>
+           forUnpackItems(IDS, VS, Body)
+       ... </k>
+  rule <k> returnSignal(V:Val) ~> forUnpackItems(_:IdItems, _:ValItems, _:Block) => returnSignal(V) ... </k>
   rule <k> breakSignal ~> forRangeAgain(_:Id, _:Int, _:Int, _:Block) => stmtNoResult ... </k>
   rule <k> continueSignal ~> forRangeAgain(X:Id, I:Int, Stop:Int, Body:Block) =>
            forRange(X, I, Stop, Body)
@@ -992,6 +1111,14 @@ module PYTHON
   rule <k> continueSignal ~> forElseDone(Else:Block) => runLoopElse(Else) ... </k>
   rule <k> returnSignal(V:Val) ~> forElseItems(_:Id, _:ValItems, _:Block, _:Block) => returnSignal(V) ... </k>
   rule <k> returnSignal(V:Val) ~> forElseDone(_:Block) => returnSignal(V) ... </k>
+  rule <k> breakSignal ~> forUnpackElseItems(_:IdItems, _:ValItems, _:Block, _:Block) => stmtNoResult ... </k>
+  rule <k> breakSignal ~> forUnpackElseDone(_:Block) => stmtNoResult ... </k>
+  rule <k> continueSignal ~> forUnpackElseItems(IDS:IdItems, VS:ValItems, Body:Block, Else:Block) =>
+           forUnpackElseItems(IDS, VS, Body, Else)
+       ... </k>
+  rule <k> continueSignal ~> forUnpackElseDone(Else:Block) => runLoopElse(Else) ... </k>
+  rule <k> returnSignal(V:Val) ~> forUnpackElseItems(_:IdItems, _:ValItems, _:Block, _:Block) => returnSignal(V) ... </k>
+  rule <k> returnSignal(V:Val) ~> forUnpackElseDone(_:Block) => returnSignal(V) ... </k>
   rule <k> breakSignal ~> forElseRangeAgain(_:Id, _:Int, _:Int, _:Block, _:Block) => stmtNoResult ... </k>
   rule <k> continueSignal ~> forElseRangeAgain(X:Id, I:Int, Stop:Int, Body:Block, Else:Block) =>
            forElseRange(X, I, Stop, Body, Else)

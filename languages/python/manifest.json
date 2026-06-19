@@ -118,6 +118,7 @@
   },
   "tests": {
     "conformance_manifest": "tests/conformance/smoke.json",
+    "adapter_manifest": "tests/conformance/adapter-smoke.json",
     "proof_manifest": null
   },
   "known_gaps": [

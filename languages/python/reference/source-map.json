@@ -335,8 +335,8 @@
               "section": "Atoms"
             }
           ],
-          "k_coverage": ["semantics/python.k: integer, simple string, trailing-comma list/tuple values, True, False, None, names, and parenthesized expressions"],
-          "test_coverage": ["tests/examples/smoke-arithmetic.py", "tests/examples/smoke-assignment.py", "tests/examples/smoke-bool-constants.py", "tests/examples/smoke-strings.py", "tests/examples/smoke-lists.py", "tests/examples/smoke-tuples.py"],
+          "k_coverage": ["semantics/python.k: integer, simple string, trailing-comma list/tuple values, True, False, None, names, and parenthesized expressions", "harness/python_to_k_input.py: AST adapter for the currently supported atom/display subset"],
+          "test_coverage": ["tests/examples/smoke-arithmetic.py", "tests/examples/smoke-assignment.py", "tests/examples/smoke-bool-constants.py", "tests/examples/smoke-strings.py", "tests/examples/smoke-lists.py", "tests/examples/smoke-tuples.py", "tests/adapter/adapter-list-normal.py", "tests/adapter/adapter-tuple-normal.py"],
           "gaps": ["Need bytes, full containers, comprehensions, yield expressions, and ellipsis."]
         },
         {
@@ -350,9 +350,9 @@
               "section": "Displays for lists, sets and dictionaries"
             }
           ],
-          "k_coverage": ["semantics/python.k: trailing-comma list and tuple value display subset"],
-          "test_coverage": ["tests/examples/smoke-lists.py", "tests/examples/smoke-tuples.py"],
-          "gaps": ["Need expression-list evaluation, non-trailing comma parser support, unpacking, mutation, scope behavior, async comprehensions, set displays, dict displays, and dict key/value rules."]
+          "k_coverage": ["semantics/python.k: trailing-comma list and tuple value display subset", "harness/python_to_k_input.py: ordinary Python list/tuple displays translated to the current value-element subset"],
+          "test_coverage": ["tests/examples/smoke-lists.py", "tests/examples/smoke-tuples.py", "tests/adapter/adapter-list-normal.py", "tests/adapter/adapter-tuple-normal.py"],
+          "gaps": ["Need expression-list evaluation, direct non-trailing comma parser support, unpacking, mutation, scope behavior, async comprehensions, set displays, dict displays, and dict key/value rules."]
         },
         {
           "id": "expr.primaries",
@@ -366,7 +366,7 @@
             }
           ],
           "k_coverage": ["semantics/python.k: positive integer indexing over nonempty list/tuple value subset; single-positional lambda calls"],
-          "test_coverage": ["tests/examples/smoke-lists.py", "tests/examples/smoke-tuples.py", "tests/examples/smoke-lambda-call.py"],
+          "test_coverage": ["tests/examples/smoke-lists.py", "tests/examples/smoke-tuples.py", "tests/examples/smoke-lambda-call.py", "tests/adapter/adapter-list-normal.py", "tests/adapter/adapter-tuple-normal.py", "tests/adapter/adapter-lambda-normal.py"],
           "gaps": ["Need attributes, descriptor lookup, general __getitem__, slicing objects, negative indices, out-of-range IndexError behavior, full call protocol, argument binding, and error behavior."]
         },
         {
@@ -395,9 +395,9 @@
               "section": "Operator precedence"
             }
           ],
-          "k_coverage": ["semantics/python.k: unary +, -, ~; integer and bool +, -, *, //, %, <<, >>, &, ^, |, nonnegative **; string +"],
-          "test_coverage": ["tests/examples/smoke-arithmetic.py", "tests/examples/smoke-comparisons.py", "tests/examples/smoke-strings.py", "tests/examples/smoke-int-operators.py"],
-          "gaps": ["Need true division, negative-exponent power returning float, matrix multiplication, reflected/in-place methods, full type coercion behavior, error cases, and concrete-source testing for // once the parser/adaptor handles K's comment conflict."]
+          "k_coverage": ["semantics/python.k: unary +, -, ~; integer and bool +, -, *, //, %, <<, >>, &, ^, |, nonnegative **; string +; internal #floorDiv adapter form"],
+          "test_coverage": ["tests/examples/smoke-arithmetic.py", "tests/examples/smoke-comparisons.py", "tests/examples/smoke-strings.py", "tests/examples/smoke-int-operators.py", "tests/adapter/adapter-floor-div.py"],
+          "gaps": ["Need true division, negative-exponent power returning float, matrix multiplication, reflected/in-place methods, full type coercion behavior, error cases, and direct concrete-source testing for // once K frontend comment handling is avoided or replaced by a full parser."]
         },
         {
           "id": "expr.comparisons-boolean",
@@ -426,7 +426,7 @@
             }
           ],
           "k_coverage": ["semantics/python.k: conditional expressions and single-argument lambda expressions"],
-          "test_coverage": ["tests/examples/smoke-conditional-expression.py", "tests/examples/smoke-lambda-call.py"],
+          "test_coverage": ["tests/examples/smoke-conditional-expression.py", "tests/examples/smoke-lambda-call.py", "tests/adapter/adapter-lambda-normal.py"],
           "gaps": ["Need full lambda grammar, closure/cell semantics for nested scopes, and broader evaluation-order tests."]
         },
         {
@@ -689,9 +689,9 @@
               "section": "Complete Python programs"
             }
           ],
-          "k_coverage": ["semantics/python.k: small semicolon-terminated program list"],
-          "test_coverage": ["tests/examples/smoke-arithmetic.py", "tests/examples/smoke-assignment.py"],
-          "gaps": ["Need full file_input grammar, shebang/encoding interaction, newline handling, and EOF behavior."]
+          "k_coverage": ["semantics/python.k: small semicolon-terminated program list", "harness/python_to_k_input.py: ordinary Python file input for the supported AST subset"],
+          "test_coverage": ["tests/examples/smoke-arithmetic.py", "tests/examples/smoke-assignment.py", "tests/adapter/adapter-floor-div.py", "tests/adapter/adapter-list-normal.py", "tests/adapter/adapter-tuple-normal.py", "tests/adapter/adapter-lambda-normal.py"],
+          "gaps": ["Need full file_input grammar, shebang/encoding interaction, newline handling, and EOF behavior beyond the adapter-supported subset."]
         },
         {
           "id": "top.interactive-input",
@@ -788,7 +788,7 @@
             }
           ],
           "k_coverage": ["semantics/python.k: internal integer, string, list, tuple, bool, and None subset"],
-          "test_coverage": ["tests/examples/smoke-arithmetic.py", "tests/examples/smoke-bool-constants.py", "tests/examples/smoke-bool-ops.py", "tests/examples/smoke-comparisons.py", "tests/examples/smoke-strings.py", "tests/examples/smoke-int-operators.py", "tests/examples/smoke-lists.py", "tests/examples/smoke-tuples.py"],
+          "test_coverage": ["tests/examples/smoke-arithmetic.py", "tests/examples/smoke-bool-constants.py", "tests/examples/smoke-bool-ops.py", "tests/examples/smoke-comparisons.py", "tests/examples/smoke-strings.py", "tests/examples/smoke-int-operators.py", "tests/examples/smoke-lists.py", "tests/examples/smoke-tuples.py", "tests/adapter/adapter-floor-div.py", "tests/adapter/adapter-list-normal.py", "tests/adapter/adapter-tuple-normal.py"],
           "gaps": ["Need real object/type hierarchy, numeric tower, sequences, mappings, sets, context-manager types, memoryview, and iterator protocols."]
         },
         {

@@ -43,9 +43,10 @@ The base modules should model portable Python semantics from the official docs. 
 - tuple truthiness, equality, membership, and positive integer indexing
 - single-argument `lambda` expressions
 - single-positional-argument calls to lambda closure values
+- an internal `#floorDiv(E1, E2)` parser bridge form emitted by the AST adapter
 
 The coverage ledger in `../notes/full-language-coverage.md` is the source of truth for what remains.
 
-Current parser caveat: the K frontend treats `//` in source files as a comment before it can be parsed as Python floor division. The `floorDivExp` syntax and semantics are present, but concrete Python-source testing for `//` needs the parser/adaptor tranche.
+Current parser caveat: the K frontend treats `//` in direct K input files as a comment before it can be parsed as Python floor division. The `floorDivExp` syntax and semantics are present, and `harness/python_to_k_input.py` now translates real Python `//` nodes to the internal `#floorDiv(E1, E2)` form for adapter smoke tests.
 
-Current container caveat: concrete list and tuple smoke tests use Python-valid trailing commas, such as `[1, 2,]` and `(1, 2,)`, because the first executable K container grammar avoids an ambiguity caused by un-delimited value-list productions. Full displays need the parser/adaptor tranche and expression-list evaluation.
+Current container caveat: direct concrete list and tuple smoke tests use Python-valid trailing commas, such as `[1, 2,]` and `(1, 2,)`, because the first executable K container grammar avoids an ambiguity caused by un-delimited value-list productions. The AST adapter now accepts ordinary Python list and tuple displays for the supported value-expression subset and emits the trailing-comma internal form. Full displays still need expression-list evaluation, unpacking, mutation, and comprehension semantics.

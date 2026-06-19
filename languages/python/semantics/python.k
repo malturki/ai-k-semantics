@@ -35,6 +35,7 @@ module PYTHON-SYNTAX
                | Id
                | "(" Exp ")" [bracket]
                | Exp "(" Exp ")" [symbol(callExp)]
+               | "#floorDiv" "(" Exp "," Exp ")" [symbol(floorDivInternal), strict]
                | "+" Exp [symbol(posExp), strict]
                | "-" Exp [symbol(negExp), strict]
                | "~" Exp [symbol(invertExp), strict]
@@ -286,6 +287,8 @@ module PYTHON
   rule V1:Val ** V2:Val => intValue(V1) ^Int intValue(V2)
     requires isIntLike(V1) andBool isIntLike(V2) andBool intValue(V2) >=Int 0
   rule floorDivExp(V1:Val, V2:Val) => pyFloorDiv(intValue(V1), intValue(V2))
+    requires isIntLike(V1) andBool isIntLike(V2) andBool intValue(V2) =/=Int 0
+  rule floorDivInternal(V1:Val, V2:Val) => pyFloorDiv(intValue(V1), intValue(V2))
     requires isIntLike(V1) andBool isIntLike(V2) andBool intValue(V2) =/=Int 0
   rule V1:Val % V2:Val => pyModulo(intValue(V1), intValue(V2))
     requires isIntLike(V1) andBool isIntLike(V2) andBool intValue(V2) =/=Int 0

@@ -27,7 +27,7 @@ run_case() {
     exit 1
   fi
 
-  if ! grep -q "$expected" "$output"; then
+  if ! grep -q -- "$expected" "$output"; then
     echo "FAIL $name: expected result $expected" >&2
     cat "$output" >&2
     exit 1

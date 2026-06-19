@@ -283,13 +283,16 @@ def emit_lambda(node: ast.AST, args: ast.arguments, body: ast.expr) -> str:
         if kw_defaults is not None:
             return f"#lambdaKwDefaults({emit_id_items(kw_names)}, {kw_defaults}, {emit_exp(body)})"
         return f"#lambdaKwOnly({emit_id_items(kw_names)}, {emit_exp(body)})"
+    names = [arg.arg for arg in args.args]
+    if args.kwarg is not None:
+        if args.posonlyargs or args.vararg is not None or args.defaults or any(default is not None for default in args.kw_defaults):
+            raise unsupported(node, "lambda kwargs are supported only without positional-only parameters, defaults, varargs, or keyword-only parameters")
+        return f"#lambdaKwArgs({emit_id_items(names)}, {args.kwarg.arg}, {emit_exp(body)})"
     if (
         args.posonlyargs
         or any(default is not None for default in args.kw_defaults)
-        or args.kwarg is not None
     ):
         raise unsupported(node, "lambda positional-only, keyword-only, and kwargs are not supported yet")
-    names = [arg.arg for arg in args.args]
     if args.vararg is not None:
         if args.defaults:
             return f"#lambdaVarArgsDefaults({emit_id_items(names)}, {emit_arg_exps(args.defaults)}, {args.vararg.arg}, {emit_exp(body)})"
@@ -331,13 +334,16 @@ def emit_function_def(
         if kw_defaults is not None:
             return f"#defKwDefaults({name}, {emit_id_items(kw_names)}, {kw_defaults}, {emit_block(body)})"
         return f"#defKwOnly({name}, {emit_id_items(kw_names)}, {emit_block(body)})"
+    names = [arg.arg for arg in args.args]
+    if args.kwarg is not None:
+        if args.posonlyargs or args.vararg is not None or args.defaults or any(default is not None for default in args.kw_defaults):
+            raise unsupported(node, "kwargs are supported only without positional-only parameters, defaults, varargs, or keyword-only parameters")
+        return f"#defKwArgs({name}, {emit_id_items(names)}, {args.kwarg.arg}, {emit_block(body)})"
     if (
         args.posonlyargs
         or any(default is not None for default in args.kw_defaults)
-        or args.kwarg is not None
     ):
         raise unsupported(node, "positional-only, keyword-only, and kwargs are not supported yet")
-    names = [arg.arg for arg in args.args]
     if args.vararg is not None:
         if args.defaults:
             return f"#defVarArgsDefaults({name}, {emit_id_items(names)}, {emit_arg_exps(args.defaults)}, {args.vararg.arg}, {emit_block(body)})"

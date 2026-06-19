@@ -57,3 +57,7 @@ run_case "adapter-function-return" "$ROOT/tests/adapter/adapter-function-return.
 run_case "adapter-function-local" "$ROOT/tests/adapter/adapter-function-local.py" "True ~> .K"
 run_case "adapter-function-fallthrough" "$ROOT/tests/adapter/adapter-function-fallthrough.py" "True ~> .K"
 run_case "adapter-function-recursion" "$ROOT/tests/adapter/adapter-function-recursion.py" "True ~> .K"
+run_case "adapter-for-list" "$ROOT/tests/adapter/adapter-for-list.py" "True ~> .K"
+run_case "adapter-for-tuple" "$ROOT/tests/adapter/adapter-for-tuple.py" "True ~> .K"
+run_case "adapter-for-break-continue" "$ROOT/tests/adapter/adapter-for-break-continue.py" "True ~> .K"
+run_case "adapter-for-return" "$ROOT/tests/adapter/adapter-for-return.py" "True ~> .K"

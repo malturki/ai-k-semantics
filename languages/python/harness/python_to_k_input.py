@@ -91,6 +91,12 @@ def emit_stmt(stmt: ast.stmt) -> str:
             return f"#while({emit_exp(test)}, {emit_block(body)})"
         case ast.While(orelse=orelse):
             raise unsupported(orelse[0], "while else clauses are not supported yet")
+        case ast.For(target=ast.Name(id=name), iter=iter_, body=body, orelse=[]):
+            return f"#for({name}, {emit_exp(iter_)}, {emit_block(body)})"
+        case ast.For(orelse=[first, *_]):
+            raise unsupported(first, "for else clauses are not supported yet")
+        case ast.For():
+            raise unsupported(stmt, "only simple-name for targets are supported")
         case _:
             raise unsupported(stmt, "statement is not supported by the current K subset")
 

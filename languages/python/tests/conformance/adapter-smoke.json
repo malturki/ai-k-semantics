@@ -100,6 +100,34 @@
       "reference": "Python Language Reference 8.7 Function definitions; 7.6 The return statement; 6.3.4 Calls",
       "expected_result": "True ~> .K",
       "coverage": ["function-definition", "recursive-call", "return-through-if", "ordinary-python-source-adapter"]
+    },
+    {
+      "id": "adapter-for-list",
+      "source": "../adapter/adapter-for-list.py",
+      "reference": "Python Language Reference 8.3 The for statement",
+      "expected_result": "True ~> .K",
+      "coverage": ["for-statement", "list-iteration-subset", "simple-name-target", "ordinary-python-source-adapter"]
+    },
+    {
+      "id": "adapter-for-tuple",
+      "source": "../adapter/adapter-for-tuple.py",
+      "reference": "Python Language Reference 8.3 The for statement",
+      "expected_result": "True ~> .K",
+      "coverage": ["for-statement", "tuple-iteration-subset", "simple-name-target", "ordinary-python-source-adapter"]
+    },
+    {
+      "id": "adapter-for-break-continue",
+      "source": "../adapter/adapter-for-break-continue.py",
+      "reference": "Python Language Reference 8.3 The for statement; 7.9 The break statement; 7.10 The continue statement",
+      "expected_result": "True ~> .K",
+      "coverage": ["for-statement", "break-statement", "continue-statement", "ordinary-python-source-adapter"]
+    },
+    {
+      "id": "adapter-for-return",
+      "source": "../adapter/adapter-for-return.py",
+      "reference": "Python Language Reference 8.3 The for statement; 7.6 The return statement",
+      "expected_result": "True ~> .K",
+      "coverage": ["for-statement", "return-through-loop", "function-definition", "ordinary-python-source-adapter"]
     }
   ]
 }

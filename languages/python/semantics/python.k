@@ -39,6 +39,7 @@ module PYTHON-SYNTAX
                 | "#def" "(" Id "," Id "," Block ")" [symbol(functionDefStmt)]
                 | "#if" "(" Exp "," Block "," Block ")" [symbol(ifStmt)]
                 | "#while" "(" Exp "," Block ")" [symbol(whileStmt)]
+                | "#for" "(" Id "," Exp "," Block ")" [symbol(forStmt)]
 
   syntax Exp ::= Val
                | Id
@@ -99,6 +100,9 @@ module PYTHON
                  | "ifStmtDone" [symbol(ifStmtDone)]
                  | whileStmtBranch(Exp, Block) [symbol(whileStmtBranch)]
                  | whileStmtAgain(Exp, Block) [symbol(whileStmtAgain)]
+                 | forIter(Id, Block) [symbol(forIter)]
+                 | forItems(Id, ValItems, Block) [symbol(forItems)]
+                 | "forDone" [symbol(forDone)]
                  | "breakSignal" [symbol(breakSignal)]
                  | "continueSignal" [symbol(continueSignal)]
                  | returnSignal(Val) [symbol(returnSignal)]
@@ -435,6 +439,36 @@ module PYTHON
            whileStmt(C, Body)
        ... </k>
 
+  rule <k> forStmt(X:Id, E:Exp, Body:Block) =>
+           E ~> forIter(X, Body)
+       ... </k>
+  rule <k> [] ~> forIter(_:Id, _:Block) => stmtNoResult ... </k>
+  rule <k> listVal(VS:ValItems) ~> forIter(X:Id, Body:Block) =>
+           forItems(X, VS, Body)
+       ... </k>
+  rule <k> () ~> forIter(_:Id, _:Block) => stmtNoResult ... </k>
+  rule <k> tupleVal(VS:ValItems) ~> forIter(X:Id, Body:Block) =>
+           forItems(X, VS, Body)
+       ... </k>
+
+  rule <k> forItems(X:Id, valItemsCons(V:Val, VS:ValItems), block(SS:Stmts)) =>
+           SS ~> forItems(X, VS, block(SS))
+       ... </k>
+       <env> Rho => Rho [ X <- V ] </env>
+  rule <k> forItems(X:Id, valItemsLast(V:Val), block(SS:Stmts)) =>
+           SS ~> forDone
+       ... </k>
+       <env> Rho => Rho [ X <- V ] </env>
+  rule <k> forItems(X:Id, valItemsCons(V:Val, VS:ValItems), {}) =>
+           forItems(X, VS, {})
+       ... </k>
+       <env> Rho => Rho [ X <- V ] </env>
+  rule <k> forItems(X:Id, valItemsLast(V:Val), {}) =>
+           stmtNoResult
+       ... </k>
+       <env> Rho => Rho [ X <- V ] </env>
+  rule <k> forDone => stmtNoResult ... </k>
+
   rule <k> break => breakSignal ... </k>
   rule <k> continue => continueSignal ... </k>
   rule <k> returnStmt(V:Val) => returnSignal(V) ... </k>
@@ -453,6 +487,14 @@ module PYTHON
            whileStmt(C, Body)
        ... </k>
   rule <k> returnSignal(V:Val) ~> whileStmtAgain(_:Exp, _:Block) => returnSignal(V) ... </k>
+  rule <k> breakSignal ~> forItems(_:Id, _:ValItems, _:Block) => stmtNoResult ... </k>
+  rule <k> breakSignal ~> forDone => stmtNoResult ... </k>
+  rule <k> continueSignal ~> forItems(X:Id, VS:ValItems, Body:Block) =>
+           forItems(X, VS, Body)
+       ... </k>
+  rule <k> continueSignal ~> forDone => stmtNoResult ... </k>
+  rule <k> returnSignal(V:Val) ~> forItems(_:Id, _:ValItems, _:Block) => returnSignal(V) ... </k>
+  rule <k> returnSignal(V:Val) ~> forDone => returnSignal(V) ... </k>
   rule <k> returnSignal(V:Val) ~> functionDone(Rho:Map) => V ~> restoreEnv(Rho) ... </k>
   rule <k> functionDone(Rho:Map) => None ~> restoreEnv(Rho) ... </k>
 

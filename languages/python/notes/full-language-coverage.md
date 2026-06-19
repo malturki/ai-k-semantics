@@ -26,7 +26,7 @@ Status values:
 | Import system | Language Reference, chapter 5 | not-started | Needs controlled module table and host profile. |
 | Expressions | Language Reference, chapter 6 | partial | Initial kernel covers integer/string/list/tuple/bool/None atoms, names, parentheses, unary `+`/`-`/`~`, arithmetic and bitwise integer operators, string concatenation/equality, list/tuple equality/membership/indexing, truthiness for simple values, short-circuit `and`/`or`, `not`, conditional expressions, single-argument lambdas/calls, and a binary comparison subset. All other expression constructs remain. |
 | Simple statements | Language Reference, chapter 7 | partial | Initial kernel covers expression statements, `pass`, truthy `assert`, module-scope `global`, simple assignment, simple-name `+=`/`-=`/`*=`, and simple-name `del`. Remaining statements are not started. |
-| Compound statements | Language Reference, chapter 8 | partial | Adapter-backed `if`, `while`, and single-parameter `def` subsets exist, including `break`, `continue`, and `return` propagation. `for`, loop `else`, `try`, `with`, `match`, full functions, classes, coroutines, type parameter lists, annotations remain. |
+| Compound statements | Language Reference, chapter 8 | partial | Adapter-backed `if`, `while`, list/tuple `for`, and single-parameter `def` subsets exist, including `break`, `continue`, and `return` propagation. General iteration, loop `else`, `try`, `with`, `match`, full functions, classes, coroutines, type parameter lists, annotations remain. |
 | Top-level components | Language Reference, chapter 9 | syntax | Initial kernel parses a small file-input subset. Interactive/eval modes remain. |
 | Full grammar | Language Reference, chapter 10 | syntax | A first construct-preserving CPython-AST adapter exists for the current executable subset, including ordinary `//`, list displays, and tuple displays. The full grammar must still be mirrored construct-by-construct or covered by documented parser front ends that preserve construct identity. |
 | Built-ins and core library | Standard Library reference | not-started | Initial kernel only has internal integers; no real Python builtins yet. |
@@ -49,7 +49,7 @@ Status values:
 | Attribute access and descriptors | not-started | Needs `object.__getattribute__`, descriptors, method binding, special method lookup. |
 | Classes and metaclasses | not-started | Needs class body execution, namespace, MRO, descriptors, metaclass protocol. |
 | Exceptions | not-started | Needs exception objects, raise/propagation, chaining, groups, handlers, finally. |
-| Control flow | partial | Adapter-backed `if`, `while`, `break`, and `continue` subsets are covered, along with `pass`, truthy `assert`, and expression-level conditionals; needs `for`, loop `else`, `return`, `yield`, context managers. |
+| Control flow | partial | Adapter-backed `if`, `while`, list/tuple `for`, `break`, `continue`, and function `return` subsets are covered, along with `pass`, truthy `assert`, and expression-level conditionals; needs general iteration, loop `else`, `yield`, context managers. |
 | Import system | not-started | Needs module cache, find/load protocol, packages, relative imports, `__main__`. |
 | Pattern matching | not-started | Needs PEP 634/635/636 plus current docs mapping. |
 | Coroutines and async | not-started | Needs awaitables, async functions/generators, async with/for. |

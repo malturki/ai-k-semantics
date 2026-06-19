@@ -284,6 +284,11 @@ def emit_lambda(node: ast.AST, args: ast.arguments, body: ast.expr) -> str:
             return f"#lambdaKwDefaults({emit_id_items(kw_names)}, {kw_defaults}, {emit_exp(body)})"
         return f"#lambdaKwOnly({emit_id_items(kw_names)}, {emit_exp(body)})"
     names = [arg.arg for arg in args.args]
+    if args.posonlyargs:
+        if args.defaults or args.vararg is not None or args.kwarg is not None or any(default is not None for default in args.kw_defaults):
+            raise unsupported(node, "lambda positional-only parameters are supported only without defaults, varargs, kwargs, or keyword-only parameters")
+        pos_names = [arg.arg for arg in args.posonlyargs]
+        return f"#lambdaPosOnly({emit_id_items(pos_names)}, {emit_id_items(names)}, {emit_exp(body)})"
     if args.kwarg is not None:
         if args.posonlyargs or args.vararg is not None or args.defaults or any(default is not None for default in args.kw_defaults):
             raise unsupported(node, "lambda kwargs are supported only without positional-only parameters, defaults, varargs, or keyword-only parameters")
@@ -335,6 +340,11 @@ def emit_function_def(
             return f"#defKwDefaults({name}, {emit_id_items(kw_names)}, {kw_defaults}, {emit_block(body)})"
         return f"#defKwOnly({name}, {emit_id_items(kw_names)}, {emit_block(body)})"
     names = [arg.arg for arg in args.args]
+    if args.posonlyargs:
+        if args.defaults or args.vararg is not None or args.kwarg is not None or any(default is not None for default in args.kw_defaults):
+            raise unsupported(node, "positional-only parameters are supported only without defaults, varargs, kwargs, or keyword-only parameters")
+        pos_names = [arg.arg for arg in args.posonlyargs]
+        return f"#defPosOnly({name}, {emit_id_items(pos_names)}, {emit_id_items(names)}, {emit_block(body)})"
     if args.kwarg is not None:
         if args.posonlyargs or args.vararg is not None or args.defaults or any(default is not None for default in args.kw_defaults):
             raise unsupported(node, "kwargs are supported only without positional-only parameters, defaults, varargs, or keyword-only parameters")

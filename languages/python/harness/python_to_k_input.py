@@ -257,16 +257,28 @@ def emit_slice_bound(bound: ast.expr | None) -> str:
     return emit_exp(bound)
 
 
+def emit_suffix_kw_defaults(node: ast.AST, defaults: list[ast.expr | None]) -> str | None:
+    first_default = next((index for index, default in enumerate(defaults) if default is not None), len(defaults))
+    if first_default == len(defaults):
+        return None
+    suffix = defaults[first_default:]
+    if any(default is None for default in suffix):
+        raise unsupported(node, "keyword-only defaults are supported only as a suffix")
+    return emit_arg_exps([default for default in suffix if default is not None])
+
+
 def emit_lambda(node: ast.AST, args: ast.arguments, body: ast.expr) -> str:
-    has_kw_defaults = any(default is not None for default in args.kw_defaults)
     if args.kwonlyargs:
-        if args.posonlyargs or args.args or args.vararg is not None or args.kwarg is not None or has_kw_defaults:
-            raise unsupported(node, "lambda keyword-only parameters are supported only without positional parameters, defaults, varargs, or kwargs")
+        if args.posonlyargs or args.args or args.vararg is not None or args.kwarg is not None:
+            raise unsupported(node, "lambda keyword-only parameters are supported only without positional parameters, varargs, or kwargs")
         kw_names = [arg.arg for arg in args.kwonlyargs]
+        kw_defaults = emit_suffix_kw_defaults(node, args.kw_defaults)
+        if kw_defaults is not None:
+            return f"#lambdaKwDefaults({emit_id_items(kw_names)}, {kw_defaults}, {emit_exp(body)})"
         return f"#lambdaKwOnly({emit_id_items(kw_names)}, {emit_exp(body)})"
     if (
         args.posonlyargs
-        or has_kw_defaults
+        or any(default is not None for default in args.kw_defaults)
         or args.kwarg is not None
     ):
         raise unsupported(node, "lambda positional-only, keyword-only, and kwargs are not supported yet")
@@ -297,15 +309,17 @@ def emit_function_def(
         raise unsupported(returns, "function return annotations are not supported yet")
     if type_comment is not None:
         raise unsupported(node, "function type comments are not supported yet")
-    has_kw_defaults = any(default is not None for default in args.kw_defaults)
     if args.kwonlyargs:
-        if args.posonlyargs or args.args or args.vararg is not None or args.kwarg is not None or has_kw_defaults:
-            raise unsupported(node, "keyword-only parameters are supported only without positional parameters, defaults, varargs, or kwargs")
+        if args.posonlyargs or args.args or args.vararg is not None or args.kwarg is not None:
+            raise unsupported(node, "keyword-only parameters are supported only without positional parameters, varargs, or kwargs")
         kw_names = [arg.arg for arg in args.kwonlyargs]
+        kw_defaults = emit_suffix_kw_defaults(node, args.kw_defaults)
+        if kw_defaults is not None:
+            return f"#defKwDefaults({name}, {emit_id_items(kw_names)}, {kw_defaults}, {emit_block(body)})"
         return f"#defKwOnly({name}, {emit_id_items(kw_names)}, {emit_block(body)})"
     if (
         args.posonlyargs
-        or has_kw_defaults
+        or any(default is not None for default in args.kw_defaults)
         or args.kwarg is not None
     ):
         raise unsupported(node, "positional-only, keyword-only, and kwargs are not supported yet")

@@ -601,9 +601,9 @@
               "section": "The for statement"
             }
           ],
-          "k_coverage": ["semantics/python.k: internal #if, #while, and #for statement forms with explicit Block syntax; breakSignal and continueSignal abrupt-completion subset", "harness/python_to_k_input.py: CPython AST If, While, For, Break, and Continue adapter for the supported subset"],
-          "test_coverage": ["tests/adapter/adapter-if.py", "tests/adapter/adapter-if-no-else.py", "tests/adapter/adapter-while.py", "tests/adapter/adapter-nested-if-while.py", "tests/adapter/adapter-break.py", "tests/adapter/adapter-continue.py", "tests/adapter/adapter-for-list.py", "tests/adapter/adapter-for-tuple.py", "tests/adapter/adapter-for-break-continue.py", "tests/adapter/adapter-for-return.py"],
-          "gaps": ["Need direct indentation/parser support, elif provenance tests, general iterator protocol, target unpacking, loop else completion rules, SyntaxError diagnostics for break/continue outside loops, and broader abrupt completion interactions."]
+          "k_coverage": ["semantics/python.k: internal #if, #while, and #for statement forms with explicit Block syntax; breakSignal and continueSignal abrupt-completion subset", "semantics/python.k: internal rangeVal(start, stop) support for #for loops with implicit positive step 1", "harness/python_to_k_input.py: CPython AST If, While, For, Break, Continue, and range(stop)/range(start, stop) adapter for the supported subset"],
+          "test_coverage": ["tests/adapter/adapter-if.py", "tests/adapter/adapter-if-no-else.py", "tests/adapter/adapter-while.py", "tests/adapter/adapter-nested-if-while.py", "tests/adapter/adapter-break.py", "tests/adapter/adapter-continue.py", "tests/adapter/adapter-for-list.py", "tests/adapter/adapter-for-tuple.py", "tests/adapter/adapter-for-break-continue.py", "tests/adapter/adapter-for-return.py", "tests/adapter/adapter-range-for.py", "tests/adapter/adapter-range-start-stop.py", "tests/adapter/adapter-range-break-continue.py"],
+          "gaps": ["Need direct indentation/parser support, elif provenance tests, general iterator protocol, range step arguments and negative-step behavior, target unpacking, loop else completion rules, SyntaxError diagnostics for break/continue outside loops, and broader abrupt completion interactions."]
         },
         {
           "id": "compound.try-except-finally",
@@ -785,7 +785,7 @@
     {
       "id": "stdlib-runtime",
       "title": "Language-facing standard library runtime",
-      "status": "not-started",
+      "status": "partial",
       "references": [
         {
           "title": "Python Standard Library",
@@ -796,16 +796,16 @@
         {
           "id": "stdlib.builtins",
           "title": "Built-in functions and constants",
-          "status": "not-started",
+          "status": "partial",
           "references": [
             {
               "title": "Built-in Functions",
               "url": "https://docs.python.org/3/library/functions.html"
             }
           ],
-          "k_coverage": [],
-          "test_coverage": [],
-          "gaps": ["Need builtins namespace, exceptions, object construction, iteration helpers, eval/exec/open profiles, and __debug__."]
+          "k_coverage": ["semantics/python.k: internal #range expression support for range(stop) and range(start, stop) in for loops"],
+          "test_coverage": ["tests/adapter/adapter-range-for.py", "tests/adapter/adapter-range-start-stop.py", "tests/adapter/adapter-range-break-continue.py"],
+          "gaps": ["Need builtins namespace, exceptions, object construction, full range object behavior, iteration helpers, eval/exec/open profiles, and __debug__."]
         },
         {
           "id": "stdlib.builtin-types",
@@ -817,9 +817,9 @@
               "url": "https://docs.python.org/3/library/stdtypes.html"
             }
           ],
-          "k_coverage": ["semantics/python.k: internal integer, string, list, tuple, dict, set, bool, and None subset"],
-          "test_coverage": ["tests/examples/smoke-arithmetic.py", "tests/examples/smoke-bool-constants.py", "tests/examples/smoke-bool-ops.py", "tests/examples/smoke-comparisons.py", "tests/examples/smoke-strings.py", "tests/examples/smoke-int-operators.py", "tests/examples/smoke-lists.py", "tests/examples/smoke-tuples.py", "tests/adapter/adapter-floor-div.py", "tests/adapter/adapter-list-normal.py", "tests/adapter/adapter-tuple-normal.py", "tests/adapter/adapter-dict.py", "tests/adapter/adapter-dict-truthy.py", "tests/adapter/adapter-set.py"],
-          "gaps": ["Need real object/type hierarchy, numeric tower, sequences, mappings, sets, context-manager types, memoryview, and iterator protocols."]
+          "k_coverage": ["semantics/python.k: internal integer, string, list, tuple, dict, set, bool, None, and range subset"],
+          "test_coverage": ["tests/examples/smoke-arithmetic.py", "tests/examples/smoke-bool-constants.py", "tests/examples/smoke-bool-ops.py", "tests/examples/smoke-comparisons.py", "tests/examples/smoke-strings.py", "tests/examples/smoke-int-operators.py", "tests/examples/smoke-lists.py", "tests/examples/smoke-tuples.py", "tests/adapter/adapter-floor-div.py", "tests/adapter/adapter-list-normal.py", "tests/adapter/adapter-tuple-normal.py", "tests/adapter/adapter-dict.py", "tests/adapter/adapter-dict-truthy.py", "tests/adapter/adapter-set.py", "tests/adapter/adapter-range-for.py", "tests/adapter/adapter-range-start-stop.py"],
+          "gaps": ["Need real object/type hierarchy, numeric tower, sequences, mappings, sets, full range type behavior, context-manager types, memoryview, and iterator protocols."]
         },
         {
           "id": "stdlib.exceptions",

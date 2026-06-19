@@ -130,6 +130,27 @@
       "coverage": ["for-statement", "return-through-loop", "function-definition", "ordinary-python-source-adapter"]
     },
     {
+      "id": "adapter-range-for",
+      "source": "../adapter/adapter-range-for.py",
+      "reference": "Python Language Reference 8.3 The for statement; Standard Library range type",
+      "expected_result": "True ~> .K",
+      "coverage": ["for-statement", "range-single-stop-subset", "ordinary-python-source-adapter"]
+    },
+    {
+      "id": "adapter-range-start-stop",
+      "source": "../adapter/adapter-range-start-stop.py",
+      "reference": "Python Language Reference 8.3 The for statement; Standard Library range type",
+      "expected_result": "True ~> .K",
+      "coverage": ["for-statement", "range-start-stop-subset", "ordinary-python-source-adapter"]
+    },
+    {
+      "id": "adapter-range-break-continue",
+      "source": "../adapter/adapter-range-break-continue.py",
+      "reference": "Python Language Reference 8.3 The for statement; Standard Library range type; 7.9 The break statement; 7.10 The continue statement",
+      "expected_result": "True ~> .K",
+      "coverage": ["for-statement", "range-start-stop-subset", "break-statement", "continue-statement", "ordinary-python-source-adapter"]
+    },
+    {
       "id": "adapter-dict",
       "source": "../adapter/adapter-dict.py",
       "reference": "Python Language Reference 6.2.7 Dictionary displays; 6.3.2 Subscriptions; 6.10 Comparisons",

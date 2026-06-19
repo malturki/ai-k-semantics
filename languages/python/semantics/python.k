@@ -87,6 +87,8 @@ module PYTHON-SYNTAX
                | Exp "in" Exp [symbol(inExp), strict]
                | Exp "not" "in" Exp [symbol(notInExp), strict]
                | Exp "[" Exp "]" [symbol(subscriptExp), strict]
+               | "#range" "(" Exp ")" [symbol(range1Exp), strict]
+               | "#range" "(" Exp "," Exp ")" [symbol(range2Exp), strict]
                > "not" Exp [symbol(notExp), strict]
                > Exp "and" Exp [symbol(andExp), left]
                > Exp "or" Exp [symbol(orExp), left]
@@ -103,6 +105,7 @@ module PYTHON
 
   syntax Val ::= closure(Id, Exp) [symbol(closure)]
                | functionVal(Id, Block) [symbol(functionVal)]
+               | rangeVal(Int, Int) [symbol(rangeVal)]
 
   syntax KResult ::= Val
   syntax KItem ::= stmtNext(Stmts) [symbol(stmtNext)]
@@ -120,6 +123,8 @@ module PYTHON
                  | whileStmtAgain(Exp, Block) [symbol(whileStmtAgain)]
                  | forIter(Id, Block) [symbol(forIter)]
                  | forItems(Id, ValItems, Block) [symbol(forItems)]
+                 | forRange(Id, Int, Int, Block) [symbol(forRange)]
+                 | forRangeAgain(Id, Int, Int, Block) [symbol(forRangeAgain)]
                  | "forDone" [symbol(forDone)]
                  | "breakSignal" [symbol(breakSignal)]
                  | "continueSignal" [symbol(continueSignal)]
@@ -156,6 +161,7 @@ module PYTHON
   rule truthy(setVal(_:ValItems)) => true
   rule truthy(closure(_:Id, _:Exp)) => true
   rule truthy(functionVal(_:Id, _:Block)) => true
+  rule truthy(rangeVal(Start:Int, Stop:Int)) => Start <Int Stop
 
   rule isIntLike(_:Int) => true
   rule isIntLike(_:String) => false
@@ -171,6 +177,7 @@ module PYTHON
   rule isIntLike(setVal(_:ValItems)) => false
   rule isIntLike(closure(_:Id, _:Exp)) => false
   rule isIntLike(functionVal(_:Id, _:Block)) => false
+  rule isIntLike(rangeVal(_:Int, _:Int)) => false
 
   rule intValue(I:Int) => I
   rule intValue(True) => 1
@@ -433,6 +440,11 @@ module PYTHON
   rule <k> V:Val ~> restoreEnv(Rho:Map) => V ... </k>
        <env> _ => Rho </env>
 
+  rule range1Exp(N:Val) => rangeVal(0, intValue(N))
+    requires isIntLike(N)
+  rule range2Exp(Start:Val, Stop:Val) => rangeVal(intValue(Start), intValue(Stop))
+    requires isIntLike(Start) andBool isIntLike(Stop)
+
   rule <k> assignStmt(X:Id, V:Val) => stmtNoResult ... </k>
        <env> Rho => Rho [ X <- V ] </env>
        <result> _ => .K </result>
@@ -512,6 +524,9 @@ module PYTHON
   rule <k> tupleVal(VS:ValItems) ~> forIter(X:Id, Body:Block) =>
            forItems(X, VS, Body)
        ... </k>
+  rule <k> rangeVal(Start:Int, Stop:Int) ~> forIter(X:Id, Body:Block) =>
+           forRange(X, Start, Stop, Body)
+       ... </k>
 
   rule <k> forItems(X:Id, valItemsCons(V:Val, VS:ValItems), block(SS:Stmts)) =>
            SS ~> forItems(X, VS, block(SS))
@@ -530,6 +545,22 @@ module PYTHON
        ... </k>
        <env> Rho => Rho [ X <- V ] </env>
   rule <k> forDone => stmtNoResult ... </k>
+
+  rule <k> forRange(X:Id, I:Int, Stop:Int, block(SS:Stmts)) =>
+           SS ~> forRangeAgain(X, I +Int 1, Stop, block(SS))
+       ... </k>
+       <env> Rho => Rho [ X <- I ] </env>
+    requires I <Int Stop
+  rule <k> forRange(X:Id, I:Int, Stop:Int, {}) =>
+           forRange(X, I +Int 1, Stop, {})
+       ... </k>
+       <env> Rho => Rho [ X <- I ] </env>
+    requires I <Int Stop
+  rule <k> forRange(_:Id, I:Int, Stop:Int, _:Block) => stmtNoResult ... </k>
+    requires I >=Int Stop
+  rule <k> forRangeAgain(X:Id, I:Int, Stop:Int, Body:Block) =>
+           forRange(X, I, Stop, Body)
+       ... </k>
 
   rule <k> break => breakSignal ... </k>
   rule <k> continue => continueSignal ... </k>
@@ -557,6 +588,11 @@ module PYTHON
   rule <k> continueSignal ~> forDone => stmtNoResult ... </k>
   rule <k> returnSignal(V:Val) ~> forItems(_:Id, _:ValItems, _:Block) => returnSignal(V) ... </k>
   rule <k> returnSignal(V:Val) ~> forDone => returnSignal(V) ... </k>
+  rule <k> breakSignal ~> forRangeAgain(_:Id, _:Int, _:Int, _:Block) => stmtNoResult ... </k>
+  rule <k> continueSignal ~> forRangeAgain(X:Id, I:Int, Stop:Int, Body:Block) =>
+           forRange(X, I, Stop, Body)
+       ... </k>
+  rule <k> returnSignal(V:Val) ~> forRangeAgain(_:Id, _:Int, _:Int, _:Block) => returnSignal(V) ... </k>
   rule <k> returnSignal(V:Val) ~> functionDone(Rho:Map) => V ~> restoreEnv(Rho) ... </k>
   rule <k> functionDone(Rho:Map) => None ~> restoreEnv(Rho) ... </k>
 

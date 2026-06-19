@@ -121,6 +121,12 @@ def emit_exp(exp: ast.expr) -> str:
             return f"({emit_exp(body)} if {emit_exp(test)} else {emit_exp(orelse)})"
         case ast.Lambda(args=args, body=body):
             return emit_lambda(exp, args, body)
+        case ast.Call(func=ast.Name(id="range"), args=[stop], keywords=[]):
+            return f"#range({emit_exp(stop)})"
+        case ast.Call(func=ast.Name(id="range"), args=[start, stop], keywords=[]):
+            return f"#range({emit_exp(start)}, {emit_exp(stop)})"
+        case ast.Call(func=ast.Name(id="range"), args=[_start, _stop, step], keywords=[]):
+            raise unsupported(step, "range step arguments are not supported yet")
         case ast.Call(func=func, args=[arg], keywords=[]):
             return f"({emit_exp(func)}({emit_exp(arg)}))"
         case ast.Call():

@@ -47,6 +47,7 @@ run_case "adapter-floor-div" "$ROOT/tests/adapter/adapter-floor-div.py" "True ~>
 run_case "adapter-string-repeat" "$ROOT/tests/adapter/adapter-string-repeat.py" "True ~> .K"
 run_case "adapter-string-index" "$ROOT/tests/adapter/adapter-string-index.py" "True ~> .K"
 run_case "adapter-string-membership" "$ROOT/tests/adapter/adapter-string-membership.py" "True ~> .K"
+run_case "adapter-string-ordering" "$ROOT/tests/adapter/adapter-string-ordering.py" "True ~> .K"
 run_case "adapter-string-slice" "$ROOT/tests/adapter/adapter-string-slice.py" "True ~> .K"
 run_case "adapter-string-slice-step" "$ROOT/tests/adapter/adapter-string-slice-step.py" "True ~> .K"
 run_case "adapter-string-slice-negative-step" "$ROOT/tests/adapter/adapter-string-slice-negative-step.py" "True ~> .K"

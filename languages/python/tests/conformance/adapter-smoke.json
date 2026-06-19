@@ -32,6 +32,13 @@
       "coverage": ["string-membership", "substring-membership", "empty-string-membership", "ordinary-python-source-adapter"]
     },
     {
+      "id": "adapter-string-ordering",
+      "source": "../adapter/adapter-string-ordering.py",
+      "reference": "Python Language Reference 6.10 Comparisons; Standard Library sequence types",
+      "expected_result": "True ~> .K",
+      "coverage": ["string-ordering-comparisons", "lexicographic-string-comparison", "chained-comparison", "ordinary-python-source-adapter"]
+    },
+    {
       "id": "adapter-string-slice",
       "source": "../adapter/adapter-string-slice.py",
       "reference": "Python Language Reference 6.3.3 Slicings; Standard Library sequence types",

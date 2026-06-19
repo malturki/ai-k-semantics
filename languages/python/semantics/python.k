@@ -539,24 +539,28 @@ module PYTHON
 
   rule cmpHolds(#lt, V1:Val, V2:Val) => intValue(V1) <Int intValue(V2)
     requires isIntLike(V1) andBool isIntLike(V2)
+  rule cmpHolds(#lt, S1:String, S2:String) => S1 <String S2
   rule cmpHolds(#lt, V1:Val, V2:Val) => seqLt(V1, V2)
     requires seqOrderComparable(V1, V2)
   rule cmpHolds(#lt, setVal(VS1:ValItems), setVal(VS2:ValItems)) =>
     setItemsSubset(VS1, VS2) andBool notBool setsEq(VS1, VS2)
   rule cmpHolds(#le, V1:Val, V2:Val) => intValue(V1) <=Int intValue(V2)
     requires isIntLike(V1) andBool isIntLike(V2)
+  rule cmpHolds(#le, S1:String, S2:String) => S1 <=String S2
   rule cmpHolds(#le, V1:Val, V2:Val) => seqLt(V1, V2) orBool valEq(V1, V2)
     requires seqOrderComparable(V1, V2)
   rule cmpHolds(#le, setVal(VS1:ValItems), setVal(VS2:ValItems)) =>
     setItemsSubset(VS1, VS2)
   rule cmpHolds(#gt, V1:Val, V2:Val) => intValue(V1) >Int intValue(V2)
     requires isIntLike(V1) andBool isIntLike(V2)
+  rule cmpHolds(#gt, S1:String, S2:String) => S1 >String S2
   rule cmpHolds(#gt, V1:Val, V2:Val) => seqLt(V2, V1)
     requires seqOrderComparable(V1, V2)
   rule cmpHolds(#gt, setVal(VS1:ValItems), setVal(VS2:ValItems)) =>
     setItemsSubset(VS2, VS1) andBool notBool setsEq(VS1, VS2)
   rule cmpHolds(#ge, V1:Val, V2:Val) => intValue(V1) >=Int intValue(V2)
     requires isIntLike(V1) andBool isIntLike(V2)
+  rule cmpHolds(#ge, S1:String, S2:String) => S1 >=String S2
   rule cmpHolds(#ge, V1:Val, V2:Val) => seqLt(V2, V1) orBool valEq(V1, V2)
     requires seqOrderComparable(V1, V2)
   rule cmpHolds(#ge, setVal(VS1:ValItems), setVal(VS2:ValItems)) =>
@@ -955,24 +959,28 @@ module PYTHON
 
   rule V1:Val < V2:Val => boolValue(intValue(V1) <Int intValue(V2))
     requires isIntLike(V1) andBool isIntLike(V2)
+  rule S1:String < S2:String => boolValue(S1 <String S2)
   rule V1:Val < V2:Val => boolValue(cmpHolds(#lt, V1, V2))
     requires seqOrderComparable(V1, V2)
   rule setVal(VS1:ValItems) < setVal(VS2:ValItems) =>
     boolValue(cmpHolds(#lt, setVal(VS1), setVal(VS2)))
   rule V1:Val <= V2:Val => boolValue(intValue(V1) <=Int intValue(V2))
     requires isIntLike(V1) andBool isIntLike(V2)
+  rule S1:String <= S2:String => boolValue(S1 <=String S2)
   rule V1:Val <= V2:Val => boolValue(cmpHolds(#le, V1, V2))
     requires seqOrderComparable(V1, V2)
   rule setVal(VS1:ValItems) <= setVal(VS2:ValItems) =>
     boolValue(cmpHolds(#le, setVal(VS1), setVal(VS2)))
   rule V1:Val > V2:Val => boolValue(intValue(V1) >Int intValue(V2))
     requires isIntLike(V1) andBool isIntLike(V2)
+  rule S1:String > S2:String => boolValue(S1 >String S2)
   rule V1:Val > V2:Val => boolValue(cmpHolds(#gt, V1, V2))
     requires seqOrderComparable(V1, V2)
   rule setVal(VS1:ValItems) > setVal(VS2:ValItems) =>
     boolValue(cmpHolds(#gt, setVal(VS1), setVal(VS2)))
   rule V1:Val >= V2:Val => boolValue(intValue(V1) >=Int intValue(V2))
     requires isIntLike(V1) andBool isIntLike(V2)
+  rule S1:String >= S2:String => boolValue(S1 >=String S2)
   rule V1:Val >= V2:Val => boolValue(cmpHolds(#ge, V1, V2))
     requires seqOrderComparable(V1, V2)
   rule setVal(VS1:ValItems) >= setVal(VS2:ValItems) =>

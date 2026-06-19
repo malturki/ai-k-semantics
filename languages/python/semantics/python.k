@@ -240,6 +240,7 @@ module PYTHON
                | pyRangeLen(Int, Int, Int) [function, symbol(pyRangeLen)]
                | valItemsLen(ValItems) [function, symbol(valItemsLen)]
                | dictItemsLen(DictItems) [function, symbol(dictItemsLen)]
+  syntax String ::= repeatString(String, Int) [function, symbol(repeatString)]
   syntax ArgVals ::= "#noArgVals" [symbol(noArgVals)]
                    | argValsCons(Val, ArgVals) [symbol(argValsCons)]
                    | appendArgVal(ArgVals, Val) [function, symbol(appendArgVal)]
@@ -251,6 +252,7 @@ module PYTHON
   syntax ValItems ::= argValsToValItems(ArgVals) [function, symbol(argValsToValItems)]
   syntax ValItems ::= argValsToSetItems(ArgVals) [function, symbol(argValsToSetItems)]
   syntax ValItems ::= concatValItems(ValItems, ValItems) [function, symbol(concatValItems)]
+  syntax ValItems ::= repeatValItems(ValItems, Int) [function, symbol(repeatValItems)]
   syntax DictItems ::= dictValsToDictItems(DictVals) [function, symbol(dictValsToDictItems)]
   syntax Val ::= listGet(ValItems, Int) [function, symbol(listGet)]
   syntax Val ::= dictGet(DictItems, Val) [function, symbol(dictGet)]
@@ -577,6 +579,15 @@ module PYTHON
   rule concatValItems(valItemsCons(V:Val, VS1:ValItems), VS2:ValItems) =>
     valItemsCons(V, concatValItems(VS1, VS2))
 
+  rule repeatString(_:String, N:Int) => "" requires N <=Int 0
+  rule repeatString(S:String, 1) => S
+  rule repeatString(S:String, N:Int) => S +String repeatString(S, N -Int 1)
+    requires N >Int 1
+
+  rule repeatValItems(VS:ValItems, 1) => VS
+  rule repeatValItems(VS:ValItems, N:Int) => concatValItems(VS, repeatValItems(VS, N -Int 1))
+    requires N >Int 1
+
   rule dictValsToDictItems(dictValsCons(K:Val, V:Val, #noDictVals)) => dictItemsLast(K, V)
   rule dictValsToDictItems(dictValsCons(K:Val, V:Val, DVS:DictVals)) =>
     dictItemsCons(K, V, dictValsToDictItems(DVS))
@@ -732,6 +743,34 @@ module PYTHON
     requires isIntLike(V1) andBool isIntLike(V2)
   rule V1:Val * V2:Val => intValue(V1) *Int intValue(V2)
     requires isIntLike(V1) andBool isIntLike(V2)
+  rule S:String * V:Val => repeatString(S, intValue(V))
+    requires isIntLike(V)
+  rule V:Val * S:String => repeatString(S, intValue(V))
+    requires isIntLike(V)
+  rule [] * V:Val => []
+    requires isIntLike(V)
+  rule V:Val * [] => []
+    requires isIntLike(V)
+  rule listVal(_:ValItems) * V:Val => []
+    requires isIntLike(V) andBool intValue(V) <=Int 0
+  rule V:Val * listVal(_:ValItems) => []
+    requires isIntLike(V) andBool intValue(V) <=Int 0
+  rule listVal(VS:ValItems) * V:Val => listVal(repeatValItems(VS, intValue(V)))
+    requires isIntLike(V) andBool intValue(V) >Int 0
+  rule V:Val * listVal(VS:ValItems) => listVal(repeatValItems(VS, intValue(V)))
+    requires isIntLike(V) andBool intValue(V) >Int 0
+  rule () * V:Val => ()
+    requires isIntLike(V)
+  rule V:Val * () => ()
+    requires isIntLike(V)
+  rule tupleVal(_:ValItems) * V:Val => ()
+    requires isIntLike(V) andBool intValue(V) <=Int 0
+  rule V:Val * tupleVal(_:ValItems) => ()
+    requires isIntLike(V) andBool intValue(V) <=Int 0
+  rule tupleVal(VS:ValItems) * V:Val => tupleVal(repeatValItems(VS, intValue(V)))
+    requires isIntLike(V) andBool intValue(V) >Int 0
+  rule V:Val * tupleVal(VS:ValItems) => tupleVal(repeatValItems(VS, intValue(V)))
+    requires isIntLike(V) andBool intValue(V) >Int 0
   rule V1:Val ** V2:Val => intValue(V1) ^Int intValue(V2)
     requires isIntLike(V1) andBool isIntLike(V2) andBool intValue(V2) >=Int 0
   rule floorDivExp(V1:Val, V2:Val) => pyFloorDiv(intValue(V1), intValue(V2))

@@ -11,6 +11,13 @@
       "coverage": ["floor-division", "ordinary-python-source-adapter"]
     },
     {
+      "id": "adapter-string-repeat",
+      "source": "../adapter/adapter-string-repeat.py",
+      "reference": "Python Language Reference 6.7 Binary arithmetic operations; Standard Library sequence types",
+      "expected_result": "True ~> .K",
+      "coverage": ["string-repetition", "sequence-repetition", "zero-and-negative-sequence-repetition", "bool-as-int-repetition-count", "ordinary-python-source-adapter"]
+    },
+    {
       "id": "adapter-list-normal",
       "source": "../adapter/adapter-list-normal.py",
       "reference": "Python Language Reference 6.2.4 Displays for lists, sets and dictionaries; 6.3.2 Subscriptions",
@@ -46,6 +53,13 @@
       "coverage": ["list-concatenation", "same-type-sequence-concatenation", "empty-sequence-concatenation", "ordinary-python-source-adapter"]
     },
     {
+      "id": "adapter-list-repeat",
+      "source": "../adapter/adapter-list-repeat.py",
+      "reference": "Python Language Reference 6.7 Binary arithmetic operations; Standard Library sequence types",
+      "expected_result": "True ~> .K",
+      "coverage": ["list-repetition", "sequence-repetition", "zero-and-negative-sequence-repetition", "bool-as-int-repetition-count", "ordinary-python-source-adapter"]
+    },
+    {
       "id": "adapter-tuple-normal",
       "source": "../adapter/adapter-tuple-normal.py",
       "reference": "Python Language Reference 6.2.3 Parenthesized forms; 6.3.2 Subscriptions",
@@ -79,6 +93,13 @@
       "reference": "Python Language Reference 6.7 Binary arithmetic operations; Standard Library sequence types",
       "expected_result": "True ~> .K",
       "coverage": ["tuple-concatenation", "same-type-sequence-concatenation", "empty-sequence-concatenation", "ordinary-python-source-adapter"]
+    },
+    {
+      "id": "adapter-tuple-repeat",
+      "source": "../adapter/adapter-tuple-repeat.py",
+      "reference": "Python Language Reference 6.7 Binary arithmetic operations; Standard Library sequence types",
+      "expected_result": "True ~> .K",
+      "coverage": ["tuple-repetition", "sequence-repetition", "zero-and-negative-sequence-repetition", "bool-as-int-repetition-count", "ordinary-python-source-adapter"]
     },
     {
       "id": "adapter-lambda-normal",

@@ -136,6 +136,7 @@ module PYTHON-SYNTAX
                | "#tupleCtor" "(" ")" [symbol(tupleCtorExp)]
                | "#tupleCtor" "(" Exp ")" [symbol(tupleCtor1Exp), strict]
                | "#dictCtor" "(" ")" [symbol(dictCtorExp)]
+               | "#dictCtor" "(" Exp ")" [symbol(dictCtor1Exp), strict]
                | "#setCtor" "(" ")" [symbol(setCtorExp)]
                | "#boolCtor" "(" ")" [symbol(boolCtor0Exp)]
                | "#boolCtor" "(" Exp ")" [symbol(boolCtor1Exp), strict]
@@ -448,6 +449,8 @@ module PYTHON
                     | appendDictVal(DictVals, Val, Val) [function, symbol(appendDictVal)]
                     | appendDictUnpack(DictVals, Val) [function, symbol(appendDictUnpack)]
                     | appendDictItems(DictVals, DictItems) [function, symbol(appendDictItems)]
+                    | appendDictPairVal(DictVals, Val) [function, symbol(appendDictPairVal)]
+                    | dictCtorPairs(ValItems, DictVals) [function, symbol(dictCtorPairs)]
                     | kwExtrasDictVals(KwArgVals, IdItems) [function, symbol(kwExtrasDictVals)]
   syntax Map ::= bindArgs(Map, IdItems, ArgVals) [function, symbol(bindArgs)]
   syntax Map ::= bindVarArgs(Map, IdItems, Id, ArgVals) [function, symbol(bindVarArgs)]
@@ -471,6 +474,7 @@ module PYTHON
   syntax ValItems ::= sliceValItems(ValItems, Int, Int) [function, symbol(sliceValItems)]
   syntax ValItems ::= sliceStepValItems(ValItems, Int, Int, Int) [function, symbol(sliceStepValItems)]
   syntax DictItems ::= dictValsToDictItems(DictVals) [function, symbol(dictValsToDictItems)]
+  syntax Val ::= dictCtorFromPairs(ValItems) [function, symbol(dictCtorFromPairs)]
   syntax Val ::= listSlice(ValItems, Int, Int) [function, symbol(listSlice)]
                | tupleSlice(ValItems, Int, Int) [function, symbol(tupleSlice)]
                | listSliceStep(ValItems, Int, Int, Int) [function, symbol(listSliceStep)]
@@ -1355,6 +1359,16 @@ module PYTHON
     appendDictVal(DVS, K, V)
   rule appendDictItems(DVS:DictVals, dictItemsCons(K:Val, V:Val, DS:DictItems)) =>
     appendDictItems(appendDictVal(DVS, K, V), DS)
+
+  rule appendDictPairVal(DVS:DictVals, listVal(valItemsCons(K:Val, valItemsLast(V:Val)))) =>
+    appendDictVal(DVS, K, V)
+  rule appendDictPairVal(DVS:DictVals, tupleVal(valItemsCons(K:Val, valItemsLast(V:Val)))) =>
+    appendDictVal(DVS, K, V)
+
+  rule dictCtorPairs(valItemsLast(Pair:Val), DVS:DictVals) =>
+    appendDictPairVal(DVS, Pair)
+  rule dictCtorPairs(valItemsCons(Pair:Val, Rest:ValItems), DVS:DictVals) =>
+    dictCtorPairs(Rest, appendDictPairVal(DVS, Pair))
 
   rule bindArgs(Rho:Map, #noIds, #noArgVals) => Rho
   rule bindArgs(Rho:Map, idItemsLast(X:Id), argValsCons(V:Val, #noArgVals)) => Rho [ X <- V ]
@@ -2724,6 +2738,16 @@ module PYTHON
   rule #tupleCtor() => ()
   rule #dictCtor() => ({}):Val
   rule #setCtor() => set()
+  rule #dictCtor(({}):Val) => ({}):Val
+  rule #dictCtor(dictVal(DS:DictItems)) => dictVal(DS)
+  rule #dictCtor([]) => ({}):Val
+  rule #dictCtor(listVal(VS:ValItems)) => dictCtorFromPairs(VS)
+  rule #dictCtor(()) => ({}):Val
+  rule #dictCtor(tupleVal(VS:ValItems)) => dictCtorFromPairs(VS)
+  rule dictCtorFromPairs(VS:ValItems) => ({}):Val
+    requires emptyDictVals(dictCtorPairs(VS, #noDictVals))
+  rule dictCtorFromPairs(VS:ValItems) => dictVal(dictValsToDictItems(dictCtorPairs(VS, #noDictVals)))
+    requires notBool emptyDictVals(dictCtorPairs(VS, #noDictVals))
   rule #listCtor([]) => []
   rule #listCtor(listVal(VS:ValItems)) => listVal(VS)
   rule #listCtor(()) => []

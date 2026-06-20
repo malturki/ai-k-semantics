@@ -879,6 +879,13 @@
       "coverage": ["list-constructor-iterable", "tuple-constructor-iterable", "string-iteration-subset", "dict-key-iteration-subset", "range-iteration-subset", "ordinary-python-source-adapter"]
     },
     {
+      "id": "adapter-dict-constructor",
+      "source": "../adapter/adapter-dict-constructor.py",
+      "reference": "Python Standard Library Built-in Types dict constructor; Built-in Types list and tuple",
+      "expected_result": "True ~> .K",
+      "coverage": ["dict-constructor", "dict-copy-constructor", "pair-iterable-dict-constructor-subset", "dict-duplicate-key-overwrite", "ordinary-python-source-adapter"]
+    },
+    {
       "id": "adapter-len-string-range",
       "source": "../adapter/adapter-len-string-range.py",
       "reference": "Python Standard Library Built-in Functions len(); Built-in Types str and range",

@@ -623,7 +623,7 @@ def emit_lambda(node: ast.AST, args: ast.arguments, body: ast.expr) -> str:
             raise unsupported(node, "lambda kwargs are supported only without positional-only parameters or keyword-only parameters")
         if args.vararg is not None:
             if args.defaults:
-                raise unsupported(node, "lambda *args plus kwargs is supported only without positional defaults")
+                return f"#lambdaVarKwArgsDefaults({emit_id_items(names)}, {emit_arg_exps(args.defaults)}, {args.vararg.arg}, {args.kwarg.arg}, {emit_exp(body)})"
             return f"#lambdaVarKwArgs({emit_id_items(names)}, {args.vararg.arg}, {args.kwarg.arg}, {emit_exp(body)})"
         if args.defaults:
             return f"#lambdaKwArgsDefaults({emit_id_items(names)}, {emit_arg_exps(args.defaults)}, {args.kwarg.arg}, {emit_exp(body)})"
@@ -685,7 +685,7 @@ def emit_function_def(
             raise unsupported(node, "kwargs are supported only without positional-only parameters or keyword-only parameters")
         if args.vararg is not None:
             if args.defaults:
-                raise unsupported(node, "*args plus kwargs is supported only without positional defaults")
+                return f"#defVarKwArgsDefaults({name}, {emit_id_items(names)}, {emit_arg_exps(args.defaults)}, {args.vararg.arg}, {args.kwarg.arg}, {emit_block(body)})"
             return f"#defVarKwArgs({name}, {emit_id_items(names)}, {args.vararg.arg}, {args.kwarg.arg}, {emit_block(body)})"
         if args.defaults:
             return f"#defKwArgsDefaults({name}, {emit_id_items(names)}, {emit_arg_exps(args.defaults)}, {args.kwarg.arg}, {emit_block(body)})"

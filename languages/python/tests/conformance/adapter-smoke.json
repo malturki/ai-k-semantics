@@ -578,6 +578,13 @@
       "coverage": ["function-definition", "varargs-parameter", "kwargs-parameter", "positional-call", "keyword-argument-call", "mixed-positional-keyword-call", "collected-arguments-tuple", "collected-keyword-arguments-dict", "ordinary-python-source-adapter"]
     },
     {
+      "id": "adapter-function-varargs-kwargs-defaults",
+      "source": "../adapter/adapter-function-varargs-kwargs-defaults.py",
+      "reference": "Python Language Reference 8.7 Function definitions; 6.3.4 Calls; 6.16 Evaluation order",
+      "expected_result": "True ~> .K",
+      "coverage": ["function-definition", "varargs-parameter", "kwargs-parameter", "default-parameter-values", "definition-time-default-evaluation", "positional-call-default-filling", "keyword-argument-call", "mixed-positional-keyword-call", "collected-arguments-tuple", "collected-keyword-arguments-dict", "ordinary-python-source-adapter"]
+    },
+    {
       "id": "adapter-function-kwargs",
       "source": "../adapter/adapter-function-kwargs.py",
       "reference": "Python Language Reference 8.7 Function definitions; 6.3.4 Calls",
@@ -681,6 +688,13 @@
       "reference": "Python Language Reference 6.14 Lambdas; 6.3.4 Calls",
       "expected_result": "True ~> .K",
       "coverage": ["lambda-expression", "varargs-parameter", "kwargs-parameter", "positional-call", "keyword-argument-call", "mixed-positional-keyword-call", "collected-arguments-tuple", "collected-keyword-arguments-dict", "ordinary-python-source-adapter"]
+    },
+    {
+      "id": "adapter-lambda-varargs-kwargs-defaults",
+      "source": "../adapter/adapter-lambda-varargs-kwargs-defaults.py",
+      "reference": "Python Language Reference 6.14 Lambdas; 6.3.4 Calls; 6.16 Evaluation order",
+      "expected_result": "True ~> .K",
+      "coverage": ["lambda-expression", "varargs-parameter", "kwargs-parameter", "default-parameter-values", "lambda-definition-time-default-evaluation", "positional-call-default-filling", "keyword-argument-call", "mixed-positional-keyword-call", "collected-arguments-tuple", "collected-keyword-arguments-dict", "ordinary-python-source-adapter"]
     },
     {
       "id": "adapter-lambda-kwargs",

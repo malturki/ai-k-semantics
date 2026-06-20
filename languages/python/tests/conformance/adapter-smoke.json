@@ -25,6 +25,13 @@
       "coverage": ["float-arithmetic", "mixed-int-bool-float-coercion", "float-ordering", "float-abs", "ordinary-python-source-adapter"]
     },
     {
+      "id": "adapter-float-floor-mod",
+      "source": "../adapter/adapter-float-floor-mod.py",
+      "reference": "Python Language Reference 6.7 Binary arithmetic operations; Python Standard Library numeric types",
+      "expected_result": "True ~> .K",
+      "coverage": ["float-floor-division", "float-modulo", "float-divmod", "mixed-int-bool-float-coercion", "ordinary-python-source-adapter"]
+    },
+    {
       "id": "adapter-string-repeat",
       "source": "../adapter/adapter-string-repeat.py",
       "reference": "Python Language Reference 6.7 Binary arithmetic operations; Standard Library sequence types",

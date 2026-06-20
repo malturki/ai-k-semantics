@@ -289,6 +289,12 @@ def emit_comp_filters(filters: list[ast.expr]) -> str:
     return f"#filters({emit_exp(filters[0])}, {emit_comp_filters(filters[1:])})"
 
 
+def emit_maybe_comp_filters(filters: list[ast.expr]) -> str:
+    if not filters:
+        return "#noFilters"
+    return emit_comp_filters(filters)
+
+
 def emit_list_comprehension(
     node: ast.AST, elt: ast.expr, generator: ast.comprehension
 ) -> str:
@@ -314,12 +320,16 @@ def emit_list_comprehension_two_generators(
 ) -> str:
     if outer.is_async or inner.is_async:
         raise unsupported(node, "async list comprehensions are not supported yet")
-    if outer.ifs or inner.ifs:
-        raise unsupported(node, "two-generator list comprehensions with filters are not supported yet")
     if not isinstance(outer.target, ast.Name):
         raise unsupported(outer.target, "only simple-name list comprehension targets are supported")
     if not isinstance(inner.target, ast.Name):
         raise unsupported(inner.target, "only simple-name list comprehension targets are supported")
+    if outer.ifs or inner.ifs:
+        return (
+            f"#listCompForIfs({emit_exp(outer.iter)}, {outer.target.id}, "
+            f"{emit_maybe_comp_filters(outer.ifs)}, {emit_exp(inner.iter)}, "
+            f"{inner.target.id}, {emit_maybe_comp_filters(inner.ifs)}, {emit_exp(elt)})"
+        )
     return (
         f"#listCompFor({emit_exp(outer.iter)}, {outer.target.id}, "
         f"{emit_exp(inner.iter)}, {inner.target.id}, {emit_exp(elt)})"

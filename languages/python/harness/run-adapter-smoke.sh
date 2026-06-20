@@ -155,6 +155,7 @@ run_case "adapter-for-list" "$ROOT/tests/adapter/adapter-for-list.py" "True ~> .
 run_case "adapter-for-tuple" "$ROOT/tests/adapter/adapter-for-tuple.py" "True ~> .K"
 run_case "adapter-for-string" "$ROOT/tests/adapter/adapter-for-string.py" "True ~> .K"
 run_case "adapter-for-dict" "$ROOT/tests/adapter/adapter-for-dict.py" "True ~> .K"
+run_case "adapter-for-set" "$ROOT/tests/adapter/adapter-for-set.py" "True ~> .K"
 run_case "adapter-for-break-continue" "$ROOT/tests/adapter/adapter-for-break-continue.py" "True ~> .K"
 run_case "adapter-for-return" "$ROOT/tests/adapter/adapter-for-return.py" "True ~> .K"
 run_case "adapter-for-unpack" "$ROOT/tests/adapter/adapter-for-unpack.py" "True ~> .K"

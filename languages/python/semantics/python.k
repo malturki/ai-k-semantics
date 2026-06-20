@@ -4580,6 +4580,10 @@ module PYTHON
   rule <k> dictVal(DS:DictItems) ~> forIter(X:Id, Body:Block) =>
            forItems(X, dictKeysToValItems(DS), Body)
        ... </k>
+  rule <k> set() ~> forIter(_:Id, _:Block) => stmtNoResult ... </k>
+  rule <k> setVal(VS:ValItems) ~> forIter(X:Id, Body:Block) =>
+           forItems(X, VS, Body)
+       ... </k>
 
   rule <k> forItems(X:Id, valItemsCons(V:Val, VS:ValItems), block(SS:Stmts)) =>
            SS ~> forItems(X, VS, block(SS))
@@ -4608,6 +4612,10 @@ module PYTHON
        ... </k>
   rule <k> () ~> forUnpackIter(_:IdItems, _:Block) => stmtNoResult ... </k>
   rule <k> tupleVal(VS:ValItems) ~> forUnpackIter(IDS:IdItems, Body:Block) =>
+           forUnpackItems(IDS, VS, Body)
+       ... </k>
+  rule <k> set() ~> forUnpackIter(_:IdItems, _:Block) => stmtNoResult ... </k>
+  rule <k> setVal(VS:ValItems) ~> forUnpackIter(IDS:IdItems, Body:Block) =>
            forUnpackItems(IDS, VS, Body)
        ... </k>
 
@@ -4661,6 +4669,10 @@ module PYTHON
        ... </k>
   rule <k> () ~> forStarUnpackIter(_:IdItems, _:Id, _:IdItems, _:Block) => stmtNoResult ... </k>
   rule <k> tupleVal(VS:ValItems) ~> forStarUnpackIter(Prefix:IdItems, Star:Id, Suffix:IdItems, Body:Block) =>
+           forStarUnpackItems(Prefix, Star, Suffix, VS, Body)
+       ... </k>
+  rule <k> set() ~> forStarUnpackIter(_:IdItems, _:Id, _:IdItems, _:Block) => stmtNoResult ... </k>
+  rule <k> setVal(VS:ValItems) ~> forStarUnpackIter(Prefix:IdItems, Star:Id, Suffix:IdItems, Body:Block) =>
            forStarUnpackItems(Prefix, Star, Suffix, VS, Body)
        ... </k>
 
@@ -4808,6 +4820,10 @@ module PYTHON
   rule <k> dictVal(DS:DictItems) ~> forElseIter(X:Id, Body:Block, Else:Block) =>
            forElseItems(X, dictKeysToValItems(DS), Body, Else)
        ... </k>
+  rule <k> set() ~> forElseIter(_:Id, _:Block, Else:Block) => runLoopElse(Else) ... </k>
+  rule <k> setVal(VS:ValItems) ~> forElseIter(X:Id, Body:Block, Else:Block) =>
+           forElseItems(X, VS, Body, Else)
+       ... </k>
 
   rule <k> forElseItems(X:Id, valItemsCons(V:Val, VS:ValItems), block(SS:Stmts), Else:Block) =>
            SS ~> forElseItems(X, VS, block(SS), Else)
@@ -4836,6 +4852,10 @@ module PYTHON
        ... </k>
   rule <k> () ~> forUnpackElseIter(_:IdItems, _:Block, Else:Block) => runLoopElse(Else) ... </k>
   rule <k> tupleVal(VS:ValItems) ~> forUnpackElseIter(IDS:IdItems, Body:Block, Else:Block) =>
+           forUnpackElseItems(IDS, VS, Body, Else)
+       ... </k>
+  rule <k> set() ~> forUnpackElseIter(_:IdItems, _:Block, Else:Block) => runLoopElse(Else) ... </k>
+  rule <k> setVal(VS:ValItems) ~> forUnpackElseIter(IDS:IdItems, Body:Block, Else:Block) =>
            forUnpackElseItems(IDS, VS, Body, Else)
        ... </k>
 
@@ -4890,6 +4910,10 @@ module PYTHON
        ... </k>
   rule <k> () ~> forStarUnpackElseIter(_:IdItems, _:Id, _:IdItems, _:Block, Else:Block) => runLoopElse(Else) ... </k>
   rule <k> tupleVal(VS:ValItems) ~> forStarUnpackElseIter(Prefix:IdItems, Star:Id, Suffix:IdItems, Body:Block, Else:Block) =>
+           forStarUnpackElseItems(Prefix, Star, Suffix, VS, Body, Else)
+       ... </k>
+  rule <k> set() ~> forStarUnpackElseIter(_:IdItems, _:Id, _:IdItems, _:Block, Else:Block) => runLoopElse(Else) ... </k>
+  rule <k> setVal(VS:ValItems) ~> forStarUnpackElseIter(Prefix:IdItems, Star:Id, Suffix:IdItems, Body:Block, Else:Block) =>
            forStarUnpackElseItems(Prefix, Star, Suffix, VS, Body, Else)
        ... </k>
 

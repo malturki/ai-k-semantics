@@ -137,6 +137,13 @@
       "coverage": ["list-comprehension", "single-for-comprehension", "multiple-comprehension-if-clauses", "truth-value-testing", "ordinary-python-source-adapter"]
     },
     {
+      "id": "adapter-list-comprehension-two-for",
+      "source": "../adapter/adapter-list-comprehension-two-for.py",
+      "reference": "Python Language Reference 6.2.4 Displays for lists, sets and dictionaries; Python Language Reference 6.2.5 List displays",
+      "expected_result": "True ~> .K",
+      "coverage": ["list-comprehension", "two-for-comprehension", "dependent-inner-iterable", "comprehension-target-scope", "ordinary-python-source-adapter"]
+    },
+    {
       "id": "adapter-list-negative-index",
       "source": "../adapter/adapter-list-negative-index.py",
       "reference": "Python Language Reference 6.3.2 Subscriptions; Built-in sequence types",

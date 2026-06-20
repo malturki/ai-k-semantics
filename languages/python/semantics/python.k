@@ -139,6 +139,7 @@ module PYTHON-SYNTAX
                | "#listComp" "(" Exp "," Id "," Exp ")" [symbol(listCompExp), strict(1)]
                | "#listCompIf" "(" Exp "," Id "," Exp "," Exp ")" [symbol(listCompIfExp), strict(1)]
                | "#listCompIfs" "(" Exp "," Id "," CompFilters "," Exp ")" [symbol(listCompIfsExp), strict(1)]
+               | "#listCompFor" "(" Exp "," Id "," Exp "," Id "," Exp ")" [symbol(listCompForExp), strict(1)]
                | "#dictComp" "(" Exp "," Id "," Exp "," Exp ")" [symbol(dictCompExp), strict(1)]
                | "#dictCompIf" "(" Exp "," Id "," Exp "," Exp "," Exp ")" [symbol(dictCompIfExp), strict(1)]
                | "#dictCompIfs" "(" Exp "," Id "," CompFilters "," Exp "," Exp ")" [symbol(dictCompIfsExp), strict(1)]
@@ -297,6 +298,10 @@ module PYTHON
                  | listCompIfsFilterNext(Id, CompFilters, CompFilters, Exp, ArgVals, ArgVals, Map) [symbol(listCompIfsFilterNext)]
                  | listCompIfsFilterLast(Id, CompFilters, Exp, ArgVals, ArgVals, Map) [symbol(listCompIfsFilterLast)]
                  | listCompIfsNext(Id, CompFilters, Exp, ArgVals, ArgVals, Map) [symbol(listCompIfsNext)]
+                 | listCompForIter(Id, Exp, Id, Exp, ArgVals, ArgVals, Map) [symbol(listCompForIter)]
+                 | listCompForInner(Id, Exp, Id, Exp, ArgVals, ArgVals, Map) [symbol(listCompForInner)]
+                 | listCompForInnerIter(Id, Exp, Id, Exp, ArgVals, ArgVals, ArgVals, Map) [symbol(listCompForInnerIter)]
+                 | listCompForNext(Id, Exp, Id, Exp, ArgVals, ArgVals, ArgVals, Map) [symbol(listCompForNext)]
                  | setCompIter(Id, Exp, ArgVals, ArgVals, Map) [symbol(setCompIter)]
                  | setCompNext(Id, Exp, ArgVals, ArgVals, Map) [symbol(setCompNext)]
                  | setCompIfIter(Id, Exp, Exp, ArgVals, ArgVals, Map) [symbol(setCompIfIter)]
@@ -2955,6 +2960,34 @@ module PYTHON
     requires notBool truthy(V)
   rule <k> V:Val ~> listCompIfsNext(X:Id, Filters:CompFilters, Elem:Exp, Rest:ArgVals, Acc:ArgVals, Rho:Map) =>
            listCompIfsIter(X, Filters, Elem, Rest, appendArgVal(Acc, V), Rho)
+       ... </k>
+  rule <k> listCompForExp(Iter:Val, X:Id, Inner:Exp, Y:Id, Elem:Exp) =>
+           listCompForIter(X, Inner, Y, Elem, iterableArgVals(Iter), #noArgVals, Rho)
+       ... </k>
+       <env> Rho </env>
+  rule <k> listCompForIter(_:Id, _:Exp, _:Id, _:Exp, #noArgVals, #noArgVals, Rho:Map) =>
+           [] ~> restoreEnv(Rho)
+       ... </k>
+  rule <k> listCompForIter(_:Id, _:Exp, _:Id, _:Exp, #noArgVals, Acc:ArgVals, Rho:Map) =>
+           listVal(argValsToValItems(Acc)) ~> restoreEnv(Rho)
+       ... </k>
+    requires notBool emptyArgVals(Acc)
+  rule <k> listCompForIter(X:Id, Inner:Exp, Y:Id, Elem:Exp, argValsCons(V:Val, RestOuter:ArgVals), Acc:ArgVals, Rho:Map) =>
+           Inner ~> listCompForInner(X, Inner, Y, Elem, RestOuter, Acc, Rho)
+       ... </k>
+       <env> _ => Rho [ X <- V ] </env>
+  rule <k> InnerIter:Val ~> listCompForInner(X:Id, Inner:Exp, Y:Id, Elem:Exp, RestOuter:ArgVals, Acc:ArgVals, Rho:Map) =>
+           listCompForInnerIter(X, Inner, Y, Elem, RestOuter, iterableArgVals(InnerIter), Acc, Rho)
+       ... </k>
+  rule <k> listCompForInnerIter(X:Id, Inner:Exp, Y:Id, Elem:Exp, RestOuter:ArgVals, #noArgVals, Acc:ArgVals, Rho:Map) =>
+           listCompForIter(X, Inner, Y, Elem, RestOuter, Acc, Rho)
+       ... </k>
+  rule <k> listCompForInnerIter(X:Id, Inner:Exp, Y:Id, Elem:Exp, RestOuter:ArgVals, argValsCons(V:Val, RestInner:ArgVals), Acc:ArgVals, Rho:Map) =>
+           Elem ~> listCompForNext(X, Inner, Y, Elem, RestOuter, RestInner, Acc, Rho)
+       ... </k>
+       <env> RhoCurrent:Map => RhoCurrent [ Y <- V ] </env>
+  rule <k> V:Val ~> listCompForNext(X:Id, Inner:Exp, Y:Id, Elem:Exp, RestOuter:ArgVals, RestInner:ArgVals, Acc:ArgVals, Rho:Map) =>
+           listCompForInnerIter(X, Inner, Y, Elem, RestOuter, RestInner, appendArgVal(Acc, V), Rho)
        ... </k>
   rule <k> setCompExp(Iter:Val, X:Id, Elem:Exp) =>
            setCompIter(X, Elem, iterableArgVals(Iter), #noArgVals, Rho)

@@ -608,7 +608,7 @@
         {
           "id": "compound.try-except-finally",
           "title": "try, except, except*, else, and finally",
-          "status": "not-started",
+          "status": "partial",
           "references": [
             {
               "title": "Compound statements",
@@ -616,9 +616,9 @@
               "section": "The try statement"
             }
           ],
-          "k_coverage": [],
-          "test_coverage": [],
-          "gaps": ["Need exception matching, groups, cleanup ordering, and abrupt completion interactions."]
+          "k_coverage": ["semantics/python.k: internal #tryFinally statement form runs the finally block after normal completion of the try block, for explicit Block syntax and no exception/abrupt-completion profile", "harness/python_to_k_input.py: CPython AST Try without handlers or else lowers to #tryFinally when the try/finally bodies contain no return, break, or continue"],
+          "test_coverage": ["tests/adapter/adapter-try-finally.py"],
+          "gaps": ["Need except and except* handlers, exception matching, try else, exception objects and groups, cleanup ordering with active exceptions, finally over return/break/continue, finalizer override of pending abrupt completion, and broader abrupt completion interactions."]
         },
         {
           "id": "compound.with",

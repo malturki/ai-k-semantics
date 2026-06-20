@@ -134,6 +134,7 @@ module PYTHON-SYNTAX
                 | "#forTargetUnpackElse" "(" Targets "," Exp "," Block "," Block ")" [symbol(forTargetUnpackElseStmt)]
                 | "#forStarUnpack" "(" IdItems "," Id "," IdItems "," Exp "," Block ")" [symbol(forStarUnpackStmt)]
                 | "#forStarUnpackElse" "(" IdItems "," Id "," IdItems "," Exp "," Block "," Block ")" [symbol(forStarUnpackElseStmt)]
+                | "#tryFinally" "(" Block "," Block ")" [symbol(tryFinallyStmt)]
 
   syntax Exp ::= Val
                | Id
@@ -509,6 +510,7 @@ module PYTHON
                  | forElseRangeStep(Id, Int, Int, Int, Block, Block) [symbol(forElseRangeStep)]
                  | forElseRangeStepAgain(Id, Int, Int, Int, Block, Block) [symbol(forElseRangeStepAgain)]
                  | runLoopElse(Block) [symbol(runLoopElse)]
+                 | tryFinallyDone(Block) [symbol(tryFinallyDone)]
                  | "forDone" [symbol(forDone)]
                  | "breakSignal" [symbol(breakSignal)]
                  | "continueSignal" [symbol(continueSignal)]
@@ -4666,6 +4668,17 @@ module PYTHON
   rule <k> argsVal(Defaults:ArgVals) ~> bindFunctionDefaults(F:Id, IDS:IdItems, Body:Block) => stmtNoResult ... </k>
        <env> Rho => Rho [ F <- functionValDefaults(IDS, Defaults, Body) ] </env>
        <result> _ => .K </result>
+
+  rule <k> tryFinallyStmt(block(SS:Stmts), Finally:Block) =>
+           SS ~> tryFinallyDone(Finally)
+       ... </k>
+  rule <k> tryFinallyStmt({}, Finally:Block) =>
+           tryFinallyDone(Finally)
+       ... </k>
+  rule <k> tryFinallyDone(block(SS:Stmts)) =>
+           SS ~> ifStmtDone
+       ... </k>
+  rule <k> tryFinallyDone({}) => stmtNoResult ... </k>
 
   rule <k> ifStmt(C:Exp, Then:Block, Else:Block) =>
            C ~> ifStmtBranch(Then, Else)

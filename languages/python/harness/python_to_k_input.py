@@ -93,8 +93,43 @@ def emit_stmt(stmt: ast.stmt) -> str:
             return f"#whileElse({emit_exp(test)}, {emit_block(body)}, {emit_block(orelse)})"
         case ast.For(target=target, iter=iter_, body=body, orelse=orelse):
             return emit_for_stmt(stmt, target, iter_, body, orelse)
+        case ast.Try(body=body, handlers=[], orelse=[], finalbody=finalbody):
+            if block_contains_abrupt_completion(body) or block_contains_abrupt_completion(finalbody):
+                raise unsupported(stmt, "try/finally with return, break, or continue is not supported yet")
+            return f"#tryFinally({emit_block(body)}, {emit_block(finalbody)})"
+        case ast.Try():
+            raise unsupported(stmt, "only try/finally without except or else is supported")
         case _:
             raise unsupported(stmt, "statement is not supported by the current K subset")
+
+
+def block_contains_abrupt_completion(stmts: list[ast.stmt]) -> bool:
+    return any(stmt_contains_abrupt_completion(stmt) for stmt in stmts)
+
+
+def stmt_contains_abrupt_completion(stmt: ast.stmt) -> bool:
+    match stmt:
+        case ast.Return() | ast.Break() | ast.Continue():
+            return True
+        case ast.If(body=body, orelse=orelse):
+            return block_contains_abrupt_completion(body) or block_contains_abrupt_completion(orelse)
+        case ast.While(body=body, orelse=orelse) | ast.For(body=body, orelse=orelse):
+            return block_contains_abrupt_completion(body) or block_contains_abrupt_completion(orelse)
+        case ast.Try(body=body, handlers=handlers, orelse=orelse, finalbody=finalbody):
+            return (
+                block_contains_abrupt_completion(body)
+                or any(block_contains_abrupt_completion(handler.body) for handler in handlers)
+                or block_contains_abrupt_completion(orelse)
+                or block_contains_abrupt_completion(finalbody)
+            )
+        case ast.With(body=body) | ast.AsyncWith(body=body):
+            return block_contains_abrupt_completion(body)
+        case ast.Match(cases=cases):
+            return any(block_contains_abrupt_completion(case.body) for case in cases)
+        case ast.FunctionDef() | ast.AsyncFunctionDef() | ast.Lambda() | ast.ClassDef():
+            return False
+        case _:
+            return False
 
 
 def emit_exp(exp: ast.expr) -> str:

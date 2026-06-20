@@ -914,6 +914,13 @@
       "coverage": ["for-statement", "dict-key-iteration-subset", "empty-dict-iteration", "loop-else-normal-completion", "loop-else-break-suppression", "ordinary-python-source-adapter"]
     },
     {
+      "id": "adapter-try-finally",
+      "source": "../adapter/adapter-try-finally.py",
+      "reference": "Python Language Reference 8.4 The try statement",
+      "expected_result": "True ~> .K",
+      "coverage": ["try-statement", "finally-clause", "normal-completion-only-profile", "ordinary-python-source-adapter"]
+    },
+    {
       "id": "adapter-range-for",
       "source": "../adapter/adapter-range-for.py",
       "reference": "Python Language Reference 8.3 The for statement; Standard Library range type",

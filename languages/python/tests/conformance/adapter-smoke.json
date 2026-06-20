@@ -18,6 +18,13 @@
       "coverage": ["true-division", "float-result", "bool-as-int-division", "float-truthiness", "ordinary-python-source-adapter"]
     },
     {
+      "id": "adapter-float-arithmetic",
+      "source": "../adapter/adapter-float-arithmetic.py",
+      "reference": "Python Language Reference 6.7 Binary arithmetic operations; 6.10 Comparisons; Python Standard Library numeric types",
+      "expected_result": "True ~> .K",
+      "coverage": ["float-arithmetic", "mixed-int-bool-float-coercion", "float-ordering", "float-abs", "ordinary-python-source-adapter"]
+    },
+    {
       "id": "adapter-string-repeat",
       "source": "../adapter/adapter-string-repeat.py",
       "reference": "Python Language Reference 6.7 Binary arithmetic operations; Standard Library sequence types",

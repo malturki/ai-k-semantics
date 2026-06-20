@@ -45,6 +45,7 @@ run_case() {
 
 run_case "adapter-floor-div" "$ROOT/tests/adapter/adapter-floor-div.py" "True ~> .K"
 run_case "adapter-true-div" "$ROOT/tests/adapter/adapter-true-div.py" "True ~> .K"
+run_case "adapter-float-arithmetic" "$ROOT/tests/adapter/adapter-float-arithmetic.py" "True ~> .K"
 run_case "adapter-string-repeat" "$ROOT/tests/adapter/adapter-string-repeat.py" "True ~> .K"
 run_case "adapter-string-index" "$ROOT/tests/adapter/adapter-string-index.py" "True ~> .K"
 run_case "adapter-string-membership" "$ROOT/tests/adapter/adapter-string-membership.py" "True ~> .K"

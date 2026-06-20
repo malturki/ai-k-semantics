@@ -328,6 +328,7 @@ module PYTHON
 
   syntax Bool ::= truthy(Val) [function, symbol(truthy)]
                 | isIntLike(Val) [function, symbol(isIntLike)]
+                | isFloatLike(Val) [function, symbol(isFloatLike)]
                 | valEq(Val, Val) [function, symbol(valEq)]
                 | valIs(Val, Val) [function, symbol(valIs)]
                 | cmpHolds(CmpOp, Val, Val) [function, symbol(cmpHolds)]
@@ -418,6 +419,7 @@ module PYTHON
                | maxArgVals(ArgVals) [function, symbol(maxArgVals)]
                | rangeMin(Int, Int, Int) [function, symbol(rangeMin)]
                | rangeMax(Int, Int, Int) [function, symbol(rangeMax)]
+  syntax Float ::= floatValue(Val) [function, symbol(floatValue)]
   syntax String ::= repeatString(String, Int) [function, symbol(repeatString)]
                   | sliceString(String, Int, Int) [function, symbol(sliceString)]
                   | sliceStepString(String, Int, Int, Int) [function, symbol(sliceStepString)]
@@ -574,6 +576,9 @@ module PYTHON
   rule isIntLike(argsVal(_:ArgVals)) => false
   rule isIntLike(dictArgsVal(_:DictVals)) => false
 
+  rule isFloatLike(_:Float) => true
+  rule isFloatLike(V:Val) => isIntLike(V) [owise]
+
   rule singletonIdentity(True) => true
   rule singletonIdentity(False) => true
   rule singletonIdentity(None) => true
@@ -619,6 +624,10 @@ module PYTHON
   rule intValue(I:Int) => I
   rule intValue(True) => 1
   rule intValue(False) => 0
+
+  rule floatValue(F:Float) => F
+  rule floatValue(V:Val) => Int2Float(intValue(V), 53, 11)
+    requires isIntLike(V)
 
   rule pyLen(S:String) => lengthString(S)
   rule pyLen([]) => 0
@@ -882,6 +891,11 @@ module PYTHON
 
   rule cmpHolds(#lt, V1:Val, V2:Val) => intValue(V1) <Int intValue(V2)
     requires isIntLike(V1) andBool isIntLike(V2)
+  rule cmpHolds(#lt, F1:Float, F2:Float) => F1 <Float F2
+  rule cmpHolds(#lt, F:Float, V:Val) => F <Float floatValue(V)
+    requires isIntLike(V)
+  rule cmpHolds(#lt, V:Val, F:Float) => floatValue(V) <Float F
+    requires isIntLike(V)
   rule cmpHolds(#lt, S1:String, S2:String) => S1 <String S2
   rule cmpHolds(#lt, V1:Val, V2:Val) => seqLt(V1, V2)
     requires seqOrderComparable(V1, V2)
@@ -892,6 +906,11 @@ module PYTHON
   rule cmpHolds(#lt, setVal(_:ValItems), set()) => false
   rule cmpHolds(#le, V1:Val, V2:Val) => intValue(V1) <=Int intValue(V2)
     requires isIntLike(V1) andBool isIntLike(V2)
+  rule cmpHolds(#le, F1:Float, F2:Float) => F1 <=Float F2
+  rule cmpHolds(#le, F:Float, V:Val) => F <=Float floatValue(V)
+    requires isIntLike(V)
+  rule cmpHolds(#le, V:Val, F:Float) => floatValue(V) <=Float F
+    requires isIntLike(V)
   rule cmpHolds(#le, S1:String, S2:String) => S1 <=String S2
   rule cmpHolds(#le, V1:Val, V2:Val) => seqLt(V1, V2) orBool valEq(V1, V2)
     requires seqOrderComparable(V1, V2)
@@ -902,6 +921,11 @@ module PYTHON
   rule cmpHolds(#le, setVal(_:ValItems), set()) => false
   rule cmpHolds(#gt, V1:Val, V2:Val) => intValue(V1) >Int intValue(V2)
     requires isIntLike(V1) andBool isIntLike(V2)
+  rule cmpHolds(#gt, F1:Float, F2:Float) => F1 >Float F2
+  rule cmpHolds(#gt, F:Float, V:Val) => F >Float floatValue(V)
+    requires isIntLike(V)
+  rule cmpHolds(#gt, V:Val, F:Float) => floatValue(V) >Float F
+    requires isIntLike(V)
   rule cmpHolds(#gt, S1:String, S2:String) => S1 >String S2
   rule cmpHolds(#gt, V1:Val, V2:Val) => seqLt(V2, V1)
     requires seqOrderComparable(V1, V2)
@@ -912,6 +936,11 @@ module PYTHON
   rule cmpHolds(#gt, setVal(_:ValItems), set()) => true
   rule cmpHolds(#ge, V1:Val, V2:Val) => intValue(V1) >=Int intValue(V2)
     requires isIntLike(V1) andBool isIntLike(V2)
+  rule cmpHolds(#ge, F1:Float, F2:Float) => F1 >=Float F2
+  rule cmpHolds(#ge, F:Float, V:Val) => F >=Float floatValue(V)
+    requires isIntLike(V)
+  rule cmpHolds(#ge, V:Val, F:Float) => floatValue(V) >=Float F
+    requires isIntLike(V)
   rule cmpHolds(#ge, S1:String, S2:String) => S1 >=String S2
   rule cmpHolds(#ge, V1:Val, V2:Val) => seqLt(V2, V1) orBool valEq(V1, V2)
     requires seqOrderComparable(V1, V2)
@@ -1831,10 +1860,25 @@ module PYTHON
 
   rule V1:Val + V2:Val => intValue(V1) +Int intValue(V2)
     requires isIntLike(V1) andBool isIntLike(V2)
+  rule F1:Float + F2:Float => F1 +Float F2
+  rule F:Float + V:Val => F +Float floatValue(V)
+    requires isIntLike(V)
+  rule V:Val + F:Float => floatValue(V) +Float F
+    requires isIntLike(V)
   rule V1:Val - V2:Val => intValue(V1) -Int intValue(V2)
     requires isIntLike(V1) andBool isIntLike(V2)
+  rule F1:Float - F2:Float => F1 -Float F2
+  rule F:Float - V:Val => F -Float floatValue(V)
+    requires isIntLike(V)
+  rule V:Val - F:Float => floatValue(V) -Float F
+    requires isIntLike(V)
   rule V1:Val * V2:Val => intValue(V1) *Int intValue(V2)
     requires isIntLike(V1) andBool isIntLike(V2)
+  rule F1:Float * F2:Float => F1 *Float F2
+  rule F:Float * V:Val => F *Float floatValue(V)
+    requires isIntLike(V)
+  rule V:Val * F:Float => floatValue(V) *Float F
+    requires isIntLike(V)
   rule S:String * V:Val => repeatString(S, intValue(V))
     requires isIntLike(V)
   rule V:Val * S:String => repeatString(S, intValue(V))
@@ -1874,6 +1918,12 @@ module PYTHON
   rule trueDivInternal(V1:Val, V2:Val) =>
     Int2Float(intValue(V1), 53, 11) /Float Int2Float(intValue(V2), 53, 11)
     requires isIntLike(V1) andBool isIntLike(V2) andBool intValue(V2) =/=Int 0
+  rule trueDivInternal(F1:Float, F2:Float) => F1 /Float F2
+    requires F2 =/=Float 0.0
+  rule trueDivInternal(F:Float, V:Val) => F /Float floatValue(V)
+    requires isIntLike(V) andBool intValue(V) =/=Int 0
+  rule trueDivInternal(V:Val, F:Float) => floatValue(V) /Float F
+    requires isIntLike(V) andBool F =/=Float 0.0
   rule V1:Val % V2:Val => pyModulo(intValue(V1), intValue(V2))
     requires isIntLike(V1) andBool isIntLike(V2) andBool intValue(V2) =/=Int 0
   rule V1:Val << V2:Val => intValue(V1) <<Int intValue(V2)
@@ -1946,6 +1996,11 @@ module PYTHON
 
   rule V1:Val < V2:Val => boolValue(intValue(V1) <Int intValue(V2))
     requires isIntLike(V1) andBool isIntLike(V2)
+  rule F1:Float < F2:Float => boolValue(F1 <Float F2)
+  rule F:Float < V:Val => boolValue(F <Float floatValue(V))
+    requires isIntLike(V)
+  rule V:Val < F:Float => boolValue(floatValue(V) <Float F)
+    requires isIntLike(V)
   rule S1:String < S2:String => boolValue(S1 <String S2)
   rule V1:Val < V2:Val => boolValue(cmpHolds(#lt, V1, V2))
     requires seqOrderComparable(V1, V2)
@@ -1956,6 +2011,11 @@ module PYTHON
   rule setVal(_:ValItems) < set() => False
   rule V1:Val <= V2:Val => boolValue(intValue(V1) <=Int intValue(V2))
     requires isIntLike(V1) andBool isIntLike(V2)
+  rule F1:Float <= F2:Float => boolValue(F1 <=Float F2)
+  rule F:Float <= V:Val => boolValue(F <=Float floatValue(V))
+    requires isIntLike(V)
+  rule V:Val <= F:Float => boolValue(floatValue(V) <=Float F)
+    requires isIntLike(V)
   rule S1:String <= S2:String => boolValue(S1 <=String S2)
   rule V1:Val <= V2:Val => boolValue(cmpHolds(#le, V1, V2))
     requires seqOrderComparable(V1, V2)
@@ -1966,6 +2026,11 @@ module PYTHON
   rule setVal(_:ValItems) <= set() => False
   rule V1:Val > V2:Val => boolValue(intValue(V1) >Int intValue(V2))
     requires isIntLike(V1) andBool isIntLike(V2)
+  rule F1:Float > F2:Float => boolValue(F1 >Float F2)
+  rule F:Float > V:Val => boolValue(F >Float floatValue(V))
+    requires isIntLike(V)
+  rule V:Val > F:Float => boolValue(floatValue(V) >Float F)
+    requires isIntLike(V)
   rule S1:String > S2:String => boolValue(S1 >String S2)
   rule V1:Val > V2:Val => boolValue(cmpHolds(#gt, V1, V2))
     requires seqOrderComparable(V1, V2)
@@ -1976,6 +2041,11 @@ module PYTHON
   rule setVal(_:ValItems) > set() => True
   rule V1:Val >= V2:Val => boolValue(intValue(V1) >=Int intValue(V2))
     requires isIntLike(V1) andBool isIntLike(V2)
+  rule F1:Float >= F2:Float => boolValue(F1 >=Float F2)
+  rule F:Float >= V:Val => boolValue(F >=Float floatValue(V))
+    requires isIntLike(V)
+  rule V:Val >= F:Float => boolValue(floatValue(V) >=Float F)
+    requires isIntLike(V)
   rule S1:String >= S2:String => boolValue(S1 >=String S2)
   rule V1:Val >= V2:Val => boolValue(cmpHolds(#ge, V1, V2))
     requires seqOrderComparable(V1, V2)
@@ -2898,6 +2968,10 @@ module PYTHON
     requires isIntLike(V) andBool intValue(V) <Int 0
   rule #abs(V:Val) => intValue(V)
     requires isIntLike(V) andBool intValue(V) >=Int 0
+  rule #abs(F:Float) => --Float F
+    requires F <Float 0.0
+  rule #abs(F:Float) => F
+    requires F >=Float 0.0
   rule #divmod(V1:Val, V2:Val) =>
     tupleVal(valItemsCons(pyFloorDiv(intValue(V1), intValue(V2)), valItemsLast(pyModulo(intValue(V1), intValue(V2)))))
     requires isIntLike(V1) andBool isIntLike(V2) andBool intValue(V2) =/=Int 0

@@ -58,6 +58,7 @@ run_case "adapter-string-slice-step" "$ROOT/tests/adapter/adapter-string-slice-s
 run_case "adapter-string-slice-negative-step" "$ROOT/tests/adapter/adapter-string-slice-negative-step.py" "True ~> .K"
 run_case "adapter-list-normal" "$ROOT/tests/adapter/adapter-list-normal.py" "True ~> .K"
 run_case "adapter-list-expressions" "$ROOT/tests/adapter/adapter-list-expressions.py" "True ~> .K"
+run_case "adapter-list-comprehension" "$ROOT/tests/adapter/adapter-list-comprehension.py" "True ~> .K"
 run_case "adapter-list-negative-index" "$ROOT/tests/adapter/adapter-list-negative-index.py" "True ~> .K"
 run_case "adapter-list-ordering" "$ROOT/tests/adapter/adapter-list-ordering.py" "True ~> .K"
 run_case "adapter-list-concat" "$ROOT/tests/adapter/adapter-list-concat.py" "True ~> .K"

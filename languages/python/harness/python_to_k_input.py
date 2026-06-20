@@ -191,6 +191,10 @@ def emit_exp(exp: ast.expr) -> str:
             return f"({emit_exp(func)}({emit_exp(arg)}))"
         case ast.Call(func=func, args=args, keywords=[]):
             return f"#call({emit_exp(func)}, {emit_arg_exps(args)})"
+        case ast.ListComp(elt=elt, generators=[generator]):
+            return emit_list_comprehension(exp, elt, generator)
+        case ast.ListComp():
+            raise unsupported(exp, "only one-generator list comprehensions are supported yet")
         case ast.List(elts=elts, ctx=ast.Load()):
             return emit_list(elts)
         case ast.Tuple(elts=elts, ctx=ast.Load()):
@@ -259,6 +263,18 @@ def emit_bool_op(node: ast.AST, op: ast.boolop, values: list[ast.expr]) -> str:
     for value in values[1:]:
         result = f"({result} {symbol} {emit_exp(value)})"
     return result
+
+
+def emit_list_comprehension(
+    node: ast.AST, elt: ast.expr, generator: ast.comprehension
+) -> str:
+    if generator.is_async:
+        raise unsupported(node, "async list comprehensions are not supported yet")
+    if generator.ifs:
+        raise unsupported(node, "list comprehension if-clauses are not supported yet")
+    if not isinstance(generator.target, ast.Name):
+        raise unsupported(generator.target, "only simple-name list comprehension targets are supported")
+    return f"#listComp({emit_exp(generator.iter)}, {generator.target.id}, {emit_exp(elt)})"
 
 
 def emit_slice_bound(bound: ast.expr | None) -> str:

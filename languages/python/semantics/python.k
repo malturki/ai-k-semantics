@@ -132,6 +132,7 @@ module PYTHON-SYNTAX
                | "#tuple" "(" ArgExps ")" [symbol(tupleDisplayExp)]
                | "#dict" "(" DictExps ")" [symbol(dictDisplayExp)]
                | "#set" "(" ArgExps ")" [symbol(setDisplayExp)]
+               | "#listComp" "(" Exp "," Id "," Exp ")" [symbol(listCompExp), strict(1)]
                | "#listCtor" "(" ")" [symbol(listCtorExp)]
                | "#listCtor" "(" Exp ")" [symbol(listCtor1Exp), strict]
                | "#tupleCtor" "(" ")" [symbol(tupleCtorExp)]
@@ -274,6 +275,8 @@ module PYTHON
                  | bindLambdaPosKwDefaults(IdItems, ArgExps, IdItems, Exp) [symbol(bindLambdaPosKwDefaults)]
                  | bindLambdaPosKwDefaultVals(IdItems, ArgVals, IdItems, Exp) [symbol(bindLambdaPosKwDefaultVals)]
                  | "buildList" [symbol(buildList)]
+                 | listCompIter(Id, Exp, ArgVals, ArgVals, Map) [symbol(listCompIter)]
+                 | listCompNext(Id, Exp, ArgVals, ArgVals, Map) [symbol(listCompNext)]
                  | "buildTuple" [symbol(buildTuple)]
                  | "buildSet" [symbol(buildSet)]
                  | "minArgsResult" [symbol(minArgsResult)]
@@ -2824,6 +2827,24 @@ module PYTHON
   rule <k> argsVal(#noArgVals) ~> buildList => [] ... </k>
   rule <k> argsVal(VS:ArgVals) ~> buildList => listVal(argValsToValItems(VS)) ... </k>
     requires notBool emptyArgVals(VS)
+  rule <k> listCompExp(Iter:Val, X:Id, Elem:Exp) =>
+           listCompIter(X, Elem, iterableArgVals(Iter), #noArgVals, Rho)
+       ... </k>
+       <env> Rho </env>
+  rule <k> listCompIter(_:Id, _:Exp, #noArgVals, #noArgVals, Rho:Map) =>
+           [] ~> restoreEnv(Rho)
+       ... </k>
+  rule <k> listCompIter(_:Id, _:Exp, #noArgVals, Acc:ArgVals, Rho:Map) =>
+           listVal(argValsToValItems(Acc)) ~> restoreEnv(Rho)
+       ... </k>
+    requires notBool emptyArgVals(Acc)
+  rule <k> listCompIter(X:Id, Elem:Exp, argValsCons(V:Val, Rest:ArgVals), Acc:ArgVals, Rho:Map) =>
+           Elem ~> listCompNext(X, Elem, Rest, Acc, Rho)
+       ... </k>
+       <env> _ => Rho [ X <- V ] </env>
+  rule <k> V:Val ~> listCompNext(X:Id, Elem:Exp, Rest:ArgVals, Acc:ArgVals, Rho:Map) =>
+           listCompIter(X, Elem, Rest, appendArgVal(Acc, V), Rho)
+       ... </k>
 
   rule <k> tupleDisplayExp(Args:ArgExps) => evalArgs(Args, #noArgVals) ~> buildTuple ... </k>
   rule <k> argsVal(#noArgVals) ~> buildTuple => () ... </k>

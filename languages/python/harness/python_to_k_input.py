@@ -195,6 +195,10 @@ def emit_exp(exp: ast.expr) -> str:
             return emit_list_comprehension(exp, elt, generator)
         case ast.ListComp():
             raise unsupported(exp, "only one-generator list comprehensions are supported yet")
+        case ast.DictComp(key=key, value=value, generators=[generator]):
+            return emit_dict_comprehension(exp, key, value, generator)
+        case ast.DictComp():
+            raise unsupported(exp, "only one-generator dict comprehensions are supported yet")
         case ast.List(elts=elts, ctx=ast.Load()):
             return emit_list(elts)
         case ast.Tuple(elts=elts, ctx=ast.Load()):
@@ -280,6 +284,21 @@ def emit_list_comprehension(
             f"{emit_exp(generator.ifs[0])}, {emit_exp(elt)})"
         )
     return f"#listComp({emit_exp(generator.iter)}, {generator.target.id}, {emit_exp(elt)})"
+
+
+def emit_dict_comprehension(
+    node: ast.AST, key: ast.expr, value: ast.expr, generator: ast.comprehension
+) -> str:
+    if generator.is_async:
+        raise unsupported(node, "async dict comprehensions are not supported yet")
+    if generator.ifs:
+        raise unsupported(node, "dict comprehension if-clauses are not supported yet")
+    if not isinstance(generator.target, ast.Name):
+        raise unsupported(generator.target, "only simple-name dict comprehension targets are supported")
+    return (
+        f"#dictComp({emit_exp(generator.iter)}, {generator.target.id}, "
+        f"{emit_exp(key)}, {emit_exp(value)})"
+    )
 
 
 def emit_slice_bound(bound: ast.expr | None) -> str:

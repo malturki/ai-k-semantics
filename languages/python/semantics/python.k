@@ -134,6 +134,7 @@ module PYTHON-SYNTAX
                | "#set" "(" ArgExps ")" [symbol(setDisplayExp)]
                | "#listComp" "(" Exp "," Id "," Exp ")" [symbol(listCompExp), strict(1)]
                | "#listCompIf" "(" Exp "," Id "," Exp "," Exp ")" [symbol(listCompIfExp), strict(1)]
+               | "#dictComp" "(" Exp "," Id "," Exp "," Exp ")" [symbol(dictCompExp), strict(1)]
                | "#listCtor" "(" ")" [symbol(listCtorExp)]
                | "#listCtor" "(" Exp ")" [symbol(listCtor1Exp), strict]
                | "#tupleCtor" "(" ")" [symbol(tupleCtorExp)]
@@ -290,6 +291,9 @@ module PYTHON
                  | evalDictNext(DictExps, DictVals, Val) [symbol(evalDictNext)]
                  | evalDictStarNext(DictExps, DictVals) [symbol(evalDictStarNext)]
                  | "buildDict" [symbol(buildDict)]
+                 | dictCompIter(Id, Exp, Exp, ArgVals, DictVals, Map) [symbol(dictCompIter)]
+                 | dictCompKey(Id, Exp, Exp, ArgVals, DictVals, Map) [symbol(dictCompKey)]
+                 | dictCompValue(Id, Exp, Exp, ArgVals, DictVals, Map, Val) [symbol(dictCompValue)]
                  | compareChain(CmpChain) [symbol(compareChain)]
                  | compareChainLast(CmpOp, Val) [symbol(compareChainLast)]
                  | compareChainNext(CmpOp, Val, CmpChain) [symbol(compareChainNext)]
@@ -2912,6 +2916,27 @@ module PYTHON
   rule <k> dictArgsVal(#noDictVals) ~> buildDict => ({}):Val ... </k>
   rule <k> dictArgsVal(DVS:DictVals) ~> buildDict => dictVal(dictValsToDictItems(DVS)) ... </k>
     requires notBool emptyDictVals(DVS)
+  rule <k> dictCompExp(Iter:Val, X:Id, Key:Exp, Value:Exp) =>
+           dictCompIter(X, Key, Value, iterableArgVals(Iter), #noDictVals, Rho)
+       ... </k>
+       <env> Rho </env>
+  rule <k> dictCompIter(_:Id, _:Exp, _:Exp, #noArgVals, #noDictVals, Rho:Map) =>
+           ({}):Val ~> restoreEnv(Rho)
+       ... </k>
+  rule <k> dictCompIter(_:Id, _:Exp, _:Exp, #noArgVals, Acc:DictVals, Rho:Map) =>
+           dictVal(dictValsToDictItems(Acc)) ~> restoreEnv(Rho)
+       ... </k>
+    requires notBool emptyDictVals(Acc)
+  rule <k> dictCompIter(X:Id, Key:Exp, Value:Exp, argValsCons(V:Val, Rest:ArgVals), Acc:DictVals, Rho:Map) =>
+           Key ~> dictCompKey(X, Key, Value, Rest, Acc, Rho)
+       ... </k>
+       <env> _ => Rho [ X <- V ] </env>
+  rule <k> K:Val ~> dictCompKey(X:Id, Key:Exp, Value:Exp, Rest:ArgVals, Acc:DictVals, Rho:Map) =>
+           Value ~> dictCompValue(X, Key, Value, Rest, Acc, Rho, K)
+       ... </k>
+  rule <k> V:Val ~> dictCompValue(X:Id, Key:Exp, Value:Exp, Rest:ArgVals, Acc:DictVals, Rho:Map, K:Val) =>
+           dictCompIter(X, Key, Value, Rest, appendDictVal(Acc, K, V), Rho)
+       ... </k>
 
   rule #listCtor() => []
   rule #tupleCtor() => ()

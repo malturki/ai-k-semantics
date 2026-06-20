@@ -207,8 +207,10 @@ def emit_exp(exp: ast.expr) -> str:
             raise unsupported(exp, "only one- and two-generator dict comprehensions are supported yet")
         case ast.SetComp(elt=elt, generators=[generator]):
             return emit_set_comprehension(exp, elt, generator)
+        case ast.SetComp(elt=elt, generators=[outer, inner]):
+            return emit_set_comprehension_two_generators(exp, elt, outer, inner)
         case ast.SetComp():
-            raise unsupported(exp, "only one-generator set comprehensions are supported yet")
+            raise unsupported(exp, "only one- and two-generator set comprehensions are supported yet")
         case ast.List(elts=elts, ctx=ast.Load()):
             return emit_list(elts)
         case ast.Tuple(elts=elts, ctx=ast.Load()):
@@ -386,6 +388,23 @@ def emit_set_comprehension(
             f"{emit_exp(generator.ifs[0])}, {emit_exp(elt)})"
         )
     return f"#setComp({emit_exp(generator.iter)}, {generator.target.id}, {emit_exp(elt)})"
+
+
+def emit_set_comprehension_two_generators(
+    node: ast.AST, elt: ast.expr, outer: ast.comprehension, inner: ast.comprehension
+) -> str:
+    if outer.is_async or inner.is_async:
+        raise unsupported(node, "async set comprehensions are not supported yet")
+    if outer.ifs or inner.ifs:
+        raise unsupported(node, "two-generator set comprehensions with filters are not supported yet")
+    if not isinstance(outer.target, ast.Name):
+        raise unsupported(outer.target, "only simple-name set comprehension targets are supported")
+    if not isinstance(inner.target, ast.Name):
+        raise unsupported(inner.target, "only simple-name set comprehension targets are supported")
+    return (
+        f"#setCompFor({emit_exp(outer.iter)}, {outer.target.id}, "
+        f"{emit_exp(inner.iter)}, {inner.target.id}, {emit_exp(elt)})"
+    )
 
 
 def emit_slice_bound(bound: ast.expr | None) -> str:

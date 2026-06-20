@@ -197,6 +197,7 @@ run_case "adapter-set-expressions" "$ROOT/tests/adapter/adapter-set-expressions.
 run_case "adapter-set-comprehension" "$ROOT/tests/adapter/adapter-set-comprehension.py" "True ~> .K"
 run_case "adapter-set-comprehension-if" "$ROOT/tests/adapter/adapter-set-comprehension-if.py" "True ~> .K"
 run_case "adapter-set-comprehension-filters" "$ROOT/tests/adapter/adapter-set-comprehension-filters.py" "True ~> .K"
+run_case "adapter-set-comprehension-two-for" "$ROOT/tests/adapter/adapter-set-comprehension-two-for.py" "True ~> .K"
 run_case "adapter-starred-displays" "$ROOT/tests/adapter/adapter-starred-displays.py" "True ~> .K"
 run_case "adapter-set-empty" "$ROOT/tests/adapter/adapter-set-empty.py" "True ~> .K"
 run_case "adapter-set-equality" "$ROOT/tests/adapter/adapter-set-equality.py" "True ~> .K"

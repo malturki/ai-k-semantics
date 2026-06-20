@@ -147,6 +147,7 @@ module PYTHON-SYNTAX
                | "#setComp" "(" Exp "," Id "," Exp ")" [symbol(setCompExp), strict(1)]
                | "#setCompIf" "(" Exp "," Id "," Exp "," Exp ")" [symbol(setCompIfExp), strict(1)]
                | "#setCompIfs" "(" Exp "," Id "," CompFilters "," Exp ")" [symbol(setCompIfsExp), strict(1)]
+               | "#setCompFor" "(" Exp "," Id "," Exp "," Id "," Exp ")" [symbol(setCompForExp), strict(1)]
                | "#listCtor" "(" ")" [symbol(listCtorExp)]
                | "#listCtor" "(" Exp ")" [symbol(listCtor1Exp), strict]
                | "#tupleCtor" "(" ")" [symbol(tupleCtorExp)]
@@ -313,6 +314,10 @@ module PYTHON
                  | setCompIfsFilterNext(Id, CompFilters, CompFilters, Exp, ArgVals, ArgVals, Map) [symbol(setCompIfsFilterNext)]
                  | setCompIfsFilterLast(Id, CompFilters, Exp, ArgVals, ArgVals, Map) [symbol(setCompIfsFilterLast)]
                  | setCompIfsNext(Id, CompFilters, Exp, ArgVals, ArgVals, Map) [symbol(setCompIfsNext)]
+                 | setCompForIter(Id, Exp, Id, Exp, ArgVals, ArgVals, Map) [symbol(setCompForIter)]
+                 | setCompForInner(Id, Exp, Id, Exp, ArgVals, ArgVals, Map) [symbol(setCompForInner)]
+                 | setCompForInnerIter(Id, Exp, Id, Exp, ArgVals, ArgVals, ArgVals, Map) [symbol(setCompForInnerIter)]
+                 | setCompForNext(Id, Exp, Id, Exp, ArgVals, ArgVals, ArgVals, Map) [symbol(setCompForNext)]
                  | "buildTuple" [symbol(buildTuple)]
                  | "buildSet" [symbol(buildSet)]
                  | "minArgsResult" [symbol(minArgsResult)]
@@ -3078,6 +3083,34 @@ module PYTHON
     requires notBool truthy(V)
   rule <k> V:Val ~> setCompIfsNext(X:Id, Filters:CompFilters, Elem:Exp, Rest:ArgVals, Acc:ArgVals, Rho:Map) =>
            setCompIfsIter(X, Filters, Elem, Rest, appendArgVal(Acc, V), Rho)
+       ... </k>
+  rule <k> setCompForExp(Iter:Val, X:Id, Inner:Exp, Y:Id, Elem:Exp) =>
+           setCompForIter(X, Inner, Y, Elem, iterableArgVals(Iter), #noArgVals, Rho)
+       ... </k>
+       <env> Rho </env>
+  rule <k> setCompForIter(_:Id, _:Exp, _:Id, _:Exp, #noArgVals, #noArgVals, Rho:Map) =>
+           set() ~> restoreEnv(Rho)
+       ... </k>
+  rule <k> setCompForIter(_:Id, _:Exp, _:Id, _:Exp, #noArgVals, Acc:ArgVals, Rho:Map) =>
+           setFromArgVals(Acc) ~> restoreEnv(Rho)
+       ... </k>
+    requires notBool emptyArgVals(Acc)
+  rule <k> setCompForIter(X:Id, Inner:Exp, Y:Id, Elem:Exp, argValsCons(V:Val, RestOuter:ArgVals), Acc:ArgVals, Rho:Map) =>
+           Inner ~> setCompForInner(X, Inner, Y, Elem, RestOuter, Acc, Rho)
+       ... </k>
+       <env> _ => Rho [ X <- V ] </env>
+  rule <k> InnerIter:Val ~> setCompForInner(X:Id, Inner:Exp, Y:Id, Elem:Exp, RestOuter:ArgVals, Acc:ArgVals, Rho:Map) =>
+           setCompForInnerIter(X, Inner, Y, Elem, RestOuter, iterableArgVals(InnerIter), Acc, Rho)
+       ... </k>
+  rule <k> setCompForInnerIter(X:Id, Inner:Exp, Y:Id, Elem:Exp, RestOuter:ArgVals, #noArgVals, Acc:ArgVals, Rho:Map) =>
+           setCompForIter(X, Inner, Y, Elem, RestOuter, Acc, Rho)
+       ... </k>
+  rule <k> setCompForInnerIter(X:Id, Inner:Exp, Y:Id, Elem:Exp, RestOuter:ArgVals, argValsCons(V:Val, RestInner:ArgVals), Acc:ArgVals, Rho:Map) =>
+           Elem ~> setCompForNext(X, Inner, Y, Elem, RestOuter, RestInner, Acc, Rho)
+       ... </k>
+       <env> RhoCurrent:Map => RhoCurrent [ Y <- V ] </env>
+  rule <k> V:Val ~> setCompForNext(X:Id, Inner:Exp, Y:Id, Elem:Exp, RestOuter:ArgVals, RestInner:ArgVals, Acc:ArgVals, Rho:Map) =>
+           setCompForInnerIter(X, Inner, Y, Elem, RestOuter, RestInner, appendArgVal(Acc, V), Rho)
        ... </k>
 
   rule <k> tupleDisplayExp(Args:ArgExps) => evalArgs(Args, #noArgVals) ~> buildTuple ... </k>

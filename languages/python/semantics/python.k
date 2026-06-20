@@ -143,6 +143,7 @@ module PYTHON-SYNTAX
                | "#dictComp" "(" Exp "," Id "," Exp "," Exp ")" [symbol(dictCompExp), strict(1)]
                | "#dictCompIf" "(" Exp "," Id "," Exp "," Exp "," Exp ")" [symbol(dictCompIfExp), strict(1)]
                | "#dictCompIfs" "(" Exp "," Id "," CompFilters "," Exp "," Exp ")" [symbol(dictCompIfsExp), strict(1)]
+               | "#dictCompFor" "(" Exp "," Id "," Exp "," Id "," Exp "," Exp ")" [symbol(dictCompForExp), strict(1)]
                | "#setComp" "(" Exp "," Id "," Exp ")" [symbol(setCompExp), strict(1)]
                | "#setCompIf" "(" Exp "," Id "," Exp "," Exp ")" [symbol(setCompIfExp), strict(1)]
                | "#setCompIfs" "(" Exp "," Id "," CompFilters "," Exp ")" [symbol(setCompIfsExp), strict(1)]
@@ -334,6 +335,11 @@ module PYTHON
                  | dictCompIfsFilterLast(Id, CompFilters, Exp, Exp, ArgVals, DictVals, Map) [symbol(dictCompIfsFilterLast)]
                  | dictCompIfsKey(Id, CompFilters, Exp, Exp, ArgVals, DictVals, Map) [symbol(dictCompIfsKey)]
                  | dictCompIfsValue(Id, CompFilters, Exp, Exp, ArgVals, DictVals, Map, Val) [symbol(dictCompIfsValue)]
+                 | dictCompForIter(Id, Exp, Id, Exp, Exp, ArgVals, DictVals, Map) [symbol(dictCompForIter)]
+                 | dictCompForInner(Id, Exp, Id, Exp, Exp, ArgVals, DictVals, Map) [symbol(dictCompForInner)]
+                 | dictCompForInnerIter(Id, Exp, Id, Exp, Exp, ArgVals, ArgVals, DictVals, Map) [symbol(dictCompForInnerIter)]
+                 | dictCompForKey(Id, Exp, Id, Exp, Exp, ArgVals, ArgVals, DictVals, Map) [symbol(dictCompForKey)]
+                 | dictCompForValue(Id, Exp, Id, Exp, Exp, ArgVals, ArgVals, DictVals, Map, Val) [symbol(dictCompForValue)]
                  | compareChain(CmpChain) [symbol(compareChain)]
                  | compareChainLast(CmpOp, Val) [symbol(compareChainLast)]
                  | compareChainNext(CmpOp, Val, CmpChain) [symbol(compareChainNext)]
@@ -3202,6 +3208,37 @@ module PYTHON
        ... </k>
   rule <k> V:Val ~> dictCompIfsValue(X:Id, Filters:CompFilters, Key:Exp, Value:Exp, Rest:ArgVals, Acc:DictVals, Rho:Map, K:Val) =>
            dictCompIfsIter(X, Filters, Key, Value, Rest, appendDictVal(Acc, K, V), Rho)
+       ... </k>
+  rule <k> dictCompForExp(Iter:Val, X:Id, Inner:Exp, Y:Id, Key:Exp, Value:Exp) =>
+           dictCompForIter(X, Inner, Y, Key, Value, iterableArgVals(Iter), #noDictVals, Rho)
+       ... </k>
+       <env> Rho </env>
+  rule <k> dictCompForIter(_:Id, _:Exp, _:Id, _:Exp, _:Exp, #noArgVals, #noDictVals, Rho:Map) =>
+           ({}):Val ~> restoreEnv(Rho)
+       ... </k>
+  rule <k> dictCompForIter(_:Id, _:Exp, _:Id, _:Exp, _:Exp, #noArgVals, Acc:DictVals, Rho:Map) =>
+           dictVal(dictValsToDictItems(Acc)) ~> restoreEnv(Rho)
+       ... </k>
+    requires notBool emptyDictVals(Acc)
+  rule <k> dictCompForIter(X:Id, Inner:Exp, Y:Id, Key:Exp, Value:Exp, argValsCons(V:Val, RestOuter:ArgVals), Acc:DictVals, Rho:Map) =>
+           Inner ~> dictCompForInner(X, Inner, Y, Key, Value, RestOuter, Acc, Rho)
+       ... </k>
+       <env> _ => Rho [ X <- V ] </env>
+  rule <k> InnerIter:Val ~> dictCompForInner(X:Id, Inner:Exp, Y:Id, Key:Exp, Value:Exp, RestOuter:ArgVals, Acc:DictVals, Rho:Map) =>
+           dictCompForInnerIter(X, Inner, Y, Key, Value, RestOuter, iterableArgVals(InnerIter), Acc, Rho)
+       ... </k>
+  rule <k> dictCompForInnerIter(X:Id, Inner:Exp, Y:Id, Key:Exp, Value:Exp, RestOuter:ArgVals, #noArgVals, Acc:DictVals, Rho:Map) =>
+           dictCompForIter(X, Inner, Y, Key, Value, RestOuter, Acc, Rho)
+       ... </k>
+  rule <k> dictCompForInnerIter(X:Id, Inner:Exp, Y:Id, Key:Exp, Value:Exp, RestOuter:ArgVals, argValsCons(V:Val, RestInner:ArgVals), Acc:DictVals, Rho:Map) =>
+           Key ~> dictCompForKey(X, Inner, Y, Key, Value, RestOuter, RestInner, Acc, Rho)
+       ... </k>
+       <env> RhoCurrent:Map => RhoCurrent [ Y <- V ] </env>
+  rule <k> K:Val ~> dictCompForKey(X:Id, Inner:Exp, Y:Id, Key:Exp, Value:Exp, RestOuter:ArgVals, RestInner:ArgVals, Acc:DictVals, Rho:Map) =>
+           Value ~> dictCompForValue(X, Inner, Y, Key, Value, RestOuter, RestInner, Acc, Rho, K)
+       ... </k>
+  rule <k> V:Val ~> dictCompForValue(X:Id, Inner:Exp, Y:Id, Key:Exp, Value:Exp, RestOuter:ArgVals, RestInner:ArgVals, Acc:DictVals, Rho:Map, K:Val) =>
+           dictCompForInnerIter(X, Inner, Y, Key, Value, RestOuter, RestInner, appendDictVal(Acc, K, V), Rho)
        ... </k>
 
   rule #listCtor() => []

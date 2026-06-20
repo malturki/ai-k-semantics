@@ -1033,6 +1033,13 @@
       "coverage": ["dict-comprehension", "single-for-comprehension", "multiple-comprehension-if-clauses", "truth-value-testing", "dict-duplicate-key-overwrite", "ordinary-python-source-adapter"]
     },
     {
+      "id": "adapter-dict-comprehension-two-for",
+      "source": "../adapter/adapter-dict-comprehension-two-for.py",
+      "reference": "Python Language Reference 6.2.7 Dictionary displays; 6.2.4 Displays for lists, sets and dictionaries",
+      "expected_result": "True ~> .K",
+      "coverage": ["dict-comprehension", "two-for-comprehension", "dependent-inner-iterable", "comprehension-target-scope", "dict-duplicate-key-overwrite", "ordinary-python-source-adapter"]
+    },
+    {
       "id": "adapter-dict-equality",
       "source": "../adapter/adapter-dict-equality.py",
       "reference": "Python Language Reference 6.10 Comparisons; Standard Library dict",

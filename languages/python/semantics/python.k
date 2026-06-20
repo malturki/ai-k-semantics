@@ -148,6 +148,7 @@ module PYTHON-SYNTAX
                | "#dictCompIf" "(" Exp "," Id "," Exp "," Exp "," Exp ")" [symbol(dictCompIfExp), strict(1)]
                | "#dictCompIfs" "(" Exp "," Id "," CompFilters "," Exp "," Exp ")" [symbol(dictCompIfsExp), strict(1)]
                | "#dictCompFor" "(" Exp "," Id "," Exp "," Id "," Exp "," Exp ")" [symbol(dictCompForExp), strict(1)]
+               | "#dictCompForIfs" "(" Exp "," Id "," MaybeCompFilters "," Exp "," Id "," MaybeCompFilters "," Exp "," Exp ")" [symbol(dictCompForIfsExp), strict(1)]
                | "#setComp" "(" Exp "," Id "," Exp ")" [symbol(setCompExp), strict(1)]
                | "#setCompIf" "(" Exp "," Id "," Exp "," Exp ")" [symbol(setCompIfExp), strict(1)]
                | "#setCompIfs" "(" Exp "," Id "," CompFilters "," Exp ")" [symbol(setCompIfsExp), strict(1)]
@@ -359,6 +360,17 @@ module PYTHON
                  | dictCompForInnerIter(Id, Exp, Id, Exp, Exp, ArgVals, ArgVals, DictVals, Map) [symbol(dictCompForInnerIter)]
                  | dictCompForKey(Id, Exp, Id, Exp, Exp, ArgVals, ArgVals, DictVals, Map) [symbol(dictCompForKey)]
                  | dictCompForValue(Id, Exp, Id, Exp, Exp, ArgVals, ArgVals, DictVals, Map, Val) [symbol(dictCompForValue)]
+                 | dictCompForIfsIter(Id, MaybeCompFilters, Exp, Id, MaybeCompFilters, Exp, Exp, ArgVals, DictVals, Map) [symbol(dictCompForIfsIter)]
+                 | dictCompForIfsOuterFilter(Id, MaybeCompFilters, CompFilters, Exp, Id, MaybeCompFilters, Exp, Exp, ArgVals, DictVals, Map) [symbol(dictCompForIfsOuterFilter)]
+                 | dictCompForIfsOuterFilterNext(Id, MaybeCompFilters, CompFilters, Exp, Id, MaybeCompFilters, Exp, Exp, ArgVals, DictVals, Map) [symbol(dictCompForIfsOuterFilterNext)]
+                 | dictCompForIfsOuterFilterLast(Id, MaybeCompFilters, Exp, Id, MaybeCompFilters, Exp, Exp, ArgVals, DictVals, Map) [symbol(dictCompForIfsOuterFilterLast)]
+                 | dictCompForIfsInner(Id, MaybeCompFilters, Exp, Id, MaybeCompFilters, Exp, Exp, ArgVals, DictVals, Map) [symbol(dictCompForIfsInner)]
+                 | dictCompForIfsInnerIter(Id, MaybeCompFilters, Exp, Id, MaybeCompFilters, Exp, Exp, ArgVals, ArgVals, DictVals, Map) [symbol(dictCompForIfsInnerIter)]
+                 | dictCompForIfsInnerFilter(Id, MaybeCompFilters, Exp, Id, MaybeCompFilters, CompFilters, Exp, Exp, ArgVals, ArgVals, DictVals, Map) [symbol(dictCompForIfsInnerFilter)]
+                 | dictCompForIfsInnerFilterNext(Id, MaybeCompFilters, Exp, Id, MaybeCompFilters, CompFilters, Exp, Exp, ArgVals, ArgVals, DictVals, Map) [symbol(dictCompForIfsInnerFilterNext)]
+                 | dictCompForIfsInnerFilterLast(Id, MaybeCompFilters, Exp, Id, MaybeCompFilters, Exp, Exp, ArgVals, ArgVals, DictVals, Map) [symbol(dictCompForIfsInnerFilterLast)]
+                 | dictCompForIfsKey(Id, MaybeCompFilters, Exp, Id, MaybeCompFilters, Exp, Exp, ArgVals, ArgVals, DictVals, Map) [symbol(dictCompForIfsKey)]
+                 | dictCompForIfsValue(Id, MaybeCompFilters, Exp, Id, MaybeCompFilters, Exp, Exp, ArgVals, ArgVals, DictVals, Map, Val) [symbol(dictCompForIfsValue)]
                  | compareChain(CmpChain) [symbol(compareChain)]
                  | compareChainLast(CmpOp, Val) [symbol(compareChainLast)]
                  | compareChainNext(CmpOp, Val, CmpChain) [symbol(compareChainNext)]
@@ -3366,6 +3378,89 @@ module PYTHON
        ... </k>
   rule <k> V:Val ~> dictCompForValue(X:Id, Inner:Exp, Y:Id, Key:Exp, Value:Exp, RestOuter:ArgVals, RestInner:ArgVals, Acc:DictVals, Rho:Map, K:Val) =>
            dictCompForInnerIter(X, Inner, Y, Key, Value, RestOuter, RestInner, appendDictVal(Acc, K, V), Rho)
+       ... </k>
+  rule <k> dictCompForIfsExp(Iter:Val, X:Id, OuterFilters:MaybeCompFilters, Inner:Exp, Y:Id, InnerFilters:MaybeCompFilters, Key:Exp, Value:Exp) =>
+           dictCompForIfsIter(X, OuterFilters, Inner, Y, InnerFilters, Key, Value, iterableArgVals(Iter), #noDictVals, Rho)
+       ... </k>
+       <env> Rho </env>
+  rule <k> dictCompForIfsIter(_:Id, _:MaybeCompFilters, _:Exp, _:Id, _:MaybeCompFilters, _:Exp, _:Exp, #noArgVals, #noDictVals, Rho:Map) =>
+           ({}):Val ~> restoreEnv(Rho)
+       ... </k>
+  rule <k> dictCompForIfsIter(_:Id, _:MaybeCompFilters, _:Exp, _:Id, _:MaybeCompFilters, _:Exp, _:Exp, #noArgVals, Acc:DictVals, Rho:Map) =>
+           dictVal(dictValsToDictItems(Acc)) ~> restoreEnv(Rho)
+       ... </k>
+    requires notBool emptyDictVals(Acc)
+  rule <k> dictCompForIfsIter(X:Id, #noFilters, Inner:Exp, Y:Id, InnerFilters:MaybeCompFilters, Key:Exp, Value:Exp, argValsCons(V:Val, RestOuter:ArgVals), Acc:DictVals, Rho:Map) =>
+           Inner ~> dictCompForIfsInner(X, #noFilters, Inner, Y, InnerFilters, Key, Value, RestOuter, Acc, Rho)
+       ... </k>
+       <env> _ => Rho [ X <- V ] </env>
+  rule <k> dictCompForIfsIter(X:Id, OuterFilters:CompFilters, Inner:Exp, Y:Id, InnerFilters:MaybeCompFilters, Key:Exp, Value:Exp, argValsCons(V:Val, RestOuter:ArgVals), Acc:DictVals, Rho:Map) =>
+           dictCompForIfsOuterFilter(X, OuterFilters, OuterFilters, Inner, Y, InnerFilters, Key, Value, RestOuter, Acc, Rho)
+       ... </k>
+       <env> _ => Rho [ X <- V ] </env>
+  rule <k> dictCompForIfsOuterFilter(X:Id, OuterFilters:MaybeCompFilters, #filters(Filter:Exp, RestFilters:CompFilters), Inner:Exp, Y:Id, InnerFilters:MaybeCompFilters, Key:Exp, Value:Exp, RestOuter:ArgVals, Acc:DictVals, Rho:Map) =>
+           Filter ~> dictCompForIfsOuterFilterNext(X, OuterFilters, RestFilters, Inner, Y, InnerFilters, Key, Value, RestOuter, Acc, Rho)
+       ... </k>
+  rule <k> dictCompForIfsOuterFilter(X:Id, OuterFilters:MaybeCompFilters, #filter(Filter:Exp), Inner:Exp, Y:Id, InnerFilters:MaybeCompFilters, Key:Exp, Value:Exp, RestOuter:ArgVals, Acc:DictVals, Rho:Map) =>
+           Filter ~> dictCompForIfsOuterFilterLast(X, OuterFilters, Inner, Y, InnerFilters, Key, Value, RestOuter, Acc, Rho)
+       ... </k>
+  rule <k> V:Val ~> dictCompForIfsOuterFilterNext(X:Id, OuterFilters:MaybeCompFilters, RestFilters:CompFilters, Inner:Exp, Y:Id, InnerFilters:MaybeCompFilters, Key:Exp, Value:Exp, RestOuter:ArgVals, Acc:DictVals, Rho:Map) =>
+           dictCompForIfsOuterFilter(X, OuterFilters, RestFilters, Inner, Y, InnerFilters, Key, Value, RestOuter, Acc, Rho)
+       ... </k>
+    requires truthy(V)
+  rule <k> V:Val ~> dictCompForIfsOuterFilterNext(X:Id, OuterFilters:MaybeCompFilters, _:CompFilters, Inner:Exp, Y:Id, InnerFilters:MaybeCompFilters, Key:Exp, Value:Exp, RestOuter:ArgVals, Acc:DictVals, Rho:Map) =>
+           dictCompForIfsIter(X, OuterFilters, Inner, Y, InnerFilters, Key, Value, RestOuter, Acc, Rho)
+       ... </k>
+    requires notBool truthy(V)
+  rule <k> V:Val ~> dictCompForIfsOuterFilterLast(X:Id, OuterFilters:MaybeCompFilters, Inner:Exp, Y:Id, InnerFilters:MaybeCompFilters, Key:Exp, Value:Exp, RestOuter:ArgVals, Acc:DictVals, Rho:Map) =>
+           Inner ~> dictCompForIfsInner(X, OuterFilters, Inner, Y, InnerFilters, Key, Value, RestOuter, Acc, Rho)
+       ... </k>
+    requires truthy(V)
+  rule <k> V:Val ~> dictCompForIfsOuterFilterLast(X:Id, OuterFilters:MaybeCompFilters, Inner:Exp, Y:Id, InnerFilters:MaybeCompFilters, Key:Exp, Value:Exp, RestOuter:ArgVals, Acc:DictVals, Rho:Map) =>
+           dictCompForIfsIter(X, OuterFilters, Inner, Y, InnerFilters, Key, Value, RestOuter, Acc, Rho)
+       ... </k>
+    requires notBool truthy(V)
+  rule <k> InnerIter:Val ~> dictCompForIfsInner(X:Id, OuterFilters:MaybeCompFilters, Inner:Exp, Y:Id, InnerFilters:MaybeCompFilters, Key:Exp, Value:Exp, RestOuter:ArgVals, Acc:DictVals, Rho:Map) =>
+           dictCompForIfsInnerIter(X, OuterFilters, Inner, Y, InnerFilters, Key, Value, RestOuter, iterableArgVals(InnerIter), Acc, Rho)
+       ... </k>
+  rule <k> dictCompForIfsInnerIter(X:Id, OuterFilters:MaybeCompFilters, Inner:Exp, Y:Id, InnerFilters:MaybeCompFilters, Key:Exp, Value:Exp, RestOuter:ArgVals, #noArgVals, Acc:DictVals, Rho:Map) =>
+           dictCompForIfsIter(X, OuterFilters, Inner, Y, InnerFilters, Key, Value, RestOuter, Acc, Rho)
+       ... </k>
+  rule <k> dictCompForIfsInnerIter(X:Id, OuterFilters:MaybeCompFilters, Inner:Exp, Y:Id, #noFilters, Key:Exp, Value:Exp, RestOuter:ArgVals, argValsCons(V:Val, RestInner:ArgVals), Acc:DictVals, Rho:Map) =>
+           Key ~> dictCompForIfsKey(X, OuterFilters, Inner, Y, #noFilters, Key, Value, RestOuter, RestInner, Acc, Rho)
+       ... </k>
+       <env> RhoCurrent:Map => RhoCurrent [ Y <- V ] </env>
+  rule <k> dictCompForIfsInnerIter(X:Id, OuterFilters:MaybeCompFilters, Inner:Exp, Y:Id, InnerFilters:CompFilters, Key:Exp, Value:Exp, RestOuter:ArgVals, argValsCons(V:Val, RestInner:ArgVals), Acc:DictVals, Rho:Map) =>
+           dictCompForIfsInnerFilter(X, OuterFilters, Inner, Y, InnerFilters, InnerFilters, Key, Value, RestOuter, RestInner, Acc, Rho)
+       ... </k>
+       <env> RhoCurrent:Map => RhoCurrent [ Y <- V ] </env>
+  rule <k> dictCompForIfsInnerFilter(X:Id, OuterFilters:MaybeCompFilters, Inner:Exp, Y:Id, InnerFilters:MaybeCompFilters, #filters(Filter:Exp, RestFilters:CompFilters), Key:Exp, Value:Exp, RestOuter:ArgVals, RestInner:ArgVals, Acc:DictVals, Rho:Map) =>
+           Filter ~> dictCompForIfsInnerFilterNext(X, OuterFilters, Inner, Y, InnerFilters, RestFilters, Key, Value, RestOuter, RestInner, Acc, Rho)
+       ... </k>
+  rule <k> dictCompForIfsInnerFilter(X:Id, OuterFilters:MaybeCompFilters, Inner:Exp, Y:Id, InnerFilters:MaybeCompFilters, #filter(Filter:Exp), Key:Exp, Value:Exp, RestOuter:ArgVals, RestInner:ArgVals, Acc:DictVals, Rho:Map) =>
+           Filter ~> dictCompForIfsInnerFilterLast(X, OuterFilters, Inner, Y, InnerFilters, Key, Value, RestOuter, RestInner, Acc, Rho)
+       ... </k>
+  rule <k> V:Val ~> dictCompForIfsInnerFilterNext(X:Id, OuterFilters:MaybeCompFilters, Inner:Exp, Y:Id, InnerFilters:MaybeCompFilters, RestFilters:CompFilters, Key:Exp, Value:Exp, RestOuter:ArgVals, RestInner:ArgVals, Acc:DictVals, Rho:Map) =>
+           dictCompForIfsInnerFilter(X, OuterFilters, Inner, Y, InnerFilters, RestFilters, Key, Value, RestOuter, RestInner, Acc, Rho)
+       ... </k>
+    requires truthy(V)
+  rule <k> V:Val ~> dictCompForIfsInnerFilterNext(X:Id, OuterFilters:MaybeCompFilters, Inner:Exp, Y:Id, InnerFilters:MaybeCompFilters, _:CompFilters, Key:Exp, Value:Exp, RestOuter:ArgVals, RestInner:ArgVals, Acc:DictVals, Rho:Map) =>
+           dictCompForIfsInnerIter(X, OuterFilters, Inner, Y, InnerFilters, Key, Value, RestOuter, RestInner, Acc, Rho)
+       ... </k>
+    requires notBool truthy(V)
+  rule <k> V:Val ~> dictCompForIfsInnerFilterLast(X:Id, OuterFilters:MaybeCompFilters, Inner:Exp, Y:Id, InnerFilters:MaybeCompFilters, Key:Exp, Value:Exp, RestOuter:ArgVals, RestInner:ArgVals, Acc:DictVals, Rho:Map) =>
+           Key ~> dictCompForIfsKey(X, OuterFilters, Inner, Y, InnerFilters, Key, Value, RestOuter, RestInner, Acc, Rho)
+       ... </k>
+    requires truthy(V)
+  rule <k> V:Val ~> dictCompForIfsInnerFilterLast(X:Id, OuterFilters:MaybeCompFilters, Inner:Exp, Y:Id, InnerFilters:MaybeCompFilters, Key:Exp, Value:Exp, RestOuter:ArgVals, RestInner:ArgVals, Acc:DictVals, Rho:Map) =>
+           dictCompForIfsInnerIter(X, OuterFilters, Inner, Y, InnerFilters, Key, Value, RestOuter, RestInner, Acc, Rho)
+       ... </k>
+    requires notBool truthy(V)
+  rule <k> K:Val ~> dictCompForIfsKey(X:Id, OuterFilters:MaybeCompFilters, Inner:Exp, Y:Id, InnerFilters:MaybeCompFilters, Key:Exp, Value:Exp, RestOuter:ArgVals, RestInner:ArgVals, Acc:DictVals, Rho:Map) =>
+           Value ~> dictCompForIfsValue(X, OuterFilters, Inner, Y, InnerFilters, Key, Value, RestOuter, RestInner, Acc, Rho, K)
+       ... </k>
+  rule <k> V:Val ~> dictCompForIfsValue(X:Id, OuterFilters:MaybeCompFilters, Inner:Exp, Y:Id, InnerFilters:MaybeCompFilters, Key:Exp, Value:Exp, RestOuter:ArgVals, RestInner:ArgVals, Acc:DictVals, Rho:Map, K:Val) =>
+           dictCompForIfsInnerIter(X, OuterFilters, Inner, Y, InnerFilters, Key, Value, RestOuter, RestInner, appendDictVal(Acc, K, V), Rho)
        ... </k>
 
   rule #listCtor() => []

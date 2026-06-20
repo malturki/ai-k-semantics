@@ -368,12 +368,17 @@ def emit_dict_comprehension_two_generators(
 ) -> str:
     if outer.is_async or inner.is_async:
         raise unsupported(node, "async dict comprehensions are not supported yet")
-    if outer.ifs or inner.ifs:
-        raise unsupported(node, "two-generator dict comprehensions with filters are not supported yet")
     if not isinstance(outer.target, ast.Name):
         raise unsupported(outer.target, "only simple-name dict comprehension targets are supported")
     if not isinstance(inner.target, ast.Name):
         raise unsupported(inner.target, "only simple-name dict comprehension targets are supported")
+    if outer.ifs or inner.ifs:
+        return (
+            f"#dictCompForIfs({emit_exp(outer.iter)}, {outer.target.id}, "
+            f"{emit_maybe_comp_filters(outer.ifs)}, {emit_exp(inner.iter)}, "
+            f"{inner.target.id}, {emit_maybe_comp_filters(inner.ifs)}, "
+            f"{emit_exp(key)}, {emit_exp(value)})"
+        )
     return (
         f"#dictCompFor({emit_exp(outer.iter)}, {outer.target.id}, "
         f"{emit_exp(inner.iter)}, {inner.target.id}, {emit_exp(key)}, {emit_exp(value)})"

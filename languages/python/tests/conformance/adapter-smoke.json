@@ -1145,6 +1145,13 @@
       "coverage": ["set-comprehension", "three-for-comprehension", "dependent-inner-iterable", "comprehension-target-scope", "duplicate-element-normalization", "ordinary-python-source-adapter"]
     },
     {
+      "id": "adapter-set-comprehension-three-for-filters",
+      "source": "../adapter/adapter-set-comprehension-three-for-filters.py",
+      "reference": "Python Language Reference 6.2.6 Set displays; 6.2.4 Displays for lists, sets and dictionaries",
+      "expected_result": "True ~> .K",
+      "coverage": ["set-comprehension", "three-for-comprehension", "outer-comprehension-if-clauses", "middle-comprehension-if-clauses", "inner-comprehension-if-clauses", "truth-value-testing", "dependent-inner-iterable", "comprehension-target-scope", "duplicate-element-normalization", "ordinary-python-source-adapter"]
+    },
+    {
       "id": "adapter-starred-displays",
       "source": "../adapter/adapter-starred-displays.py",
       "reference": "Python Language Reference 6.2.4 Displays for lists, sets and dictionaries; 6.2.5 List displays; 6.2.6 Set displays; 6.16 Evaluation order",

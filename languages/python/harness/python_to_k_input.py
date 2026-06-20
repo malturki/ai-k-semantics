@@ -502,14 +502,20 @@ def emit_set_comprehension_three_generators(
 ) -> str:
     if outer.is_async or middle.is_async or inner.is_async:
         raise unsupported(node, "async set comprehensions are not supported yet")
-    if outer.ifs or middle.ifs or inner.ifs:
-        raise unsupported(node, "three-generator set comprehensions with filters are not supported yet")
     if not isinstance(outer.target, ast.Name):
         raise unsupported(outer.target, "only simple-name set comprehension targets are supported")
     if not isinstance(middle.target, ast.Name):
         raise unsupported(middle.target, "only simple-name set comprehension targets are supported")
     if not isinstance(inner.target, ast.Name):
         raise unsupported(inner.target, "only simple-name set comprehension targets are supported")
+    if outer.ifs or middle.ifs or inner.ifs:
+        return (
+            f"#setCompForForIfs({emit_exp(outer.iter)}, {outer.target.id}, "
+            f"{emit_maybe_comp_filters(outer.ifs)}, {emit_exp(middle.iter)}, "
+            f"{middle.target.id}, {emit_maybe_comp_filters(middle.ifs)}, "
+            f"{emit_exp(inner.iter)}, {inner.target.id}, "
+            f"{emit_maybe_comp_filters(inner.ifs)}, {emit_exp(elt)})"
+        )
     return (
         f"#setCompForFor({emit_exp(outer.iter)}, {outer.target.id}, "
         f"{emit_exp(middle.iter)}, {middle.target.id}, "

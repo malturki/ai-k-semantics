@@ -199,6 +199,8 @@ def emit_exp(exp: ast.expr) -> str:
             return f"({emit_exp(func)}({emit_exp(arg)}))"
         case ast.Call(func=func, args=args, keywords=[]):
             return f"#call({emit_exp(func)}, {emit_arg_exps(args)})"
+        case ast.Attribute(value=value, attr=attr, ctx=ast.Load()):
+            return f"#attr({emit_exp(value)}, {attr})"
         case ast.ListComp(elt=elt, generators=[generator]):
             return emit_list_comprehension(exp, elt, generator)
         case ast.ListComp(elt=elt, generators=[outer, inner]):

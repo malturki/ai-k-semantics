@@ -135,6 +135,7 @@ module PYTHON-SYNTAX
                | "#call" "(" Exp "," ArgExps ")" [symbol(callArgsExp)]
                | "#callKw" "(" Exp "," KwArgExps ")" [symbol(callKwArgsExp)]
                | "#callMixed" "(" Exp "," ArgExps "," KwArgExps ")" [symbol(callMixedArgsExp)]
+               | "#attr" "(" Exp "," Id ")" [symbol(attrExp), strict(1)]
                | "#list" "(" ArgExps ")" [symbol(listDisplayExp)]
                | "#tuple" "(" ArgExps ")" [symbol(tupleDisplayExp)]
                | "#dict" "(" DictExps ")" [symbol(dictDisplayExp)]
@@ -2247,6 +2248,19 @@ module PYTHON
   rule sliceStepExp(rangeVal(Start:Int, Stop:Int, RangeStep:Int), Lower:Val, Upper:Val, Step:Val) =>
     rangeSliceStep(Start, Stop, RangeStep, pySliceLowerNeg(Lower, pyRangeLen(Start, Stop, RangeStep)), pySliceUpperNeg(Upper, pyRangeLen(Start, Stop, RangeStep)), intValue(Step))
     requires RangeStep =/=Int 0 andBool isIntLike(Step) andBool intValue(Step) <Int 0
+
+  rule attrExp(rangeVal(Start:Int, _:Int), Attr:Id) => Start
+    requires Id2String(Attr) ==String "start"
+  rule attrExp(rangeVal(_:Int, Stop:Int), Attr:Id) => Stop
+    requires Id2String(Attr) ==String "stop"
+  rule attrExp(rangeVal(_:Int, _:Int), Attr:Id) => 1
+    requires Id2String(Attr) ==String "step"
+  rule attrExp(rangeVal(Start:Int, _:Int, _:Int), Attr:Id) => Start
+    requires Id2String(Attr) ==String "start"
+  rule attrExp(rangeVal(_:Int, Stop:Int, _:Int), Attr:Id) => Stop
+    requires Id2String(Attr) ==String "stop"
+  rule attrExp(rangeVal(_:Int, _:Int, Step:Int), Attr:Id) => Step
+    requires Id2String(Attr) ==String "step"
 
   rule V1:Val < V2:Val => boolValue(intValue(V1) <Int intValue(V2))
     requires isIntLike(V1) andBool isIntLike(V2)

@@ -991,6 +991,13 @@
       "coverage": ["list-constructor-iterable", "tuple-constructor-iterable", "string-iteration-subset", "dict-key-iteration-subset", "range-iteration-subset", "ordinary-python-source-adapter"]
     },
     {
+      "id": "adapter-list-tuple-set-constructors",
+      "source": "../adapter/adapter-list-tuple-set-constructors.py",
+      "reference": "Python Standard Library Built-in Types list, tuple, and set constructors; Built-in Types set",
+      "expected_result": "True ~> .K",
+      "coverage": ["list-constructor-iterable", "tuple-constructor-iterable", "set-iteration-profile", "empty-set-iteration", "ordinary-python-source-adapter"]
+    },
+    {
       "id": "adapter-dict-constructor",
       "source": "../adapter/adapter-dict-constructor.py",
       "reference": "Python Standard Library Built-in Types dict constructor; Built-in Types list and tuple",

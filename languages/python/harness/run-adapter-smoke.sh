@@ -184,6 +184,7 @@ run_case "adapter-slice-object" "$ROOT/tests/adapter/adapter-slice-object.py" "T
 run_case "adapter-len-containers" "$ROOT/tests/adapter/adapter-len-containers.py" "True ~> .K"
 run_case "adapter-empty-container-constructors" "$ROOT/tests/adapter/adapter-empty-container-constructors.py" "True ~> .K"
 run_case "adapter-list-tuple-constructors" "$ROOT/tests/adapter/adapter-list-tuple-constructors.py" "True ~> .K"
+run_case "adapter-list-tuple-set-constructors" "$ROOT/tests/adapter/adapter-list-tuple-set-constructors.py" "True ~> .K"
 run_case "adapter-dict-constructor" "$ROOT/tests/adapter/adapter-dict-constructor.py" "True ~> .K"
 run_case "adapter-dict-constructor-keywords" "$ROOT/tests/adapter/adapter-dict-constructor-keywords.py" "True ~> .K"
 run_case "adapter-dict-constructor-kw-unpack" "$ROOT/tests/adapter/adapter-dict-constructor-kw-unpack.py" "True ~> .K"

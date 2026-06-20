@@ -4210,6 +4210,8 @@ module PYTHON
     requires lengthString(S) >Int 0
   rule #listCtor(({}):Val) => []
   rule #listCtor(dictVal(DS:DictItems)) => listVal(dictKeysToValItems(DS))
+  rule #listCtor(set()) => []
+  rule #listCtor(setVal(VS:ValItems)) => listVal(VS)
   rule #listCtor(rangeVal(Start:Int, Stop:Int)) => []
     requires pyRangeLen(Start, Stop, 1) ==Int 0
   rule #listCtor(rangeVal(Start:Int, Stop:Int)) =>
@@ -4230,6 +4232,8 @@ module PYTHON
     requires lengthString(S) >Int 0
   rule #tupleCtor(({}):Val) => ()
   rule #tupleCtor(dictVal(DS:DictItems)) => tupleVal(dictKeysToValItems(DS))
+  rule #tupleCtor(set()) => ()
+  rule #tupleCtor(setVal(VS:ValItems)) => tupleVal(VS)
   rule #tupleCtor(rangeVal(Start:Int, Stop:Int)) => ()
     requires pyRangeLen(Start, Stop, 1) ==Int 0
   rule #tupleCtor(rangeVal(Start:Int, Stop:Int)) =>

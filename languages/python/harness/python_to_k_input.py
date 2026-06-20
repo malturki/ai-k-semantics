@@ -275,15 +275,26 @@ def emit_bool_op(node: ast.AST, op: ast.boolop, values: list[ast.expr]) -> str:
     return result
 
 
+def emit_comp_filters(filters: list[ast.expr]) -> str:
+    if not filters:
+        raise ValueError("comprehension filter list must be nonempty")
+    if len(filters) == 1:
+        return f"#filter({emit_exp(filters[0])})"
+    return f"#filters({emit_exp(filters[0])}, {emit_comp_filters(filters[1:])})"
+
+
 def emit_list_comprehension(
     node: ast.AST, elt: ast.expr, generator: ast.comprehension
 ) -> str:
     if generator.is_async:
         raise unsupported(node, "async list comprehensions are not supported yet")
-    if len(generator.ifs) > 1:
-        raise unsupported(node, "multiple list comprehension if-clauses are not supported yet")
     if not isinstance(generator.target, ast.Name):
         raise unsupported(generator.target, "only simple-name list comprehension targets are supported")
+    if len(generator.ifs) > 1:
+        return (
+            f"#listCompIfs({emit_exp(generator.iter)}, {generator.target.id}, "
+            f"{emit_comp_filters(generator.ifs)}, {emit_exp(elt)})"
+        )
     if generator.ifs:
         return (
             f"#listCompIf({emit_exp(generator.iter)}, {generator.target.id}, "

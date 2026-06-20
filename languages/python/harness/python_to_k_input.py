@@ -796,8 +796,6 @@ def emit_kw_arg_exps(node: ast.AST, keywords: list[ast.keyword]) -> str:
 def emit_dict_ctor_keywords(
     node: ast.AST, base: ast.expr | None, keywords: list[ast.keyword]
 ) -> str:
-    if any(keyword.arg is None for keyword in keywords):
-        raise unsupported(node, "dict constructor keyword unpacking is not supported yet")
     kws = emit_kw_arg_exps(node, keywords)
     if base is None:
         return f"#dictCtorKw({kws})"

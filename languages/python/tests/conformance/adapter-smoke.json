@@ -403,6 +403,13 @@
       "coverage": ["function-definition", "return-statement", "single-positional-call", "ordinary-python-source-adapter"]
     },
     {
+      "id": "adapter-function-bare-return",
+      "source": "../adapter/adapter-function-bare-return.py",
+      "reference": "Python Language Reference 8.7 Function definitions; 7.6 The return statement",
+      "expected_result": "True ~> .K",
+      "coverage": ["function-definition", "bare-return-statement", "implicit-none-return", "ordinary-python-source-adapter"]
+    },
+    {
       "id": "adapter-function-local",
       "source": "../adapter/adapter-function-local.py",
       "reference": "Python Language Reference 8.7 Function definitions; 4.2 Naming and binding",

@@ -96,6 +96,7 @@ module PYTHON-SYNTAX
                 | "#assignMany" "(" IdItems ";" Exp ")" [symbol(assignManyStmt), strict(2)]
                 | "#unpackAssign" "(" IdItems ";" Exp ")" [symbol(unpackAssignStmt), strict(2)]
                 | "#unpackStarAssign" "(" IdItems ";" Id ";" IdItems ";" Exp ")" [symbol(unpackStarAssignStmt), strict(4)]
+                | "return" [symbol(returnNoneStmt)]
                 | "return" Exp [symbol(returnStmt), strict]
                 | "#def" "(" Id "," Id "," Block ")" [symbol(functionDefStmt)]
                 | "#defArgs" "(" Id "," IdItems "," Block ")" [symbol(functionDefArgsStmt)]
@@ -3507,6 +3508,7 @@ module PYTHON
 
   rule <k> break => breakSignal ... </k>
   rule <k> continue => continueSignal ... </k>
+  rule <k> return => returnSignal(None) ... </k>
   rule <k> returnStmt(V:Val) => returnSignal(V) ... </k>
 
   rule <k> breakSignal ~> stmtNext(_:Stmts) => breakSignal ... </k>

@@ -73,7 +73,7 @@ def emit_stmt(stmt: ast.stmt) -> str:
         case ast.AugAssign():
             raise unsupported(stmt, "only simple-name augmented assignment targets are supported")
         case ast.Return(value=None):
-            return "return None"
+            return "return"
         case ast.Return(value=value):
             return f"return {emit_exp(value)}"
         case ast.FunctionDef(

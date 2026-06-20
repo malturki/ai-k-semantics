@@ -216,6 +216,8 @@ def emit_constant(node: ast.AST, value: object) -> str:
         return "False"
     if value is None:
         return "None"
+    if value is Ellipsis:
+        return "Ellipsis"
     if isinstance(value, int):
         return str(value)
     if isinstance(value, float):

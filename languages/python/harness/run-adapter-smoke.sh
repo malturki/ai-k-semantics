@@ -48,6 +48,7 @@ run_case "adapter-true-div" "$ROOT/tests/adapter/adapter-true-div.py" "True ~> .
 run_case "adapter-float-arithmetic" "$ROOT/tests/adapter/adapter-float-arithmetic.py" "True ~> .K"
 run_case "adapter-float-floor-mod" "$ROOT/tests/adapter/adapter-float-floor-mod.py" "True ~> .K"
 run_case "adapter-float-pow" "$ROOT/tests/adapter/adapter-float-pow.py" "True ~> .K"
+run_case "adapter-ellipsis" "$ROOT/tests/adapter/adapter-ellipsis.py" "True ~> .K"
 run_case "adapter-string-repeat" "$ROOT/tests/adapter/adapter-string-repeat.py" "True ~> .K"
 run_case "adapter-string-index" "$ROOT/tests/adapter/adapter-string-index.py" "True ~> .K"
 run_case "adapter-string-membership" "$ROOT/tests/adapter/adapter-string-membership.py" "True ~> .K"

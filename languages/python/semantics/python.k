@@ -12,6 +12,7 @@ module PYTHON-SYNTAX
                | "True" [symbol(pyTrue)]
                | "False" [symbol(pyFalse)]
                | "None" [symbol(pyNone)]
+               | "Ellipsis" [symbol(pyEllipsis)]
                | "[" "]" [symbol(emptyListVal)]
                | "[" ValItems "]" [symbol(listVal)]
                | "(" ")" [symbol(emptyTupleVal)]
@@ -501,6 +502,7 @@ module PYTHON
   rule truthy(True) => true
   rule truthy(False) => false
   rule truthy(None) => false
+  rule truthy(Ellipsis) => true
   rule truthy([]) => false
   rule truthy(listVal(_:ValItems)) => true
   rule truthy(()) => false
@@ -544,6 +546,7 @@ module PYTHON
   rule isIntLike(True) => true
   rule isIntLike(False) => true
   rule isIntLike(None) => false
+  rule isIntLike(Ellipsis) => false
   rule isIntLike([]) => false
   rule isIntLike(listVal(_:ValItems)) => false
   rule isIntLike(()) => false
@@ -586,6 +589,7 @@ module PYTHON
   rule singletonIdentity(True) => true
   rule singletonIdentity(False) => true
   rule singletonIdentity(None) => true
+  rule singletonIdentity(Ellipsis) => true
   rule singletonIdentity(_:Int) => false
   rule singletonIdentity(_:Float) => false
   rule singletonIdentity(_:String) => false
@@ -885,12 +889,25 @@ module PYTHON
   rule valEq(False, True) => false
   rule valEq(False, False) => true
   rule valEq(None, None) => true
+  rule valEq(Ellipsis, Ellipsis) => true
   rule valEq(None, _:Int) => false
   rule valEq(_:Int, None) => false
   rule valEq(None, True) => false
   rule valEq(None, False) => false
   rule valEq(True, None) => false
   rule valEq(False, None) => false
+  rule valEq(Ellipsis, None) => false
+  rule valEq(None, Ellipsis) => false
+  rule valEq(Ellipsis, True) => false
+  rule valEq(Ellipsis, False) => false
+  rule valEq(True, Ellipsis) => false
+  rule valEq(False, Ellipsis) => false
+  rule valEq(Ellipsis, _:Int) => false
+  rule valEq(_:Int, Ellipsis) => false
+  rule valEq(Ellipsis, _:Float) => false
+  rule valEq(_:Float, Ellipsis) => false
+  rule valEq(Ellipsis, _:String) => false
+  rule valEq(_:String, Ellipsis) => false
 
   rule valIs(V1:Val, V2:Val) => valEq(V1, V2)
     requires singletonIdentity(V1) andBool singletonIdentity(V2)

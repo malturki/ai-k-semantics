@@ -29,14 +29,14 @@ The base modules should model portable Python semantics from the official docs. 
 - adapter-backed `pow(x, y)` for the current int-like subset, with negative exponents requiring a nonzero base and producing floats
 - adapter-backed `pow(x, y, mod)` for current int-like values with nonnegative exponents and nonzero modulus
 - adapter-backed true division `/` for the current int-like subset, producing float values
-- `True`, `False`, and `None`
+- `True`, `False`, `None`, and adapter-backed ellipsis `...` as the `Ellipsis` singleton
 - simple string literals as K `String` tokens
 - name lookup in a single environment
 - unary `+`, unary `-`, and integer/bool `+`, `-`, and `*`
 - integer/bool `%`, `//`, `/`, shifts, bitwise operators, bitwise inversion, and exponentiation
 - float and mixed int/bool/float `+`, `-`, `*`, `/`, `//`, `%`, `**`, `divmod`, `pow`, ordering comparisons, and `abs`
 - string concatenation with `+`, repetition with integer/bool `*`, nonzero-step slicing, substring membership, lexicographic ordering, and positive/negative integer indexing
-- truth-value testing for integers, floats, booleans, and `None`
+- truth-value testing for integers, floats, booleans, `None`, and `Ellipsis`
 - truth-value testing for strings
 - adapter-backed `bool()` and `bool(x)` for the current truth-value subset
 - adapter-backed `all(x)` and `any(x)` for current concrete string/container/range values
@@ -44,9 +44,9 @@ The base modules should model portable Python semantics from the official docs. 
 - adapter-backed one-argument `min(x)` and `max(x)` for current nonempty concrete int-like container/range values, plus multi-argument `min(a, b, ...)` and `max(a, b, ...)` for current int-like values
 - short-circuiting `and` and `or`
 - `not`
-- binary comparisons for int-like values and equality over integers, booleans, and `None`
+- binary comparisons for int-like values and equality over integers, booleans, `None`, and `Ellipsis`
 - string equality
-- singleton identity comparisons with `is` and `is not` for `None`, `True`, and `False`
+- singleton identity comparisons with `is` and `is not` for `None`, `True`, `False`, and `Ellipsis`
 - adapter-backed chained comparisons over the currently supported comparison operators, with short-circuiting
 - conditional expressions
 - adapter-backed assignment expressions `NAME := expr` for simple-name targets in the current environment
@@ -113,4 +113,4 @@ Current function caveat: adapter-backed `#def`, `#defArgs`, `#defDefaults`, `#de
 
 Current augmented-assignment caveat: matrix-multiplication `@=` remains unsupported because there is no matrix protocol, and augmented assignment is otherwise limited to simple-name targets in the current value/operator subsets rather than full in-place/special-method dispatch.
 
-Current identity caveat: `is` and `is not` are defined only for the language singletons `None`, `True`, and `False` compared with singleton or non-singleton values. General object identity requires a heap/object model and remains unsupported.
+Current identity caveat: `is` and `is not` are defined only for the language singletons `None`, `True`, `False`, and `Ellipsis` compared with singleton or non-singleton values. The adapter maps the ordinary Python `...` atom to the internal `Ellipsis` singleton; the assignable builtins name `Ellipsis` is not modeled because the current subset has no builtins namespace. General object identity requires a heap/object model and remains unsupported.

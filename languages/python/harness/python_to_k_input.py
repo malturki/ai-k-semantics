@@ -205,8 +205,10 @@ def emit_exp(exp: ast.expr) -> str:
             return emit_dict_comprehension(exp, key, value, generator)
         case ast.DictComp(key=key, value=value, generators=[outer, inner]):
             return emit_dict_comprehension_two_generators(exp, key, value, outer, inner)
+        case ast.DictComp(key=key, value=value, generators=[outer, middle, inner]):
+            return emit_dict_comprehension_three_generators(exp, key, value, outer, middle, inner)
         case ast.DictComp():
-            raise unsupported(exp, "only one- and two-generator dict comprehensions are supported yet")
+            raise unsupported(exp, "only one-, two-, and three-generator dict comprehensions are supported yet")
         case ast.SetComp(elt=elt, generators=[generator]):
             return emit_set_comprehension(exp, elt, generator)
         case ast.SetComp(elt=elt, generators=[outer, inner]):
@@ -413,6 +415,31 @@ def emit_dict_comprehension_two_generators(
         )
     return (
         f"#dictCompFor({emit_exp(outer.iter)}, {outer.target.id}, "
+        f"{emit_exp(inner.iter)}, {inner.target.id}, {emit_exp(key)}, {emit_exp(value)})"
+    )
+
+
+def emit_dict_comprehension_three_generators(
+    node: ast.AST,
+    key: ast.expr,
+    value: ast.expr,
+    outer: ast.comprehension,
+    middle: ast.comprehension,
+    inner: ast.comprehension,
+) -> str:
+    if outer.is_async or middle.is_async or inner.is_async:
+        raise unsupported(node, "async dict comprehensions are not supported yet")
+    if outer.ifs or middle.ifs or inner.ifs:
+        raise unsupported(node, "three-generator dict comprehensions with filters are not supported yet")
+    if not isinstance(outer.target, ast.Name):
+        raise unsupported(outer.target, "only simple-name dict comprehension targets are supported")
+    if not isinstance(middle.target, ast.Name):
+        raise unsupported(middle.target, "only simple-name dict comprehension targets are supported")
+    if not isinstance(inner.target, ast.Name):
+        raise unsupported(inner.target, "only simple-name dict comprehension targets are supported")
+    return (
+        f"#dictCompForFor({emit_exp(outer.iter)}, {outer.target.id}, "
+        f"{emit_exp(middle.iter)}, {middle.target.id}, "
         f"{emit_exp(inner.iter)}, {inner.target.id}, {emit_exp(key)}, {emit_exp(value)})"
     )
 

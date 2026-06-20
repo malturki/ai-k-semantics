@@ -195,6 +195,7 @@ run_case "adapter-dict-comprehension-if" "$ROOT/tests/adapter/adapter-dict-compr
 run_case "adapter-dict-comprehension-filters" "$ROOT/tests/adapter/adapter-dict-comprehension-filters.py" "True ~> .K"
 run_case "adapter-dict-comprehension-two-for" "$ROOT/tests/adapter/adapter-dict-comprehension-two-for.py" "True ~> .K"
 run_case "adapter-dict-comprehension-two-for-filters" "$ROOT/tests/adapter/adapter-dict-comprehension-two-for-filters.py" "True ~> .K"
+run_case "adapter-dict-comprehension-three-for" "$ROOT/tests/adapter/adapter-dict-comprehension-three-for.py" "True ~> .K"
 run_case "adapter-dict-equality" "$ROOT/tests/adapter/adapter-dict-equality.py" "True ~> .K"
 run_case "adapter-set" "$ROOT/tests/adapter/adapter-set.py" "True ~> .K"
 run_case "adapter-set-expressions" "$ROOT/tests/adapter/adapter-set-expressions.py" "True ~> .K"

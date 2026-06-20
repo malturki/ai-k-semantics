@@ -598,11 +598,17 @@ def emit_kw_defaults(defaults: list[ast.expr | None]) -> str | None:
 
 def emit_lambda(node: ast.AST, args: ast.arguments, body: ast.expr) -> str:
     if args.kwonlyargs:
-        if args.posonlyargs or args.vararg is not None or args.kwarg is not None:
-            raise unsupported(node, "lambda keyword-only parameters are supported only without positional-only parameters, varargs, or kwargs")
+        if args.posonlyargs or args.vararg is not None:
+            raise unsupported(node, "lambda keyword-only parameters are supported only without positional-only parameters or varargs")
         kw_names = [arg.arg for arg in args.kwonlyargs]
         kw_defaults = emit_kw_defaults(args.kw_defaults)
         names = [arg.arg for arg in args.args]
+        if args.kwarg is not None:
+            if names:
+                raise unsupported(node, "lambda keyword-only kwargs are supported only without positional parameters")
+            if kw_defaults is not None:
+                return f"#lambdaKwDefaultsKwArgs({emit_id_items(kw_names)}, {kw_defaults}, {args.kwarg.arg}, {emit_exp(body)})"
+            return f"#lambdaKwOnlyKwArgs({emit_id_items(kw_names)}, {args.kwarg.arg}, {emit_exp(body)})"
         if names:
             if args.defaults or kw_defaults is not None:
                 pos_defaults = emit_arg_exps(args.defaults) if args.defaults else "#noArgs"
@@ -660,11 +666,17 @@ def emit_function_def(
     if type_comment is not None:
         raise unsupported(node, "function type comments are not supported yet")
     if args.kwonlyargs:
-        if args.posonlyargs or args.vararg is not None or args.kwarg is not None:
-            raise unsupported(node, "keyword-only parameters are supported only without positional-only parameters, varargs, or kwargs")
+        if args.posonlyargs or args.vararg is not None:
+            raise unsupported(node, "keyword-only parameters are supported only without positional-only parameters or varargs")
         kw_names = [arg.arg for arg in args.kwonlyargs]
         kw_defaults = emit_kw_defaults(args.kw_defaults)
         names = [arg.arg for arg in args.args]
+        if args.kwarg is not None:
+            if names:
+                raise unsupported(node, "keyword-only kwargs are supported only without positional parameters")
+            if kw_defaults is not None:
+                return f"#defKwDefaultsKwArgs({name}, {emit_id_items(kw_names)}, {kw_defaults}, {args.kwarg.arg}, {emit_block(body)})"
+            return f"#defKwOnlyKwArgs({name}, {emit_id_items(kw_names)}, {args.kwarg.arg}, {emit_block(body)})"
         if names:
             if args.defaults or kw_defaults is not None:
                 pos_defaults = emit_arg_exps(args.defaults) if args.defaults else "#noArgs"

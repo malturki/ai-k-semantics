@@ -683,6 +683,11 @@ def emit_for_stmt(
                 f"#forStarUnpackElse({emit_id_items(prefix)}, {star}, {emit_id_items(suffix)}, "
                 f"{emit_exp(iter_)}, {emit_block(body)}, {emit_block(orelse)})"
             )
+        if target_contains_nested(target):
+            targets = emit_targets_from_sequence(target)
+            if not orelse:
+                return f"#forTargetUnpack({targets}, {emit_exp(iter_)}, {emit_block(body)})"
+            return f"#forTargetUnpackElse({targets}, {emit_exp(iter_)}, {emit_block(body)}, {emit_block(orelse)})"
         ids = emit_id_items(emit_flat_target_names(target))
         if not orelse:
             return f"#forUnpack({ids}, {emit_exp(iter_)}, {emit_block(body)})"

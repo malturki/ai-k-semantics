@@ -160,6 +160,8 @@ run_case "adapter-for-break-continue" "$ROOT/tests/adapter/adapter-for-break-con
 run_case "adapter-for-return" "$ROOT/tests/adapter/adapter-for-return.py" "True ~> .K"
 run_case "adapter-for-unpack" "$ROOT/tests/adapter/adapter-for-unpack.py" "True ~> .K"
 run_case "adapter-for-unpack-list-target" "$ROOT/tests/adapter/adapter-for-unpack-list-target.py" "True ~> .K"
+run_case "adapter-for-unpack-nested" "$ROOT/tests/adapter/adapter-for-unpack-nested.py" "True ~> .K"
+run_case "adapter-for-unpack-nested-else" "$ROOT/tests/adapter/adapter-for-unpack-nested-else.py" "True ~> .K"
 run_case "adapter-for-unpack-break-continue" "$ROOT/tests/adapter/adapter-for-unpack-break-continue.py" "True ~> .K"
 run_case "adapter-for-unpack-else" "$ROOT/tests/adapter/adapter-for-unpack-else.py" "True ~> .K"
 run_case "adapter-for-star-unpack" "$ROOT/tests/adapter/adapter-for-star-unpack.py" "True ~> .K"

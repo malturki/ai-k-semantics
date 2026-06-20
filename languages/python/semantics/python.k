@@ -130,6 +130,8 @@ module PYTHON-SYNTAX
                 | "#forElse" "(" Id "," Exp "," Block "," Block ")" [symbol(forElseStmt)]
                 | "#forUnpack" "(" IdItems "," Exp "," Block ")" [symbol(forUnpackStmt)]
                 | "#forUnpackElse" "(" IdItems "," Exp "," Block "," Block ")" [symbol(forUnpackElseStmt)]
+                | "#forTargetUnpack" "(" Targets "," Exp "," Block ")" [symbol(forTargetUnpackStmt)]
+                | "#forTargetUnpackElse" "(" Targets "," Exp "," Block "," Block ")" [symbol(forTargetUnpackElseStmt)]
                 | "#forStarUnpack" "(" IdItems "," Id "," IdItems "," Exp "," Block ")" [symbol(forStarUnpackStmt)]
                 | "#forStarUnpackElse" "(" IdItems "," Id "," IdItems "," Exp "," Block "," Block ")" [symbol(forStarUnpackElseStmt)]
 
@@ -484,6 +486,8 @@ module PYTHON
                  | forItems(Id, ValItems, Block) [symbol(forItems)]
                  | forUnpackIter(IdItems, Block) [symbol(forUnpackIter)]
                  | forUnpackItems(IdItems, ValItems, Block) [symbol(forUnpackItems)]
+                 | forTargetUnpackIter(Targets, Block) [symbol(forTargetUnpackIter)]
+                 | forTargetUnpackItems(Targets, ValItems, Block) [symbol(forTargetUnpackItems)]
                  | forStarUnpackIter(IdItems, Id, IdItems, Block) [symbol(forStarUnpackIter)]
                  | forStarUnpackItems(IdItems, Id, IdItems, ValItems, Block) [symbol(forStarUnpackItems)]
                  | forRange(Id, Int, Int, Block) [symbol(forRange)]
@@ -495,6 +499,8 @@ module PYTHON
                  | forElseDone(Block) [symbol(forElseDone)]
                  | forUnpackElseIter(IdItems, Block, Block) [symbol(forUnpackElseIter)]
                  | forUnpackElseItems(IdItems, ValItems, Block, Block) [symbol(forUnpackElseItems)]
+                 | forTargetUnpackElseIter(Targets, Block, Block) [symbol(forTargetUnpackElseIter)]
+                 | forTargetUnpackElseItems(Targets, ValItems, Block, Block) [symbol(forTargetUnpackElseItems)]
                  | forUnpackElseDone(Block) [symbol(forUnpackElseDone)]
                  | forStarUnpackElseIter(IdItems, Id, IdItems, Block, Block) [symbol(forStarUnpackElseIter)]
                  | forStarUnpackElseItems(IdItems, Id, IdItems, ValItems, Block, Block) [symbol(forStarUnpackElseItems)]
@@ -4726,6 +4732,43 @@ module PYTHON
        <env> Rho => bindVals(Rho, IDS, VS) </env>
     requires sameIdValArity(IDS, VS)
 
+  rule <k> forTargetUnpackStmt(TS:Targets, E:Exp, Body:Block) =>
+           E ~> forTargetUnpackIter(TS, Body)
+       ... </k>
+  rule <k> [] ~> forTargetUnpackIter(_:Targets, _:Block) => stmtNoResult ... </k>
+  rule <k> listVal(VS:ValItems) ~> forTargetUnpackIter(TS:Targets, Body:Block) =>
+           forTargetUnpackItems(TS, VS, Body)
+       ... </k>
+  rule <k> () ~> forTargetUnpackIter(_:Targets, _:Block) => stmtNoResult ... </k>
+  rule <k> tupleVal(VS:ValItems) ~> forTargetUnpackIter(TS:Targets, Body:Block) =>
+           forTargetUnpackItems(TS, VS, Body)
+       ... </k>
+  rule <k> set() ~> forTargetUnpackIter(_:Targets, _:Block) => stmtNoResult ... </k>
+  rule <k> setVal(VS:ValItems) ~> forTargetUnpackIter(TS:Targets, Body:Block) =>
+           forTargetUnpackItems(TS, VS, Body)
+       ... </k>
+
+  rule <k> forTargetUnpackItems(TS:Targets, valItemsCons(V:Val, Rest:ValItems), block(SS:Stmts)) =>
+           SS ~> forTargetUnpackItems(TS, Rest, block(SS))
+       ... </k>
+       <env> Rho => bindTarget(Rho, targetSeq(TS), V) </env>
+    requires targetValueArityOk(targetSeq(TS), V)
+  rule <k> forTargetUnpackItems(TS:Targets, valItemsLast(V:Val), block(SS:Stmts)) =>
+           SS ~> forDone
+       ... </k>
+       <env> Rho => bindTarget(Rho, targetSeq(TS), V) </env>
+    requires targetValueArityOk(targetSeq(TS), V)
+  rule <k> forTargetUnpackItems(TS:Targets, valItemsCons(V:Val, Rest:ValItems), {}) =>
+           forTargetUnpackItems(TS, Rest, {})
+       ... </k>
+       <env> Rho => bindTarget(Rho, targetSeq(TS), V) </env>
+    requires targetValueArityOk(targetSeq(TS), V)
+  rule <k> forTargetUnpackItems(TS:Targets, valItemsLast(V:Val), {}) =>
+           stmtNoResult
+       ... </k>
+       <env> Rho => bindTarget(Rho, targetSeq(TS), V) </env>
+    requires targetValueArityOk(targetSeq(TS), V)
+
   rule <k> forStarUnpackStmt(Prefix:IdItems, Star:Id, Suffix:IdItems, E:Exp, Body:Block) =>
            E ~> forStarUnpackIter(Prefix, Star, Suffix, Body)
        ... </k>
@@ -4967,6 +5010,43 @@ module PYTHON
     requires sameIdValArity(IDS, VS)
   rule <k> forUnpackElseDone(Else:Block) => runLoopElse(Else) ... </k>
 
+  rule <k> forTargetUnpackElseStmt(TS:Targets, E:Exp, Body:Block, Else:Block) =>
+           E ~> forTargetUnpackElseIter(TS, Body, Else)
+       ... </k>
+  rule <k> [] ~> forTargetUnpackElseIter(_:Targets, _:Block, Else:Block) => runLoopElse(Else) ... </k>
+  rule <k> listVal(VS:ValItems) ~> forTargetUnpackElseIter(TS:Targets, Body:Block, Else:Block) =>
+           forTargetUnpackElseItems(TS, VS, Body, Else)
+       ... </k>
+  rule <k> () ~> forTargetUnpackElseIter(_:Targets, _:Block, Else:Block) => runLoopElse(Else) ... </k>
+  rule <k> tupleVal(VS:ValItems) ~> forTargetUnpackElseIter(TS:Targets, Body:Block, Else:Block) =>
+           forTargetUnpackElseItems(TS, VS, Body, Else)
+       ... </k>
+  rule <k> set() ~> forTargetUnpackElseIter(_:Targets, _:Block, Else:Block) => runLoopElse(Else) ... </k>
+  rule <k> setVal(VS:ValItems) ~> forTargetUnpackElseIter(TS:Targets, Body:Block, Else:Block) =>
+           forTargetUnpackElseItems(TS, VS, Body, Else)
+       ... </k>
+
+  rule <k> forTargetUnpackElseItems(TS:Targets, valItemsCons(V:Val, Rest:ValItems), block(SS:Stmts), Else:Block) =>
+           SS ~> forTargetUnpackElseItems(TS, Rest, block(SS), Else)
+       ... </k>
+       <env> Rho => bindTarget(Rho, targetSeq(TS), V) </env>
+    requires targetValueArityOk(targetSeq(TS), V)
+  rule <k> forTargetUnpackElseItems(TS:Targets, valItemsLast(V:Val), block(SS:Stmts), Else:Block) =>
+           SS ~> forUnpackElseDone(Else)
+       ... </k>
+       <env> Rho => bindTarget(Rho, targetSeq(TS), V) </env>
+    requires targetValueArityOk(targetSeq(TS), V)
+  rule <k> forTargetUnpackElseItems(TS:Targets, valItemsCons(V:Val, Rest:ValItems), {}, Else:Block) =>
+           forTargetUnpackElseItems(TS, Rest, {}, Else)
+       ... </k>
+       <env> Rho => bindTarget(Rho, targetSeq(TS), V) </env>
+    requires targetValueArityOk(targetSeq(TS), V)
+  rule <k> forTargetUnpackElseItems(TS:Targets, valItemsLast(V:Val), {}, Else:Block) =>
+           runLoopElse(Else)
+       ... </k>
+       <env> Rho => bindTarget(Rho, targetSeq(TS), V) </env>
+    requires targetValueArityOk(targetSeq(TS), V)
+
   rule <k> forStarUnpackElseStmt(Prefix:IdItems, Star:Id, Suffix:IdItems, E:Exp, Body:Block, Else:Block) =>
            E ~> forStarUnpackElseIter(Prefix, Star, Suffix, Body, Else)
        ... </k>
@@ -5139,6 +5219,11 @@ module PYTHON
            forUnpackItems(IDS, VS, Body)
        ... </k>
   rule <k> returnSignal(V:Val) ~> forUnpackItems(_:IdItems, _:ValItems, _:Block) => returnSignal(V) ... </k>
+  rule <k> breakSignal ~> forTargetUnpackItems(_:Targets, _:ValItems, _:Block) => stmtNoResult ... </k>
+  rule <k> continueSignal ~> forTargetUnpackItems(TS:Targets, VS:ValItems, Body:Block) =>
+           forTargetUnpackItems(TS, VS, Body)
+       ... </k>
+  rule <k> returnSignal(V:Val) ~> forTargetUnpackItems(_:Targets, _:ValItems, _:Block) => returnSignal(V) ... </k>
   rule <k> breakSignal ~> forStarUnpackItems(_:IdItems, _:Id, _:IdItems, _:ValItems, _:Block) => stmtNoResult ... </k>
   rule <k> continueSignal ~> forStarUnpackItems(Prefix:IdItems, Star:Id, Suffix:IdItems, VS:ValItems, Body:Block) =>
            forStarUnpackItems(Prefix, Star, Suffix, VS, Body)
@@ -5170,6 +5255,11 @@ module PYTHON
   rule <k> continueSignal ~> forUnpackElseDone(Else:Block) => runLoopElse(Else) ... </k>
   rule <k> returnSignal(V:Val) ~> forUnpackElseItems(_:IdItems, _:ValItems, _:Block, _:Block) => returnSignal(V) ... </k>
   rule <k> returnSignal(V:Val) ~> forUnpackElseDone(_:Block) => returnSignal(V) ... </k>
+  rule <k> breakSignal ~> forTargetUnpackElseItems(_:Targets, _:ValItems, _:Block, _:Block) => stmtNoResult ... </k>
+  rule <k> continueSignal ~> forTargetUnpackElseItems(TS:Targets, VS:ValItems, Body:Block, Else:Block) =>
+           forTargetUnpackElseItems(TS, VS, Body, Else)
+       ... </k>
+  rule <k> returnSignal(V:Val) ~> forTargetUnpackElseItems(_:Targets, _:ValItems, _:Block, _:Block) => returnSignal(V) ... </k>
   rule <k> breakSignal ~> forStarUnpackElseItems(_:IdItems, _:Id, _:IdItems, _:ValItems, _:Block, _:Block) => stmtNoResult ... </k>
   rule <k> continueSignal ~> forStarUnpackElseItems(Prefix:IdItems, Star:Id, Suffix:IdItems, VS:ValItems, Body:Block, Else:Block) =>
            forStarUnpackElseItems(Prefix, Star, Suffix, VS, Body, Else)

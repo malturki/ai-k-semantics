@@ -1205,7 +1205,7 @@
       "source": "../adapter/adapter-starred-displays.py",
       "reference": "Python Language Reference 6.2.4 Displays for lists, sets and dictionaries; 6.2.5 List displays; 6.2.6 Set displays; 6.16 Evaluation order",
       "expected_result": "True ~> .K",
-      "coverage": ["starred-expression-list", "list-display-unpacking", "tuple-display-unpacking", "set-display-unpacking", "ordered-concrete-iterable-profile", "ordinary-python-source-adapter"]
+      "coverage": ["starred-expression-list", "list-display-unpacking", "tuple-display-unpacking", "set-display-unpacking", "ordered-concrete-iterable-profile", "set-iteration-profile", "ordinary-python-source-adapter"]
     },
     {
       "id": "adapter-set-empty",

@@ -185,6 +185,7 @@ run_case "adapter-dict-expressions" "$ROOT/tests/adapter/adapter-dict-expression
 run_case "adapter-dict-duplicate-keys" "$ROOT/tests/adapter/adapter-dict-duplicate-keys.py" "True ~> .K"
 run_case "adapter-dict-unpack" "$ROOT/tests/adapter/adapter-dict-unpack.py" "True ~> .K"
 run_case "adapter-dict-comprehension" "$ROOT/tests/adapter/adapter-dict-comprehension.py" "True ~> .K"
+run_case "adapter-dict-comprehension-if" "$ROOT/tests/adapter/adapter-dict-comprehension-if.py" "True ~> .K"
 run_case "adapter-dict-equality" "$ROOT/tests/adapter/adapter-dict-equality.py" "True ~> .K"
 run_case "adapter-set" "$ROOT/tests/adapter/adapter-set.py" "True ~> .K"
 run_case "adapter-set-expressions" "$ROOT/tests/adapter/adapter-set-expressions.py" "True ~> .K"

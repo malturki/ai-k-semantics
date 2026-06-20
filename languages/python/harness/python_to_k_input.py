@@ -197,8 +197,10 @@ def emit_exp(exp: ast.expr) -> str:
             return emit_list_comprehension(exp, elt, generator)
         case ast.ListComp(elt=elt, generators=[outer, inner]):
             return emit_list_comprehension_two_generators(exp, elt, outer, inner)
+        case ast.ListComp(elt=elt, generators=[outer, middle, inner]):
+            return emit_list_comprehension_three_generators(exp, elt, outer, middle, inner)
         case ast.ListComp():
-            raise unsupported(exp, "only one- and two-generator list comprehensions are supported yet")
+            raise unsupported(exp, "only one-, two-, and three-generator list comprehensions are supported yet")
         case ast.DictComp(key=key, value=value, generators=[generator]):
             return emit_dict_comprehension(exp, key, value, generator)
         case ast.DictComp(key=key, value=value, generators=[outer, inner]):
@@ -332,6 +334,30 @@ def emit_list_comprehension_two_generators(
         )
     return (
         f"#listCompFor({emit_exp(outer.iter)}, {outer.target.id}, "
+        f"{emit_exp(inner.iter)}, {inner.target.id}, {emit_exp(elt)})"
+    )
+
+
+def emit_list_comprehension_three_generators(
+    node: ast.AST,
+    elt: ast.expr,
+    outer: ast.comprehension,
+    middle: ast.comprehension,
+    inner: ast.comprehension,
+) -> str:
+    if outer.is_async or middle.is_async or inner.is_async:
+        raise unsupported(node, "async list comprehensions are not supported yet")
+    if outer.ifs or middle.ifs or inner.ifs:
+        raise unsupported(node, "three-generator list comprehensions with filters are not supported yet")
+    if not isinstance(outer.target, ast.Name):
+        raise unsupported(outer.target, "only simple-name list comprehension targets are supported")
+    if not isinstance(middle.target, ast.Name):
+        raise unsupported(middle.target, "only simple-name list comprehension targets are supported")
+    if not isinstance(inner.target, ast.Name):
+        raise unsupported(inner.target, "only simple-name list comprehension targets are supported")
+    return (
+        f"#listCompForFor({emit_exp(outer.iter)}, {outer.target.id}, "
+        f"{emit_exp(middle.iter)}, {middle.target.id}, "
         f"{emit_exp(inner.iter)}, {inner.target.id}, {emit_exp(elt)})"
     )
 

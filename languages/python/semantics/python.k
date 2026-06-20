@@ -144,6 +144,7 @@ module PYTHON-SYNTAX
                | "#listCompIfs" "(" Exp "," Id "," CompFilters "," Exp ")" [symbol(listCompIfsExp), strict(1)]
                | "#listCompFor" "(" Exp "," Id "," Exp "," Id "," Exp ")" [symbol(listCompForExp), strict(1)]
                | "#listCompForIfs" "(" Exp "," Id "," MaybeCompFilters "," Exp "," Id "," MaybeCompFilters "," Exp ")" [symbol(listCompForIfsExp), strict(1)]
+               | "#listCompForFor" "(" Exp "," Id "," Exp "," Id "," Exp "," Id "," Exp ")" [symbol(listCompForForExp), strict(1)]
                | "#dictComp" "(" Exp "," Id "," Exp "," Exp ")" [symbol(dictCompExp), strict(1)]
                | "#dictCompIf" "(" Exp "," Id "," Exp "," Exp "," Exp ")" [symbol(dictCompIfExp), strict(1)]
                | "#dictCompIfs" "(" Exp "," Id "," CompFilters "," Exp "," Exp ")" [symbol(dictCompIfsExp), strict(1)]
@@ -320,6 +321,12 @@ module PYTHON
                  | listCompForIfsInnerFilterNext(Id, MaybeCompFilters, Exp, Id, MaybeCompFilters, CompFilters, Exp, ArgVals, ArgVals, ArgVals, Map) [symbol(listCompForIfsInnerFilterNext)]
                  | listCompForIfsInnerFilterLast(Id, MaybeCompFilters, Exp, Id, MaybeCompFilters, Exp, ArgVals, ArgVals, ArgVals, Map) [symbol(listCompForIfsInnerFilterLast)]
                  | listCompForIfsNext(Id, MaybeCompFilters, Exp, Id, MaybeCompFilters, Exp, ArgVals, ArgVals, ArgVals, Map) [symbol(listCompForIfsNext)]
+                 | listCompForForIter(Id, Exp, Id, Exp, Id, Exp, ArgVals, ArgVals, Map) [symbol(listCompForForIter)]
+                 | listCompForForMiddle(Id, Exp, Id, Exp, Id, Exp, ArgVals, ArgVals, Map) [symbol(listCompForForMiddle)]
+                 | listCompForForMiddleIter(Id, Exp, Id, Exp, Id, Exp, ArgVals, ArgVals, ArgVals, Map) [symbol(listCompForForMiddleIter)]
+                 | listCompForForInner(Id, Exp, Id, Exp, Id, Exp, ArgVals, ArgVals, ArgVals, Map) [symbol(listCompForForInner)]
+                 | listCompForForInnerIter(Id, Exp, Id, Exp, Id, Exp, ArgVals, ArgVals, ArgVals, ArgVals, Map) [symbol(listCompForForInnerIter)]
+                 | listCompForForNext(Id, Exp, Id, Exp, Id, Exp, ArgVals, ArgVals, ArgVals, ArgVals, Map) [symbol(listCompForForNext)]
                  | setCompIter(Id, Exp, ArgVals, ArgVals, Map) [symbol(setCompIter)]
                  | setCompNext(Id, Exp, ArgVals, ArgVals, Map) [symbol(setCompNext)]
                  | setCompIfIter(Id, Exp, Exp, ArgVals, ArgVals, Map) [symbol(setCompIfIter)]
@@ -3116,6 +3123,44 @@ module PYTHON
     requires notBool truthy(V)
   rule <k> V:Val ~> listCompForIfsNext(X:Id, OuterFilters:MaybeCompFilters, Inner:Exp, Y:Id, InnerFilters:MaybeCompFilters, Elem:Exp, RestOuter:ArgVals, RestInner:ArgVals, Acc:ArgVals, Rho:Map) =>
            listCompForIfsInnerIter(X, OuterFilters, Inner, Y, InnerFilters, Elem, RestOuter, RestInner, appendArgVal(Acc, V), Rho)
+       ... </k>
+  rule <k> listCompForForExp(Iter:Val, X:Id, Middle:Exp, Y:Id, Inner:Exp, Z:Id, Elem:Exp) =>
+           listCompForForIter(X, Middle, Y, Inner, Z, Elem, iterableArgVals(Iter), #noArgVals, Rho)
+       ... </k>
+       <env> Rho </env>
+  rule <k> listCompForForIter(_:Id, _:Exp, _:Id, _:Exp, _:Id, _:Exp, #noArgVals, #noArgVals, Rho:Map) =>
+           [] ~> restoreEnv(Rho)
+       ... </k>
+  rule <k> listCompForForIter(_:Id, _:Exp, _:Id, _:Exp, _:Id, _:Exp, #noArgVals, Acc:ArgVals, Rho:Map) =>
+           listVal(argValsToValItems(Acc)) ~> restoreEnv(Rho)
+       ... </k>
+    requires notBool emptyArgVals(Acc)
+  rule <k> listCompForForIter(X:Id, Middle:Exp, Y:Id, Inner:Exp, Z:Id, Elem:Exp, argValsCons(V:Val, RestOuter:ArgVals), Acc:ArgVals, Rho:Map) =>
+           Middle ~> listCompForForMiddle(X, Middle, Y, Inner, Z, Elem, RestOuter, Acc, Rho)
+       ... </k>
+       <env> _ => Rho [ X <- V ] </env>
+  rule <k> MiddleIter:Val ~> listCompForForMiddle(X:Id, Middle:Exp, Y:Id, Inner:Exp, Z:Id, Elem:Exp, RestOuter:ArgVals, Acc:ArgVals, Rho:Map) =>
+           listCompForForMiddleIter(X, Middle, Y, Inner, Z, Elem, RestOuter, iterableArgVals(MiddleIter), Acc, Rho)
+       ... </k>
+  rule <k> listCompForForMiddleIter(X:Id, Middle:Exp, Y:Id, Inner:Exp, Z:Id, Elem:Exp, RestOuter:ArgVals, #noArgVals, Acc:ArgVals, Rho:Map) =>
+           listCompForForIter(X, Middle, Y, Inner, Z, Elem, RestOuter, Acc, Rho)
+       ... </k>
+  rule <k> listCompForForMiddleIter(X:Id, Middle:Exp, Y:Id, Inner:Exp, Z:Id, Elem:Exp, RestOuter:ArgVals, argValsCons(V:Val, RestMiddle:ArgVals), Acc:ArgVals, Rho:Map) =>
+           Inner ~> listCompForForInner(X, Middle, Y, Inner, Z, Elem, RestOuter, RestMiddle, Acc, Rho)
+       ... </k>
+       <env> RhoCurrent:Map => RhoCurrent [ Y <- V ] </env>
+  rule <k> InnerIter:Val ~> listCompForForInner(X:Id, Middle:Exp, Y:Id, Inner:Exp, Z:Id, Elem:Exp, RestOuter:ArgVals, RestMiddle:ArgVals, Acc:ArgVals, Rho:Map) =>
+           listCompForForInnerIter(X, Middle, Y, Inner, Z, Elem, RestOuter, RestMiddle, iterableArgVals(InnerIter), Acc, Rho)
+       ... </k>
+  rule <k> listCompForForInnerIter(X:Id, Middle:Exp, Y:Id, Inner:Exp, Z:Id, Elem:Exp, RestOuter:ArgVals, RestMiddle:ArgVals, #noArgVals, Acc:ArgVals, Rho:Map) =>
+           listCompForForMiddleIter(X, Middle, Y, Inner, Z, Elem, RestOuter, RestMiddle, Acc, Rho)
+       ... </k>
+  rule <k> listCompForForInnerIter(X:Id, Middle:Exp, Y:Id, Inner:Exp, Z:Id, Elem:Exp, RestOuter:ArgVals, RestMiddle:ArgVals, argValsCons(V:Val, RestInner:ArgVals), Acc:ArgVals, Rho:Map) =>
+           Elem ~> listCompForForNext(X, Middle, Y, Inner, Z, Elem, RestOuter, RestMiddle, RestInner, Acc, Rho)
+       ... </k>
+       <env> RhoCurrent:Map => RhoCurrent [ Z <- V ] </env>
+  rule <k> V:Val ~> listCompForForNext(X:Id, Middle:Exp, Y:Id, Inner:Exp, Z:Id, Elem:Exp, RestOuter:ArgVals, RestMiddle:ArgVals, RestInner:ArgVals, Acc:ArgVals, Rho:Map) =>
+           listCompForForInnerIter(X, Middle, Y, Inner, Z, Elem, RestOuter, RestMiddle, RestInner, appendArgVal(Acc, V), Rho)
        ... </k>
   rule <k> setCompExp(Iter:Val, X:Id, Elem:Exp) =>
            setCompIter(X, Elem, iterableArgVals(Iter), #noArgVals, Rho)

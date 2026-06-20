@@ -64,6 +64,7 @@ run_case "adapter-list-comprehension-if" "$ROOT/tests/adapter/adapter-list-compr
 run_case "adapter-list-comprehension-filters" "$ROOT/tests/adapter/adapter-list-comprehension-filters.py" "True ~> .K"
 run_case "adapter-list-comprehension-two-for" "$ROOT/tests/adapter/adapter-list-comprehension-two-for.py" "True ~> .K"
 run_case "adapter-list-comprehension-two-for-filters" "$ROOT/tests/adapter/adapter-list-comprehension-two-for-filters.py" "True ~> .K"
+run_case "adapter-list-comprehension-three-for" "$ROOT/tests/adapter/adapter-list-comprehension-three-for.py" "True ~> .K"
 run_case "adapter-list-negative-index" "$ROOT/tests/adapter/adapter-list-negative-index.py" "True ~> .K"
 run_case "adapter-list-ordering" "$ROOT/tests/adapter/adapter-list-ordering.py" "True ~> .K"
 run_case "adapter-list-concat" "$ROOT/tests/adapter/adapter-list-concat.py" "True ~> .K"

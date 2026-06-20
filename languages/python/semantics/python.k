@@ -141,6 +141,7 @@ module PYTHON-SYNTAX
                | "#listCompIfs" "(" Exp "," Id "," CompFilters "," Exp ")" [symbol(listCompIfsExp), strict(1)]
                | "#dictComp" "(" Exp "," Id "," Exp "," Exp ")" [symbol(dictCompExp), strict(1)]
                | "#dictCompIf" "(" Exp "," Id "," Exp "," Exp "," Exp ")" [symbol(dictCompIfExp), strict(1)]
+               | "#dictCompIfs" "(" Exp "," Id "," CompFilters "," Exp "," Exp ")" [symbol(dictCompIfsExp), strict(1)]
                | "#setComp" "(" Exp "," Id "," Exp ")" [symbol(setCompExp), strict(1)]
                | "#setCompIf" "(" Exp "," Id "," Exp "," Exp ")" [symbol(setCompIfExp), strict(1)]
                | "#listCtor" "(" ")" [symbol(listCtorExp)]
@@ -316,6 +317,12 @@ module PYTHON
                  | dictCompIfFilter(Id, Exp, Exp, Exp, ArgVals, DictVals, Map) [symbol(dictCompIfFilter)]
                  | dictCompIfKey(Id, Exp, Exp, Exp, ArgVals, DictVals, Map) [symbol(dictCompIfKey)]
                  | dictCompIfValue(Id, Exp, Exp, Exp, ArgVals, DictVals, Map, Val) [symbol(dictCompIfValue)]
+                 | dictCompIfsIter(Id, CompFilters, Exp, Exp, ArgVals, DictVals, Map) [symbol(dictCompIfsIter)]
+                 | dictCompIfsFilter(Id, CompFilters, CompFilters, Exp, Exp, ArgVals, DictVals, Map) [symbol(dictCompIfsFilter)]
+                 | dictCompIfsFilterNext(Id, CompFilters, CompFilters, Exp, Exp, ArgVals, DictVals, Map) [symbol(dictCompIfsFilterNext)]
+                 | dictCompIfsFilterLast(Id, CompFilters, Exp, Exp, ArgVals, DictVals, Map) [symbol(dictCompIfsFilterLast)]
+                 | dictCompIfsKey(Id, CompFilters, Exp, Exp, ArgVals, DictVals, Map) [symbol(dictCompIfsKey)]
+                 | dictCompIfsValue(Id, CompFilters, Exp, Exp, ArgVals, DictVals, Map, Val) [symbol(dictCompIfsValue)]
                  | compareChain(CmpChain) [symbol(compareChain)]
                  | compareChainLast(CmpOp, Val) [symbol(compareChainLast)]
                  | compareChainNext(CmpOp, Val, CmpChain) [symbol(compareChainNext)]
@@ -3073,6 +3080,49 @@ module PYTHON
        ... </k>
   rule <k> V:Val ~> dictCompIfValue(X:Id, Filter:Exp, Key:Exp, Value:Exp, Rest:ArgVals, Acc:DictVals, Rho:Map, K:Val) =>
            dictCompIfIter(X, Filter, Key, Value, Rest, appendDictVal(Acc, K, V), Rho)
+       ... </k>
+  rule <k> dictCompIfsExp(Iter:Val, X:Id, Filters:CompFilters, Key:Exp, Value:Exp) =>
+           dictCompIfsIter(X, Filters, Key, Value, iterableArgVals(Iter), #noDictVals, Rho)
+       ... </k>
+       <env> Rho </env>
+  rule <k> dictCompIfsIter(_:Id, _:CompFilters, _:Exp, _:Exp, #noArgVals, #noDictVals, Rho:Map) =>
+           ({}):Val ~> restoreEnv(Rho)
+       ... </k>
+  rule <k> dictCompIfsIter(_:Id, _:CompFilters, _:Exp, _:Exp, #noArgVals, Acc:DictVals, Rho:Map) =>
+           dictVal(dictValsToDictItems(Acc)) ~> restoreEnv(Rho)
+       ... </k>
+    requires notBool emptyDictVals(Acc)
+  rule <k> dictCompIfsIter(X:Id, Filters:CompFilters, Key:Exp, Value:Exp, argValsCons(V:Val, Rest:ArgVals), Acc:DictVals, Rho:Map) =>
+           dictCompIfsFilter(X, Filters, Filters, Key, Value, Rest, Acc, Rho)
+       ... </k>
+       <env> _ => Rho [ X <- V ] </env>
+  rule <k> dictCompIfsFilter(X:Id, Filters:CompFilters, #filters(Filter:Exp, RestFilters:CompFilters), Key:Exp, Value:Exp, Rest:ArgVals, Acc:DictVals, Rho:Map) =>
+           Filter ~> dictCompIfsFilterNext(X, Filters, RestFilters, Key, Value, Rest, Acc, Rho)
+       ... </k>
+  rule <k> dictCompIfsFilter(X:Id, Filters:CompFilters, #filter(Filter:Exp), Key:Exp, Value:Exp, Rest:ArgVals, Acc:DictVals, Rho:Map) =>
+           Filter ~> dictCompIfsFilterLast(X, Filters, Key, Value, Rest, Acc, Rho)
+       ... </k>
+  rule <k> V:Val ~> dictCompIfsFilterNext(X:Id, Filters:CompFilters, RestFilters:CompFilters, Key:Exp, Value:Exp, Rest:ArgVals, Acc:DictVals, Rho:Map) =>
+           dictCompIfsFilter(X, Filters, RestFilters, Key, Value, Rest, Acc, Rho)
+       ... </k>
+    requires truthy(V)
+  rule <k> V:Val ~> dictCompIfsFilterNext(X:Id, Filters:CompFilters, _:CompFilters, Key:Exp, Value:Exp, Rest:ArgVals, Acc:DictVals, Rho:Map) =>
+           dictCompIfsIter(X, Filters, Key, Value, Rest, Acc, Rho)
+       ... </k>
+    requires notBool truthy(V)
+  rule <k> V:Val ~> dictCompIfsFilterLast(X:Id, Filters:CompFilters, Key:Exp, Value:Exp, Rest:ArgVals, Acc:DictVals, Rho:Map) =>
+           Key ~> dictCompIfsKey(X, Filters, Key, Value, Rest, Acc, Rho)
+       ... </k>
+    requires truthy(V)
+  rule <k> V:Val ~> dictCompIfsFilterLast(X:Id, Filters:CompFilters, Key:Exp, Value:Exp, Rest:ArgVals, Acc:DictVals, Rho:Map) =>
+           dictCompIfsIter(X, Filters, Key, Value, Rest, Acc, Rho)
+       ... </k>
+    requires notBool truthy(V)
+  rule <k> K:Val ~> dictCompIfsKey(X:Id, Filters:CompFilters, Key:Exp, Value:Exp, Rest:ArgVals, Acc:DictVals, Rho:Map) =>
+           Value ~> dictCompIfsValue(X, Filters, Key, Value, Rest, Acc, Rho, K)
+       ... </k>
+  rule <k> V:Val ~> dictCompIfsValue(X:Id, Filters:CompFilters, Key:Exp, Value:Exp, Rest:ArgVals, Acc:DictVals, Rho:Map, K:Val) =>
+           dictCompIfsIter(X, Filters, Key, Value, Rest, appendDictVal(Acc, K, V), Rho)
        ... </k>
 
   rule #listCtor() => []

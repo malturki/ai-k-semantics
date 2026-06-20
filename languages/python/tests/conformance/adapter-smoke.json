@@ -1075,6 +1075,13 @@
       "coverage": ["dict-comprehension", "three-for-comprehension", "dependent-inner-iterable", "comprehension-target-scope", "dict-key-before-value-evaluation", "dict-duplicate-key-overwrite", "ordinary-python-source-adapter"]
     },
     {
+      "id": "adapter-dict-comprehension-three-for-filters",
+      "source": "../adapter/adapter-dict-comprehension-three-for-filters.py",
+      "reference": "Python Language Reference 6.2.7 Dictionary displays; 6.2.4 Displays for lists, sets and dictionaries",
+      "expected_result": "True ~> .K",
+      "coverage": ["dict-comprehension", "three-for-comprehension", "outer-comprehension-if-clauses", "middle-comprehension-if-clauses", "inner-comprehension-if-clauses", "truth-value-testing", "dependent-inner-iterable", "comprehension-target-scope", "dict-key-before-value-evaluation", "dict-duplicate-key-overwrite", "ordinary-python-source-adapter"]
+    },
+    {
       "id": "adapter-dict-equality",
       "source": "../adapter/adapter-dict-equality.py",
       "reference": "Python Language Reference 6.10 Comparisons; Standard Library dict",

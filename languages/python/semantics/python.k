@@ -166,6 +166,8 @@ module PYTHON-SYNTAX
                | "#tupleCtor" "(" Exp ")" [symbol(tupleCtor1Exp), strict]
                | "#dictCtor" "(" ")" [symbol(dictCtorExp)]
                | "#dictCtor" "(" Exp ")" [symbol(dictCtor1Exp), strict]
+               | "#dictCtorKw" "(" KwArgExps ")" [symbol(dictCtorKwExp)]
+               | "#dictCtorMixed" "(" Exp "," KwArgExps ")" [symbol(dictCtorMixedExp), strict(1)]
                | "#setCtor" "(" ")" [symbol(setCtorExp)]
                | "#setCtor" "(" Exp ")" [symbol(setCtor1Exp), strict]
                | "#boolCtor" "(" ")" [symbol(boolCtor0Exp)]
@@ -401,6 +403,8 @@ module PYTHON
                  | evalDictNext(DictExps, DictVals, Val) [symbol(evalDictNext)]
                  | evalDictStarNext(DictExps, DictVals) [symbol(evalDictStarNext)]
                  | "buildDict" [symbol(buildDict)]
+                 | "buildDictCtorKw" [symbol(buildDictCtorKw)]
+                 | buildDictCtorMixed(Val) [symbol(buildDictCtorMixed)]
                  | dictCompIter(Id, Exp, Exp, ArgVals, DictVals, Map) [symbol(dictCompIter)]
                  | dictCompKey(Id, Exp, Exp, ArgVals, DictVals, Map) [symbol(dictCompKey)]
                  | dictCompValue(Id, Exp, Exp, ArgVals, DictVals, Map, Val) [symbol(dictCompValue)]
@@ -630,6 +634,7 @@ module PYTHON
                     | appendDictItems(DictVals, DictItems) [function, symbol(appendDictItems)]
                     | appendDictPairVal(DictVals, Val) [function, symbol(appendDictPairVal)]
                     | dictCtorPairs(ValItems, DictVals) [function, symbol(dictCtorPairs)]
+                    | appendKwDictVals(DictVals, KwArgVals) [function, symbol(appendKwDictVals)]
                     | kwExtrasDictVals(KwArgVals, IdItems) [function, symbol(kwExtrasDictVals)]
   syntax Map ::= bindArgs(Map, IdItems, ArgVals) [function, symbol(bindArgs)]
   syntax Map ::= bindVarArgs(Map, IdItems, Id, ArgVals) [function, symbol(bindVarArgs)]
@@ -653,7 +658,10 @@ module PYTHON
   syntax ValItems ::= sliceValItems(ValItems, Int, Int) [function, symbol(sliceValItems)]
   syntax ValItems ::= sliceStepValItems(ValItems, Int, Int, Int) [function, symbol(sliceStepValItems)]
   syntax DictItems ::= dictValsToDictItems(DictVals) [function, symbol(dictValsToDictItems)]
+  syntax Val ::= dictFromDictVals(DictVals) [function, symbol(dictFromDictVals)]
   syntax Val ::= dictCtorFromPairs(ValItems) [function, symbol(dictCtorFromPairs)]
+  syntax Val ::= dictCtorFromKwArgs(KwArgVals) [function, symbol(dictCtorFromKwArgs)]
+  syntax Val ::= dictCtorMergeKw(Val, KwArgVals) [function, symbol(dictCtorMergeKw)]
   syntax Val ::= listSlice(ValItems, Int, Int) [function, symbol(listSlice)]
                | tupleSlice(ValItems, Int, Int) [function, symbol(tupleSlice)]
                | listSliceStep(ValItems, Int, Int, Int) [function, symbol(listSliceStep)]
@@ -1560,6 +1568,29 @@ module PYTHON
     requires emptyDictVals(kwExtrasDictVals(KWS, IDS))
   rule kwExtrasDict(KWS:KwArgVals, IDS:IdItems) => dictVal(dictValsToDictItems(kwExtrasDictVals(KWS, IDS)))
     requires notBool emptyDictVals(kwExtrasDictVals(KWS, IDS))
+
+  rule dictFromDictVals(DVS:DictVals) => ({}):Val
+    requires emptyDictVals(DVS)
+  rule dictFromDictVals(DVS:DictVals) => dictVal(dictValsToDictItems(DVS))
+    requires notBool emptyDictVals(DVS)
+
+  rule dictCtorFromKwArgs(KWS:KwArgVals) => dictFromDictVals(appendKwDictVals(#noDictVals, KWS))
+
+  rule dictCtorMergeKw(({}):Val, KWS:KwArgVals) => dictCtorFromKwArgs(KWS)
+  rule dictCtorMergeKw(dictVal(DS:DictItems), KWS:KwArgVals) =>
+    dictFromDictVals(appendKwDictVals(appendDictItems(#noDictVals, DS), KWS))
+  rule dictCtorMergeKw([], KWS:KwArgVals) => dictCtorFromKwArgs(KWS)
+  rule dictCtorMergeKw(listVal(VS:ValItems), KWS:KwArgVals) =>
+    dictFromDictVals(appendKwDictVals(dictCtorPairs(VS, #noDictVals), KWS))
+  rule dictCtorMergeKw((), KWS:KwArgVals) => dictCtorFromKwArgs(KWS)
+  rule dictCtorMergeKw(tupleVal(VS:ValItems), KWS:KwArgVals) =>
+    dictFromDictVals(appendKwDictVals(dictCtorPairs(VS, #noDictVals), KWS))
+
+  rule appendKwDictVals(DVS:DictVals, #noKwArgVals) => DVS
+  rule appendKwDictVals(DVS:DictVals, kwArgValsCons(X:Id, V:Val, KWS:KwArgVals)) =>
+    appendKwDictVals(appendDictVal(DVS, Id2String(X), V), KWS)
+  rule appendKwDictVals(DVS:DictVals, kwArgStringValsCons(S:String, V:Val, KWS:KwArgVals)) =>
+    appendKwDictVals(appendDictVal(DVS, S, V), KWS)
 
   rule kwExtrasDictVals(#noKwArgVals, _:IdItems) => #noDictVals
   rule kwExtrasDictVals(kwArgValsCons(X:Id, _:Val, KWS:KwArgVals), IDS:IdItems) =>
@@ -4091,6 +4122,19 @@ module PYTHON
        ... </k>
   rule <k> V:Val ~> dictCompForIfsValue(X:Id, OuterFilters:MaybeCompFilters, Inner:Exp, Y:Id, InnerFilters:MaybeCompFilters, Key:Exp, Value:Exp, RestOuter:ArgVals, RestInner:ArgVals, Acc:DictVals, Rho:Map, K:Val) =>
            dictCompForIfsInnerIter(X, OuterFilters, Inner, Y, InnerFilters, Key, Value, RestOuter, RestInner, appendDictVal(Acc, K, V), Rho)
+       ... </k>
+
+  rule <k> dictCtorKwExp(KWS:KwArgExps) =>
+           evalKwArgs(KWS, #noKwArgVals) ~> buildDictCtorKw
+       ... </k>
+  rule <k> kwArgsVal(KWS:KwArgVals) ~> buildDictCtorKw =>
+           dictCtorFromKwArgs(KWS)
+       ... </k>
+  rule <k> dictCtorMixedExp(Base:Val, KWS:KwArgExps) =>
+           evalKwArgs(KWS, #noKwArgVals) ~> buildDictCtorMixed(Base)
+       ... </k>
+  rule <k> kwArgsVal(KWS:KwArgVals) ~> buildDictCtorMixed(Base:Val) =>
+           dictCtorMergeKw(Base, KWS)
        ... </k>
 
   rule #listCtor() => []

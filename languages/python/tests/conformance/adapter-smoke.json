@@ -977,6 +977,13 @@
       "coverage": ["dict-constructor", "dict-copy-constructor", "pair-iterable-dict-constructor-subset", "dict-duplicate-key-overwrite", "ordinary-python-source-adapter"]
     },
     {
+      "id": "adapter-dict-constructor-keywords",
+      "source": "../adapter/adapter-dict-constructor-keywords.py",
+      "reference": "Python Standard Library Built-in Types dict constructor; Python Language Reference 6.3.4 Calls",
+      "expected_result": "True ~> .K",
+      "coverage": ["dict-constructor", "dict-keyword-constructor", "dict-copy-constructor", "pair-iterable-dict-constructor-subset", "dict-duplicate-key-overwrite", "keyword-argument-evaluation", "ordinary-python-source-adapter"]
+    },
+    {
       "id": "adapter-set-constructor",
       "source": "../adapter/adapter-set-constructor.py",
       "reference": "Python Standard Library Built-in Types set constructor; Built-in Types str, list, tuple, dict, set, and range",

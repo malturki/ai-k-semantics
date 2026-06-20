@@ -143,6 +143,12 @@ def emit_exp(exp: ast.expr) -> str:
             return "#dictCtor()"
         case ast.Call(func=ast.Name(id="dict"), args=[arg], keywords=[]):
             return f"#dictCtor({emit_exp(arg)})"
+        case ast.Call(func=ast.Name(id="dict"), args=[], keywords=keywords) if keywords:
+            return emit_dict_ctor_keywords(exp, None, keywords)
+        case ast.Call(func=ast.Name(id="dict"), args=[arg], keywords=keywords) if keywords:
+            return emit_dict_ctor_keywords(exp, arg, keywords)
+        case ast.Call(func=ast.Name(id="dict"), keywords=keywords) if keywords:
+            raise unsupported(exp, "dict constructor supports at most one positional argument")
         case ast.Call(func=ast.Name(id="set"), args=[], keywords=[]):
             return "#setCtor()"
         case ast.Call(func=ast.Name(id="set"), args=[arg], keywords=[]):
@@ -785,6 +791,17 @@ def emit_kw_arg_exps(node: ast.AST, keywords: list[ast.keyword]) -> str:
     if len(keywords) == 1:
         return f"#kwArg({keyword.arg}, {emit_exp(keyword.value)})"
     return f"#kwArgs({keyword.arg}, {emit_exp(keyword.value)}, {emit_kw_arg_exps(node, keywords[1:])})"
+
+
+def emit_dict_ctor_keywords(
+    node: ast.AST, base: ast.expr | None, keywords: list[ast.keyword]
+) -> str:
+    if any(keyword.arg is None for keyword in keywords):
+        raise unsupported(node, "dict constructor keyword unpacking is not supported yet")
+    kws = emit_kw_arg_exps(node, keywords)
+    if base is None:
+        return f"#dictCtorKw({kws})"
+    return f"#dictCtorMixed({emit_exp(base)}, {kws})"
 
 
 def emit_list(elts: list[ast.expr]) -> str:

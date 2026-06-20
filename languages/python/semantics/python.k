@@ -1308,6 +1308,8 @@ module PYTHON
   rule targetValueArityOk(targetSeq(TS:Targets), S:String) =>
     sameTargetsValArity(TS, stringToValItems(S, 0, lengthString(S)))
     requires lengthString(S) >Int 0
+  rule targetValueArityOk(targetSeq(TS:Targets), dictVal(DS:DictItems)) =>
+    sameTargetsValArity(TS, dictKeysToValItems(DS))
   rule targetValueArityOk(targetSeq(TS:Targets), setVal(VS:ValItems)) =>
     sameTargetsValArity(TS, VS)
   rule targetValueArityOk(targetSeq(TS:Targets), rangeVal(Start:Int, Stop:Int)) =>
@@ -1737,6 +1739,8 @@ module PYTHON
   rule bindTarget(Rho:Map, targetSeq(TS:Targets), S:String) =>
     bindTargets(Rho, TS, stringToValItems(S, 0, lengthString(S)))
     requires lengthString(S) >Int 0
+  rule bindTarget(Rho:Map, targetSeq(TS:Targets), dictVal(DS:DictItems)) =>
+    bindTargets(Rho, TS, dictKeysToValItems(DS))
   rule bindTarget(Rho:Map, targetSeq(TS:Targets), setVal(VS:ValItems)) =>
     bindTargets(Rho, TS, VS)
   rule bindTarget(Rho:Map, targetSeq(TS:Targets), rangeVal(Start:Int, Stop:Int)) =>
@@ -4827,6 +4831,16 @@ module PYTHON
        <env> Rho => bindVals(Rho, IDS, stringToValItems(S, 0, lengthString(S))) </env>
     requires lengthString(S) >Int 0
       andBool sameIdValArity(IDS, stringToValItems(S, 0, lengthString(S)))
+  rule <k> forUnpackItems(IDS:IdItems, valItemsCons(dictVal(DS:DictItems), Rest:ValItems), block(SS:Stmts)) =>
+           SS ~> forUnpackItems(IDS, Rest, block(SS))
+       ... </k>
+       <env> Rho => bindVals(Rho, IDS, dictKeysToValItems(DS)) </env>
+    requires sameIdValArity(IDS, dictKeysToValItems(DS))
+  rule <k> forUnpackItems(IDS:IdItems, valItemsCons(setVal(VS:ValItems), Rest:ValItems), block(SS:Stmts)) =>
+           SS ~> forUnpackItems(IDS, Rest, block(SS))
+       ... </k>
+       <env> Rho => bindVals(Rho, IDS, VS) </env>
+    requires sameIdValArity(IDS, VS)
   rule <k> forUnpackItems(IDS:IdItems, valItemsCons(rangeVal(Start:Int, Stop:Int), Rest:ValItems), block(SS:Stmts)) =>
            SS ~> forUnpackItems(IDS, Rest, block(SS))
        ... </k>
@@ -4856,6 +4870,16 @@ module PYTHON
        <env> Rho => bindVals(Rho, IDS, stringToValItems(S, 0, lengthString(S))) </env>
     requires lengthString(S) >Int 0
       andBool sameIdValArity(IDS, stringToValItems(S, 0, lengthString(S)))
+  rule <k> forUnpackItems(IDS:IdItems, valItemsLast(dictVal(DS:DictItems)), block(SS:Stmts)) =>
+           SS ~> forDone
+       ... </k>
+       <env> Rho => bindVals(Rho, IDS, dictKeysToValItems(DS)) </env>
+    requires sameIdValArity(IDS, dictKeysToValItems(DS))
+  rule <k> forUnpackItems(IDS:IdItems, valItemsLast(setVal(VS:ValItems)), block(SS:Stmts)) =>
+           SS ~> forDone
+       ... </k>
+       <env> Rho => bindVals(Rho, IDS, VS) </env>
+    requires sameIdValArity(IDS, VS)
   rule <k> forUnpackItems(IDS:IdItems, valItemsLast(rangeVal(Start:Int, Stop:Int)), block(SS:Stmts)) =>
            SS ~> forDone
        ... </k>
@@ -4885,6 +4909,16 @@ module PYTHON
        <env> Rho => bindVals(Rho, IDS, stringToValItems(S, 0, lengthString(S))) </env>
     requires lengthString(S) >Int 0
       andBool sameIdValArity(IDS, stringToValItems(S, 0, lengthString(S)))
+  rule <k> forUnpackItems(IDS:IdItems, valItemsCons(dictVal(DS:DictItems), Rest:ValItems), {}) =>
+           forUnpackItems(IDS, Rest, {})
+       ... </k>
+       <env> Rho => bindVals(Rho, IDS, dictKeysToValItems(DS)) </env>
+    requires sameIdValArity(IDS, dictKeysToValItems(DS))
+  rule <k> forUnpackItems(IDS:IdItems, valItemsCons(setVal(VS:ValItems), Rest:ValItems), {}) =>
+           forUnpackItems(IDS, Rest, {})
+       ... </k>
+       <env> Rho => bindVals(Rho, IDS, VS) </env>
+    requires sameIdValArity(IDS, VS)
   rule <k> forUnpackItems(IDS:IdItems, valItemsCons(rangeVal(Start:Int, Stop:Int), Rest:ValItems), {}) =>
            forUnpackItems(IDS, Rest, {})
        ... </k>
@@ -4914,6 +4948,16 @@ module PYTHON
        <env> Rho => bindVals(Rho, IDS, stringToValItems(S, 0, lengthString(S))) </env>
     requires lengthString(S) >Int 0
       andBool sameIdValArity(IDS, stringToValItems(S, 0, lengthString(S)))
+  rule <k> forUnpackItems(IDS:IdItems, valItemsLast(dictVal(DS:DictItems)), {}) =>
+           stmtNoResult
+       ... </k>
+       <env> Rho => bindVals(Rho, IDS, dictKeysToValItems(DS)) </env>
+    requires sameIdValArity(IDS, dictKeysToValItems(DS))
+  rule <k> forUnpackItems(IDS:IdItems, valItemsLast(setVal(VS:ValItems)), {}) =>
+           stmtNoResult
+       ... </k>
+       <env> Rho => bindVals(Rho, IDS, VS) </env>
+    requires sameIdValArity(IDS, VS)
   rule <k> forUnpackItems(IDS:IdItems, valItemsLast(rangeVal(Start:Int, Stop:Int)), {}) =>
            stmtNoResult
        ... </k>
@@ -5041,6 +5085,16 @@ module PYTHON
        <env> Rho => bindStarUnpack(Rho, Prefix, Star, Suffix, stringToValItems(S, 0, lengthString(S))) </env>
     requires lengthString(S) >Int 0
       andBool starUnpackArityOk(Prefix, Suffix, lengthString(S))
+  rule <k> forStarUnpackItems(Prefix:IdItems, Star:Id, Suffix:IdItems, valItemsCons(dictVal(DS:DictItems), Rest:ValItems), block(SS:Stmts)) =>
+           SS ~> forStarUnpackItems(Prefix, Star, Suffix, Rest, block(SS))
+       ... </k>
+       <env> Rho => bindStarUnpack(Rho, Prefix, Star, Suffix, dictKeysToValItems(DS)) </env>
+    requires starUnpackArityOk(Prefix, Suffix, valItemsLen(dictKeysToValItems(DS)))
+  rule <k> forStarUnpackItems(Prefix:IdItems, Star:Id, Suffix:IdItems, valItemsCons(setVal(VS:ValItems), Rest:ValItems), block(SS:Stmts)) =>
+           SS ~> forStarUnpackItems(Prefix, Star, Suffix, Rest, block(SS))
+       ... </k>
+       <env> Rho => bindStarUnpack(Rho, Prefix, Star, Suffix, VS) </env>
+    requires starUnpackArityOk(Prefix, Suffix, valItemsLen(VS))
   rule <k> forStarUnpackItems(Prefix:IdItems, Star:Id, Suffix:IdItems, valItemsCons(rangeVal(Start:Int, Stop:Int), Rest:ValItems), block(SS:Stmts)) =>
            SS ~> forStarUnpackItems(Prefix, Star, Suffix, Rest, block(SS))
        ... </k>
@@ -5060,6 +5114,16 @@ module PYTHON
        <env> Rho => Rho [ Star <- [] ] </env>
     requires idItemsLen(Prefix) +Int idItemsLen(Suffix) ==Int 0
   rule <k> forStarUnpackItems(Prefix:IdItems, Star:Id, Suffix:IdItems, valItemsCons((), Rest:ValItems), block(SS:Stmts)) =>
+           SS ~> forStarUnpackItems(Prefix, Star, Suffix, Rest, block(SS))
+       ... </k>
+       <env> Rho => Rho [ Star <- [] ] </env>
+    requires idItemsLen(Prefix) +Int idItemsLen(Suffix) ==Int 0
+  rule <k> forStarUnpackItems(Prefix:IdItems, Star:Id, Suffix:IdItems, valItemsCons(({}):Val, Rest:ValItems), block(SS:Stmts)) =>
+           SS ~> forStarUnpackItems(Prefix, Star, Suffix, Rest, block(SS))
+       ... </k>
+       <env> Rho => Rho [ Star <- [] ] </env>
+    requires idItemsLen(Prefix) +Int idItemsLen(Suffix) ==Int 0
+  rule <k> forStarUnpackItems(Prefix:IdItems, Star:Id, Suffix:IdItems, valItemsCons(set(), Rest:ValItems), block(SS:Stmts)) =>
            SS ~> forStarUnpackItems(Prefix, Star, Suffix, Rest, block(SS))
        ... </k>
        <env> Rho => Rho [ Star <- [] ] </env>
@@ -5099,6 +5163,16 @@ module PYTHON
        <env> Rho => bindStarUnpack(Rho, Prefix, Star, Suffix, stringToValItems(S, 0, lengthString(S))) </env>
     requires lengthString(S) >Int 0
       andBool starUnpackArityOk(Prefix, Suffix, lengthString(S))
+  rule <k> forStarUnpackItems(Prefix:IdItems, Star:Id, Suffix:IdItems, valItemsLast(dictVal(DS:DictItems)), block(SS:Stmts)) =>
+           SS ~> forDone
+       ... </k>
+       <env> Rho => bindStarUnpack(Rho, Prefix, Star, Suffix, dictKeysToValItems(DS)) </env>
+    requires starUnpackArityOk(Prefix, Suffix, valItemsLen(dictKeysToValItems(DS)))
+  rule <k> forStarUnpackItems(Prefix:IdItems, Star:Id, Suffix:IdItems, valItemsLast(setVal(VS:ValItems)), block(SS:Stmts)) =>
+           SS ~> forDone
+       ... </k>
+       <env> Rho => bindStarUnpack(Rho, Prefix, Star, Suffix, VS) </env>
+    requires starUnpackArityOk(Prefix, Suffix, valItemsLen(VS))
   rule <k> forStarUnpackItems(Prefix:IdItems, Star:Id, Suffix:IdItems, valItemsLast(rangeVal(Start:Int, Stop:Int)), block(SS:Stmts)) =>
            SS ~> forDone
        ... </k>
@@ -5118,6 +5192,16 @@ module PYTHON
        <env> Rho => Rho [ Star <- [] ] </env>
     requires idItemsLen(Prefix) +Int idItemsLen(Suffix) ==Int 0
   rule <k> forStarUnpackItems(Prefix:IdItems, Star:Id, Suffix:IdItems, valItemsLast(()), block(SS:Stmts)) =>
+           SS ~> forDone
+       ... </k>
+       <env> Rho => Rho [ Star <- [] ] </env>
+    requires idItemsLen(Prefix) +Int idItemsLen(Suffix) ==Int 0
+  rule <k> forStarUnpackItems(Prefix:IdItems, Star:Id, Suffix:IdItems, valItemsLast(({}):Val), block(SS:Stmts)) =>
+           SS ~> forDone
+       ... </k>
+       <env> Rho => Rho [ Star <- [] ] </env>
+    requires idItemsLen(Prefix) +Int idItemsLen(Suffix) ==Int 0
+  rule <k> forStarUnpackItems(Prefix:IdItems, Star:Id, Suffix:IdItems, valItemsLast(set()), block(SS:Stmts)) =>
            SS ~> forDone
        ... </k>
        <env> Rho => Rho [ Star <- [] ] </env>
@@ -5157,6 +5241,16 @@ module PYTHON
        <env> Rho => bindStarUnpack(Rho, Prefix, Star, Suffix, stringToValItems(S, 0, lengthString(S))) </env>
     requires lengthString(S) >Int 0
       andBool starUnpackArityOk(Prefix, Suffix, lengthString(S))
+  rule <k> forStarUnpackItems(Prefix:IdItems, Star:Id, Suffix:IdItems, valItemsCons(dictVal(DS:DictItems), Rest:ValItems), {}) =>
+           forStarUnpackItems(Prefix, Star, Suffix, Rest, {})
+       ... </k>
+       <env> Rho => bindStarUnpack(Rho, Prefix, Star, Suffix, dictKeysToValItems(DS)) </env>
+    requires starUnpackArityOk(Prefix, Suffix, valItemsLen(dictKeysToValItems(DS)))
+  rule <k> forStarUnpackItems(Prefix:IdItems, Star:Id, Suffix:IdItems, valItemsCons(setVal(VS:ValItems), Rest:ValItems), {}) =>
+           forStarUnpackItems(Prefix, Star, Suffix, Rest, {})
+       ... </k>
+       <env> Rho => bindStarUnpack(Rho, Prefix, Star, Suffix, VS) </env>
+    requires starUnpackArityOk(Prefix, Suffix, valItemsLen(VS))
   rule <k> forStarUnpackItems(Prefix:IdItems, Star:Id, Suffix:IdItems, valItemsCons(rangeVal(Start:Int, Stop:Int), Rest:ValItems), {}) =>
            forStarUnpackItems(Prefix, Star, Suffix, Rest, {})
        ... </k>
@@ -5176,6 +5270,16 @@ module PYTHON
        <env> Rho => Rho [ Star <- [] ] </env>
     requires idItemsLen(Prefix) +Int idItemsLen(Suffix) ==Int 0
   rule <k> forStarUnpackItems(Prefix:IdItems, Star:Id, Suffix:IdItems, valItemsCons((), Rest:ValItems), {}) =>
+           forStarUnpackItems(Prefix, Star, Suffix, Rest, {})
+       ... </k>
+       <env> Rho => Rho [ Star <- [] ] </env>
+    requires idItemsLen(Prefix) +Int idItemsLen(Suffix) ==Int 0
+  rule <k> forStarUnpackItems(Prefix:IdItems, Star:Id, Suffix:IdItems, valItemsCons(({}):Val, Rest:ValItems), {}) =>
+           forStarUnpackItems(Prefix, Star, Suffix, Rest, {})
+       ... </k>
+       <env> Rho => Rho [ Star <- [] ] </env>
+    requires idItemsLen(Prefix) +Int idItemsLen(Suffix) ==Int 0
+  rule <k> forStarUnpackItems(Prefix:IdItems, Star:Id, Suffix:IdItems, valItemsCons(set(), Rest:ValItems), {}) =>
            forStarUnpackItems(Prefix, Star, Suffix, Rest, {})
        ... </k>
        <env> Rho => Rho [ Star <- [] ] </env>
@@ -5215,6 +5319,16 @@ module PYTHON
        <env> Rho => bindStarUnpack(Rho, Prefix, Star, Suffix, stringToValItems(S, 0, lengthString(S))) </env>
     requires lengthString(S) >Int 0
       andBool starUnpackArityOk(Prefix, Suffix, lengthString(S))
+  rule <k> forStarUnpackItems(Prefix:IdItems, Star:Id, Suffix:IdItems, valItemsLast(dictVal(DS:DictItems)), {}) =>
+           stmtNoResult
+       ... </k>
+       <env> Rho => bindStarUnpack(Rho, Prefix, Star, Suffix, dictKeysToValItems(DS)) </env>
+    requires starUnpackArityOk(Prefix, Suffix, valItemsLen(dictKeysToValItems(DS)))
+  rule <k> forStarUnpackItems(Prefix:IdItems, Star:Id, Suffix:IdItems, valItemsLast(setVal(VS:ValItems)), {}) =>
+           stmtNoResult
+       ... </k>
+       <env> Rho => bindStarUnpack(Rho, Prefix, Star, Suffix, VS) </env>
+    requires starUnpackArityOk(Prefix, Suffix, valItemsLen(VS))
   rule <k> forStarUnpackItems(Prefix:IdItems, Star:Id, Suffix:IdItems, valItemsLast(rangeVal(Start:Int, Stop:Int)), {}) =>
            stmtNoResult
        ... </k>
@@ -5234,6 +5348,16 @@ module PYTHON
        <env> Rho => Rho [ Star <- [] ] </env>
     requires idItemsLen(Prefix) +Int idItemsLen(Suffix) ==Int 0
   rule <k> forStarUnpackItems(Prefix:IdItems, Star:Id, Suffix:IdItems, valItemsLast(()), {}) =>
+           stmtNoResult
+       ... </k>
+       <env> Rho => Rho [ Star <- [] ] </env>
+    requires idItemsLen(Prefix) +Int idItemsLen(Suffix) ==Int 0
+  rule <k> forStarUnpackItems(Prefix:IdItems, Star:Id, Suffix:IdItems, valItemsLast(({}):Val), {}) =>
+           stmtNoResult
+       ... </k>
+       <env> Rho => Rho [ Star <- [] ] </env>
+    requires idItemsLen(Prefix) +Int idItemsLen(Suffix) ==Int 0
+  rule <k> forStarUnpackItems(Prefix:IdItems, Star:Id, Suffix:IdItems, valItemsLast(set()), {}) =>
            stmtNoResult
        ... </k>
        <env> Rho => Rho [ Star <- [] ] </env>
@@ -5398,6 +5522,16 @@ module PYTHON
        <env> Rho => bindVals(Rho, IDS, stringToValItems(S, 0, lengthString(S))) </env>
     requires lengthString(S) >Int 0
       andBool sameIdValArity(IDS, stringToValItems(S, 0, lengthString(S)))
+  rule <k> forUnpackElseItems(IDS:IdItems, valItemsCons(dictVal(DS:DictItems), Rest:ValItems), block(SS:Stmts), Else:Block) =>
+           SS ~> forUnpackElseItems(IDS, Rest, block(SS), Else)
+       ... </k>
+       <env> Rho => bindVals(Rho, IDS, dictKeysToValItems(DS)) </env>
+    requires sameIdValArity(IDS, dictKeysToValItems(DS))
+  rule <k> forUnpackElseItems(IDS:IdItems, valItemsCons(setVal(VS:ValItems), Rest:ValItems), block(SS:Stmts), Else:Block) =>
+           SS ~> forUnpackElseItems(IDS, Rest, block(SS), Else)
+       ... </k>
+       <env> Rho => bindVals(Rho, IDS, VS) </env>
+    requires sameIdValArity(IDS, VS)
   rule <k> forUnpackElseItems(IDS:IdItems, valItemsCons(rangeVal(Start:Int, Stop:Int), Rest:ValItems), block(SS:Stmts), Else:Block) =>
            SS ~> forUnpackElseItems(IDS, Rest, block(SS), Else)
        ... </k>
@@ -5427,6 +5561,16 @@ module PYTHON
        <env> Rho => bindVals(Rho, IDS, stringToValItems(S, 0, lengthString(S))) </env>
     requires lengthString(S) >Int 0
       andBool sameIdValArity(IDS, stringToValItems(S, 0, lengthString(S)))
+  rule <k> forUnpackElseItems(IDS:IdItems, valItemsLast(dictVal(DS:DictItems)), block(SS:Stmts), Else:Block) =>
+           SS ~> forUnpackElseDone(Else)
+       ... </k>
+       <env> Rho => bindVals(Rho, IDS, dictKeysToValItems(DS)) </env>
+    requires sameIdValArity(IDS, dictKeysToValItems(DS))
+  rule <k> forUnpackElseItems(IDS:IdItems, valItemsLast(setVal(VS:ValItems)), block(SS:Stmts), Else:Block) =>
+           SS ~> forUnpackElseDone(Else)
+       ... </k>
+       <env> Rho => bindVals(Rho, IDS, VS) </env>
+    requires sameIdValArity(IDS, VS)
   rule <k> forUnpackElseItems(IDS:IdItems, valItemsLast(rangeVal(Start:Int, Stop:Int)), block(SS:Stmts), Else:Block) =>
            SS ~> forUnpackElseDone(Else)
        ... </k>
@@ -5456,6 +5600,16 @@ module PYTHON
        <env> Rho => bindVals(Rho, IDS, stringToValItems(S, 0, lengthString(S))) </env>
     requires lengthString(S) >Int 0
       andBool sameIdValArity(IDS, stringToValItems(S, 0, lengthString(S)))
+  rule <k> forUnpackElseItems(IDS:IdItems, valItemsCons(dictVal(DS:DictItems), Rest:ValItems), {}, Else:Block) =>
+           forUnpackElseItems(IDS, Rest, {}, Else)
+       ... </k>
+       <env> Rho => bindVals(Rho, IDS, dictKeysToValItems(DS)) </env>
+    requires sameIdValArity(IDS, dictKeysToValItems(DS))
+  rule <k> forUnpackElseItems(IDS:IdItems, valItemsCons(setVal(VS:ValItems), Rest:ValItems), {}, Else:Block) =>
+           forUnpackElseItems(IDS, Rest, {}, Else)
+       ... </k>
+       <env> Rho => bindVals(Rho, IDS, VS) </env>
+    requires sameIdValArity(IDS, VS)
   rule <k> forUnpackElseItems(IDS:IdItems, valItemsCons(rangeVal(Start:Int, Stop:Int), Rest:ValItems), {}, Else:Block) =>
            forUnpackElseItems(IDS, Rest, {}, Else)
        ... </k>
@@ -5485,6 +5639,16 @@ module PYTHON
        <env> Rho => bindVals(Rho, IDS, stringToValItems(S, 0, lengthString(S))) </env>
     requires lengthString(S) >Int 0
       andBool sameIdValArity(IDS, stringToValItems(S, 0, lengthString(S)))
+  rule <k> forUnpackElseItems(IDS:IdItems, valItemsLast(dictVal(DS:DictItems)), {}, Else:Block) =>
+           runLoopElse(Else)
+       ... </k>
+       <env> Rho => bindVals(Rho, IDS, dictKeysToValItems(DS)) </env>
+    requires sameIdValArity(IDS, dictKeysToValItems(DS))
+  rule <k> forUnpackElseItems(IDS:IdItems, valItemsLast(setVal(VS:ValItems)), {}, Else:Block) =>
+           runLoopElse(Else)
+       ... </k>
+       <env> Rho => bindVals(Rho, IDS, VS) </env>
+    requires sameIdValArity(IDS, VS)
   rule <k> forUnpackElseItems(IDS:IdItems, valItemsLast(rangeVal(Start:Int, Stop:Int)), {}, Else:Block) =>
            runLoopElse(Else)
        ... </k>
@@ -5613,6 +5777,16 @@ module PYTHON
        <env> Rho => bindStarUnpack(Rho, Prefix, Star, Suffix, stringToValItems(S, 0, lengthString(S))) </env>
     requires lengthString(S) >Int 0
       andBool starUnpackArityOk(Prefix, Suffix, lengthString(S))
+  rule <k> forStarUnpackElseItems(Prefix:IdItems, Star:Id, Suffix:IdItems, valItemsCons(dictVal(DS:DictItems), Rest:ValItems), block(SS:Stmts), Else:Block) =>
+           SS ~> forStarUnpackElseItems(Prefix, Star, Suffix, Rest, block(SS), Else)
+       ... </k>
+       <env> Rho => bindStarUnpack(Rho, Prefix, Star, Suffix, dictKeysToValItems(DS)) </env>
+    requires starUnpackArityOk(Prefix, Suffix, valItemsLen(dictKeysToValItems(DS)))
+  rule <k> forStarUnpackElseItems(Prefix:IdItems, Star:Id, Suffix:IdItems, valItemsCons(setVal(VS:ValItems), Rest:ValItems), block(SS:Stmts), Else:Block) =>
+           SS ~> forStarUnpackElseItems(Prefix, Star, Suffix, Rest, block(SS), Else)
+       ... </k>
+       <env> Rho => bindStarUnpack(Rho, Prefix, Star, Suffix, VS) </env>
+    requires starUnpackArityOk(Prefix, Suffix, valItemsLen(VS))
   rule <k> forStarUnpackElseItems(Prefix:IdItems, Star:Id, Suffix:IdItems, valItemsCons(rangeVal(Start:Int, Stop:Int), Rest:ValItems), block(SS:Stmts), Else:Block) =>
            SS ~> forStarUnpackElseItems(Prefix, Star, Suffix, Rest, block(SS), Else)
        ... </k>
@@ -5632,6 +5806,16 @@ module PYTHON
        <env> Rho => Rho [ Star <- [] ] </env>
     requires idItemsLen(Prefix) +Int idItemsLen(Suffix) ==Int 0
   rule <k> forStarUnpackElseItems(Prefix:IdItems, Star:Id, Suffix:IdItems, valItemsCons((), Rest:ValItems), block(SS:Stmts), Else:Block) =>
+           SS ~> forStarUnpackElseItems(Prefix, Star, Suffix, Rest, block(SS), Else)
+       ... </k>
+       <env> Rho => Rho [ Star <- [] ] </env>
+    requires idItemsLen(Prefix) +Int idItemsLen(Suffix) ==Int 0
+  rule <k> forStarUnpackElseItems(Prefix:IdItems, Star:Id, Suffix:IdItems, valItemsCons(({}):Val, Rest:ValItems), block(SS:Stmts), Else:Block) =>
+           SS ~> forStarUnpackElseItems(Prefix, Star, Suffix, Rest, block(SS), Else)
+       ... </k>
+       <env> Rho => Rho [ Star <- [] ] </env>
+    requires idItemsLen(Prefix) +Int idItemsLen(Suffix) ==Int 0
+  rule <k> forStarUnpackElseItems(Prefix:IdItems, Star:Id, Suffix:IdItems, valItemsCons(set(), Rest:ValItems), block(SS:Stmts), Else:Block) =>
            SS ~> forStarUnpackElseItems(Prefix, Star, Suffix, Rest, block(SS), Else)
        ... </k>
        <env> Rho => Rho [ Star <- [] ] </env>
@@ -5671,6 +5855,16 @@ module PYTHON
        <env> Rho => bindStarUnpack(Rho, Prefix, Star, Suffix, stringToValItems(S, 0, lengthString(S))) </env>
     requires lengthString(S) >Int 0
       andBool starUnpackArityOk(Prefix, Suffix, lengthString(S))
+  rule <k> forStarUnpackElseItems(Prefix:IdItems, Star:Id, Suffix:IdItems, valItemsLast(dictVal(DS:DictItems)), block(SS:Stmts), Else:Block) =>
+           SS ~> forUnpackElseDone(Else)
+       ... </k>
+       <env> Rho => bindStarUnpack(Rho, Prefix, Star, Suffix, dictKeysToValItems(DS)) </env>
+    requires starUnpackArityOk(Prefix, Suffix, valItemsLen(dictKeysToValItems(DS)))
+  rule <k> forStarUnpackElseItems(Prefix:IdItems, Star:Id, Suffix:IdItems, valItemsLast(setVal(VS:ValItems)), block(SS:Stmts), Else:Block) =>
+           SS ~> forUnpackElseDone(Else)
+       ... </k>
+       <env> Rho => bindStarUnpack(Rho, Prefix, Star, Suffix, VS) </env>
+    requires starUnpackArityOk(Prefix, Suffix, valItemsLen(VS))
   rule <k> forStarUnpackElseItems(Prefix:IdItems, Star:Id, Suffix:IdItems, valItemsLast(rangeVal(Start:Int, Stop:Int)), block(SS:Stmts), Else:Block) =>
            SS ~> forUnpackElseDone(Else)
        ... </k>
@@ -5690,6 +5884,16 @@ module PYTHON
        <env> Rho => Rho [ Star <- [] ] </env>
     requires idItemsLen(Prefix) +Int idItemsLen(Suffix) ==Int 0
   rule <k> forStarUnpackElseItems(Prefix:IdItems, Star:Id, Suffix:IdItems, valItemsLast(()), block(SS:Stmts), Else:Block) =>
+           SS ~> forUnpackElseDone(Else)
+       ... </k>
+       <env> Rho => Rho [ Star <- [] ] </env>
+    requires idItemsLen(Prefix) +Int idItemsLen(Suffix) ==Int 0
+  rule <k> forStarUnpackElseItems(Prefix:IdItems, Star:Id, Suffix:IdItems, valItemsLast(({}):Val), block(SS:Stmts), Else:Block) =>
+           SS ~> forUnpackElseDone(Else)
+       ... </k>
+       <env> Rho => Rho [ Star <- [] ] </env>
+    requires idItemsLen(Prefix) +Int idItemsLen(Suffix) ==Int 0
+  rule <k> forStarUnpackElseItems(Prefix:IdItems, Star:Id, Suffix:IdItems, valItemsLast(set()), block(SS:Stmts), Else:Block) =>
            SS ~> forUnpackElseDone(Else)
        ... </k>
        <env> Rho => Rho [ Star <- [] ] </env>
@@ -5729,6 +5933,16 @@ module PYTHON
        <env> Rho => bindStarUnpack(Rho, Prefix, Star, Suffix, stringToValItems(S, 0, lengthString(S))) </env>
     requires lengthString(S) >Int 0
       andBool starUnpackArityOk(Prefix, Suffix, lengthString(S))
+  rule <k> forStarUnpackElseItems(Prefix:IdItems, Star:Id, Suffix:IdItems, valItemsCons(dictVal(DS:DictItems), Rest:ValItems), {}, Else:Block) =>
+           forStarUnpackElseItems(Prefix, Star, Suffix, Rest, {}, Else)
+       ... </k>
+       <env> Rho => bindStarUnpack(Rho, Prefix, Star, Suffix, dictKeysToValItems(DS)) </env>
+    requires starUnpackArityOk(Prefix, Suffix, valItemsLen(dictKeysToValItems(DS)))
+  rule <k> forStarUnpackElseItems(Prefix:IdItems, Star:Id, Suffix:IdItems, valItemsCons(setVal(VS:ValItems), Rest:ValItems), {}, Else:Block) =>
+           forStarUnpackElseItems(Prefix, Star, Suffix, Rest, {}, Else)
+       ... </k>
+       <env> Rho => bindStarUnpack(Rho, Prefix, Star, Suffix, VS) </env>
+    requires starUnpackArityOk(Prefix, Suffix, valItemsLen(VS))
   rule <k> forStarUnpackElseItems(Prefix:IdItems, Star:Id, Suffix:IdItems, valItemsCons(rangeVal(Start:Int, Stop:Int), Rest:ValItems), {}, Else:Block) =>
            forStarUnpackElseItems(Prefix, Star, Suffix, Rest, {}, Else)
        ... </k>
@@ -5748,6 +5962,16 @@ module PYTHON
        <env> Rho => Rho [ Star <- [] ] </env>
     requires idItemsLen(Prefix) +Int idItemsLen(Suffix) ==Int 0
   rule <k> forStarUnpackElseItems(Prefix:IdItems, Star:Id, Suffix:IdItems, valItemsCons((), Rest:ValItems), {}, Else:Block) =>
+           forStarUnpackElseItems(Prefix, Star, Suffix, Rest, {}, Else)
+       ... </k>
+       <env> Rho => Rho [ Star <- [] ] </env>
+    requires idItemsLen(Prefix) +Int idItemsLen(Suffix) ==Int 0
+  rule <k> forStarUnpackElseItems(Prefix:IdItems, Star:Id, Suffix:IdItems, valItemsCons(({}):Val, Rest:ValItems), {}, Else:Block) =>
+           forStarUnpackElseItems(Prefix, Star, Suffix, Rest, {}, Else)
+       ... </k>
+       <env> Rho => Rho [ Star <- [] ] </env>
+    requires idItemsLen(Prefix) +Int idItemsLen(Suffix) ==Int 0
+  rule <k> forStarUnpackElseItems(Prefix:IdItems, Star:Id, Suffix:IdItems, valItemsCons(set(), Rest:ValItems), {}, Else:Block) =>
            forStarUnpackElseItems(Prefix, Star, Suffix, Rest, {}, Else)
        ... </k>
        <env> Rho => Rho [ Star <- [] ] </env>
@@ -5787,6 +6011,16 @@ module PYTHON
        <env> Rho => bindStarUnpack(Rho, Prefix, Star, Suffix, stringToValItems(S, 0, lengthString(S))) </env>
     requires lengthString(S) >Int 0
       andBool starUnpackArityOk(Prefix, Suffix, lengthString(S))
+  rule <k> forStarUnpackElseItems(Prefix:IdItems, Star:Id, Suffix:IdItems, valItemsLast(dictVal(DS:DictItems)), {}, Else:Block) =>
+           runLoopElse(Else)
+       ... </k>
+       <env> Rho => bindStarUnpack(Rho, Prefix, Star, Suffix, dictKeysToValItems(DS)) </env>
+    requires starUnpackArityOk(Prefix, Suffix, valItemsLen(dictKeysToValItems(DS)))
+  rule <k> forStarUnpackElseItems(Prefix:IdItems, Star:Id, Suffix:IdItems, valItemsLast(setVal(VS:ValItems)), {}, Else:Block) =>
+           runLoopElse(Else)
+       ... </k>
+       <env> Rho => bindStarUnpack(Rho, Prefix, Star, Suffix, VS) </env>
+    requires starUnpackArityOk(Prefix, Suffix, valItemsLen(VS))
   rule <k> forStarUnpackElseItems(Prefix:IdItems, Star:Id, Suffix:IdItems, valItemsLast(rangeVal(Start:Int, Stop:Int)), {}, Else:Block) =>
            runLoopElse(Else)
        ... </k>
@@ -5806,6 +6040,16 @@ module PYTHON
        <env> Rho => Rho [ Star <- [] ] </env>
     requires idItemsLen(Prefix) +Int idItemsLen(Suffix) ==Int 0
   rule <k> forStarUnpackElseItems(Prefix:IdItems, Star:Id, Suffix:IdItems, valItemsLast(()), {}, Else:Block) =>
+           runLoopElse(Else)
+       ... </k>
+       <env> Rho => Rho [ Star <- [] ] </env>
+    requires idItemsLen(Prefix) +Int idItemsLen(Suffix) ==Int 0
+  rule <k> forStarUnpackElseItems(Prefix:IdItems, Star:Id, Suffix:IdItems, valItemsLast(({}):Val), {}, Else:Block) =>
+           runLoopElse(Else)
+       ... </k>
+       <env> Rho => Rho [ Star <- [] ] </env>
+    requires idItemsLen(Prefix) +Int idItemsLen(Suffix) ==Int 0
+  rule <k> forStarUnpackElseItems(Prefix:IdItems, Star:Id, Suffix:IdItems, valItemsLast(set()), {}, Else:Block) =>
            runLoopElse(Else)
        ... </k>
        <env> Rho => Rho [ Star <- [] ] </env>

@@ -830,6 +830,13 @@
       "coverage": ["for-statement", "sequence-unpacking-target", "starred-target-assignment", "nested-sequence-targets", "dict-key-iteration-profile", "loop-else-normal-completion", "ordinary-python-source-adapter"]
     },
     {
+      "id": "adapter-for-unpack-dict-set-items",
+      "source": "../adapter/adapter-for-unpack-dict-set-items.py",
+      "reference": "Python Language Reference 8.3 The for statement; 7.2 Assignment statements; Python Standard Library dict and set",
+      "expected_result": "True ~> .K",
+      "coverage": ["for-statement", "sequence-unpacking-target", "starred-target-assignment", "nested-sequence-targets", "dict-key-iteration-profile", "set-iteration-profile", "empty-dict-iteration", "empty-set-iteration", "loop-else-normal-completion", "ordinary-python-source-adapter"]
+    },
+    {
       "id": "adapter-for-unpack-string-range",
       "source": "../adapter/adapter-for-unpack-string-range.py",
       "reference": "Python Language Reference 8.3 The for statement; 7.2 Assignment statements; Python Standard Library sequence types str and range",
@@ -1290,6 +1297,13 @@
       "reference": "Python Language Reference 7.2 Assignment statements; Python Standard Library dict",
       "expected_result": "True ~> .K",
       "coverage": ["sequence-unpacking-assignment", "starred-target-assignment", "nested-sequence-targets", "dict-key-iteration-profile", "empty-dict-iteration", "ordinary-python-source-adapter"]
+    },
+    {
+      "id": "adapter-unpack-dict-set-items",
+      "source": "../adapter/adapter-unpack-dict-set-items.py",
+      "reference": "Python Language Reference 7.2 Assignment statements; Python Standard Library dict and set",
+      "expected_result": "True ~> .K",
+      "coverage": ["sequence-unpacking-assignment", "nested-sequence-targets", "dict-key-iteration-profile", "set-iteration-profile", "ordinary-python-source-adapter"]
     },
     {
       "id": "adapter-unpack-string-range",

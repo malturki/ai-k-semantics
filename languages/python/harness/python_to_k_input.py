@@ -605,7 +605,11 @@ def emit_lambda(node: ast.AST, args: ast.arguments, body: ast.expr) -> str:
         names = [arg.arg for arg in args.args]
         if args.kwarg is not None:
             if args.vararg is not None:
-                raise unsupported(node, "lambda varargs plus keyword-only kwargs are not supported yet")
+                if args.defaults or kw_defaults is not None:
+                    pos_defaults = emit_arg_exps(args.defaults) if args.defaults else "#noArgs"
+                    kw_defaults_exp = kw_defaults if kw_defaults is not None else "#noArgs"
+                    return f"#lambdaVarArgsKwDefaultsKwArgs({emit_id_items(names)}, {pos_defaults}, {args.vararg.arg}, {emit_id_items(kw_names)}, {kw_defaults_exp}, {args.kwarg.arg}, {emit_exp(body)})"
+                return f"#lambdaVarArgsKwOnlyKwArgs({emit_id_items(names)}, {args.vararg.arg}, {emit_id_items(kw_names)}, {args.kwarg.arg}, {emit_exp(body)})"
             if names:
                 if args.defaults or kw_defaults is not None:
                     pos_defaults = emit_arg_exps(args.defaults) if args.defaults else "#noArgs"
@@ -685,7 +689,11 @@ def emit_function_def(
         names = [arg.arg for arg in args.args]
         if args.kwarg is not None:
             if args.vararg is not None:
-                raise unsupported(node, "varargs plus keyword-only kwargs are not supported yet")
+                if args.defaults or kw_defaults is not None:
+                    pos_defaults = emit_arg_exps(args.defaults) if args.defaults else "#noArgs"
+                    kw_defaults_exp = kw_defaults if kw_defaults is not None else "#noArgs"
+                    return f"#defVarArgsKwDefaultsKwArgs({name}, {emit_id_items(names)}, {pos_defaults}, {args.vararg.arg}, {emit_id_items(kw_names)}, {kw_defaults_exp}, {args.kwarg.arg}, {emit_block(body)})"
+                return f"#defVarArgsKwOnlyKwArgs({name}, {emit_id_items(names)}, {args.vararg.arg}, {emit_id_items(kw_names)}, {args.kwarg.arg}, {emit_block(body)})"
             if names:
                 if args.defaults or kw_defaults is not None:
                     pos_defaults = emit_arg_exps(args.defaults) if args.defaults else "#noArgs"

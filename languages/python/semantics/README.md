@@ -82,7 +82,7 @@ The base modules should model portable Python semantics from the official docs. 
 - adapter-backed positional function default values, evaluated at function definition time
 - adapter-backed function and lambda varargs parameters, including suffix defaults for fixed parameters, keyword-only parameters with sparse defaults, and `*args, **kwargs` combinations with optional suffix defaults, collecting extra positional arguments into a tuple
 - adapter-backed function and lambda `**kwargs` parameters in the no-keyword-only subset, including suffix defaults for fixed parameters, collecting extra keyword arguments into a dictionary keyed by strings
-- adapter-backed function and lambda positional-only parameters, including suffix defaults, in the no-varargs/no-keyword-only/no-kwargs subset
+- adapter-backed function and lambda positional-only parameters, including suffix defaults and varargs, in the no-keyword-only/no-kwargs subset
 - adapter-backed function and lambda keyword-only parameters in the no-positional subset, including sparse defaults and `**kwargs` collection
 - adapter-backed function and lambda mixed positional-plus-keyword-only parameters including sparse keyword-only defaults and `**kwargs` collection
 - an internal `#floorDiv(E1, E2)` parser bridge form emitted by the AST adapter

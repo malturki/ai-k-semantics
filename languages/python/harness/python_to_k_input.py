@@ -270,10 +270,15 @@ def emit_list_comprehension(
 ) -> str:
     if generator.is_async:
         raise unsupported(node, "async list comprehensions are not supported yet")
-    if generator.ifs:
-        raise unsupported(node, "list comprehension if-clauses are not supported yet")
+    if len(generator.ifs) > 1:
+        raise unsupported(node, "multiple list comprehension if-clauses are not supported yet")
     if not isinstance(generator.target, ast.Name):
         raise unsupported(generator.target, "only simple-name list comprehension targets are supported")
+    if generator.ifs:
+        return (
+            f"#listCompIf({emit_exp(generator.iter)}, {generator.target.id}, "
+            f"{emit_exp(generator.ifs[0])}, {emit_exp(elt)})"
+        )
     return f"#listComp({emit_exp(generator.iter)}, {generator.target.id}, {emit_exp(elt)})"
 
 

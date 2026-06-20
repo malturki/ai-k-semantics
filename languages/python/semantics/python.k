@@ -133,6 +133,7 @@ module PYTHON-SYNTAX
                | "#dict" "(" DictExps ")" [symbol(dictDisplayExp)]
                | "#set" "(" ArgExps ")" [symbol(setDisplayExp)]
                | "#listComp" "(" Exp "," Id "," Exp ")" [symbol(listCompExp), strict(1)]
+               | "#listCompIf" "(" Exp "," Id "," Exp "," Exp ")" [symbol(listCompIfExp), strict(1)]
                | "#listCtor" "(" ")" [symbol(listCtorExp)]
                | "#listCtor" "(" Exp ")" [symbol(listCtor1Exp), strict]
                | "#tupleCtor" "(" ")" [symbol(tupleCtorExp)]
@@ -277,6 +278,9 @@ module PYTHON
                  | "buildList" [symbol(buildList)]
                  | listCompIter(Id, Exp, ArgVals, ArgVals, Map) [symbol(listCompIter)]
                  | listCompNext(Id, Exp, ArgVals, ArgVals, Map) [symbol(listCompNext)]
+                 | listCompIfIter(Id, Exp, Exp, ArgVals, ArgVals, Map) [symbol(listCompIfIter)]
+                 | listCompIfFilter(Id, Exp, Exp, ArgVals, ArgVals, Map) [symbol(listCompIfFilter)]
+                 | listCompIfNext(Id, Exp, Exp, ArgVals, ArgVals, Map) [symbol(listCompIfNext)]
                  | "buildTuple" [symbol(buildTuple)]
                  | "buildSet" [symbol(buildSet)]
                  | "minArgsResult" [symbol(minArgsResult)]
@@ -2844,6 +2848,32 @@ module PYTHON
        <env> _ => Rho [ X <- V ] </env>
   rule <k> V:Val ~> listCompNext(X:Id, Elem:Exp, Rest:ArgVals, Acc:ArgVals, Rho:Map) =>
            listCompIter(X, Elem, Rest, appendArgVal(Acc, V), Rho)
+       ... </k>
+  rule <k> listCompIfExp(Iter:Val, X:Id, Filter:Exp, Elem:Exp) =>
+           listCompIfIter(X, Filter, Elem, iterableArgVals(Iter), #noArgVals, Rho)
+       ... </k>
+       <env> Rho </env>
+  rule <k> listCompIfIter(_:Id, _:Exp, _:Exp, #noArgVals, #noArgVals, Rho:Map) =>
+           [] ~> restoreEnv(Rho)
+       ... </k>
+  rule <k> listCompIfIter(_:Id, _:Exp, _:Exp, #noArgVals, Acc:ArgVals, Rho:Map) =>
+           listVal(argValsToValItems(Acc)) ~> restoreEnv(Rho)
+       ... </k>
+    requires notBool emptyArgVals(Acc)
+  rule <k> listCompIfIter(X:Id, Filter:Exp, Elem:Exp, argValsCons(V:Val, Rest:ArgVals), Acc:ArgVals, Rho:Map) =>
+           Filter ~> listCompIfFilter(X, Filter, Elem, Rest, Acc, Rho)
+       ... </k>
+       <env> _ => Rho [ X <- V ] </env>
+  rule <k> V:Val ~> listCompIfFilter(X:Id, Filter:Exp, Elem:Exp, Rest:ArgVals, Acc:ArgVals, Rho:Map) =>
+           Elem ~> listCompIfNext(X, Filter, Elem, Rest, Acc, Rho)
+       ... </k>
+    requires truthy(V)
+  rule <k> V:Val ~> listCompIfFilter(X:Id, Filter:Exp, Elem:Exp, Rest:ArgVals, Acc:ArgVals, Rho:Map) =>
+           listCompIfIter(X, Filter, Elem, Rest, Acc, Rho)
+       ... </k>
+    requires notBool truthy(V)
+  rule <k> V:Val ~> listCompIfNext(X:Id, Filter:Exp, Elem:Exp, Rest:ArgVals, Acc:ArgVals, Rho:Map) =>
+           listCompIfIter(X, Filter, Elem, Rest, appendArgVal(Acc, V), Rho)
        ... </k>
 
   rule <k> tupleDisplayExp(Args:ArgExps) => evalArgs(Args, #noArgVals) ~> buildTuple ... </k>

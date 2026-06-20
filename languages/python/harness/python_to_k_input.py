@@ -636,9 +636,13 @@ def emit_lambda(node: ast.AST, args: ast.arguments, body: ast.expr) -> str:
         return f"#lambdaKwOnly({emit_id_items(kw_names)}, {emit_exp(body)})"
     names = [arg.arg for arg in args.args]
     if args.posonlyargs:
-        if args.vararg is not None or args.kwarg is not None or any(default is not None for default in args.kw_defaults):
-            raise unsupported(node, "lambda positional-only parameters are supported only without varargs, kwargs, or keyword-only parameters")
+        if args.kwarg is not None or any(default is not None for default in args.kw_defaults):
+            raise unsupported(node, "lambda positional-only parameters are supported only without kwargs or keyword-only parameters")
         pos_names = [arg.arg for arg in args.posonlyargs]
+        if args.vararg is not None:
+            if args.defaults:
+                return f"#lambdaPosOnlyVarArgsDefaults({emit_id_items(pos_names)}, {emit_id_items(names)}, {emit_arg_exps(args.defaults)}, {args.vararg.arg}, {emit_exp(body)})"
+            return f"#lambdaPosOnlyVarArgs({emit_id_items(pos_names)}, {emit_id_items(names)}, {args.vararg.arg}, {emit_exp(body)})"
         if args.defaults:
             return f"#lambdaPosOnlyDefaults({emit_id_items(pos_names)}, {emit_id_items(names)}, {emit_arg_exps(args.defaults)}, {emit_exp(body)})"
         return f"#lambdaPosOnly({emit_id_items(pos_names)}, {emit_id_items(names)}, {emit_exp(body)})"
@@ -722,9 +726,13 @@ def emit_function_def(
         return f"#defKwOnly({name}, {emit_id_items(kw_names)}, {emit_block(body)})"
     names = [arg.arg for arg in args.args]
     if args.posonlyargs:
-        if args.vararg is not None or args.kwarg is not None or any(default is not None for default in args.kw_defaults):
-            raise unsupported(node, "positional-only parameters are supported only without varargs, kwargs, or keyword-only parameters")
+        if args.kwarg is not None or any(default is not None for default in args.kw_defaults):
+            raise unsupported(node, "positional-only parameters are supported only without kwargs or keyword-only parameters")
         pos_names = [arg.arg for arg in args.posonlyargs]
+        if args.vararg is not None:
+            if args.defaults:
+                return f"#defPosOnlyVarArgsDefaults({name}, {emit_id_items(pos_names)}, {emit_id_items(names)}, {emit_arg_exps(args.defaults)}, {args.vararg.arg}, {emit_block(body)})"
+            return f"#defPosOnlyVarArgs({name}, {emit_id_items(pos_names)}, {emit_id_items(names)}, {args.vararg.arg}, {emit_block(body)})"
         if args.defaults:
             return f"#defPosOnlyDefaults({name}, {emit_id_items(pos_names)}, {emit_id_items(names)}, {emit_arg_exps(args.defaults)}, {emit_block(body)})"
         return f"#defPosOnly({name}, {emit_id_items(pos_names)}, {emit_id_items(names)}, {emit_block(body)})"

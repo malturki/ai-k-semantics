@@ -144,6 +144,7 @@ module PYTHON-SYNTAX
                | "#dictCompIfs" "(" Exp "," Id "," CompFilters "," Exp "," Exp ")" [symbol(dictCompIfsExp), strict(1)]
                | "#setComp" "(" Exp "," Id "," Exp ")" [symbol(setCompExp), strict(1)]
                | "#setCompIf" "(" Exp "," Id "," Exp "," Exp ")" [symbol(setCompIfExp), strict(1)]
+               | "#setCompIfs" "(" Exp "," Id "," CompFilters "," Exp ")" [symbol(setCompIfsExp), strict(1)]
                | "#listCtor" "(" ")" [symbol(listCtorExp)]
                | "#listCtor" "(" Exp ")" [symbol(listCtor1Exp), strict]
                | "#tupleCtor" "(" ")" [symbol(tupleCtorExp)]
@@ -301,6 +302,11 @@ module PYTHON
                  | setCompIfIter(Id, Exp, Exp, ArgVals, ArgVals, Map) [symbol(setCompIfIter)]
                  | setCompIfFilter(Id, Exp, Exp, ArgVals, ArgVals, Map) [symbol(setCompIfFilter)]
                  | setCompIfNext(Id, Exp, Exp, ArgVals, ArgVals, Map) [symbol(setCompIfNext)]
+                 | setCompIfsIter(Id, CompFilters, Exp, ArgVals, ArgVals, Map) [symbol(setCompIfsIter)]
+                 | setCompIfsFilter(Id, CompFilters, CompFilters, Exp, ArgVals, ArgVals, Map) [symbol(setCompIfsFilter)]
+                 | setCompIfsFilterNext(Id, CompFilters, CompFilters, Exp, ArgVals, ArgVals, Map) [symbol(setCompIfsFilterNext)]
+                 | setCompIfsFilterLast(Id, CompFilters, Exp, ArgVals, ArgVals, Map) [symbol(setCompIfsFilterLast)]
+                 | setCompIfsNext(Id, CompFilters, Exp, ArgVals, ArgVals, Map) [symbol(setCompIfsNext)]
                  | "buildTuple" [symbol(buildTuple)]
                  | "buildSet" [symbol(buildSet)]
                  | "minArgsResult" [symbol(minArgsResult)]
@@ -2993,6 +2999,46 @@ module PYTHON
     requires notBool truthy(V)
   rule <k> V:Val ~> setCompIfNext(X:Id, Filter:Exp, Elem:Exp, Rest:ArgVals, Acc:ArgVals, Rho:Map) =>
            setCompIfIter(X, Filter, Elem, Rest, appendArgVal(Acc, V), Rho)
+       ... </k>
+  rule <k> setCompIfsExp(Iter:Val, X:Id, Filters:CompFilters, Elem:Exp) =>
+           setCompIfsIter(X, Filters, Elem, iterableArgVals(Iter), #noArgVals, Rho)
+       ... </k>
+       <env> Rho </env>
+  rule <k> setCompIfsIter(_:Id, _:CompFilters, _:Exp, #noArgVals, #noArgVals, Rho:Map) =>
+           set() ~> restoreEnv(Rho)
+       ... </k>
+  rule <k> setCompIfsIter(_:Id, _:CompFilters, _:Exp, #noArgVals, Acc:ArgVals, Rho:Map) =>
+           setFromArgVals(Acc) ~> restoreEnv(Rho)
+       ... </k>
+    requires notBool emptyArgVals(Acc)
+  rule <k> setCompIfsIter(X:Id, Filters:CompFilters, Elem:Exp, argValsCons(V:Val, Rest:ArgVals), Acc:ArgVals, Rho:Map) =>
+           setCompIfsFilter(X, Filters, Filters, Elem, Rest, Acc, Rho)
+       ... </k>
+       <env> _ => Rho [ X <- V ] </env>
+  rule <k> setCompIfsFilter(X:Id, Filters:CompFilters, #filters(Filter:Exp, RestFilters:CompFilters), Elem:Exp, Rest:ArgVals, Acc:ArgVals, Rho:Map) =>
+           Filter ~> setCompIfsFilterNext(X, Filters, RestFilters, Elem, Rest, Acc, Rho)
+       ... </k>
+  rule <k> setCompIfsFilter(X:Id, Filters:CompFilters, #filter(Filter:Exp), Elem:Exp, Rest:ArgVals, Acc:ArgVals, Rho:Map) =>
+           Filter ~> setCompIfsFilterLast(X, Filters, Elem, Rest, Acc, Rho)
+       ... </k>
+  rule <k> V:Val ~> setCompIfsFilterNext(X:Id, Filters:CompFilters, RestFilters:CompFilters, Elem:Exp, Rest:ArgVals, Acc:ArgVals, Rho:Map) =>
+           setCompIfsFilter(X, Filters, RestFilters, Elem, Rest, Acc, Rho)
+       ... </k>
+    requires truthy(V)
+  rule <k> V:Val ~> setCompIfsFilterNext(X:Id, Filters:CompFilters, _:CompFilters, Elem:Exp, Rest:ArgVals, Acc:ArgVals, Rho:Map) =>
+           setCompIfsIter(X, Filters, Elem, Rest, Acc, Rho)
+       ... </k>
+    requires notBool truthy(V)
+  rule <k> V:Val ~> setCompIfsFilterLast(X:Id, Filters:CompFilters, Elem:Exp, Rest:ArgVals, Acc:ArgVals, Rho:Map) =>
+           Elem ~> setCompIfsNext(X, Filters, Elem, Rest, Acc, Rho)
+       ... </k>
+    requires truthy(V)
+  rule <k> V:Val ~> setCompIfsFilterLast(X:Id, Filters:CompFilters, Elem:Exp, Rest:ArgVals, Acc:ArgVals, Rho:Map) =>
+           setCompIfsIter(X, Filters, Elem, Rest, Acc, Rho)
+       ... </k>
+    requires notBool truthy(V)
+  rule <k> V:Val ~> setCompIfsNext(X:Id, Filters:CompFilters, Elem:Exp, Rest:ArgVals, Acc:ArgVals, Rho:Map) =>
+           setCompIfsIter(X, Filters, Elem, Rest, appendArgVal(Acc, V), Rho)
        ... </k>
 
   rule <k> tupleDisplayExp(Args:ArgExps) => evalArgs(Args, #noArgVals) ~> buildTuple ... </k>

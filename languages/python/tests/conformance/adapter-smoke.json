@@ -823,6 +823,13 @@
       "coverage": ["for-statement", "sequence-unpacking-target", "list-target", "ordinary-python-source-adapter"]
     },
     {
+      "id": "adapter-for-unpack-dict",
+      "source": "../adapter/adapter-for-unpack-dict.py",
+      "reference": "Python Language Reference 8.3 The for statement; 7.2 Assignment statements; Python Standard Library dict",
+      "expected_result": "True ~> .K",
+      "coverage": ["for-statement", "sequence-unpacking-target", "starred-target-assignment", "nested-sequence-targets", "dict-key-iteration-profile", "loop-else-normal-completion", "ordinary-python-source-adapter"]
+    },
+    {
       "id": "adapter-for-unpack-nested",
       "source": "../adapter/adapter-for-unpack-nested.py",
       "reference": "Python Language Reference 8.3 The for statement; 7.2 Assignment statements",
@@ -1269,6 +1276,13 @@
       "reference": "Python Language Reference 7.2 Assignment statements",
       "expected_result": "True ~> .K",
       "coverage": ["sequence-unpacking-assignment", "nested-sequence-targets", "left-to-right-target-binding", "set-iteration-profile", "ordinary-python-source-adapter"]
+    },
+    {
+      "id": "adapter-unpack-dict",
+      "source": "../adapter/adapter-unpack-dict.py",
+      "reference": "Python Language Reference 7.2 Assignment statements; Python Standard Library dict",
+      "expected_result": "True ~> .K",
+      "coverage": ["sequence-unpacking-assignment", "starred-target-assignment", "nested-sequence-targets", "dict-key-iteration-profile", "empty-dict-iteration", "ordinary-python-source-adapter"]
     },
     {
       "id": "adapter-unpack-set",

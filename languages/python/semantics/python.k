@@ -4477,6 +4477,10 @@ module PYTHON
        <env> Rho => bindVals(Rho, IDS, VS) </env>
        <result> _ => .K </result>
     requires sameIdValArity(IDS, VS)
+  rule <k> unpackAssignStmt(IDS:IdItems, dictVal(DS:DictItems)) => stmtNoResult ... </k>
+       <env> Rho => bindVals(Rho, IDS, dictKeysToValItems(DS)) </env>
+       <result> _ => .K </result>
+    requires sameIdValArity(IDS, dictKeysToValItems(DS))
 
   rule <k> unpackTargetAssignStmt(TS:Targets, listVal(VS:ValItems)) => stmtNoResult ... </k>
        <env> Rho => bindTargets(Rho, TS, VS) </env>
@@ -4490,6 +4494,10 @@ module PYTHON
        <env> Rho => bindTargets(Rho, TS, VS) </env>
        <result> _ => .K </result>
     requires sameTargetsValArity(TS, VS)
+  rule <k> unpackTargetAssignStmt(TS:Targets, dictVal(DS:DictItems)) => stmtNoResult ... </k>
+       <env> Rho => bindTargets(Rho, TS, dictKeysToValItems(DS)) </env>
+       <result> _ => .K </result>
+    requires sameTargetsValArity(TS, dictKeysToValItems(DS))
 
   rule <k> unpackStarAssignStmt(Prefix:IdItems, Star:Id, Suffix:IdItems, listVal(VS:ValItems)) => stmtNoResult ... </k>
        <env> Rho => bindStarUnpack(Rho, Prefix, Star, Suffix, VS) </env>
@@ -4503,6 +4511,10 @@ module PYTHON
        <env> Rho => bindStarUnpack(Rho, Prefix, Star, Suffix, VS) </env>
        <result> _ => .K </result>
     requires starUnpackArityOk(Prefix, Suffix, valItemsLen(VS))
+  rule <k> unpackStarAssignStmt(Prefix:IdItems, Star:Id, Suffix:IdItems, dictVal(DS:DictItems)) => stmtNoResult ... </k>
+       <env> Rho => bindStarUnpack(Rho, Prefix, Star, Suffix, dictKeysToValItems(DS)) </env>
+       <result> _ => .K </result>
+    requires starUnpackArityOk(Prefix, Suffix, valItemsLen(dictKeysToValItems(DS)))
   rule <k> unpackStarAssignStmt(Prefix:IdItems, Star:Id, Suffix:IdItems, []) => stmtNoResult ... </k>
        <env> Rho => Rho [ Star <- [] ] </env>
        <result> _ => .K </result>
@@ -4512,6 +4524,10 @@ module PYTHON
        <result> _ => .K </result>
     requires idItemsLen(Prefix) +Int idItemsLen(Suffix) ==Int 0
   rule <k> unpackStarAssignStmt(Prefix:IdItems, Star:Id, Suffix:IdItems, set()) => stmtNoResult ... </k>
+       <env> Rho => Rho [ Star <- [] ] </env>
+       <result> _ => .K </result>
+    requires idItemsLen(Prefix) +Int idItemsLen(Suffix) ==Int 0
+  rule <k> unpackStarAssignStmt(Prefix:IdItems, Star:Id, Suffix:IdItems, ({}):Val) => stmtNoResult ... </k>
        <env> Rho => Rho [ Star <- [] ] </env>
        <result> _ => .K </result>
     requires idItemsLen(Prefix) +Int idItemsLen(Suffix) ==Int 0
@@ -4686,6 +4702,10 @@ module PYTHON
   rule <k> tupleVal(VS:ValItems) ~> forUnpackIter(IDS:IdItems, Body:Block) =>
            forUnpackItems(IDS, VS, Body)
        ... </k>
+  rule <k> ({}):Val ~> forUnpackIter(_:IdItems, _:Block) => stmtNoResult ... </k>
+  rule <k> dictVal(DS:DictItems) ~> forUnpackIter(IDS:IdItems, Body:Block) =>
+           forUnpackItems(IDS, dictKeysToValItems(DS), Body)
+       ... </k>
   rule <k> set() ~> forUnpackIter(_:IdItems, _:Block) => stmtNoResult ... </k>
   rule <k> setVal(VS:ValItems) ~> forUnpackIter(IDS:IdItems, Body:Block) =>
            forUnpackItems(IDS, VS, Body)
@@ -4743,6 +4763,10 @@ module PYTHON
   rule <k> tupleVal(VS:ValItems) ~> forTargetUnpackIter(TS:Targets, Body:Block) =>
            forTargetUnpackItems(TS, VS, Body)
        ... </k>
+  rule <k> ({}):Val ~> forTargetUnpackIter(_:Targets, _:Block) => stmtNoResult ... </k>
+  rule <k> dictVal(DS:DictItems) ~> forTargetUnpackIter(TS:Targets, Body:Block) =>
+           forTargetUnpackItems(TS, dictKeysToValItems(DS), Body)
+       ... </k>
   rule <k> set() ~> forTargetUnpackIter(_:Targets, _:Block) => stmtNoResult ... </k>
   rule <k> setVal(VS:ValItems) ~> forTargetUnpackIter(TS:Targets, Body:Block) =>
            forTargetUnpackItems(TS, VS, Body)
@@ -4779,6 +4803,10 @@ module PYTHON
   rule <k> () ~> forStarUnpackIter(_:IdItems, _:Id, _:IdItems, _:Block) => stmtNoResult ... </k>
   rule <k> tupleVal(VS:ValItems) ~> forStarUnpackIter(Prefix:IdItems, Star:Id, Suffix:IdItems, Body:Block) =>
            forStarUnpackItems(Prefix, Star, Suffix, VS, Body)
+       ... </k>
+  rule <k> ({}):Val ~> forStarUnpackIter(_:IdItems, _:Id, _:IdItems, _:Block) => stmtNoResult ... </k>
+  rule <k> dictVal(DS:DictItems) ~> forStarUnpackIter(Prefix:IdItems, Star:Id, Suffix:IdItems, Body:Block) =>
+           forStarUnpackItems(Prefix, Star, Suffix, dictKeysToValItems(DS), Body)
        ... </k>
   rule <k> set() ~> forStarUnpackIter(_:IdItems, _:Id, _:IdItems, _:Block) => stmtNoResult ... </k>
   rule <k> setVal(VS:ValItems) ~> forStarUnpackIter(Prefix:IdItems, Star:Id, Suffix:IdItems, Body:Block) =>
@@ -4963,6 +4991,10 @@ module PYTHON
   rule <k> tupleVal(VS:ValItems) ~> forUnpackElseIter(IDS:IdItems, Body:Block, Else:Block) =>
            forUnpackElseItems(IDS, VS, Body, Else)
        ... </k>
+  rule <k> ({}):Val ~> forUnpackElseIter(_:IdItems, _:Block, Else:Block) => runLoopElse(Else) ... </k>
+  rule <k> dictVal(DS:DictItems) ~> forUnpackElseIter(IDS:IdItems, Body:Block, Else:Block) =>
+           forUnpackElseItems(IDS, dictKeysToValItems(DS), Body, Else)
+       ... </k>
   rule <k> set() ~> forUnpackElseIter(_:IdItems, _:Block, Else:Block) => runLoopElse(Else) ... </k>
   rule <k> setVal(VS:ValItems) ~> forUnpackElseIter(IDS:IdItems, Body:Block, Else:Block) =>
            forUnpackElseItems(IDS, VS, Body, Else)
@@ -5021,6 +5053,10 @@ module PYTHON
   rule <k> tupleVal(VS:ValItems) ~> forTargetUnpackElseIter(TS:Targets, Body:Block, Else:Block) =>
            forTargetUnpackElseItems(TS, VS, Body, Else)
        ... </k>
+  rule <k> ({}):Val ~> forTargetUnpackElseIter(_:Targets, _:Block, Else:Block) => runLoopElse(Else) ... </k>
+  rule <k> dictVal(DS:DictItems) ~> forTargetUnpackElseIter(TS:Targets, Body:Block, Else:Block) =>
+           forTargetUnpackElseItems(TS, dictKeysToValItems(DS), Body, Else)
+       ... </k>
   rule <k> set() ~> forTargetUnpackElseIter(_:Targets, _:Block, Else:Block) => runLoopElse(Else) ... </k>
   rule <k> setVal(VS:ValItems) ~> forTargetUnpackElseIter(TS:Targets, Body:Block, Else:Block) =>
            forTargetUnpackElseItems(TS, VS, Body, Else)
@@ -5057,6 +5093,10 @@ module PYTHON
   rule <k> () ~> forStarUnpackElseIter(_:IdItems, _:Id, _:IdItems, _:Block, Else:Block) => runLoopElse(Else) ... </k>
   rule <k> tupleVal(VS:ValItems) ~> forStarUnpackElseIter(Prefix:IdItems, Star:Id, Suffix:IdItems, Body:Block, Else:Block) =>
            forStarUnpackElseItems(Prefix, Star, Suffix, VS, Body, Else)
+       ... </k>
+  rule <k> ({}):Val ~> forStarUnpackElseIter(_:IdItems, _:Id, _:IdItems, _:Block, Else:Block) => runLoopElse(Else) ... </k>
+  rule <k> dictVal(DS:DictItems) ~> forStarUnpackElseIter(Prefix:IdItems, Star:Id, Suffix:IdItems, Body:Block, Else:Block) =>
+           forStarUnpackElseItems(Prefix, Star, Suffix, dictKeysToValItems(DS), Body, Else)
        ... </k>
   rule <k> set() ~> forStarUnpackElseIter(_:IdItems, _:Id, _:IdItems, _:Block, Else:Block) => runLoopElse(Else) ... </k>
   rule <k> setVal(VS:ValItems) ~> forStarUnpackElseIter(Prefix:IdItems, Star:Id, Suffix:IdItems, Body:Block, Else:Block) =>

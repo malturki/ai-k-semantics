@@ -605,7 +605,11 @@ def emit_lambda(node: ast.AST, args: ast.arguments, body: ast.expr) -> str:
         names = [arg.arg for arg in args.args]
         if args.kwarg is not None:
             if names:
-                raise unsupported(node, "lambda keyword-only kwargs are supported only without positional parameters")
+                if args.defaults or kw_defaults is not None:
+                    pos_defaults = emit_arg_exps(args.defaults) if args.defaults else "#noArgs"
+                    kw_defaults_exp = kw_defaults if kw_defaults is not None else "#noArgs"
+                    return f"#lambdaPosKwDefaultsKwArgs({emit_id_items(names)}, {pos_defaults}, {emit_id_items(kw_names)}, {kw_defaults_exp}, {args.kwarg.arg}, {emit_exp(body)})"
+                return f"#lambdaPosKwOnlyKwArgs({emit_id_items(names)}, {emit_id_items(kw_names)}, {args.kwarg.arg}, {emit_exp(body)})"
             if kw_defaults is not None:
                 return f"#lambdaKwDefaultsKwArgs({emit_id_items(kw_names)}, {kw_defaults}, {args.kwarg.arg}, {emit_exp(body)})"
             return f"#lambdaKwOnlyKwArgs({emit_id_items(kw_names)}, {args.kwarg.arg}, {emit_exp(body)})"
@@ -673,7 +677,11 @@ def emit_function_def(
         names = [arg.arg for arg in args.args]
         if args.kwarg is not None:
             if names:
-                raise unsupported(node, "keyword-only kwargs are supported only without positional parameters")
+                if args.defaults or kw_defaults is not None:
+                    pos_defaults = emit_arg_exps(args.defaults) if args.defaults else "#noArgs"
+                    kw_defaults_exp = kw_defaults if kw_defaults is not None else "#noArgs"
+                    return f"#defPosKwDefaultsKwArgs({name}, {emit_id_items(names)}, {pos_defaults}, {emit_id_items(kw_names)}, {kw_defaults_exp}, {args.kwarg.arg}, {emit_block(body)})"
+                return f"#defPosKwOnlyKwArgs({name}, {emit_id_items(names)}, {emit_id_items(kw_names)}, {args.kwarg.arg}, {emit_block(body)})"
             if kw_defaults is not None:
                 return f"#defKwDefaultsKwArgs({name}, {emit_id_items(kw_names)}, {kw_defaults}, {args.kwarg.arg}, {emit_block(body)})"
             return f"#defKwOnlyKwArgs({name}, {emit_id_items(kw_names)}, {args.kwarg.arg}, {emit_block(body)})"

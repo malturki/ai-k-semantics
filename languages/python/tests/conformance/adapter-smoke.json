@@ -1250,6 +1250,13 @@
       "coverage": ["sequence-unpacking-assignment", "list-target", "flat-name-targets", "ordinary-python-source-adapter"]
     },
     {
+      "id": "adapter-unpack-set",
+      "source": "../adapter/adapter-unpack-set.py",
+      "reference": "Python Language Reference 7.2 Assignment statements; Python Standard Library Built-in Types set",
+      "expected_result": "True ~> .K",
+      "coverage": ["sequence-unpacking-assignment", "starred-target-assignment", "flat-name-targets", "set-iteration-profile", "empty-set-iteration", "ordinary-python-source-adapter"]
+    },
+    {
       "id": "adapter-unpack-expression-rhs",
       "source": "../adapter/adapter-unpack-expression-rhs.py",
       "reference": "Python Language Reference 7.2 Assignment statements; 6.16 Evaluation order",

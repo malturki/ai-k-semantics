@@ -4426,6 +4426,10 @@ module PYTHON
        <env> Rho => bindVals(Rho, IDS, VS) </env>
        <result> _ => .K </result>
     requires sameIdValArity(IDS, VS)
+  rule <k> unpackAssignStmt(IDS:IdItems, setVal(VS:ValItems)) => stmtNoResult ... </k>
+       <env> Rho => bindVals(Rho, IDS, VS) </env>
+       <result> _ => .K </result>
+    requires sameIdValArity(IDS, VS)
 
   rule <k> unpackStarAssignStmt(Prefix:IdItems, Star:Id, Suffix:IdItems, listVal(VS:ValItems)) => stmtNoResult ... </k>
        <env> Rho => bindStarUnpack(Rho, Prefix, Star, Suffix, VS) </env>
@@ -4435,11 +4439,19 @@ module PYTHON
        <env> Rho => bindStarUnpack(Rho, Prefix, Star, Suffix, VS) </env>
        <result> _ => .K </result>
     requires starUnpackArityOk(Prefix, Suffix, valItemsLen(VS))
+  rule <k> unpackStarAssignStmt(Prefix:IdItems, Star:Id, Suffix:IdItems, setVal(VS:ValItems)) => stmtNoResult ... </k>
+       <env> Rho => bindStarUnpack(Rho, Prefix, Star, Suffix, VS) </env>
+       <result> _ => .K </result>
+    requires starUnpackArityOk(Prefix, Suffix, valItemsLen(VS))
   rule <k> unpackStarAssignStmt(Prefix:IdItems, Star:Id, Suffix:IdItems, []) => stmtNoResult ... </k>
        <env> Rho => Rho [ Star <- [] ] </env>
        <result> _ => .K </result>
     requires idItemsLen(Prefix) +Int idItemsLen(Suffix) ==Int 0
   rule <k> unpackStarAssignStmt(Prefix:IdItems, Star:Id, Suffix:IdItems, ()) => stmtNoResult ... </k>
+       <env> Rho => Rho [ Star <- [] ] </env>
+       <result> _ => .K </result>
+    requires idItemsLen(Prefix) +Int idItemsLen(Suffix) ==Int 0
+  rule <k> unpackStarAssignStmt(Prefix:IdItems, Star:Id, Suffix:IdItems, set()) => stmtNoResult ... </k>
        <env> Rho => Rho [ Star <- [] ] </env>
        <result> _ => .K </result>
     requires idItemsLen(Prefix) +Int idItemsLen(Suffix) ==Int 0

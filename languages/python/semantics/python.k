@@ -1921,6 +1921,12 @@ module PYTHON
     requires isIntLike(V1) andBool isIntLike(V2) andBool intValue(V2) >=Int 0
   rule V1:Val ** V2:Val => Int2Float(intValue(V1), 53, 11) ^Float Int2Float(intValue(V2), 53, 11)
     requires isIntLike(V1) andBool isIntLike(V2) andBool intValue(V1) =/=Int 0 andBool intValue(V2) <Int 0
+  rule F1:Float ** F2:Float => F1 ^Float F2
+    requires F1 >=Float 0.0 andBool (F1 =/=Float 0.0 orBool F2 >=Float 0.0)
+  rule F:Float ** V:Val => F ^Float floatValue(V)
+    requires isIntLike(V) andBool F >=Float 0.0 andBool (F =/=Float 0.0 orBool intValue(V) >=Int 0)
+  rule V:Val ** F:Float => floatValue(V) ^Float F
+    requires isIntLike(V) andBool floatValue(V) >=Float 0.0 andBool (intValue(V) =/=Int 0 orBool F >=Float 0.0)
   rule floorDivExp(V1:Val, V2:Val) => pyFloorDiv(intValue(V1), intValue(V2))
     requires isIntLike(V1) andBool isIntLike(V2) andBool intValue(V2) =/=Int 0
   rule floorDivExp(F1:Float, F2:Float) => pyFloatFloorDiv(F1, F2)
@@ -3020,6 +3026,12 @@ module PYTHON
     requires isIntLike(V1) andBool isIntLike(V2) andBool intValue(V2) >=Int 0
   rule #pow(V1:Val, V2:Val) => Int2Float(intValue(V1), 53, 11) ^Float Int2Float(intValue(V2), 53, 11)
     requires isIntLike(V1) andBool isIntLike(V2) andBool intValue(V1) =/=Int 0 andBool intValue(V2) <Int 0
+  rule #pow(F1:Float, F2:Float) => F1 ^Float F2
+    requires F1 >=Float 0.0 andBool (F1 =/=Float 0.0 orBool F2 >=Float 0.0)
+  rule #pow(F:Float, V:Val) => F ^Float floatValue(V)
+    requires isIntLike(V) andBool F >=Float 0.0 andBool (F =/=Float 0.0 orBool intValue(V) >=Int 0)
+  rule #pow(V:Val, F:Float) => floatValue(V) ^Float F
+    requires isIntLike(V) andBool floatValue(V) >=Float 0.0 andBool (intValue(V) =/=Int 0 orBool F >=Float 0.0)
   rule #pow(V1:Val, V2:Val, V3:Val) => pyModulo(intValue(V1) ^Int intValue(V2), intValue(V3))
     requires isIntLike(V1)
       andBool isIntLike(V2)

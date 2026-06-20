@@ -32,6 +32,13 @@
       "coverage": ["float-floor-division", "float-modulo", "float-divmod", "mixed-int-bool-float-coercion", "ordinary-python-source-adapter"]
     },
     {
+      "id": "adapter-float-pow",
+      "source": "../adapter/adapter-float-pow.py",
+      "reference": "Python Language Reference 6.7 Binary arithmetic operations; Python Standard Library Built-in Functions pow",
+      "expected_result": "True ~> .K",
+      "coverage": ["float-power", "mixed-int-bool-float-coercion", "two-argument-pow", "ordinary-python-source-adapter"]
+    },
+    {
       "id": "adapter-string-repeat",
       "source": "../adapter/adapter-string-repeat.py",
       "reference": "Python Language Reference 6.7 Binary arithmetic operations; Standard Library sequence types",

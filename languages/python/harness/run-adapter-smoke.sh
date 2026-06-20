@@ -175,6 +175,7 @@ run_case "adapter-for-string-else" "$ROOT/tests/adapter/adapter-for-string-else.
 run_case "adapter-for-dict-else" "$ROOT/tests/adapter/adapter-for-dict-else.py" "True ~> .K"
 run_case "adapter-try-finally" "$ROOT/tests/adapter/adapter-try-finally.py" "True ~> .K"
 run_case "adapter-try-finally-return" "$ROOT/tests/adapter/adapter-try-finally-return.py" "True ~> .K"
+run_case "adapter-try-finally-break-continue" "$ROOT/tests/adapter/adapter-try-finally-break-continue.py" "True ~> .K"
 run_case "adapter-range-for" "$ROOT/tests/adapter/adapter-range-for.py" "True ~> .K"
 run_case "adapter-range-start-stop" "$ROOT/tests/adapter/adapter-range-start-stop.py" "True ~> .K"
 run_case "adapter-range-break-continue" "$ROOT/tests/adapter/adapter-range-break-continue.py" "True ~> .K"

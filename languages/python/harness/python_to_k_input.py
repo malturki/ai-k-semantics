@@ -94,8 +94,8 @@ def emit_stmt(stmt: ast.stmt) -> str:
         case ast.For(target=target, iter=iter_, body=body, orelse=orelse):
             return emit_for_stmt(stmt, target, iter_, body, orelse)
         case ast.Try(body=body, handlers=[], orelse=[], finalbody=finalbody):
-            if block_contains_break_or_continue(body) or block_contains_break_or_continue(finalbody):
-                raise unsupported(stmt, "try/finally with break or continue is not supported yet")
+            if block_contains_break_or_continue(finalbody):
+                raise unsupported(stmt, "try/finally with break or continue in the finally body is not supported yet")
             return f"#tryFinally({emit_block(body)}, {emit_block(finalbody)})"
         case ast.Try():
             raise unsupported(stmt, "only try/finally without except or else is supported")

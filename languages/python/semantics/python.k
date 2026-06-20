@@ -512,6 +512,8 @@ module PYTHON
                  | runLoopElse(Block) [symbol(runLoopElse)]
                  | tryFinallyDone(Block) [symbol(tryFinallyDone)]
                  | tryFinallyReturn(Val) [symbol(tryFinallyReturn)]
+                 | "tryFinallyBreak" [symbol(tryFinallyBreak)]
+                 | "tryFinallyContinue" [symbol(tryFinallyContinue)]
                  | "forDone" [symbol(forDone)]
                  | "breakSignal" [symbol(breakSignal)]
                  | "continueSignal" [symbol(continueSignal)]
@@ -4685,7 +4687,25 @@ module PYTHON
        ... </k>
   rule <k> returnSignal(V:Val) ~> tryFinallyDone({}) => returnSignal(V) ... </k>
   rule <k> returnSignal(V:Val) ~> tryFinallyReturn(_:Val) => returnSignal(V) ... </k>
+  rule <k> breakSignal ~> tryFinallyReturn(_:Val) => breakSignal ... </k>
+  rule <k> continueSignal ~> tryFinallyReturn(_:Val) => continueSignal ... </k>
   rule <k> tryFinallyReturn(V:Val) => returnSignal(V) ... </k>
+  rule <k> breakSignal ~> tryFinallyDone(block(SS:Stmts)) =>
+           SS ~> tryFinallyBreak
+       ... </k>
+  rule <k> breakSignal ~> tryFinallyDone({}) => breakSignal ... </k>
+  rule <k> continueSignal ~> tryFinallyDone(block(SS:Stmts)) =>
+           SS ~> tryFinallyContinue
+       ... </k>
+  rule <k> continueSignal ~> tryFinallyDone({}) => continueSignal ... </k>
+  rule <k> returnSignal(V:Val) ~> tryFinallyBreak => returnSignal(V) ... </k>
+  rule <k> breakSignal ~> tryFinallyBreak => breakSignal ... </k>
+  rule <k> continueSignal ~> tryFinallyBreak => continueSignal ... </k>
+  rule <k> tryFinallyBreak => breakSignal ... </k>
+  rule <k> returnSignal(V:Val) ~> tryFinallyContinue => returnSignal(V) ... </k>
+  rule <k> breakSignal ~> tryFinallyContinue => breakSignal ... </k>
+  rule <k> continueSignal ~> tryFinallyContinue => continueSignal ... </k>
+  rule <k> tryFinallyContinue => continueSignal ... </k>
 
   rule <k> ifStmt(C:Exp, Then:Block, Else:Block) =>
            C ~> ifStmtBranch(Then, Else)

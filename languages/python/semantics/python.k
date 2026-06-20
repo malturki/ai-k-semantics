@@ -511,6 +511,7 @@ module PYTHON
                  | forElseRangeStepAgain(Id, Int, Int, Int, Block, Block) [symbol(forElseRangeStepAgain)]
                  | runLoopElse(Block) [symbol(runLoopElse)]
                  | tryFinallyDone(Block) [symbol(tryFinallyDone)]
+                 | tryFinallyReturn(Val) [symbol(tryFinallyReturn)]
                  | "forDone" [symbol(forDone)]
                  | "breakSignal" [symbol(breakSignal)]
                  | "continueSignal" [symbol(continueSignal)]
@@ -4679,6 +4680,12 @@ module PYTHON
            SS ~> ifStmtDone
        ... </k>
   rule <k> tryFinallyDone({}) => stmtNoResult ... </k>
+  rule <k> returnSignal(V:Val) ~> tryFinallyDone(block(SS:Stmts)) =>
+           SS ~> tryFinallyReturn(V)
+       ... </k>
+  rule <k> returnSignal(V:Val) ~> tryFinallyDone({}) => returnSignal(V) ... </k>
+  rule <k> returnSignal(V:Val) ~> tryFinallyReturn(_:Val) => returnSignal(V) ... </k>
+  rule <k> tryFinallyReturn(V:Val) => returnSignal(V) ... </k>
 
   rule <k> ifStmt(C:Exp, Then:Block, Else:Block) =>
            C ~> ifStmtBranch(Then, Else)

@@ -410,12 +410,16 @@ def emit_set_comprehension_two_generators(
 ) -> str:
     if outer.is_async or inner.is_async:
         raise unsupported(node, "async set comprehensions are not supported yet")
-    if outer.ifs or inner.ifs:
-        raise unsupported(node, "two-generator set comprehensions with filters are not supported yet")
     if not isinstance(outer.target, ast.Name):
         raise unsupported(outer.target, "only simple-name set comprehension targets are supported")
     if not isinstance(inner.target, ast.Name):
         raise unsupported(inner.target, "only simple-name set comprehension targets are supported")
+    if outer.ifs or inner.ifs:
+        return (
+            f"#setCompForIfs({emit_exp(outer.iter)}, {outer.target.id}, "
+            f"{emit_maybe_comp_filters(outer.ifs)}, {emit_exp(inner.iter)}, "
+            f"{inner.target.id}, {emit_maybe_comp_filters(inner.ifs)}, {emit_exp(elt)})"
+        )
     return (
         f"#setCompFor({emit_exp(outer.iter)}, {outer.target.id}, "
         f"{emit_exp(inner.iter)}, {inner.target.id}, {emit_exp(elt)})"

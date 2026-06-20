@@ -101,6 +101,8 @@ def emit_exp(exp: ast.expr) -> str:
     match exp:
         case ast.Constant(value=value):
             return emit_constant(exp, value)
+        case ast.Name(id="__debug__"):
+            return "#debug"
         case ast.Name(id=name):
             return name
         case ast.NamedExpr(target=ast.Name(id=name), value=value):

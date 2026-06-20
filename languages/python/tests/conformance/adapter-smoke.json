@@ -46,6 +46,13 @@
       "coverage": ["ellipsis-atom", "singleton-identity", "truth-value-testing", "ordinary-python-source-adapter"]
     },
     {
+      "id": "adapter-debug-constant",
+      "source": "../adapter/adapter-debug-constant.py",
+      "reference": "Python Standard Library Built-in Constants __debug__; Python Language Reference 7.3 The assert statement",
+      "expected_result": "True ~> .K",
+      "coverage": ["debug-constant", "non-optimized-profile", "truth-value-testing", "singleton-identity", "ordinary-python-source-adapter"]
+    },
+    {
       "id": "adapter-string-repeat",
       "source": "../adapter/adapter-string-repeat.py",
       "reference": "Python Language Reference 6.7 Binary arithmetic operations; Standard Library sequence types",

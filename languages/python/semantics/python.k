@@ -122,6 +122,7 @@ module PYTHON-SYNTAX
 
   syntax Exp ::= Val
                | Id
+               | "#debug" [symbol(debugExp)]
                | "#namedExpr" "(" Id "," Exp ")" [symbol(namedExprExp), strict(2)]
                | "(" Exp ")" [bracket]
                | Exp "(" Exp ")" [symbol(callExp)]
@@ -562,6 +563,8 @@ module PYTHON
     requires Step =/=Int 0
   rule truthy(argsVal(_:ArgVals)) => true
   rule truthy(dictArgsVal(_:DictVals)) => true
+
+  rule #debug => True
 
   rule isIntLike(_:Int) => true
   rule isIntLike(_:Float) => false

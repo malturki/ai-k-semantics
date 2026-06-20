@@ -277,6 +277,13 @@
       "coverage": ["int-constructor", "bool-to-int-conversion", "integer-identity-conversion", "ordinary-python-source-adapter"]
     },
     {
+      "id": "adapter-float-constructor",
+      "source": "../adapter/adapter-float-constructor.py",
+      "reference": "Python Standard Library Built-in Functions float",
+      "expected_result": "True ~> .K",
+      "coverage": ["float-constructor", "no-argument-float-constructor", "int-bool-to-float-conversion", "float-identity-conversion", "ordinary-python-source-adapter"]
+    },
+    {
       "id": "adapter-abs-int",
       "source": "../adapter/adapter-abs-int.py",
       "reference": "Python Standard Library Built-in Functions abs",

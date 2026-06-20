@@ -151,6 +151,8 @@ module PYTHON-SYNTAX
                | "#maxArgs" "(" ArgExps ")" [symbol(maxArgsExp)]
                | "#intCtor" "(" ")" [symbol(intCtor0Exp)]
                | "#intCtor" "(" Exp ")" [symbol(intCtor1Exp), strict]
+               | "#floatCtor" "(" ")" [symbol(floatCtor0Exp)]
+               | "#floatCtor" "(" Exp ")" [symbol(floatCtor1Exp), strict]
                | "#abs" "(" Exp ")" [symbol(absExp), strict]
                | "#divmod" "(" Exp "," Exp ")" [symbol(divmodExp), strict]
                | "#pow" "(" Exp "," Exp ")" [symbol(powBuiltinExp), strict]
@@ -2963,6 +2965,10 @@ module PYTHON
     requires notBool emptyArgVals(VS)
   rule #intCtor() => 0
   rule #intCtor(V:Val) => intValue(V)
+    requires isIntLike(V)
+  rule #floatCtor() => 0.0
+  rule #floatCtor(F:Float) => F
+  rule #floatCtor(V:Val) => floatValue(V)
     requires isIntLike(V)
   rule #abs(V:Val) => 0 -Int intValue(V)
     requires isIntLike(V) andBool intValue(V) <Int 0

@@ -569,6 +569,7 @@ module PYTHON
                 | containsKey(Val, DictItems) [function, symbol(containsKey)]
                 | rangeContains(Val, Int, Int) [function, symbol(rangeContains)]
                 | rangeContains(Val, Int, Int, Int) [function, symbol(rangeContainsStep)]
+                | rangeContainsFloat(Float, Int, Int, Int, Int) [function, symbol(rangeContainsFloat)]
                 | rangeEq(Int, Int, Int, Int, Int, Int) [function, symbol(rangeEq)]
                 | allValItems(ValItems) [function, symbol(allValItems)]
                 | anyValItems(ValItems) [function, symbol(anyValItems)]
@@ -850,12 +851,15 @@ module PYTHON
       orBool (Step <Int 0 andBool Start <=Int Stop)
 
   rule rangeContains(V:Val, _Start:Int, _Stop:Int) => false
-    requires notBool isIntLike(V)
+    requires notBool isIntLike(V) andBool notBool isFloatLike(V)
+  rule rangeContains(F:Float, Start:Int, Stop:Int) => rangeContainsFloat(F, Start, Stop, 1, 0)
   rule rangeContains(V:Val, Start:Int, Stop:Int) =>
     intValue(V) >=Int Start andBool intValue(V) <Int Stop
     requires isIntLike(V)
   rule rangeContains(V:Val, _Start:Int, _Stop:Int, Step:Int) => false
-    requires notBool isIntLike(V) andBool Step =/=Int 0
+    requires notBool isIntLike(V) andBool notBool isFloatLike(V) andBool Step =/=Int 0
+  rule rangeContains(F:Float, Start:Int, Stop:Int, Step:Int) => rangeContainsFloat(F, Start, Stop, Step, 0)
+    requires Step =/=Int 0
   rule rangeContains(V:Val, Start:Int, Stop:Int, Step:Int) =>
     intValue(V) >=Int Start
       andBool intValue(V) <Int Stop
@@ -866,6 +870,18 @@ module PYTHON
       andBool intValue(V) >Int Stop
       andBool ((Start -Int intValue(V)) %Int (0 -Int Step) ==Int 0)
     requires isIntLike(V) andBool Step <Int 0
+
+  rule rangeContainsFloat(_F:Float, Start:Int, Stop:Int, Step:Int, I:Int) => false
+    requires Step =/=Int 0 andBool I >=Int pyRangeLen(Start, Stop, Step)
+  rule rangeContainsFloat(F:Float, Start:Int, Stop:Int, Step:Int, I:Int) => true
+    requires Step =/=Int 0
+      andBool I <Int pyRangeLen(Start, Stop, Step)
+      andBool F ==Float Int2Float(rangeGet(Start, Stop, Step, I), 53, 11)
+  rule rangeContainsFloat(F:Float, Start:Int, Stop:Int, Step:Int, I:Int) =>
+    rangeContainsFloat(F, Start, Stop, Step, I +Int 1)
+    requires Step =/=Int 0
+      andBool I <Int pyRangeLen(Start, Stop, Step)
+      andBool F =/=Float Int2Float(rangeGet(Start, Stop, Step, I), 53, 11)
 
   rule rangeEq(Start1:Int, Stop1:Int, Step1:Int, Start2:Int, Stop2:Int, Step2:Int) =>
     pyRangeLen(Start1, Stop1, Step1) ==Int pyRangeLen(Start2, Stop2, Step2)

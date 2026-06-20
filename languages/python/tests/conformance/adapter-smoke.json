@@ -921,6 +921,13 @@
       "coverage": ["range-membership", "positive-range-step", "negative-range-step", "empty-range-membership", "bool-as-int-membership", "ordinary-python-source-adapter"]
     },
     {
+      "id": "adapter-range-float-membership",
+      "source": "../adapter/adapter-range-float-membership.py",
+      "reference": "Python Language Reference 6.10.2 Membership test operations; Python Standard Library Built-in Types range; Numeric Types int and float equality",
+      "expected_result": "True ~> .K",
+      "coverage": ["range-membership", "float-int-equality-membership", "positive-range-step", "negative-range-step", "non-integral-float-membership", "non-numeric-range-membership", "ordinary-python-source-adapter"]
+    },
+    {
       "id": "adapter-range-equality",
       "source": "../adapter/adapter-range-equality.py",
       "reference": "Python Language Reference 6.10 Comparisons; Standard Library range type",

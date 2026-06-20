@@ -956,6 +956,13 @@
       "coverage": ["attribute-reference", "range-start-attribute", "range-stop-attribute", "range-step-attribute", "ordinary-python-source-adapter"]
     },
     {
+      "id": "adapter-slice-object",
+      "source": "../adapter/adapter-slice-object.py",
+      "reference": "Python Standard Library Built-in Types slice; Python Language Reference 6.3.1 Attribute references; 6.3.2 Subscriptions; 6.3.3 Slicings",
+      "expected_result": "True ~> .K",
+      "coverage": ["slice-constructor", "slice-object", "slice-object-attributes", "slice-object-subscription", "sequence-slicing", "range-slicing", "truth-value-testing", "ordinary-python-source-adapter"]
+    },
+    {
       "id": "adapter-len-containers",
       "source": "../adapter/adapter-len-containers.py",
       "reference": "Python Standard Library Built-in Functions len(); Built-in Types sequence, mapping, and set length",

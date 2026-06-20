@@ -181,6 +181,9 @@ module PYTHON-SYNTAX
                | "#max" "(" Exp ")" [symbol(maxExp), strict]
                | "#minArgs" "(" ArgExps ")" [symbol(minArgsExp)]
                | "#maxArgs" "(" ArgExps ")" [symbol(maxArgsExp)]
+               | "#sliceCtor" "(" Exp ")" [symbol(sliceCtor1Exp), strict]
+               | "#sliceCtor" "(" Exp "," Exp ")" [symbol(sliceCtor2Exp), strict]
+               | "#sliceCtor" "(" Exp "," Exp "," Exp ")" [symbol(sliceCtor3Exp), strict]
                | "#intCtor" "(" ")" [symbol(intCtor0Exp)]
                | "#intCtor" "(" Exp ")" [symbol(intCtor1Exp), strict]
                | "#floatCtor" "(" ")" [symbol(floatCtor0Exp)]
@@ -273,6 +276,7 @@ module PYTHON
                | functionValPosKwDefaults(IdItems, ArgVals, IdItems, ArgVals, Block) [symbol(functionValPosKwDefaults)]
                | rangeVal(Int, Int) [symbol(rangeVal)]
                | rangeVal(Int, Int, Int) [symbol(rangeValStep)]
+               | sliceVal(Val, Val, Val) [symbol(sliceVal)]
                | argsVal(ArgVals) [symbol(argsVal)]
                | dictArgsVal(DictVals) [symbol(dictArgsVal)]
 
@@ -716,6 +720,7 @@ module PYTHON
   rule truthy(rangeVal(Start:Int, Stop:Int)) => Start <Int Stop
   rule truthy(rangeVal(Start:Int, Stop:Int, Step:Int)) => pyRangeLen(Start, Stop, Step) >Int 0
     requires Step =/=Int 0
+  rule truthy(sliceVal(_:Val, _:Val, _:Val)) => true
   rule truthy(argsVal(_:ArgVals)) => true
   rule truthy(dictArgsVal(_:DictVals)) => true
 
@@ -761,6 +766,7 @@ module PYTHON
   rule isIntLike(functionValPosKwDefaults(_:IdItems, _:ArgVals, _:IdItems, _:ArgVals, _:Block)) => false
   rule isIntLike(rangeVal(_:Int, _:Int)) => false
   rule isIntLike(rangeVal(_:Int, _:Int, _:Int)) => false
+  rule isIntLike(sliceVal(_:Val, _:Val, _:Val)) => false
   rule isIntLike(argsVal(_:ArgVals)) => false
   rule isIntLike(dictArgsVal(_:DictVals)) => false
 
@@ -807,6 +813,7 @@ module PYTHON
   rule singletonIdentity(functionValPosKwDefaults(_:IdItems, _:ArgVals, _:IdItems, _:ArgVals, _:Block)) => false
   rule singletonIdentity(rangeVal(_:Int, _:Int)) => false
   rule singletonIdentity(rangeVal(_:Int, _:Int, _:Int)) => false
+  rule singletonIdentity(sliceVal(_:Val, _:Val, _:Val)) => false
   rule singletonIdentity(argsVal(_:ArgVals)) => false
   rule singletonIdentity(dictArgsVal(_:DictVals)) => false
 
@@ -989,6 +996,8 @@ module PYTHON
     rangeEq(Start1, Stop1, Step1, Start2, Stop2, 1)
   rule valEq(rangeVal(Start1:Int, Stop1:Int, Step1:Int), rangeVal(Start2:Int, Stop2:Int, Step2:Int)) =>
     rangeEq(Start1, Stop1, Step1, Start2, Stop2, Step2)
+  rule valEq(sliceVal(Start1:Val, Stop1:Val, Step1:Val), sliceVal(Start2:Val, Stop2:Val, Step2:Val)) =>
+    valEq(Start1, Start2) andBool valEq(Stop1, Stop2) andBool valEq(Step1, Step2)
   rule valEq((), []) => false
   rule valEq([], ()) => false
   rule valEq((), listVal(_:ValItems)) => false
@@ -2261,6 +2270,12 @@ module PYTHON
     requires Id2String(Attr) ==String "stop"
   rule attrExp(rangeVal(_:Int, _:Int, Step:Int), Attr:Id) => Step
     requires Id2String(Attr) ==String "step"
+  rule attrExp(sliceVal(Start:Val, _:Val, _:Val), Attr:Id) => Start
+    requires Id2String(Attr) ==String "start"
+  rule attrExp(sliceVal(_:Val, Stop:Val, _:Val), Attr:Id) => Stop
+    requires Id2String(Attr) ==String "stop"
+  rule attrExp(sliceVal(_:Val, _:Val, Step:Val), Attr:Id) => Step
+    requires Id2String(Attr) ==String "step"
 
   rule V1:Val < V2:Val => boolValue(intValue(V1) <Int intValue(V2))
     requires isIntLike(V1) andBool isIntLike(V2)
@@ -2371,6 +2386,9 @@ module PYTHON
   rule V:Val not in setVal(VS:ValItems) => boolValue(notBool containsVal(V, VS))
   rule V:Val not in rangeVal(Start:Int, Stop:Int) => boolValue(notBool rangeContains(V, Start, Stop))
   rule V:Val not in rangeVal(Start:Int, Stop:Int, Step:Int) => boolValue(notBool rangeContains(V, Start, Stop, Step))
+  rule subscriptExp(V:Val, sliceVal(Lower:Val, Upper:Val, None)) => sliceExp(V, Lower, Upper)
+  rule subscriptExp(V:Val, sliceVal(Lower:Val, Upper:Val, Step:Val)) => sliceStepExp(V, Lower, Upper, Step)
+    requires isIntLike(Step)
   rule subscriptExp(S:String, I:Val) => substrString(S, intValue(I), intValue(I) +Int 1)
     requires isIntLike(I) andBool intValue(I) >=Int 0 andBool intValue(I) <Int lengthString(S)
   rule subscriptExp(S:String, I:Val) =>
@@ -4301,6 +4319,9 @@ module PYTHON
   rule <k> maxArgsExp(Args:ArgExps) => evalArgs(Args, #noArgVals) ~> maxArgsResult ... </k>
   rule <k> argsVal(VS:ArgVals) ~> maxArgsResult => maxArgVals(VS) ... </k>
     requires notBool emptyArgVals(VS)
+  rule #sliceCtor(Stop:Val) => sliceVal(None, Stop, None)
+  rule #sliceCtor(Start:Val, Stop:Val) => sliceVal(Start, Stop, None)
+  rule #sliceCtor(Start:Val, Stop:Val, Step:Val) => sliceVal(Start, Stop, Step)
   rule #intCtor() => 0
   rule #intCtor(V:Val) => intValue(V)
     requires isIntLike(V)

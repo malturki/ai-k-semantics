@@ -129,6 +129,12 @@ def emit_exp(exp: ast.expr) -> str:
             return f"#range({emit_exp(start)}, {emit_exp(stop)})"
         case ast.Call(func=ast.Name(id="range"), args=[start, stop, step], keywords=[]):
             return f"#range({emit_exp(start)}, {emit_exp(stop)}, {emit_exp(step)})"
+        case ast.Call(func=ast.Name(id="slice"), args=[stop], keywords=[]):
+            return f"#sliceCtor({emit_exp(stop)})"
+        case ast.Call(func=ast.Name(id="slice"), args=[start, stop], keywords=[]):
+            return f"#sliceCtor({emit_exp(start)}, {emit_exp(stop)})"
+        case ast.Call(func=ast.Name(id="slice"), args=[start, stop, step], keywords=[]):
+            return f"#sliceCtor({emit_exp(start)}, {emit_exp(stop)}, {emit_exp(step)})"
         case ast.Call(func=ast.Name(id="len"), args=[arg], keywords=[]):
             return f"#len({emit_exp(arg)})"
         case ast.Call(func=ast.Name(id="list"), args=[], keywords=[]):

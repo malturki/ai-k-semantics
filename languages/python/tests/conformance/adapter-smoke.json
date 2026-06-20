@@ -736,7 +736,7 @@
       "source": "../adapter/adapter-starred-call.py",
       "reference": "Python Language Reference 6.3.4 Calls; 6.16 Evaluation order",
       "expected_result": "True ~> .K",
-      "coverage": ["starred-positional-call", "argument-unpacking", "ordered-concrete-iterable-profile", "mixed-positional-keyword-call", "ordinary-python-source-adapter"]
+      "coverage": ["starred-positional-call", "argument-unpacking", "ordered-concrete-iterable-profile", "set-iteration-profile", "mixed-positional-keyword-call", "ordinary-python-source-adapter"]
     },
     {
       "id": "adapter-call-kw-unpack",

@@ -145,6 +145,7 @@ module PYTHON-SYNTAX
                | "#listCompFor" "(" Exp "," Id "," Exp "," Id "," Exp ")" [symbol(listCompForExp), strict(1)]
                | "#listCompForIfs" "(" Exp "," Id "," MaybeCompFilters "," Exp "," Id "," MaybeCompFilters "," Exp ")" [symbol(listCompForIfsExp), strict(1)]
                | "#listCompForFor" "(" Exp "," Id "," Exp "," Id "," Exp "," Id "," Exp ")" [symbol(listCompForForExp), strict(1)]
+               | "#listCompForForIfs" "(" Exp "," Id "," MaybeCompFilters "," Exp "," Id "," MaybeCompFilters "," Exp "," Id "," MaybeCompFilters "," Exp ")" [symbol(listCompForForIfsExp), strict(1)]
                | "#dictComp" "(" Exp "," Id "," Exp "," Exp ")" [symbol(dictCompExp), strict(1)]
                | "#dictCompIf" "(" Exp "," Id "," Exp "," Exp "," Exp ")" [symbol(dictCompIfExp), strict(1)]
                | "#dictCompIfs" "(" Exp "," Id "," CompFilters "," Exp "," Exp ")" [symbol(dictCompIfsExp), strict(1)]
@@ -327,6 +328,21 @@ module PYTHON
                  | listCompForForInner(Id, Exp, Id, Exp, Id, Exp, ArgVals, ArgVals, ArgVals, Map) [symbol(listCompForForInner)]
                  | listCompForForInnerIter(Id, Exp, Id, Exp, Id, Exp, ArgVals, ArgVals, ArgVals, ArgVals, Map) [symbol(listCompForForInnerIter)]
                  | listCompForForNext(Id, Exp, Id, Exp, Id, Exp, ArgVals, ArgVals, ArgVals, ArgVals, Map) [symbol(listCompForForNext)]
+                 | listCompForForIfsIter(Id, MaybeCompFilters, Exp, Id, MaybeCompFilters, Exp, Id, MaybeCompFilters, Exp, ArgVals, ArgVals, Map) [symbol(listCompForForIfsIter)]
+                 | listCompForForIfsOuterFilter(Id, MaybeCompFilters, CompFilters, Exp, Id, MaybeCompFilters, Exp, Id, MaybeCompFilters, Exp, ArgVals, ArgVals, Map) [symbol(listCompForForIfsOuterFilter)]
+                 | listCompForForIfsOuterFilterNext(Id, MaybeCompFilters, CompFilters, Exp, Id, MaybeCompFilters, Exp, Id, MaybeCompFilters, Exp, ArgVals, ArgVals, Map) [symbol(listCompForForIfsOuterFilterNext)]
+                 | listCompForForIfsOuterFilterLast(Id, MaybeCompFilters, Exp, Id, MaybeCompFilters, Exp, Id, MaybeCompFilters, Exp, ArgVals, ArgVals, Map) [symbol(listCompForForIfsOuterFilterLast)]
+                 | listCompForForIfsMiddle(Id, MaybeCompFilters, Exp, Id, MaybeCompFilters, Exp, Id, MaybeCompFilters, Exp, ArgVals, ArgVals, Map) [symbol(listCompForForIfsMiddle)]
+                 | listCompForForIfsMiddleIter(Id, MaybeCompFilters, Exp, Id, MaybeCompFilters, Exp, Id, MaybeCompFilters, Exp, ArgVals, ArgVals, ArgVals, Map) [symbol(listCompForForIfsMiddleIter)]
+                 | listCompForForIfsMiddleFilter(Id, MaybeCompFilters, Exp, Id, MaybeCompFilters, CompFilters, Exp, Id, MaybeCompFilters, Exp, ArgVals, ArgVals, ArgVals, Map) [symbol(listCompForForIfsMiddleFilter)]
+                 | listCompForForIfsMiddleFilterNext(Id, MaybeCompFilters, Exp, Id, MaybeCompFilters, CompFilters, Exp, Id, MaybeCompFilters, Exp, ArgVals, ArgVals, ArgVals, Map) [symbol(listCompForForIfsMiddleFilterNext)]
+                 | listCompForForIfsMiddleFilterLast(Id, MaybeCompFilters, Exp, Id, MaybeCompFilters, Exp, Id, MaybeCompFilters, Exp, ArgVals, ArgVals, ArgVals, Map) [symbol(listCompForForIfsMiddleFilterLast)]
+                 | listCompForForIfsInner(Id, MaybeCompFilters, Exp, Id, MaybeCompFilters, Exp, Id, MaybeCompFilters, Exp, ArgVals, ArgVals, ArgVals, Map) [symbol(listCompForForIfsInner)]
+                 | listCompForForIfsInnerIter(Id, MaybeCompFilters, Exp, Id, MaybeCompFilters, Exp, Id, MaybeCompFilters, Exp, ArgVals, ArgVals, ArgVals, ArgVals, Map) [symbol(listCompForForIfsInnerIter)]
+                 | listCompForForIfsInnerFilter(Id, MaybeCompFilters, Exp, Id, MaybeCompFilters, Exp, Id, MaybeCompFilters, CompFilters, Exp, ArgVals, ArgVals, ArgVals, ArgVals, Map) [symbol(listCompForForIfsInnerFilter)]
+                 | listCompForForIfsInnerFilterNext(Id, MaybeCompFilters, Exp, Id, MaybeCompFilters, Exp, Id, MaybeCompFilters, CompFilters, Exp, ArgVals, ArgVals, ArgVals, ArgVals, Map) [symbol(listCompForForIfsInnerFilterNext)]
+                 | listCompForForIfsInnerFilterLast(Id, MaybeCompFilters, Exp, Id, MaybeCompFilters, Exp, Id, MaybeCompFilters, Exp, ArgVals, ArgVals, ArgVals, ArgVals, Map) [symbol(listCompForForIfsInnerFilterLast)]
+                 | listCompForForIfsNext(Id, MaybeCompFilters, Exp, Id, MaybeCompFilters, Exp, Id, MaybeCompFilters, Exp, ArgVals, ArgVals, ArgVals, ArgVals, Map) [symbol(listCompForForIfsNext)]
                  | setCompIter(Id, Exp, ArgVals, ArgVals, Map) [symbol(setCompIter)]
                  | setCompNext(Id, Exp, ArgVals, ArgVals, Map) [symbol(setCompNext)]
                  | setCompIfIter(Id, Exp, Exp, ArgVals, ArgVals, Map) [symbol(setCompIfIter)]
@@ -3161,6 +3177,122 @@ module PYTHON
        <env> RhoCurrent:Map => RhoCurrent [ Z <- V ] </env>
   rule <k> V:Val ~> listCompForForNext(X:Id, Middle:Exp, Y:Id, Inner:Exp, Z:Id, Elem:Exp, RestOuter:ArgVals, RestMiddle:ArgVals, RestInner:ArgVals, Acc:ArgVals, Rho:Map) =>
            listCompForForInnerIter(X, Middle, Y, Inner, Z, Elem, RestOuter, RestMiddle, RestInner, appendArgVal(Acc, V), Rho)
+       ... </k>
+  rule <k> listCompForForIfsExp(Iter:Val, X:Id, OuterFilters:MaybeCompFilters, Middle:Exp, Y:Id, MiddleFilters:MaybeCompFilters, Inner:Exp, Z:Id, InnerFilters:MaybeCompFilters, Elem:Exp) =>
+           listCompForForIfsIter(X, OuterFilters, Middle, Y, MiddleFilters, Inner, Z, InnerFilters, Elem, iterableArgVals(Iter), #noArgVals, Rho)
+       ... </k>
+       <env> Rho </env>
+  rule <k> listCompForForIfsIter(_:Id, _:MaybeCompFilters, _:Exp, _:Id, _:MaybeCompFilters, _:Exp, _:Id, _:MaybeCompFilters, _:Exp, #noArgVals, #noArgVals, Rho:Map) =>
+           [] ~> restoreEnv(Rho)
+       ... </k>
+  rule <k> listCompForForIfsIter(_:Id, _:MaybeCompFilters, _:Exp, _:Id, _:MaybeCompFilters, _:Exp, _:Id, _:MaybeCompFilters, _:Exp, #noArgVals, Acc:ArgVals, Rho:Map) =>
+           listVal(argValsToValItems(Acc)) ~> restoreEnv(Rho)
+       ... </k>
+    requires notBool emptyArgVals(Acc)
+  rule <k> listCompForForIfsIter(X:Id, #noFilters, Middle:Exp, Y:Id, MiddleFilters:MaybeCompFilters, Inner:Exp, Z:Id, InnerFilters:MaybeCompFilters, Elem:Exp, argValsCons(V:Val, RestOuter:ArgVals), Acc:ArgVals, Rho:Map) =>
+           Middle ~> listCompForForIfsMiddle(X, #noFilters, Middle, Y, MiddleFilters, Inner, Z, InnerFilters, Elem, RestOuter, Acc, Rho)
+       ... </k>
+       <env> _ => Rho [ X <- V ] </env>
+  rule <k> listCompForForIfsIter(X:Id, OuterFilters:CompFilters, Middle:Exp, Y:Id, MiddleFilters:MaybeCompFilters, Inner:Exp, Z:Id, InnerFilters:MaybeCompFilters, Elem:Exp, argValsCons(V:Val, RestOuter:ArgVals), Acc:ArgVals, Rho:Map) =>
+           listCompForForIfsOuterFilter(X, OuterFilters, OuterFilters, Middle, Y, MiddleFilters, Inner, Z, InnerFilters, Elem, RestOuter, Acc, Rho)
+       ... </k>
+       <env> _ => Rho [ X <- V ] </env>
+  rule <k> listCompForForIfsOuterFilter(X:Id, OuterFilters:MaybeCompFilters, #filters(Filter:Exp, RestFilters:CompFilters), Middle:Exp, Y:Id, MiddleFilters:MaybeCompFilters, Inner:Exp, Z:Id, InnerFilters:MaybeCompFilters, Elem:Exp, RestOuter:ArgVals, Acc:ArgVals, Rho:Map) =>
+           Filter ~> listCompForForIfsOuterFilterNext(X, OuterFilters, RestFilters, Middle, Y, MiddleFilters, Inner, Z, InnerFilters, Elem, RestOuter, Acc, Rho)
+       ... </k>
+  rule <k> listCompForForIfsOuterFilter(X:Id, OuterFilters:MaybeCompFilters, #filter(Filter:Exp), Middle:Exp, Y:Id, MiddleFilters:MaybeCompFilters, Inner:Exp, Z:Id, InnerFilters:MaybeCompFilters, Elem:Exp, RestOuter:ArgVals, Acc:ArgVals, Rho:Map) =>
+           Filter ~> listCompForForIfsOuterFilterLast(X, OuterFilters, Middle, Y, MiddleFilters, Inner, Z, InnerFilters, Elem, RestOuter, Acc, Rho)
+       ... </k>
+  rule <k> V:Val ~> listCompForForIfsOuterFilterNext(X:Id, OuterFilters:MaybeCompFilters, RestFilters:CompFilters, Middle:Exp, Y:Id, MiddleFilters:MaybeCompFilters, Inner:Exp, Z:Id, InnerFilters:MaybeCompFilters, Elem:Exp, RestOuter:ArgVals, Acc:ArgVals, Rho:Map) =>
+           listCompForForIfsOuterFilter(X, OuterFilters, RestFilters, Middle, Y, MiddleFilters, Inner, Z, InnerFilters, Elem, RestOuter, Acc, Rho)
+       ... </k>
+    requires truthy(V)
+  rule <k> V:Val ~> listCompForForIfsOuterFilterNext(X:Id, OuterFilters:MaybeCompFilters, _:CompFilters, Middle:Exp, Y:Id, MiddleFilters:MaybeCompFilters, Inner:Exp, Z:Id, InnerFilters:MaybeCompFilters, Elem:Exp, RestOuter:ArgVals, Acc:ArgVals, Rho:Map) =>
+           listCompForForIfsIter(X, OuterFilters, Middle, Y, MiddleFilters, Inner, Z, InnerFilters, Elem, RestOuter, Acc, Rho)
+       ... </k>
+    requires notBool truthy(V)
+  rule <k> V:Val ~> listCompForForIfsOuterFilterLast(X:Id, OuterFilters:MaybeCompFilters, Middle:Exp, Y:Id, MiddleFilters:MaybeCompFilters, Inner:Exp, Z:Id, InnerFilters:MaybeCompFilters, Elem:Exp, RestOuter:ArgVals, Acc:ArgVals, Rho:Map) =>
+           Middle ~> listCompForForIfsMiddle(X, OuterFilters, Middle, Y, MiddleFilters, Inner, Z, InnerFilters, Elem, RestOuter, Acc, Rho)
+       ... </k>
+    requires truthy(V)
+  rule <k> V:Val ~> listCompForForIfsOuterFilterLast(X:Id, OuterFilters:MaybeCompFilters, Middle:Exp, Y:Id, MiddleFilters:MaybeCompFilters, Inner:Exp, Z:Id, InnerFilters:MaybeCompFilters, Elem:Exp, RestOuter:ArgVals, Acc:ArgVals, Rho:Map) =>
+           listCompForForIfsIter(X, OuterFilters, Middle, Y, MiddleFilters, Inner, Z, InnerFilters, Elem, RestOuter, Acc, Rho)
+       ... </k>
+    requires notBool truthy(V)
+  rule <k> MiddleIter:Val ~> listCompForForIfsMiddle(X:Id, OuterFilters:MaybeCompFilters, Middle:Exp, Y:Id, MiddleFilters:MaybeCompFilters, Inner:Exp, Z:Id, InnerFilters:MaybeCompFilters, Elem:Exp, RestOuter:ArgVals, Acc:ArgVals, Rho:Map) =>
+           listCompForForIfsMiddleIter(X, OuterFilters, Middle, Y, MiddleFilters, Inner, Z, InnerFilters, Elem, RestOuter, iterableArgVals(MiddleIter), Acc, Rho)
+       ... </k>
+  rule <k> listCompForForIfsMiddleIter(X:Id, OuterFilters:MaybeCompFilters, Middle:Exp, Y:Id, MiddleFilters:MaybeCompFilters, Inner:Exp, Z:Id, InnerFilters:MaybeCompFilters, Elem:Exp, RestOuter:ArgVals, #noArgVals, Acc:ArgVals, Rho:Map) =>
+           listCompForForIfsIter(X, OuterFilters, Middle, Y, MiddleFilters, Inner, Z, InnerFilters, Elem, RestOuter, Acc, Rho)
+       ... </k>
+  rule <k> listCompForForIfsMiddleIter(X:Id, OuterFilters:MaybeCompFilters, Middle:Exp, Y:Id, #noFilters, Inner:Exp, Z:Id, InnerFilters:MaybeCompFilters, Elem:Exp, RestOuter:ArgVals, argValsCons(V:Val, RestMiddle:ArgVals), Acc:ArgVals, Rho:Map) =>
+           Inner ~> listCompForForIfsInner(X, OuterFilters, Middle, Y, #noFilters, Inner, Z, InnerFilters, Elem, RestOuter, RestMiddle, Acc, Rho)
+       ... </k>
+       <env> RhoCurrent:Map => RhoCurrent [ Y <- V ] </env>
+  rule <k> listCompForForIfsMiddleIter(X:Id, OuterFilters:MaybeCompFilters, Middle:Exp, Y:Id, MiddleFilters:CompFilters, Inner:Exp, Z:Id, InnerFilters:MaybeCompFilters, Elem:Exp, RestOuter:ArgVals, argValsCons(V:Val, RestMiddle:ArgVals), Acc:ArgVals, Rho:Map) =>
+           listCompForForIfsMiddleFilter(X, OuterFilters, Middle, Y, MiddleFilters, MiddleFilters, Inner, Z, InnerFilters, Elem, RestOuter, RestMiddle, Acc, Rho)
+       ... </k>
+       <env> RhoCurrent:Map => RhoCurrent [ Y <- V ] </env>
+  rule <k> listCompForForIfsMiddleFilter(X:Id, OuterFilters:MaybeCompFilters, Middle:Exp, Y:Id, MiddleFilters:MaybeCompFilters, #filters(Filter:Exp, RestFilters:CompFilters), Inner:Exp, Z:Id, InnerFilters:MaybeCompFilters, Elem:Exp, RestOuter:ArgVals, RestMiddle:ArgVals, Acc:ArgVals, Rho:Map) =>
+           Filter ~> listCompForForIfsMiddleFilterNext(X, OuterFilters, Middle, Y, MiddleFilters, RestFilters, Inner, Z, InnerFilters, Elem, RestOuter, RestMiddle, Acc, Rho)
+       ... </k>
+  rule <k> listCompForForIfsMiddleFilter(X:Id, OuterFilters:MaybeCompFilters, Middle:Exp, Y:Id, MiddleFilters:MaybeCompFilters, #filter(Filter:Exp), Inner:Exp, Z:Id, InnerFilters:MaybeCompFilters, Elem:Exp, RestOuter:ArgVals, RestMiddle:ArgVals, Acc:ArgVals, Rho:Map) =>
+           Filter ~> listCompForForIfsMiddleFilterLast(X, OuterFilters, Middle, Y, MiddleFilters, Inner, Z, InnerFilters, Elem, RestOuter, RestMiddle, Acc, Rho)
+       ... </k>
+  rule <k> V:Val ~> listCompForForIfsMiddleFilterNext(X:Id, OuterFilters:MaybeCompFilters, Middle:Exp, Y:Id, MiddleFilters:MaybeCompFilters, RestFilters:CompFilters, Inner:Exp, Z:Id, InnerFilters:MaybeCompFilters, Elem:Exp, RestOuter:ArgVals, RestMiddle:ArgVals, Acc:ArgVals, Rho:Map) =>
+           listCompForForIfsMiddleFilter(X, OuterFilters, Middle, Y, MiddleFilters, RestFilters, Inner, Z, InnerFilters, Elem, RestOuter, RestMiddle, Acc, Rho)
+       ... </k>
+    requires truthy(V)
+  rule <k> V:Val ~> listCompForForIfsMiddleFilterNext(X:Id, OuterFilters:MaybeCompFilters, Middle:Exp, Y:Id, MiddleFilters:MaybeCompFilters, _:CompFilters, Inner:Exp, Z:Id, InnerFilters:MaybeCompFilters, Elem:Exp, RestOuter:ArgVals, RestMiddle:ArgVals, Acc:ArgVals, Rho:Map) =>
+           listCompForForIfsMiddleIter(X, OuterFilters, Middle, Y, MiddleFilters, Inner, Z, InnerFilters, Elem, RestOuter, RestMiddle, Acc, Rho)
+       ... </k>
+    requires notBool truthy(V)
+  rule <k> V:Val ~> listCompForForIfsMiddleFilterLast(X:Id, OuterFilters:MaybeCompFilters, Middle:Exp, Y:Id, MiddleFilters:MaybeCompFilters, Inner:Exp, Z:Id, InnerFilters:MaybeCompFilters, Elem:Exp, RestOuter:ArgVals, RestMiddle:ArgVals, Acc:ArgVals, Rho:Map) =>
+           Inner ~> listCompForForIfsInner(X, OuterFilters, Middle, Y, MiddleFilters, Inner, Z, InnerFilters, Elem, RestOuter, RestMiddle, Acc, Rho)
+       ... </k>
+    requires truthy(V)
+  rule <k> V:Val ~> listCompForForIfsMiddleFilterLast(X:Id, OuterFilters:MaybeCompFilters, Middle:Exp, Y:Id, MiddleFilters:MaybeCompFilters, Inner:Exp, Z:Id, InnerFilters:MaybeCompFilters, Elem:Exp, RestOuter:ArgVals, RestMiddle:ArgVals, Acc:ArgVals, Rho:Map) =>
+           listCompForForIfsMiddleIter(X, OuterFilters, Middle, Y, MiddleFilters, Inner, Z, InnerFilters, Elem, RestOuter, RestMiddle, Acc, Rho)
+       ... </k>
+    requires notBool truthy(V)
+  rule <k> InnerIter:Val ~> listCompForForIfsInner(X:Id, OuterFilters:MaybeCompFilters, Middle:Exp, Y:Id, MiddleFilters:MaybeCompFilters, Inner:Exp, Z:Id, InnerFilters:MaybeCompFilters, Elem:Exp, RestOuter:ArgVals, RestMiddle:ArgVals, Acc:ArgVals, Rho:Map) =>
+           listCompForForIfsInnerIter(X, OuterFilters, Middle, Y, MiddleFilters, Inner, Z, InnerFilters, Elem, RestOuter, RestMiddle, iterableArgVals(InnerIter), Acc, Rho)
+       ... </k>
+  rule <k> listCompForForIfsInnerIter(X:Id, OuterFilters:MaybeCompFilters, Middle:Exp, Y:Id, MiddleFilters:MaybeCompFilters, Inner:Exp, Z:Id, InnerFilters:MaybeCompFilters, Elem:Exp, RestOuter:ArgVals, RestMiddle:ArgVals, #noArgVals, Acc:ArgVals, Rho:Map) =>
+           listCompForForIfsMiddleIter(X, OuterFilters, Middle, Y, MiddleFilters, Inner, Z, InnerFilters, Elem, RestOuter, RestMiddle, Acc, Rho)
+       ... </k>
+  rule <k> listCompForForIfsInnerIter(X:Id, OuterFilters:MaybeCompFilters, Middle:Exp, Y:Id, MiddleFilters:MaybeCompFilters, Inner:Exp, Z:Id, #noFilters, Elem:Exp, RestOuter:ArgVals, RestMiddle:ArgVals, argValsCons(V:Val, RestInner:ArgVals), Acc:ArgVals, Rho:Map) =>
+           Elem ~> listCompForForIfsNext(X, OuterFilters, Middle, Y, MiddleFilters, Inner, Z, #noFilters, Elem, RestOuter, RestMiddle, RestInner, Acc, Rho)
+       ... </k>
+       <env> RhoCurrent:Map => RhoCurrent [ Z <- V ] </env>
+  rule <k> listCompForForIfsInnerIter(X:Id, OuterFilters:MaybeCompFilters, Middle:Exp, Y:Id, MiddleFilters:MaybeCompFilters, Inner:Exp, Z:Id, InnerFilters:CompFilters, Elem:Exp, RestOuter:ArgVals, RestMiddle:ArgVals, argValsCons(V:Val, RestInner:ArgVals), Acc:ArgVals, Rho:Map) =>
+           listCompForForIfsInnerFilter(X, OuterFilters, Middle, Y, MiddleFilters, Inner, Z, InnerFilters, InnerFilters, Elem, RestOuter, RestMiddle, RestInner, Acc, Rho)
+       ... </k>
+       <env> RhoCurrent:Map => RhoCurrent [ Z <- V ] </env>
+  rule <k> listCompForForIfsInnerFilter(X:Id, OuterFilters:MaybeCompFilters, Middle:Exp, Y:Id, MiddleFilters:MaybeCompFilters, Inner:Exp, Z:Id, InnerFilters:MaybeCompFilters, #filters(Filter:Exp, RestFilters:CompFilters), Elem:Exp, RestOuter:ArgVals, RestMiddle:ArgVals, RestInner:ArgVals, Acc:ArgVals, Rho:Map) =>
+           Filter ~> listCompForForIfsInnerFilterNext(X, OuterFilters, Middle, Y, MiddleFilters, Inner, Z, InnerFilters, RestFilters, Elem, RestOuter, RestMiddle, RestInner, Acc, Rho)
+       ... </k>
+  rule <k> listCompForForIfsInnerFilter(X:Id, OuterFilters:MaybeCompFilters, Middle:Exp, Y:Id, MiddleFilters:MaybeCompFilters, Inner:Exp, Z:Id, InnerFilters:MaybeCompFilters, #filter(Filter:Exp), Elem:Exp, RestOuter:ArgVals, RestMiddle:ArgVals, RestInner:ArgVals, Acc:ArgVals, Rho:Map) =>
+           Filter ~> listCompForForIfsInnerFilterLast(X, OuterFilters, Middle, Y, MiddleFilters, Inner, Z, InnerFilters, Elem, RestOuter, RestMiddle, RestInner, Acc, Rho)
+       ... </k>
+  rule <k> V:Val ~> listCompForForIfsInnerFilterNext(X:Id, OuterFilters:MaybeCompFilters, Middle:Exp, Y:Id, MiddleFilters:MaybeCompFilters, Inner:Exp, Z:Id, InnerFilters:MaybeCompFilters, RestFilters:CompFilters, Elem:Exp, RestOuter:ArgVals, RestMiddle:ArgVals, RestInner:ArgVals, Acc:ArgVals, Rho:Map) =>
+           listCompForForIfsInnerFilter(X, OuterFilters, Middle, Y, MiddleFilters, Inner, Z, InnerFilters, RestFilters, Elem, RestOuter, RestMiddle, RestInner, Acc, Rho)
+       ... </k>
+    requires truthy(V)
+  rule <k> V:Val ~> listCompForForIfsInnerFilterNext(X:Id, OuterFilters:MaybeCompFilters, Middle:Exp, Y:Id, MiddleFilters:MaybeCompFilters, Inner:Exp, Z:Id, InnerFilters:MaybeCompFilters, _:CompFilters, Elem:Exp, RestOuter:ArgVals, RestMiddle:ArgVals, RestInner:ArgVals, Acc:ArgVals, Rho:Map) =>
+           listCompForForIfsInnerIter(X, OuterFilters, Middle, Y, MiddleFilters, Inner, Z, InnerFilters, Elem, RestOuter, RestMiddle, RestInner, Acc, Rho)
+       ... </k>
+    requires notBool truthy(V)
+  rule <k> V:Val ~> listCompForForIfsInnerFilterLast(X:Id, OuterFilters:MaybeCompFilters, Middle:Exp, Y:Id, MiddleFilters:MaybeCompFilters, Inner:Exp, Z:Id, InnerFilters:MaybeCompFilters, Elem:Exp, RestOuter:ArgVals, RestMiddle:ArgVals, RestInner:ArgVals, Acc:ArgVals, Rho:Map) =>
+           Elem ~> listCompForForIfsNext(X, OuterFilters, Middle, Y, MiddleFilters, Inner, Z, InnerFilters, Elem, RestOuter, RestMiddle, RestInner, Acc, Rho)
+       ... </k>
+    requires truthy(V)
+  rule <k> V:Val ~> listCompForForIfsInnerFilterLast(X:Id, OuterFilters:MaybeCompFilters, Middle:Exp, Y:Id, MiddleFilters:MaybeCompFilters, Inner:Exp, Z:Id, InnerFilters:MaybeCompFilters, Elem:Exp, RestOuter:ArgVals, RestMiddle:ArgVals, RestInner:ArgVals, Acc:ArgVals, Rho:Map) =>
+           listCompForForIfsInnerIter(X, OuterFilters, Middle, Y, MiddleFilters, Inner, Z, InnerFilters, Elem, RestOuter, RestMiddle, RestInner, Acc, Rho)
+       ... </k>
+    requires notBool truthy(V)
+  rule <k> V:Val ~> listCompForForIfsNext(X:Id, OuterFilters:MaybeCompFilters, Middle:Exp, Y:Id, MiddleFilters:MaybeCompFilters, Inner:Exp, Z:Id, InnerFilters:MaybeCompFilters, Elem:Exp, RestOuter:ArgVals, RestMiddle:ArgVals, RestInner:ArgVals, Acc:ArgVals, Rho:Map) =>
+           listCompForForIfsInnerIter(X, OuterFilters, Middle, Y, MiddleFilters, Inner, Z, InnerFilters, Elem, RestOuter, RestMiddle, RestInner, appendArgVal(Acc, V), Rho)
        ... </k>
   rule <k> setCompExp(Iter:Val, X:Id, Elem:Exp) =>
            setCompIter(X, Elem, iterableArgVals(Iter), #noArgVals, Rho)

@@ -137,6 +137,7 @@ module PYTHON-SYNTAX
                | "#dictComp" "(" Exp "," Id "," Exp "," Exp ")" [symbol(dictCompExp), strict(1)]
                | "#dictCompIf" "(" Exp "," Id "," Exp "," Exp "," Exp ")" [symbol(dictCompIfExp), strict(1)]
                | "#setComp" "(" Exp "," Id "," Exp ")" [symbol(setCompExp), strict(1)]
+               | "#setCompIf" "(" Exp "," Id "," Exp "," Exp ")" [symbol(setCompIfExp), strict(1)]
                | "#listCtor" "(" ")" [symbol(listCtorExp)]
                | "#listCtor" "(" Exp ")" [symbol(listCtor1Exp), strict]
                | "#tupleCtor" "(" ")" [symbol(tupleCtorExp)]
@@ -286,6 +287,9 @@ module PYTHON
                  | listCompIfNext(Id, Exp, Exp, ArgVals, ArgVals, Map) [symbol(listCompIfNext)]
                  | setCompIter(Id, Exp, ArgVals, ArgVals, Map) [symbol(setCompIter)]
                  | setCompNext(Id, Exp, ArgVals, ArgVals, Map) [symbol(setCompNext)]
+                 | setCompIfIter(Id, Exp, Exp, ArgVals, ArgVals, Map) [symbol(setCompIfIter)]
+                 | setCompIfFilter(Id, Exp, Exp, ArgVals, ArgVals, Map) [symbol(setCompIfFilter)]
+                 | setCompIfNext(Id, Exp, Exp, ArgVals, ArgVals, Map) [symbol(setCompIfNext)]
                  | "buildTuple" [symbol(buildTuple)]
                  | "buildSet" [symbol(buildSet)]
                  | "minArgsResult" [symbol(minArgsResult)]
@@ -2904,6 +2908,32 @@ module PYTHON
        <env> _ => Rho [ X <- V ] </env>
   rule <k> V:Val ~> setCompNext(X:Id, Elem:Exp, Rest:ArgVals, Acc:ArgVals, Rho:Map) =>
            setCompIter(X, Elem, Rest, appendArgVal(Acc, V), Rho)
+       ... </k>
+  rule <k> setCompIfExp(Iter:Val, X:Id, Filter:Exp, Elem:Exp) =>
+           setCompIfIter(X, Filter, Elem, iterableArgVals(Iter), #noArgVals, Rho)
+       ... </k>
+       <env> Rho </env>
+  rule <k> setCompIfIter(_:Id, _:Exp, _:Exp, #noArgVals, #noArgVals, Rho:Map) =>
+           set() ~> restoreEnv(Rho)
+       ... </k>
+  rule <k> setCompIfIter(_:Id, _:Exp, _:Exp, #noArgVals, Acc:ArgVals, Rho:Map) =>
+           setFromArgVals(Acc) ~> restoreEnv(Rho)
+       ... </k>
+    requires notBool emptyArgVals(Acc)
+  rule <k> setCompIfIter(X:Id, Filter:Exp, Elem:Exp, argValsCons(V:Val, Rest:ArgVals), Acc:ArgVals, Rho:Map) =>
+           Filter ~> setCompIfFilter(X, Filter, Elem, Rest, Acc, Rho)
+       ... </k>
+       <env> _ => Rho [ X <- V ] </env>
+  rule <k> V:Val ~> setCompIfFilter(X:Id, Filter:Exp, Elem:Exp, Rest:ArgVals, Acc:ArgVals, Rho:Map) =>
+           Elem ~> setCompIfNext(X, Filter, Elem, Rest, Acc, Rho)
+       ... </k>
+    requires truthy(V)
+  rule <k> V:Val ~> setCompIfFilter(X:Id, Filter:Exp, Elem:Exp, Rest:ArgVals, Acc:ArgVals, Rho:Map) =>
+           setCompIfIter(X, Filter, Elem, Rest, Acc, Rho)
+       ... </k>
+    requires notBool truthy(V)
+  rule <k> V:Val ~> setCompIfNext(X:Id, Filter:Exp, Elem:Exp, Rest:ArgVals, Acc:ArgVals, Rho:Map) =>
+           setCompIfIter(X, Filter, Elem, Rest, appendArgVal(Acc, V), Rho)
        ... </k>
 
   rule <k> tupleDisplayExp(Args:ArgExps) => evalArgs(Args, #noArgVals) ~> buildTuple ... </k>

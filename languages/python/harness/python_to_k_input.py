@@ -315,10 +315,15 @@ def emit_set_comprehension(
 ) -> str:
     if generator.is_async:
         raise unsupported(node, "async set comprehensions are not supported yet")
-    if generator.ifs:
-        raise unsupported(node, "set comprehension if-clauses are not supported yet")
+    if len(generator.ifs) > 1:
+        raise unsupported(node, "multiple set comprehension if-clauses are not supported yet")
     if not isinstance(generator.target, ast.Name):
         raise unsupported(generator.target, "only simple-name set comprehension targets are supported")
+    if generator.ifs:
+        return (
+            f"#setCompIf({emit_exp(generator.iter)}, {generator.target.id}, "
+            f"{emit_exp(generator.ifs[0])}, {emit_exp(elt)})"
+        )
     return f"#setComp({emit_exp(generator.iter)}, {generator.target.id}, {emit_exp(elt)})"
 
 

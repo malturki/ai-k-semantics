@@ -524,18 +524,20 @@ def emit_tuple(elts: list[ast.expr]) -> str:
 
 
 def emit_dict(node: ast.AST, keys: list[ast.expr | None], values: list[ast.expr]) -> str:
-    pairs: list[tuple[ast.expr, ast.expr]] = []
+    pairs: list[tuple[ast.expr | None, ast.expr]] = []
     for key, value in zip(keys, values, strict=True):
-        if key is None:
-            raise unsupported(node, "dictionary unpacking is not supported yet")
         pairs.append((key, value))
     return f"#dict({emit_dict_exps(pairs)})"
 
 
-def emit_dict_exps(items: list[tuple[ast.expr, ast.expr]]) -> str:
+def emit_dict_exps(items: list[tuple[ast.expr | None, ast.expr]]) -> str:
     if not items:
         return "#noDictItems"
     key, value = items[0]
+    if key is None:
+        if len(items) == 1:
+            return f"#dictStarItem({emit_exp(value)})"
+        return f"#dictStarItems({emit_exp(value)}, {emit_dict_exps(items[1:])})"
     if len(items) == 1:
         return f"#dictItem({emit_exp(key)}, {emit_exp(value)})"
     return f"#dictItems({emit_exp(key)}, {emit_exp(value)}, {emit_dict_exps(items[1:])})"

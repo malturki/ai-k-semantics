@@ -47,6 +47,8 @@ module PYTHON-SYNTAX
   syntax DictExps ::= "#noDictItems" [symbol(noDictExps)]
                     | "#dictItem" "(" Exp "," Exp ")" [symbol(dictExpItem)]
                     | "#dictItems" "(" Exp "," Exp "," DictExps ")" [symbol(dictExpsCons)]
+                    | "#dictStarItem" "(" Exp ")" [symbol(dictStarExpItem)]
+                    | "#dictStarItems" "(" Exp "," DictExps ")" [symbol(dictStarExpsCons)]
 
   syntax CmpOp ::= "#lt" [symbol(cmpLt)]
                  | "#le" [symbol(cmpLe)]
@@ -273,6 +275,7 @@ module PYTHON
                  | evalDict(DictExps, DictVals) [symbol(evalDict)]
                  | evalDictValue(Exp, DictExps, DictVals) [symbol(evalDictValue)]
                  | evalDictNext(DictExps, DictVals, Val) [symbol(evalDictNext)]
+                 | evalDictStarNext(DictExps, DictVals) [symbol(evalDictStarNext)]
                  | "buildDict" [symbol(buildDict)]
                  | compareChain(CmpChain) [symbol(compareChain)]
                  | compareChainLast(CmpOp, Val) [symbol(compareChainLast)]
@@ -442,6 +445,8 @@ module PYTHON
   syntax DictVals ::= "#noDictVals" [symbol(noDictVals)]
                     | dictValsCons(Val, Val, DictVals) [symbol(dictValsCons)]
                     | appendDictVal(DictVals, Val, Val) [function, symbol(appendDictVal)]
+                    | appendDictUnpack(DictVals, Val) [function, symbol(appendDictUnpack)]
+                    | appendDictItems(DictVals, DictItems) [function, symbol(appendDictItems)]
                     | kwExtrasDictVals(KwArgVals, IdItems) [function, symbol(kwExtrasDictVals)]
   syntax Map ::= bindArgs(Map, IdItems, ArgVals) [function, symbol(bindArgs)]
   syntax Map ::= bindVarArgs(Map, IdItems, Id, ArgVals) [function, symbol(bindVarArgs)]
@@ -1341,6 +1346,14 @@ module PYTHON
   rule appendDictVal(dictValsCons(K0:Val, V0:Val, DVS:DictVals), K:Val, V:Val) =>
     dictValsCons(K0, V0, appendDictVal(DVS, K, V))
     requires notBool valEq(K, K0)
+
+  rule appendDictUnpack(DVS:DictVals, ({}):Val) => DVS
+  rule appendDictUnpack(DVS:DictVals, dictVal(DS:DictItems)) => appendDictItems(DVS, DS)
+
+  rule appendDictItems(DVS:DictVals, dictItemsLast(K:Val, V:Val)) =>
+    appendDictVal(DVS, K, V)
+  rule appendDictItems(DVS:DictVals, dictItemsCons(K:Val, V:Val, DS:DictItems)) =>
+    appendDictItems(appendDictVal(DVS, K, V), DS)
 
   rule bindArgs(Rho:Map, #noIds, #noArgVals) => Rho
   rule bindArgs(Rho:Map, idItemsLast(X:Id), argValsCons(V:Val, #noArgVals)) => Rho [ X <- V ]
@@ -2687,11 +2700,20 @@ module PYTHON
   rule <k> evalDict(dictExpsCons(K:Exp, V:Exp, Rest:DictExps), DVS:DictVals) =>
            K ~> evalDictValue(V, Rest, DVS)
        ... </k>
+  rule <k> evalDict(dictStarExpItem(E:Exp), DVS:DictVals) =>
+           E ~> evalDictStarNext(#noDictItems, DVS)
+       ... </k>
+  rule <k> evalDict(dictStarExpsCons(E:Exp, Rest:DictExps), DVS:DictVals) =>
+           E ~> evalDictStarNext(Rest, DVS)
+       ... </k>
   rule <k> K:Val ~> evalDictValue(V:Exp, Rest:DictExps, DVS:DictVals) =>
            V ~> evalDictNext(Rest, DVS, K)
        ... </k>
   rule <k> V:Val ~> evalDictNext(Rest:DictExps, DVS:DictVals, K:Val) =>
            evalDict(Rest, appendDictVal(DVS, K, V))
+       ... </k>
+  rule <k> V:Val ~> evalDictStarNext(Rest:DictExps, DVS:DictVals) =>
+           evalDict(Rest, appendDictUnpack(DVS, V))
        ... </k>
   rule <k> dictArgsVal(#noDictVals) ~> buildDict => ({}):Val ... </k>
   rule <k> dictArgsVal(DVS:DictVals) ~> buildDict => dictVal(dictValsToDictItems(DVS)) ... </k>

@@ -138,6 +138,7 @@ module PYTHON-SYNTAX
                | "#dictCtor" "(" ")" [symbol(dictCtorExp)]
                | "#dictCtor" "(" Exp ")" [symbol(dictCtor1Exp), strict]
                | "#setCtor" "(" ")" [symbol(setCtorExp)]
+               | "#setCtor" "(" Exp ")" [symbol(setCtor1Exp), strict]
                | "#boolCtor" "(" ")" [symbol(boolCtor0Exp)]
                | "#boolCtor" "(" Exp ")" [symbol(boolCtor1Exp), strict]
                | "#all" "(" Exp ")" [symbol(allExp), strict]
@@ -436,6 +437,7 @@ module PYTHON
                    | valItemsToArgVals(ValItems) [function, symbol(valItemsToArgVals)]
                    | iterableArgVals(Val) [function, symbol(iterableArgVals)]
   syntax Val ::= argValsToTupleVal(ArgVals) [function, symbol(argValsToTupleVal)]
+               | setFromArgVals(ArgVals) [function, symbol(setFromArgVals)]
   syntax Val ::= kwExtrasDict(KwArgVals, IdItems) [function, symbol(kwExtrasDict)]
   syntax KwArgVals ::= "#noKwArgVals" [symbol(noKwArgVals)]
                      | kwArgValsCons(Id, Val, KwArgVals) [symbol(kwArgValsCons)]
@@ -1250,6 +1252,7 @@ module PYTHON
   rule iterableArgVals(({}):Val) => #noArgVals
   rule iterableArgVals(dictVal(DS:DictItems)) => valItemsToArgVals(dictKeysToValItems(DS))
   rule iterableArgVals(set()) => #noArgVals
+  rule iterableArgVals(setVal(VS:ValItems)) => valItemsToArgVals(VS)
   rule iterableArgVals(rangeVal(Start:Int, Stop:Int)) => #noArgVals
     requires pyRangeLen(Start, Stop, 1) ==Int 0
   rule iterableArgVals(rangeVal(Start:Int, Stop:Int)) =>
@@ -1432,6 +1435,10 @@ module PYTHON
 
   rule argValsToTupleVal(#noArgVals) => ()
   rule argValsToTupleVal(VS:ArgVals) => tupleVal(argValsToValItems(VS))
+    requires notBool emptyArgVals(VS)
+
+  rule setFromArgVals(#noArgVals) => set()
+  rule setFromArgVals(VS:ArgVals) => setVal(argValsToSetItems(VS))
     requires notBool emptyArgVals(VS)
 
   rule argValsToSetItems(argValsCons(V:Val, #noArgVals)) => valItemsLast(V)
@@ -2738,6 +2745,7 @@ module PYTHON
   rule #tupleCtor() => ()
   rule #dictCtor() => ({}):Val
   rule #setCtor() => set()
+  rule #setCtor(V:Val) => setFromArgVals(iterableArgVals(V))
   rule #dictCtor(({}):Val) => ({}):Val
   rule #dictCtor(dictVal(DS:DictItems)) => dictVal(DS)
   rule #dictCtor([]) => ({}):Val

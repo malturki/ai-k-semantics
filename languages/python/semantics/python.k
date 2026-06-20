@@ -131,6 +131,8 @@ module PYTHON-SYNTAX
                 | "#defPosOnlyVarArgsDefaults" "(" Id "," IdItems "," IdItems "," ArgExps "," Id "," Block ")" [symbol(functionDefPosOnlyVarArgsDefaultsStmt)]
                 | "#defPosOnlyKwArgs" "(" Id "," IdItems "," IdItems "," Id "," Block ")" [symbol(functionDefPosOnlyKwArgsStmt)]
                 | "#defPosOnlyKwArgsDefaults" "(" Id "," IdItems "," IdItems "," ArgExps "," Id "," Block ")" [symbol(functionDefPosOnlyKwArgsDefaultsStmt)]
+                | "#defPosOnlyKwOnly" "(" Id "," IdItems "," IdItems "," IdItems "," Block ")" [symbol(functionDefPosOnlyKwOnlyStmt)]
+                | "#defPosOnlyKwOnlyDefaults" "(" Id "," IdItems "," IdItems "," ArgExps "," IdItems "," ArgExps "," Block ")" [symbol(functionDefPosOnlyKwOnlyDefaultsStmt)]
                 | "#defKwOnly" "(" Id "," IdItems "," Block ")" [symbol(functionDefKwOnlyStmt)]
                 | "#defKwDefaults" "(" Id "," IdItems "," ArgExps "," Block ")" [symbol(functionDefKwDefaultsStmt)]
                 | "#defKwOnlyKwArgs" "(" Id "," IdItems "," Id "," Block ")" [symbol(functionDefKwOnlyKwArgsStmt)]
@@ -275,6 +277,8 @@ module PYTHON-SYNTAX
                | "#lambdaPosOnlyVarArgsDefaults" "(" IdItems "," IdItems "," ArgExps "," Id "," Exp ")" [symbol(lambdaPosOnlyVarArgsDefaultsExp)]
                | "#lambdaPosOnlyKwArgs" "(" IdItems "," IdItems "," Id "," Exp ")" [symbol(lambdaPosOnlyKwArgsExp)]
                | "#lambdaPosOnlyKwArgsDefaults" "(" IdItems "," IdItems "," ArgExps "," Id "," Exp ")" [symbol(lambdaPosOnlyKwArgsDefaultsExp)]
+               | "#lambdaPosOnlyKwOnly" "(" IdItems "," IdItems "," IdItems "," Exp ")" [symbol(lambdaPosOnlyKwOnlyExp)]
+               | "#lambdaPosOnlyKwOnlyDefaults" "(" IdItems "," IdItems "," ArgExps "," IdItems "," ArgExps "," Exp ")" [symbol(lambdaPosOnlyKwOnlyDefaultsExp)]
                | "#lambdaKwOnly" "(" IdItems "," Exp ")" [symbol(lambdaKwOnlyExp)]
                | "#lambdaKwDefaults" "(" IdItems "," ArgExps "," Exp ")" [symbol(lambdaKwDefaultsExp)]
                | "#lambdaKwOnlyKwArgs" "(" IdItems "," Id "," Exp ")" [symbol(lambdaKwOnlyKwArgsExp)]
@@ -313,6 +317,8 @@ module PYTHON
                | closurePosOnlyVarArgsDefaults(IdItems, IdItems, ArgVals, Id, Exp) [symbol(closurePosOnlyVarArgsDefaults)]
                | closurePosOnlyKwArgs(IdItems, IdItems, Id, Exp) [symbol(closurePosOnlyKwArgs)]
                | closurePosOnlyKwArgsDefaults(IdItems, IdItems, ArgVals, Id, Exp) [symbol(closurePosOnlyKwArgsDefaults)]
+               | closurePosOnlyKwOnly(IdItems, IdItems, IdItems, Exp) [symbol(closurePosOnlyKwOnly)]
+               | closurePosOnlyKwOnlyDefaults(IdItems, IdItems, ArgVals, IdItems, ArgVals, Exp) [symbol(closurePosOnlyKwOnlyDefaults)]
                | closureKwOnly(IdItems, Exp) [symbol(closureKwOnly)]
                | closureKwDefaults(IdItems, ArgVals, Exp) [symbol(closureKwDefaults)]
                | closureKwOnlyKwArgs(IdItems, Id, Exp) [symbol(closureKwOnlyKwArgs)]
@@ -340,6 +346,8 @@ module PYTHON
                | functionValPosOnlyVarArgsDefaults(IdItems, IdItems, ArgVals, Id, Block) [symbol(functionValPosOnlyVarArgsDefaults)]
                | functionValPosOnlyKwArgs(IdItems, IdItems, Id, Block) [symbol(functionValPosOnlyKwArgs)]
                | functionValPosOnlyKwArgsDefaults(IdItems, IdItems, ArgVals, Id, Block) [symbol(functionValPosOnlyKwArgsDefaults)]
+               | functionValPosOnlyKwOnly(IdItems, IdItems, IdItems, Block) [symbol(functionValPosOnlyKwOnly)]
+               | functionValPosOnlyKwOnlyDefaults(IdItems, IdItems, ArgVals, IdItems, ArgVals, Block) [symbol(functionValPosOnlyKwOnlyDefaults)]
                | functionValKwOnly(IdItems, Block) [symbol(functionValKwOnly)]
                | functionValKwDefaults(IdItems, ArgVals, Block) [symbol(functionValKwDefaults)]
                | functionValKwOnlyKwArgs(IdItems, Id, Block) [symbol(functionValKwOnlyKwArgs)]
@@ -390,6 +398,8 @@ module PYTHON
                  | bindLambdaPosOnlyDefaults(IdItems, IdItems, Exp) [symbol(bindLambdaPosOnlyDefaults)]
                  | bindLambdaPosOnlyVarArgsDefaults(IdItems, IdItems, Id, Exp) [symbol(bindLambdaPosOnlyVarArgsDefaults)]
                  | bindLambdaPosOnlyKwArgsDefaults(IdItems, IdItems, Id, Exp) [symbol(bindLambdaPosOnlyKwArgsDefaults)]
+                 | bindLambdaPosOnlyKwOnlyDefaults(IdItems, IdItems, ArgExps, IdItems, Exp) [symbol(bindLambdaPosOnlyKwOnlyDefaults)]
+                 | bindLambdaPosOnlyKwOnlyDefaultVals(IdItems, IdItems, ArgVals, IdItems, Exp) [symbol(bindLambdaPosOnlyKwOnlyDefaultVals)]
                  | bindLambdaPosKwDefaults(IdItems, ArgExps, IdItems, Exp) [symbol(bindLambdaPosKwDefaults)]
                  | bindLambdaPosKwDefaultVals(IdItems, ArgVals, IdItems, Exp) [symbol(bindLambdaPosKwDefaultVals)]
                  | bindLambdaPosKwDefaultsKwArgs(IdItems, ArgExps, IdItems, Id, Exp) [symbol(bindLambdaPosKwDefaultsKwArgs)]
@@ -608,6 +618,8 @@ module PYTHON
                 | bindFunctionPosOnlyDefaults(Id, IdItems, IdItems, Block) [symbol(bindFunctionPosOnlyDefaults)]
                 | bindFunctionPosOnlyVarArgsDefaults(Id, IdItems, IdItems, Id, Block) [symbol(bindFunctionPosOnlyVarArgsDefaults)]
                 | bindFunctionPosOnlyKwArgsDefaults(Id, IdItems, IdItems, Id, Block) [symbol(bindFunctionPosOnlyKwArgsDefaults)]
+                | bindFunctionPosOnlyKwOnlyDefaults(Id, IdItems, IdItems, ArgExps, IdItems, Block) [symbol(bindFunctionPosOnlyKwOnlyDefaults)]
+                | bindFunctionPosOnlyKwOnlyDefaultVals(Id, IdItems, IdItems, ArgVals, IdItems, Block) [symbol(bindFunctionPosOnlyKwOnlyDefaultVals)]
                 | bindFunctionPosKwDefaults(Id, IdItems, ArgExps, IdItems, Block) [symbol(bindFunctionPosKwDefaults)]
                  | bindFunctionPosKwDefaultVals(Id, IdItems, ArgVals, IdItems, Block) [symbol(bindFunctionPosKwDefaultVals)]
                  | bindFunctionPosKwDefaultsKwArgs(Id, IdItems, ArgExps, IdItems, Id, Block) [symbol(bindFunctionPosKwDefaultsKwArgs)]
@@ -674,6 +686,11 @@ module PYTHON
                 | posOnlyKwArgsDefaultsCallArityOk(IdItems, IdItems, ArgVals, ArgVals) [function, symbol(posOnlyKwArgsDefaultsCallArityOk)]
                 | posOnlyKwArgsKeywordDefaultsCallArityOk(IdItems, IdItems, KwArgVals, ArgVals) [function, symbol(posOnlyKwArgsKeywordDefaultsCallArityOk)]
                 | posOnlyKwArgsMixedDefaultsCallArityOk(IdItems, IdItems, ArgVals, KwArgVals, ArgVals) [function, symbol(posOnlyKwArgsMixedDefaultsCallArityOk)]
+                | posOnlyKwOnlyKeywordCallArityOk(IdItems, IdItems, IdItems, KwArgVals) [function, symbol(posOnlyKwOnlyKeywordCallArityOk)]
+                | posOnlyKwOnlyMixedCallArityOk(IdItems, IdItems, IdItems, ArgVals, KwArgVals) [function, symbol(posOnlyKwOnlyMixedCallArityOk)]
+                | posOnlyKwOnlyArgsDefaultsCallArityOk(IdItems, IdItems, IdItems, ArgVals, ArgVals, ArgVals) [function, symbol(posOnlyKwOnlyArgsDefaultsCallArityOk)]
+                | posOnlyKwOnlyKeywordDefaultsCallArityOk(IdItems, IdItems, IdItems, KwArgVals, ArgVals, ArgVals) [function, symbol(posOnlyKwOnlyKeywordDefaultsCallArityOk)]
+                | posOnlyKwOnlyMixedDefaultsCallArityOk(IdItems, IdItems, IdItems, ArgVals, KwArgVals, ArgVals, ArgVals) [function, symbol(posOnlyKwOnlyMixedDefaultsCallArityOk)]
                 | posOnlyRequiredCovered(IdItems, IdItems, ArgVals, ArgVals) [function, symbol(posOnlyRequiredCovered)]
                 | sameIdValArity(IdItems, ValItems) [function, symbol(sameIdValArity)]
                 | starUnpackArityOk(IdItems, IdItems, Int) [function, symbol(starUnpackArityOk)]
@@ -768,6 +785,7 @@ module PYTHON
                    | defaultsForPosOnlyPrefix(IdItems, IdItems, ArgVals) [function, symbol(defaultsForPosOnlyPrefix)]
                    | defaultsForPosOnlyRest(IdItems, IdItems, ArgVals) [function, symbol(defaultsForPosOnlyRest)]
                    | buildPosOnlyKwArgs(IdItems, IdItems, ArgVals, KwArgVals, ArgVals) [function, symbol(buildPosOnlyKwArgs)]
+                   | buildPosOnlyKwOnlyPosArgs(IdItems, IdItems, IdItems, ArgVals, KwArgVals, ArgVals, ArgVals) [function, symbol(buildPosOnlyKwOnlyPosArgs)]
                    | valItemsToArgVals(ValItems) [function, symbol(valItemsToArgVals)]
                    | iterableArgVals(Val) [function, symbol(iterableArgVals)]
   syntax Val ::= argValsToTupleVal(ArgVals) [function, symbol(argValsToTupleVal)]
@@ -798,6 +816,7 @@ module PYTHON
   syntax Map ::= bindPosOnlyArgs(Map, IdItems, IdItems, ArgVals) [function, symbol(bindPosOnlyArgs)]
   syntax Map ::= bindPosOnlyVarArgs(Map, IdItems, IdItems, Id, ArgVals) [function, symbol(bindPosOnlyVarArgs)]
   syntax Map ::= bindPosOnlyKwArgs(Map, IdItems, IdItems, Id, ArgVals, KwArgVals) [function, symbol(bindPosOnlyKwArgs)]
+  syntax Map ::= bindPosOnlyKwOnly(Map, IdItems, IdItems, IdItems, ArgVals, KwArgVals, ArgVals) [function, symbol(bindPosOnlyKwOnly)]
   syntax Map ::= bindPosOnlyMixedArgs(Map, IdItems, IdItems, ArgVals, KwArgVals) [function, symbol(bindPosOnlyMixedArgs)]
   syntax Map ::= bindVals(Map, IdItems, ValItems) [function, symbol(bindVals)]
   syntax Map ::= bindTarget(Map, Target, Val) [function, symbol(bindTarget)]
@@ -869,6 +888,8 @@ module PYTHON
   rule truthy(closurePosOnlyVarArgsDefaults(_:IdItems, _:IdItems, _:ArgVals, _:Id, _:Exp)) => true
   rule truthy(closurePosOnlyKwArgs(_:IdItems, _:IdItems, _:Id, _:Exp)) => true
   rule truthy(closurePosOnlyKwArgsDefaults(_:IdItems, _:IdItems, _:ArgVals, _:Id, _:Exp)) => true
+  rule truthy(closurePosOnlyKwOnly(_:IdItems, _:IdItems, _:IdItems, _:Exp)) => true
+  rule truthy(closurePosOnlyKwOnlyDefaults(_:IdItems, _:IdItems, _:ArgVals, _:IdItems, _:ArgVals, _:Exp)) => true
   rule truthy(closureKwOnly(_:IdItems, _:Exp)) => true
   rule truthy(closureKwDefaults(_:IdItems, _:ArgVals, _:Exp)) => true
   rule truthy(closureKwOnlyKwArgs(_:IdItems, _:Id, _:Exp)) => true
@@ -896,6 +917,8 @@ module PYTHON
   rule truthy(functionValPosOnlyVarArgsDefaults(_:IdItems, _:IdItems, _:ArgVals, _:Id, _:Block)) => true
   rule truthy(functionValPosOnlyKwArgs(_:IdItems, _:IdItems, _:Id, _:Block)) => true
   rule truthy(functionValPosOnlyKwArgsDefaults(_:IdItems, _:IdItems, _:ArgVals, _:Id, _:Block)) => true
+  rule truthy(functionValPosOnlyKwOnly(_:IdItems, _:IdItems, _:IdItems, _:Block)) => true
+  rule truthy(functionValPosOnlyKwOnlyDefaults(_:IdItems, _:IdItems, _:ArgVals, _:IdItems, _:ArgVals, _:Block)) => true
   rule truthy(functionValKwOnly(_:IdItems, _:Block)) => true
   rule truthy(functionValKwDefaults(_:IdItems, _:ArgVals, _:Block)) => true
   rule truthy(functionValKwOnlyKwArgs(_:IdItems, _:Id, _:Block)) => true
@@ -948,6 +971,8 @@ module PYTHON
   rule isIntLike(closurePosOnlyVarArgsDefaults(_:IdItems, _:IdItems, _:ArgVals, _:Id, _:Exp)) => false
   rule isIntLike(closurePosOnlyKwArgs(_:IdItems, _:IdItems, _:Id, _:Exp)) => false
   rule isIntLike(closurePosOnlyKwArgsDefaults(_:IdItems, _:IdItems, _:ArgVals, _:Id, _:Exp)) => false
+  rule isIntLike(closurePosOnlyKwOnly(_:IdItems, _:IdItems, _:IdItems, _:Exp)) => false
+  rule isIntLike(closurePosOnlyKwOnlyDefaults(_:IdItems, _:IdItems, _:ArgVals, _:IdItems, _:ArgVals, _:Exp)) => false
   rule isIntLike(closureKwOnly(_:IdItems, _:Exp)) => false
   rule isIntLike(closureKwDefaults(_:IdItems, _:ArgVals, _:Exp)) => false
   rule isIntLike(closureKwOnlyKwArgs(_:IdItems, _:Id, _:Exp)) => false
@@ -975,6 +1000,8 @@ module PYTHON
   rule isIntLike(functionValPosOnlyVarArgsDefaults(_:IdItems, _:IdItems, _:ArgVals, _:Id, _:Block)) => false
   rule isIntLike(functionValPosOnlyKwArgs(_:IdItems, _:IdItems, _:Id, _:Block)) => false
   rule isIntLike(functionValPosOnlyKwArgsDefaults(_:IdItems, _:IdItems, _:ArgVals, _:Id, _:Block)) => false
+  rule isIntLike(functionValPosOnlyKwOnly(_:IdItems, _:IdItems, _:IdItems, _:Block)) => false
+  rule isIntLike(functionValPosOnlyKwOnlyDefaults(_:IdItems, _:IdItems, _:ArgVals, _:IdItems, _:ArgVals, _:Block)) => false
   rule isIntLike(functionValKwOnly(_:IdItems, _:Block)) => false
   rule isIntLike(functionValKwDefaults(_:IdItems, _:ArgVals, _:Block)) => false
   rule isIntLike(functionValKwOnlyKwArgs(_:IdItems, _:Id, _:Block)) => false
@@ -1027,6 +1054,8 @@ module PYTHON
   rule singletonIdentity(closurePosOnlyVarArgsDefaults(_:IdItems, _:IdItems, _:ArgVals, _:Id, _:Exp)) => false
   rule singletonIdentity(closurePosOnlyKwArgs(_:IdItems, _:IdItems, _:Id, _:Exp)) => false
   rule singletonIdentity(closurePosOnlyKwArgsDefaults(_:IdItems, _:IdItems, _:ArgVals, _:Id, _:Exp)) => false
+  rule singletonIdentity(closurePosOnlyKwOnly(_:IdItems, _:IdItems, _:IdItems, _:Exp)) => false
+  rule singletonIdentity(closurePosOnlyKwOnlyDefaults(_:IdItems, _:IdItems, _:ArgVals, _:IdItems, _:ArgVals, _:Exp)) => false
   rule singletonIdentity(closureKwOnly(_:IdItems, _:Exp)) => false
   rule singletonIdentity(closureKwDefaults(_:IdItems, _:ArgVals, _:Exp)) => false
   rule singletonIdentity(closureKwOnlyKwArgs(_:IdItems, _:Id, _:Exp)) => false
@@ -1054,6 +1083,8 @@ module PYTHON
   rule singletonIdentity(functionValPosOnlyVarArgsDefaults(_:IdItems, _:IdItems, _:ArgVals, _:Id, _:Block)) => false
   rule singletonIdentity(functionValPosOnlyKwArgs(_:IdItems, _:IdItems, _:Id, _:Block)) => false
   rule singletonIdentity(functionValPosOnlyKwArgsDefaults(_:IdItems, _:IdItems, _:ArgVals, _:Id, _:Block)) => false
+  rule singletonIdentity(functionValPosOnlyKwOnly(_:IdItems, _:IdItems, _:IdItems, _:Block)) => false
+  rule singletonIdentity(functionValPosOnlyKwOnlyDefaults(_:IdItems, _:IdItems, _:ArgVals, _:IdItems, _:ArgVals, _:Block)) => false
   rule singletonIdentity(functionValKwOnly(_:IdItems, _:Block)) => false
   rule singletonIdentity(functionValKwDefaults(_:IdItems, _:ArgVals, _:Block)) => false
   rule singletonIdentity(functionValKwOnlyKwArgs(_:IdItems, _:Id, _:Block)) => false
@@ -1690,6 +1721,35 @@ module PYTHON
       andBool mixedRequiredPresent(concatIdItems(Pos, Rest), VS, KWS, Defaults)
       andBool posOnlyRequiredCovered(Pos, Rest, VS, Defaults)
 
+  rule posOnlyKwOnlyKeywordCallArityOk(Pos:IdItems, Rest:IdItems, KwOnly:IdItems, KWS:KwArgVals) =>
+    posOnlyKwOnlyMixedCallArityOk(Pos, Rest, KwOnly, #noArgVals, KWS)
+
+  rule posOnlyKwOnlyMixedCallArityOk(Pos:IdItems, Rest:IdItems, KwOnly:IdItems, VS:ArgVals, KWS:KwArgVals) =>
+    argValsLen(VS) >=Int idItemsLen(Pos)
+      andBool argValsLen(VS) <=Int idItemsLen(concatIdItems(Pos, Rest))
+      andBool kwNoDuplicates(KWS)
+      andBool kwAllInEitherIds(KWS, Rest, KwOnly)
+      andBool mixedNoPosKeyword(Rest, dropArgVals(VS, idItemsLen(Pos)), KWS)
+      andBool mixedRequiredPresent(concatIdItems(Pos, Rest), VS, KWS, #noArgVals)
+      andBool kwRequiredPresent(KwOnly, KWS, #noArgVals)
+
+  rule posOnlyKwOnlyArgsDefaultsCallArityOk(Pos:IdItems, Rest:IdItems, KwOnly:IdItems, VS:ArgVals, Defaults:ArgVals, KwDefaults:ArgVals) =>
+    posOnlyKwOnlyMixedDefaultsCallArityOk(Pos, Rest, KwOnly, VS, #noKwArgVals, Defaults, KwDefaults)
+
+  rule posOnlyKwOnlyKeywordDefaultsCallArityOk(Pos:IdItems, Rest:IdItems, KwOnly:IdItems, KWS:KwArgVals, Defaults:ArgVals, KwDefaults:ArgVals) =>
+    posOnlyKwOnlyMixedDefaultsCallArityOk(Pos, Rest, KwOnly, #noArgVals, KWS, Defaults, KwDefaults)
+
+  rule posOnlyKwOnlyMixedDefaultsCallArityOk(Pos:IdItems, Rest:IdItems, KwOnly:IdItems, VS:ArgVals, KWS:KwArgVals, Defaults:ArgVals, KwDefaults:ArgVals) =>
+    argValsLen(VS) <=Int idItemsLen(concatIdItems(Pos, Rest))
+      andBool argValsLen(Defaults) <=Int idItemsLen(concatIdItems(Pos, Rest))
+      andBool argValsLen(KwDefaults) <=Int idItemsLen(KwOnly)
+      andBool kwNoDuplicates(KWS)
+      andBool kwAllInEitherIds(KWS, Rest, KwOnly)
+      andBool mixedNoPosKeyword(Rest, dropArgVals(VS, idItemsLen(Pos)), KWS)
+      andBool mixedRequiredPresent(concatIdItems(Pos, Rest), VS, KWS, Defaults)
+      andBool posOnlyRequiredCovered(Pos, Rest, VS, Defaults)
+      andBool kwRequiredPresent(KwOnly, KWS, KwDefaults)
+
   rule posOnlyRequiredCovered(Pos:IdItems, Rest:IdItems, VS:ArgVals, Defaults:ArgVals) =>
     ((idItemsLen(concatIdItems(Pos, Rest)) -Int argValsLen(Defaults) <=Int idItemsLen(Pos))
       andBool argValsLen(VS) >=Int idItemsLen(concatIdItems(Pos, Rest)) -Int argValsLen(Defaults))
@@ -2004,6 +2064,12 @@ module PYTHON
       buildMixedDefaultArgs(Rest, dropArgVals(VS, idItemsLen(Pos)), KWS, defaultsForPosOnlyRest(Pos, Rest, Defaults)))
     requires posOnlyKwArgsMixedDefaultsCallArityOk(Pos, Rest, VS, KWS, Defaults)
 
+  rule buildPosOnlyKwOnlyPosArgs(Pos:IdItems, Rest:IdItems, KwOnly:IdItems, VS:ArgVals, KWS:KwArgVals, Defaults:ArgVals, KwDefaults:ArgVals) =>
+    concatArgVals(
+      completeDefaultArgs(Pos, takeArgVals(VS, idItemsLen(Pos)), defaultsForPosOnlyPrefix(Pos, Rest, Defaults)),
+      buildMixedDefaultArgs(Rest, dropArgVals(VS, idItemsLen(Pos)), KWS, defaultsForPosOnlyRest(Pos, Rest, Defaults)))
+    requires posOnlyKwOnlyMixedDefaultsCallArityOk(Pos, Rest, KwOnly, VS, KWS, Defaults, KwDefaults)
+
   rule valItemsToArgVals(valItemsLast(V:Val)) => argValsCons(V, #noArgVals)
   rule valItemsToArgVals(valItemsCons(V:Val, VS:ValItems)) =>
     argValsCons(V, valItemsToArgVals(VS))
@@ -2212,6 +2278,9 @@ module PYTHON
 
   rule bindPosOnlyKwArgs(Rho:Map, Pos:IdItems, Rest:IdItems, Kw:Id, VS:ArgVals, KWS:KwArgVals) =>
     (bindPosOnlyArgs(Rho, Pos, Rest, VS)) [ Kw <- kwExtrasDict(KWS, Rest) ]
+
+  rule bindPosOnlyKwOnly(Rho:Map, Pos:IdItems, Rest:IdItems, KwOnly:IdItems, VS:ArgVals, KWS:KwArgVals, KwDefaults:ArgVals) =>
+    bindArgs(bindPosOnlyArgs(Rho, Pos, Rest, VS), KwOnly, buildKwDefaultArgs(KwOnly, KWS, KwDefaults))
 
   rule bindPosOnlyMixedArgs(Rho:Map, Pos:IdItems, Rest:IdItems, VS:ArgVals, KWS:KwArgVals) =>
     bindArgs(
@@ -2542,6 +2611,8 @@ module PYTHON
   rule isListSequence(closurePosOnlyVarArgsDefaults(_:IdItems, _:IdItems, _:ArgVals, _:Id, _:Exp)) => false
   rule isListSequence(closurePosOnlyKwArgs(_:IdItems, _:IdItems, _:Id, _:Exp)) => false
   rule isListSequence(closurePosOnlyKwArgsDefaults(_:IdItems, _:IdItems, _:ArgVals, _:Id, _:Exp)) => false
+  rule isListSequence(closurePosOnlyKwOnly(_:IdItems, _:IdItems, _:IdItems, _:Exp)) => false
+  rule isListSequence(closurePosOnlyKwOnlyDefaults(_:IdItems, _:IdItems, _:ArgVals, _:IdItems, _:ArgVals, _:Exp)) => false
   rule isListSequence(closureKwOnly(_:IdItems, _:Exp)) => false
   rule isListSequence(closureKwDefaults(_:IdItems, _:ArgVals, _:Exp)) => false
   rule isListSequence(closureKwOnlyKwArgs(_:IdItems, _:Id, _:Exp)) => false
@@ -2569,6 +2640,8 @@ module PYTHON
   rule isListSequence(functionValPosOnlyVarArgsDefaults(_:IdItems, _:IdItems, _:ArgVals, _:Id, _:Block)) => false
   rule isListSequence(functionValPosOnlyKwArgs(_:IdItems, _:IdItems, _:Id, _:Block)) => false
   rule isListSequence(functionValPosOnlyKwArgsDefaults(_:IdItems, _:IdItems, _:ArgVals, _:Id, _:Block)) => false
+  rule isListSequence(functionValPosOnlyKwOnly(_:IdItems, _:IdItems, _:IdItems, _:Block)) => false
+  rule isListSequence(functionValPosOnlyKwOnlyDefaults(_:IdItems, _:IdItems, _:ArgVals, _:IdItems, _:ArgVals, _:Block)) => false
   rule isListSequence(functionValKwOnly(_:IdItems, _:Block)) => false
   rule isListSequence(functionValKwDefaults(_:IdItems, _:ArgVals, _:Block)) => false
   rule isListSequence(functionValKwOnlyKwArgs(_:IdItems, _:Id, _:Block)) => false
@@ -2616,6 +2689,8 @@ module PYTHON
   rule isTupleSequence(closurePosOnlyVarArgsDefaults(_:IdItems, _:IdItems, _:ArgVals, _:Id, _:Exp)) => false
   rule isTupleSequence(closurePosOnlyKwArgs(_:IdItems, _:IdItems, _:Id, _:Exp)) => false
   rule isTupleSequence(closurePosOnlyKwArgsDefaults(_:IdItems, _:IdItems, _:ArgVals, _:Id, _:Exp)) => false
+  rule isTupleSequence(closurePosOnlyKwOnly(_:IdItems, _:IdItems, _:IdItems, _:Exp)) => false
+  rule isTupleSequence(closurePosOnlyKwOnlyDefaults(_:IdItems, _:IdItems, _:ArgVals, _:IdItems, _:ArgVals, _:Exp)) => false
   rule isTupleSequence(closureKwOnly(_:IdItems, _:Exp)) => false
   rule isTupleSequence(closureKwDefaults(_:IdItems, _:ArgVals, _:Exp)) => false
   rule isTupleSequence(closureKwOnlyKwArgs(_:IdItems, _:Id, _:Exp)) => false
@@ -2643,6 +2718,8 @@ module PYTHON
   rule isTupleSequence(functionValPosOnlyVarArgsDefaults(_:IdItems, _:IdItems, _:ArgVals, _:Id, _:Block)) => false
   rule isTupleSequence(functionValPosOnlyKwArgs(_:IdItems, _:IdItems, _:Id, _:Block)) => false
   rule isTupleSequence(functionValPosOnlyKwArgsDefaults(_:IdItems, _:IdItems, _:ArgVals, _:Id, _:Block)) => false
+  rule isTupleSequence(functionValPosOnlyKwOnly(_:IdItems, _:IdItems, _:IdItems, _:Block)) => false
+  rule isTupleSequence(functionValPosOnlyKwOnlyDefaults(_:IdItems, _:IdItems, _:ArgVals, _:IdItems, _:ArgVals, _:Block)) => false
   rule isTupleSequence(functionValKwOnly(_:IdItems, _:Block)) => false
   rule isTupleSequence(functionValKwDefaults(_:IdItems, _:ArgVals, _:Block)) => false
   rule isTupleSequence(functionValKwOnlyKwArgs(_:IdItems, _:Id, _:Block)) => false
@@ -3172,6 +3249,18 @@ module PYTHON
   rule <k> argsVal(Defaults:ArgVals) ~> bindLambdaPosOnlyKwArgsDefaults(Pos:IdItems, Rest:IdItems, Kw:Id, Body:Exp) =>
            closurePosOnlyKwArgsDefaults(Pos, Rest, Defaults, Kw, Body)
        ... </k>
+  rule <k> lambdaPosOnlyKwOnlyExp(Pos:IdItems, Rest:IdItems, KwOnly:IdItems, Body:Exp) =>
+           closurePosOnlyKwOnly(Pos, Rest, KwOnly, Body)
+       ... </k>
+  rule <k> lambdaPosOnlyKwOnlyDefaultsExp(Pos:IdItems, Rest:IdItems, Defaults:ArgExps, KwOnly:IdItems, KwDefaults:ArgExps, Body:Exp) =>
+           evalArgs(Defaults, #noArgVals) ~> bindLambdaPosOnlyKwOnlyDefaults(Pos, Rest, KwDefaults, KwOnly, Body)
+       ... </k>
+  rule <k> argsVal(Defaults:ArgVals) ~> bindLambdaPosOnlyKwOnlyDefaults(Pos:IdItems, Rest:IdItems, KwDefaults:ArgExps, KwOnly:IdItems, Body:Exp) =>
+           evalArgs(KwDefaults, #noArgVals) ~> bindLambdaPosOnlyKwOnlyDefaultVals(Pos, Rest, Defaults, KwOnly, Body)
+       ... </k>
+  rule <k> argsVal(KwDefaults:ArgVals) ~> bindLambdaPosOnlyKwOnlyDefaultVals(Pos:IdItems, Rest:IdItems, Defaults:ArgVals, KwOnly:IdItems, Body:Exp) =>
+           closurePosOnlyKwOnlyDefaults(Pos, Rest, Defaults, KwOnly, KwDefaults, Body)
+       ... </k>
   rule <k> lambdaKwOnlyExp(IDS:IdItems, Body:Exp) => closureKwOnly(IDS, Body) ... </k>
   rule <k> lambdaKwDefaultsExp(IDS:IdItems, Defaults:ArgExps, Body:Exp) =>
            evalArgs(Defaults, #noArgVals) ~> bindLambdaKwDefaults(IDS, Body)
@@ -3289,6 +3378,11 @@ module PYTHON
        ... </k>
        <env> Rho => bindPosOnlyKwArgs(Rho, Pos, Rest, Kw, buildPosOnlyKwArgs(Pos, Rest, argValsCons(A, #noArgVals), #noKwArgVals, Defaults), #noKwArgVals) </env>
     requires posOnlyKwArgsDefaultsCallArityOk(Pos, Rest, argValsCons(A, #noArgVals), Defaults)
+  rule <k> A:Val ~> callApply(closurePosOnlyKwOnlyDefaults(Pos:IdItems, Rest:IdItems, Defaults:ArgVals, KwOnly:IdItems, KwDefaults:ArgVals, Body:Exp)) =>
+           Body ~> restoreEnv(Rho)
+       ... </k>
+       <env> Rho => bindPosOnlyKwOnly(Rho, Pos, Rest, KwOnly, buildPosOnlyKwOnlyPosArgs(Pos, Rest, KwOnly, argValsCons(A, #noArgVals), #noKwArgVals, Defaults, KwDefaults), #noKwArgVals, KwDefaults) </env>
+    requires posOnlyKwOnlyArgsDefaultsCallArityOk(Pos, Rest, KwOnly, argValsCons(A, #noArgVals), Defaults, KwDefaults)
   rule <k> A:Val ~> callApply(closurePosKwDefaults(Pos:IdItems, PosDefaults:ArgVals, KwOnly:IdItems, KwDefaults:ArgVals, Body:Exp)) =>
            Body ~> restoreEnv(Rho)
        ... </k>
@@ -3457,6 +3551,16 @@ module PYTHON
        ... </k>
        <env> Rho => bindPosOnlyKwArgs(Rho, Pos, Rest, Kw, buildPosOnlyKwArgs(Pos, Rest, argValsCons(A, #noArgVals), #noKwArgVals, Defaults), #noKwArgVals) </env>
     requires posOnlyKwArgsDefaultsCallArityOk(Pos, Rest, argValsCons(A, #noArgVals), Defaults)
+  rule <k> A:Val ~> callApply(functionValPosOnlyKwOnlyDefaults(Pos:IdItems, Rest:IdItems, Defaults:ArgVals, KwOnly:IdItems, KwDefaults:ArgVals, block(SS:Stmts))) =>
+           SS ~> functionDone(Rho)
+       ... </k>
+       <env> Rho => bindPosOnlyKwOnly(Rho, Pos, Rest, KwOnly, buildPosOnlyKwOnlyPosArgs(Pos, Rest, KwOnly, argValsCons(A, #noArgVals), #noKwArgVals, Defaults, KwDefaults), #noKwArgVals, KwDefaults) </env>
+    requires posOnlyKwOnlyArgsDefaultsCallArityOk(Pos, Rest, KwOnly, argValsCons(A, #noArgVals), Defaults, KwDefaults)
+  rule <k> A:Val ~> callApply(functionValPosOnlyKwOnlyDefaults(Pos:IdItems, Rest:IdItems, Defaults:ArgVals, KwOnly:IdItems, KwDefaults:ArgVals, {})) =>
+           None ~> restoreEnv(Rho)
+       ... </k>
+       <env> Rho => bindPosOnlyKwOnly(Rho, Pos, Rest, KwOnly, buildPosOnlyKwOnlyPosArgs(Pos, Rest, KwOnly, argValsCons(A, #noArgVals), #noKwArgVals, Defaults, KwDefaults), #noKwArgVals, KwDefaults) </env>
+    requires posOnlyKwOnlyArgsDefaultsCallArityOk(Pos, Rest, KwOnly, argValsCons(A, #noArgVals), Defaults, KwDefaults)
   rule <k> A:Val ~> callApply(functionValPosKwDefaults(Pos:IdItems, PosDefaults:ArgVals, KwOnly:IdItems, KwDefaults:ArgVals, block(SS:Stmts))) =>
            SS ~> functionDone(Rho)
        ... </k>
@@ -3583,6 +3687,11 @@ module PYTHON
        ... </k>
        <env> Rho => bindPosOnlyKwArgs(Rho, Pos, Rest, Kw, buildPosOnlyKwArgs(Pos, Rest, VS, #noKwArgVals, Defaults), #noKwArgVals) </env>
     requires posOnlyKwArgsDefaultsCallArityOk(Pos, Rest, VS, Defaults)
+  rule <k> argsVal(VS:ArgVals) ~> callApplyArgs(closurePosOnlyKwOnlyDefaults(Pos:IdItems, Rest:IdItems, Defaults:ArgVals, KwOnly:IdItems, KwDefaults:ArgVals, Body:Exp)) =>
+           Body ~> restoreEnv(Rho)
+       ... </k>
+       <env> Rho => bindPosOnlyKwOnly(Rho, Pos, Rest, KwOnly, buildPosOnlyKwOnlyPosArgs(Pos, Rest, KwOnly, VS, #noKwArgVals, Defaults, KwDefaults), #noKwArgVals, KwDefaults) </env>
+    requires posOnlyKwOnlyArgsDefaultsCallArityOk(Pos, Rest, KwOnly, VS, Defaults, KwDefaults)
   rule <k> argsVal(VS:ArgVals) ~> callApplyArgs(closurePosKwDefaults(Pos:IdItems, PosDefaults:ArgVals, KwOnly:IdItems, KwDefaults:ArgVals, Body:Exp)) =>
            Body ~> restoreEnv(Rho)
        ... </k>
@@ -3753,6 +3862,16 @@ module PYTHON
        ... </k>
        <env> Rho => bindPosOnlyKwArgs(Rho, Pos, Rest, Kw, buildPosOnlyKwArgs(Pos, Rest, VS, #noKwArgVals, Defaults), #noKwArgVals) </env>
     requires posOnlyKwArgsDefaultsCallArityOk(Pos, Rest, VS, Defaults)
+  rule <k> argsVal(VS:ArgVals) ~> callApplyArgs(functionValPosOnlyKwOnlyDefaults(Pos:IdItems, Rest:IdItems, Defaults:ArgVals, KwOnly:IdItems, KwDefaults:ArgVals, block(SS:Stmts))) =>
+           SS ~> functionDone(Rho)
+       ... </k>
+       <env> Rho => bindPosOnlyKwOnly(Rho, Pos, Rest, KwOnly, buildPosOnlyKwOnlyPosArgs(Pos, Rest, KwOnly, VS, #noKwArgVals, Defaults, KwDefaults), #noKwArgVals, KwDefaults) </env>
+    requires posOnlyKwOnlyArgsDefaultsCallArityOk(Pos, Rest, KwOnly, VS, Defaults, KwDefaults)
+  rule <k> argsVal(VS:ArgVals) ~> callApplyArgs(functionValPosOnlyKwOnlyDefaults(Pos:IdItems, Rest:IdItems, Defaults:ArgVals, KwOnly:IdItems, KwDefaults:ArgVals, {})) =>
+           None ~> restoreEnv(Rho)
+       ... </k>
+       <env> Rho => bindPosOnlyKwOnly(Rho, Pos, Rest, KwOnly, buildPosOnlyKwOnlyPosArgs(Pos, Rest, KwOnly, VS, #noKwArgVals, Defaults, KwDefaults), #noKwArgVals, KwDefaults) </env>
+    requires posOnlyKwOnlyArgsDefaultsCallArityOk(Pos, Rest, KwOnly, VS, Defaults, KwDefaults)
   rule <k> argsVal(VS:ArgVals) ~> callApplyArgs(functionValPosKwDefaults(Pos:IdItems, PosDefaults:ArgVals, KwOnly:IdItems, KwDefaults:ArgVals, block(SS:Stmts))) =>
            SS ~> functionDone(Rho)
        ... </k>
@@ -3872,6 +3991,16 @@ module PYTHON
        ... </k>
        <env> Rho => bindPosOnlyKwArgs(Rho, Pos, Rest, Kw, buildPosOnlyKwArgs(Pos, Rest, #noArgVals, KWS, Defaults), KWS) </env>
     requires posOnlyKwArgsKeywordDefaultsCallArityOk(Pos, Rest, KWS, Defaults)
+  rule <k> kwArgsVal(KWS:KwArgVals) ~> callApplyKwArgs(closurePosOnlyKwOnly(Pos:IdItems, Rest:IdItems, KwOnly:IdItems, Body:Exp)) =>
+           Body ~> restoreEnv(Rho)
+       ... </k>
+       <env> Rho => bindPosOnlyKwOnly(Rho, Pos, Rest, KwOnly, buildPosOnlyKwOnlyPosArgs(Pos, Rest, KwOnly, #noArgVals, KWS, #noArgVals, #noArgVals), KWS, #noArgVals) </env>
+    requires posOnlyKwOnlyKeywordCallArityOk(Pos, Rest, KwOnly, KWS)
+  rule <k> kwArgsVal(KWS:KwArgVals) ~> callApplyKwArgs(closurePosOnlyKwOnlyDefaults(Pos:IdItems, Rest:IdItems, Defaults:ArgVals, KwOnly:IdItems, KwDefaults:ArgVals, Body:Exp)) =>
+           Body ~> restoreEnv(Rho)
+       ... </k>
+       <env> Rho => bindPosOnlyKwOnly(Rho, Pos, Rest, KwOnly, buildPosOnlyKwOnlyPosArgs(Pos, Rest, KwOnly, #noArgVals, KWS, Defaults, KwDefaults), KWS, KwDefaults) </env>
+    requires posOnlyKwOnlyKeywordDefaultsCallArityOk(Pos, Rest, KwOnly, KWS, Defaults, KwDefaults)
   rule <k> kwArgsVal(KWS:KwArgVals) ~> callApplyKwArgs(closureKwOnly(IDS:IdItems, Body:Exp)) =>
            Body ~> restoreEnv(Rho)
        ... </k>
@@ -4122,6 +4251,26 @@ module PYTHON
        ... </k>
        <env> Rho => bindPosOnlyKwArgs(Rho, Pos, Rest, Kw, buildPosOnlyKwArgs(Pos, Rest, #noArgVals, KWS, Defaults), KWS) </env>
     requires posOnlyKwArgsKeywordDefaultsCallArityOk(Pos, Rest, KWS, Defaults)
+  rule <k> kwArgsVal(KWS:KwArgVals) ~> callApplyKwArgs(functionValPosOnlyKwOnly(Pos:IdItems, Rest:IdItems, KwOnly:IdItems, block(SS:Stmts))) =>
+           SS ~> functionDone(Rho)
+       ... </k>
+       <env> Rho => bindPosOnlyKwOnly(Rho, Pos, Rest, KwOnly, buildPosOnlyKwOnlyPosArgs(Pos, Rest, KwOnly, #noArgVals, KWS, #noArgVals, #noArgVals), KWS, #noArgVals) </env>
+    requires posOnlyKwOnlyKeywordCallArityOk(Pos, Rest, KwOnly, KWS)
+  rule <k> kwArgsVal(KWS:KwArgVals) ~> callApplyKwArgs(functionValPosOnlyKwOnly(Pos:IdItems, Rest:IdItems, KwOnly:IdItems, {})) =>
+           None ~> restoreEnv(Rho)
+       ... </k>
+       <env> Rho => bindPosOnlyKwOnly(Rho, Pos, Rest, KwOnly, buildPosOnlyKwOnlyPosArgs(Pos, Rest, KwOnly, #noArgVals, KWS, #noArgVals, #noArgVals), KWS, #noArgVals) </env>
+    requires posOnlyKwOnlyKeywordCallArityOk(Pos, Rest, KwOnly, KWS)
+  rule <k> kwArgsVal(KWS:KwArgVals) ~> callApplyKwArgs(functionValPosOnlyKwOnlyDefaults(Pos:IdItems, Rest:IdItems, Defaults:ArgVals, KwOnly:IdItems, KwDefaults:ArgVals, block(SS:Stmts))) =>
+           SS ~> functionDone(Rho)
+       ... </k>
+       <env> Rho => bindPosOnlyKwOnly(Rho, Pos, Rest, KwOnly, buildPosOnlyKwOnlyPosArgs(Pos, Rest, KwOnly, #noArgVals, KWS, Defaults, KwDefaults), KWS, KwDefaults) </env>
+    requires posOnlyKwOnlyKeywordDefaultsCallArityOk(Pos, Rest, KwOnly, KWS, Defaults, KwDefaults)
+  rule <k> kwArgsVal(KWS:KwArgVals) ~> callApplyKwArgs(functionValPosOnlyKwOnlyDefaults(Pos:IdItems, Rest:IdItems, Defaults:ArgVals, KwOnly:IdItems, KwDefaults:ArgVals, {})) =>
+           None ~> restoreEnv(Rho)
+       ... </k>
+       <env> Rho => bindPosOnlyKwOnly(Rho, Pos, Rest, KwOnly, buildPosOnlyKwOnlyPosArgs(Pos, Rest, KwOnly, #noArgVals, KWS, Defaults, KwDefaults), KWS, KwDefaults) </env>
+    requires posOnlyKwOnlyKeywordDefaultsCallArityOk(Pos, Rest, KwOnly, KWS, Defaults, KwDefaults)
   rule <k> kwArgsVal(KWS:KwArgVals) ~> callApplyKwArgs(functionValKwOnly(IDS:IdItems, block(SS:Stmts))) =>
            SS ~> functionDone(Rho)
        ... </k>
@@ -4305,6 +4454,16 @@ module PYTHON
        ... </k>
        <env> Rho => bindPosOnlyKwArgs(Rho, Pos, Rest, Kw, buildPosOnlyKwArgs(Pos, Rest, VS, KWS, Defaults), KWS) </env>
     requires posOnlyKwArgsMixedDefaultsCallArityOk(Pos, Rest, VS, KWS, Defaults)
+  rule <k> kwArgsVal(KWS:KwArgVals) ~> callApplyMixedArgs(closurePosOnlyKwOnly(Pos:IdItems, Rest:IdItems, KwOnly:IdItems, Body:Exp), VS:ArgVals) =>
+           Body ~> restoreEnv(Rho)
+       ... </k>
+       <env> Rho => bindPosOnlyKwOnly(Rho, Pos, Rest, KwOnly, buildPosOnlyKwOnlyPosArgs(Pos, Rest, KwOnly, VS, KWS, #noArgVals, #noArgVals), KWS, #noArgVals) </env>
+    requires posOnlyKwOnlyMixedCallArityOk(Pos, Rest, KwOnly, VS, KWS)
+  rule <k> kwArgsVal(KWS:KwArgVals) ~> callApplyMixedArgs(closurePosOnlyKwOnlyDefaults(Pos:IdItems, Rest:IdItems, Defaults:ArgVals, KwOnly:IdItems, KwDefaults:ArgVals, Body:Exp), VS:ArgVals) =>
+           Body ~> restoreEnv(Rho)
+       ... </k>
+       <env> Rho => bindPosOnlyKwOnly(Rho, Pos, Rest, KwOnly, buildPosOnlyKwOnlyPosArgs(Pos, Rest, KwOnly, VS, KWS, Defaults, KwDefaults), KWS, KwDefaults) </env>
+    requires posOnlyKwOnlyMixedDefaultsCallArityOk(Pos, Rest, KwOnly, VS, KWS, Defaults, KwDefaults)
   rule <k> kwArgsVal(KWS:KwArgVals) ~> callApplyMixedArgs(closurePosKwOnly(Pos:IdItems, KwOnly:IdItems, Body:Exp), VS:ArgVals) =>
            Body ~> restoreEnv(Rho)
        ... </k>
@@ -4515,6 +4674,26 @@ module PYTHON
        ... </k>
        <env> Rho => bindPosOnlyKwArgs(Rho, Pos, Rest, Kw, buildPosOnlyKwArgs(Pos, Rest, VS, KWS, Defaults), KWS) </env>
     requires posOnlyKwArgsMixedDefaultsCallArityOk(Pos, Rest, VS, KWS, Defaults)
+  rule <k> kwArgsVal(KWS:KwArgVals) ~> callApplyMixedArgs(functionValPosOnlyKwOnly(Pos:IdItems, Rest:IdItems, KwOnly:IdItems, block(SS:Stmts)), VS:ArgVals) =>
+           SS ~> functionDone(Rho)
+       ... </k>
+       <env> Rho => bindPosOnlyKwOnly(Rho, Pos, Rest, KwOnly, buildPosOnlyKwOnlyPosArgs(Pos, Rest, KwOnly, VS, KWS, #noArgVals, #noArgVals), KWS, #noArgVals) </env>
+    requires posOnlyKwOnlyMixedCallArityOk(Pos, Rest, KwOnly, VS, KWS)
+  rule <k> kwArgsVal(KWS:KwArgVals) ~> callApplyMixedArgs(functionValPosOnlyKwOnly(Pos:IdItems, Rest:IdItems, KwOnly:IdItems, {}), VS:ArgVals) =>
+           None ~> restoreEnv(Rho)
+       ... </k>
+       <env> Rho => bindPosOnlyKwOnly(Rho, Pos, Rest, KwOnly, buildPosOnlyKwOnlyPosArgs(Pos, Rest, KwOnly, VS, KWS, #noArgVals, #noArgVals), KWS, #noArgVals) </env>
+    requires posOnlyKwOnlyMixedCallArityOk(Pos, Rest, KwOnly, VS, KWS)
+  rule <k> kwArgsVal(KWS:KwArgVals) ~> callApplyMixedArgs(functionValPosOnlyKwOnlyDefaults(Pos:IdItems, Rest:IdItems, Defaults:ArgVals, KwOnly:IdItems, KwDefaults:ArgVals, block(SS:Stmts)), VS:ArgVals) =>
+           SS ~> functionDone(Rho)
+       ... </k>
+       <env> Rho => bindPosOnlyKwOnly(Rho, Pos, Rest, KwOnly, buildPosOnlyKwOnlyPosArgs(Pos, Rest, KwOnly, VS, KWS, Defaults, KwDefaults), KWS, KwDefaults) </env>
+    requires posOnlyKwOnlyMixedDefaultsCallArityOk(Pos, Rest, KwOnly, VS, KWS, Defaults, KwDefaults)
+  rule <k> kwArgsVal(KWS:KwArgVals) ~> callApplyMixedArgs(functionValPosOnlyKwOnlyDefaults(Pos:IdItems, Rest:IdItems, Defaults:ArgVals, KwOnly:IdItems, KwDefaults:ArgVals, {}), VS:ArgVals) =>
+           None ~> restoreEnv(Rho)
+       ... </k>
+       <env> Rho => bindPosOnlyKwOnly(Rho, Pos, Rest, KwOnly, buildPosOnlyKwOnlyPosArgs(Pos, Rest, KwOnly, VS, KWS, Defaults, KwDefaults), KWS, KwDefaults) </env>
+    requires posOnlyKwOnlyMixedDefaultsCallArityOk(Pos, Rest, KwOnly, VS, KWS, Defaults, KwDefaults)
   rule <k> kwArgsVal(KWS:KwArgVals) ~> callApplyMixedArgs(functionValPosKwOnly(Pos:IdItems, KwOnly:IdItems, block(SS:Stmts)), VS:ArgVals) =>
            SS ~> functionDone(Rho)
        ... </k>
@@ -6117,6 +6296,18 @@ module PYTHON
        ... </k>
   rule <k> argsVal(Defaults:ArgVals) ~> bindFunctionPosOnlyKwArgsDefaults(F:Id, Pos:IdItems, Rest:IdItems, Kw:Id, Body:Block) => stmtNoResult ... </k>
        <env> Rho => Rho [ F <- functionValPosOnlyKwArgsDefaults(Pos, Rest, Defaults, Kw, Body) ] </env>
+       <result> _ => .K </result>
+  rule <k> functionDefPosOnlyKwOnlyStmt(F:Id, Pos:IdItems, Rest:IdItems, KwOnly:IdItems, Body:Block) => stmtNoResult ... </k>
+       <env> Rho => Rho [ F <- functionValPosOnlyKwOnly(Pos, Rest, KwOnly, Body) ] </env>
+       <result> _ => .K </result>
+  rule <k> functionDefPosOnlyKwOnlyDefaultsStmt(F:Id, Pos:IdItems, Rest:IdItems, Defaults:ArgExps, KwOnly:IdItems, KwDefaults:ArgExps, Body:Block) =>
+           evalArgs(Defaults, #noArgVals) ~> bindFunctionPosOnlyKwOnlyDefaults(F, Pos, Rest, KwDefaults, KwOnly, Body)
+       ... </k>
+  rule <k> argsVal(Defaults:ArgVals) ~> bindFunctionPosOnlyKwOnlyDefaults(F:Id, Pos:IdItems, Rest:IdItems, KwDefaults:ArgExps, KwOnly:IdItems, Body:Block) =>
+           evalArgs(KwDefaults, #noArgVals) ~> bindFunctionPosOnlyKwOnlyDefaultVals(F, Pos, Rest, Defaults, KwOnly, Body)
+       ... </k>
+  rule <k> argsVal(KwDefaults:ArgVals) ~> bindFunctionPosOnlyKwOnlyDefaultVals(F:Id, Pos:IdItems, Rest:IdItems, Defaults:ArgVals, KwOnly:IdItems, Body:Block) => stmtNoResult ... </k>
+       <env> Rho => Rho [ F <- functionValPosOnlyKwOnlyDefaults(Pos, Rest, Defaults, KwOnly, KwDefaults, Body) ] </env>
        <result> _ => .K </result>
   rule <k> functionDefKwOnlyStmt(F:Id, IDS:IdItems, Body:Block) => stmtNoResult ... </k>
        <env> Rho => Rho [ F <- functionValKwOnly(IDS, Body) ] </env>

@@ -723,6 +723,8 @@ def emit_delete(node: ast.AST, targets: list[ast.expr]) -> str:
 def emit_sequence_assign(target: ast.Tuple | ast.List, value: ast.expr) -> str:
     star_parts = emit_starred_target_parts(target, "assignment")
     if star_parts is None:
+        if target_contains_nested(target):
+            return f"#unpackTargetAssign({emit_targets_from_sequence(target)}; {emit_exp(value)})"
         return f"#unpackAssign({emit_id_items(emit_flat_target_names(target))}; {emit_exp(value)})"
     prefix, star, suffix = star_parts
     return (
@@ -749,6 +751,33 @@ def emit_starred_target_parts(
     prefix = emit_flat_target_names_from_elts(target.elts[:star_index])
     suffix = emit_flat_target_names_from_elts(target.elts[star_index + 1 :])
     return prefix, star.value.id, suffix
+
+
+def target_contains_nested(target: ast.Tuple | ast.List) -> bool:
+    return any(isinstance(elt, ast.Tuple | ast.List) for elt in target.elts)
+
+
+def emit_targets_from_sequence(target: ast.Tuple | ast.List) -> str:
+    if not target.elts:
+        raise unsupported(target, "empty sequence assignment targets are not supported yet")
+    return emit_targets(target.elts)
+
+
+def emit_targets(elts: list[ast.expr]) -> str:
+    head = emit_target(elts[0])
+    if len(elts) == 1:
+        return f"#targetLast({head})"
+    return f"#targetCons({head}, {emit_targets(elts[1:])})"
+
+
+def emit_target(target: ast.expr) -> str:
+    if isinstance(target, ast.Name):
+        return f"#targetName({target.id})"
+    if isinstance(target, ast.Starred):
+        raise unsupported(target, "starred nested sequence assignment targets are not supported yet")
+    if isinstance(target, ast.Tuple | ast.List):
+        return f"#targetSeq({emit_targets_from_sequence(target)})"
+    raise unsupported(target, "only simple-name and nested sequence assignment targets are supported")
 
 
 def emit_flat_target_names(target: ast.Tuple | ast.List) -> list[str]:

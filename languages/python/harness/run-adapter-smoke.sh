@@ -221,6 +221,7 @@ run_case "adapter-set-ordering" "$ROOT/tests/adapter/adapter-set-ordering.py" "T
 run_case "adapter-assign-many" "$ROOT/tests/adapter/adapter-assign-many.py" "True ~> .K"
 run_case "adapter-unpack-tuple" "$ROOT/tests/adapter/adapter-unpack-tuple.py" "True ~> .K"
 run_case "adapter-unpack-list" "$ROOT/tests/adapter/adapter-unpack-list.py" "True ~> .K"
+run_case "adapter-unpack-nested" "$ROOT/tests/adapter/adapter-unpack-nested.py" "True ~> .K"
 run_case "adapter-unpack-set" "$ROOT/tests/adapter/adapter-unpack-set.py" "True ~> .K"
 run_case "adapter-unpack-expression-rhs" "$ROOT/tests/adapter/adapter-unpack-expression-rhs.py" "True ~> .K"
 run_case "adapter-star-unpack-assignment" "$ROOT/tests/adapter/adapter-star-unpack-assignment.py" "True ~> .K"

@@ -33,6 +33,12 @@ module PYTHON-SYNTAX
                    | "#noIds" [symbol(noIdItems)]
                    | "#ids" "(" Id "," IdItems ")" [symbol(idItemsCons)]
 
+  syntax Target ::= "#targetName" "(" Id ")" [symbol(targetName)]
+                  | "#targetSeq" "(" Targets ")" [symbol(targetSeq)]
+
+  syntax Targets ::= "#targetLast" "(" Target ")" [symbol(targetsLast)]
+                   | "#targetCons" "(" Target "," Targets ")" [symbol(targetsCons)]
+
   syntax ArgExps ::= "#noArgs" [symbol(noArgExps)]
                    | "#arg" "(" Exp ")" [symbol(argExp)]
                    | "#args" "(" Exp "," ArgExps ")" [symbol(argExpsCons)]
@@ -103,6 +109,7 @@ module PYTHON-SYNTAX
                 | "#assignMany" "(" IdItems ";" Exp ")" [symbol(assignManyStmt), strict(2)]
                 | "#unpackAssign" "(" IdItems ";" Exp ")" [symbol(unpackAssignStmt), strict(2)]
                 | "#unpackStarAssign" "(" IdItems ";" Id ";" IdItems ";" Exp ")" [symbol(unpackStarAssignStmt), strict(4)]
+                | "#unpackTargetAssign" "(" Targets ";" Exp ")" [symbol(unpackTargetAssignStmt), strict(2)]
                 | "return" [symbol(returnNoneStmt)]
                 | "return" Exp [symbol(returnStmt), strict]
                 | "#def" "(" Id "," Id "," Block ")" [symbol(functionDefStmt)]
@@ -551,6 +558,8 @@ module PYTHON
                 | posKwOnlyMixedDefaultsCallArityOk(IdItems, IdItems, ArgVals, KwArgVals, ArgVals, ArgVals) [function, symbol(posKwOnlyMixedDefaultsCallArityOk)]
                 | mixedNoPosKeyword(IdItems, ArgVals, KwArgVals) [function, symbol(mixedNoPosKeyword)]
                 | mixedRequiredPresent(IdItems, ArgVals, KwArgVals, ArgVals) [function, symbol(mixedRequiredPresent)]
+                | sameTargetsValArity(Targets, ValItems) [function, symbol(sameTargetsValArity)]
+                | targetValueArityOk(Target, Val) [function, symbol(targetValueArityOk)]
                 | emptyArgVals(ArgVals) [function, symbol(emptyArgVals)]
                 | emptyKwArgVals(KwArgVals) [function, symbol(emptyKwArgVals)]
                 | emptyDictVals(DictVals) [function, symbol(emptyDictVals)]
@@ -648,6 +657,8 @@ module PYTHON
   syntax Map ::= bindPosOnlyArgs(Map, IdItems, IdItems, ArgVals) [function, symbol(bindPosOnlyArgs)]
   syntax Map ::= bindPosOnlyMixedArgs(Map, IdItems, IdItems, ArgVals, KwArgVals) [function, symbol(bindPosOnlyMixedArgs)]
   syntax Map ::= bindVals(Map, IdItems, ValItems) [function, symbol(bindVals)]
+  syntax Map ::= bindTarget(Map, Target, Val) [function, symbol(bindTarget)]
+  syntax Map ::= bindTargets(Map, Targets, ValItems) [function, symbol(bindTargets)]
   syntax Map ::= delIds(Map, IdItems) [function, symbol(delIds)]
   syntax Map ::= bindPrefixVals(Map, IdItems, ValItems) [function, symbol(bindPrefixVals)]
   syntax Map ::= bindSuffixVals(Map, IdItems, ValItems, Int) [function, symbol(bindSuffixVals)]
@@ -1276,6 +1287,23 @@ module PYTHON
   rule sameIdValArity(idItemsCons(_:Id, IDS:IdItems), valItemsCons(_:Val, VS:ValItems)) =>
     sameIdValArity(IDS, VS)
 
+  rule sameTargetsValArity(targetsLast(T:Target), valItemsLast(V:Val)) =>
+    targetValueArityOk(T, V)
+  rule sameTargetsValArity(targetsLast(_:Target), valItemsCons(_:Val, _:ValItems)) => false
+  rule sameTargetsValArity(targetsCons(_:Target, _:Targets), valItemsLast(_:Val)) => false
+  rule sameTargetsValArity(targetsCons(T:Target, TS:Targets), valItemsCons(V:Val, VS:ValItems)) =>
+    targetValueArityOk(T, V) andBool sameTargetsValArity(TS, VS)
+
+  rule targetValueArityOk(targetName(_:Id), _:Val) => true
+  rule targetValueArityOk(targetSeq(TS:Targets), listVal(VS:ValItems)) =>
+    sameTargetsValArity(TS, VS)
+  rule targetValueArityOk(targetSeq(TS:Targets), tupleVal(VS:ValItems)) =>
+    sameTargetsValArity(TS, VS)
+  rule targetValueArityOk(targetSeq(TS:Targets), setVal(VS:ValItems)) =>
+    sameTargetsValArity(TS, VS)
+  rule targetValueArityOk(targetSeq(_:Targets), _:Val) => false
+    [owise]
+
   rule starUnpackArityOk(Prefix:IdItems, Suffix:IdItems, Len:Int) =>
     idItemsLen(Prefix) +Int idItemsLen(Suffix) <=Int Len
 
@@ -1685,6 +1713,19 @@ module PYTHON
   rule bindVals(Rho:Map, idItemsLast(X:Id), valItemsLast(V:Val)) => Rho [ X <- V ]
   rule bindVals(Rho:Map, idItemsCons(X:Id, IDS:IdItems), valItemsCons(V:Val, VS:ValItems)) =>
     bindVals(Rho [ X <- V ], IDS, VS)
+
+  rule bindTarget(Rho:Map, targetName(X:Id), V:Val) => Rho [ X <- V ]
+  rule bindTarget(Rho:Map, targetSeq(TS:Targets), listVal(VS:ValItems)) =>
+    bindTargets(Rho, TS, VS)
+  rule bindTarget(Rho:Map, targetSeq(TS:Targets), tupleVal(VS:ValItems)) =>
+    bindTargets(Rho, TS, VS)
+  rule bindTarget(Rho:Map, targetSeq(TS:Targets), setVal(VS:ValItems)) =>
+    bindTargets(Rho, TS, VS)
+
+  rule bindTargets(Rho:Map, targetsLast(T:Target), valItemsLast(V:Val)) =>
+    bindTarget(Rho, T, V)
+  rule bindTargets(Rho:Map, targetsCons(T:Target, TS:Targets), valItemsCons(V:Val, VS:ValItems)) =>
+    bindTargets(bindTarget(Rho, T, V), TS, VS)
 
   rule delIds(Rho:Map, #noIds) => Rho
   rule delIds(Rho:Map, idItemsLast(X:Id)) => Rho [ X <- undef ]
@@ -4430,6 +4471,19 @@ module PYTHON
        <env> Rho => bindVals(Rho, IDS, VS) </env>
        <result> _ => .K </result>
     requires sameIdValArity(IDS, VS)
+
+  rule <k> unpackTargetAssignStmt(TS:Targets, listVal(VS:ValItems)) => stmtNoResult ... </k>
+       <env> Rho => bindTargets(Rho, TS, VS) </env>
+       <result> _ => .K </result>
+    requires sameTargetsValArity(TS, VS)
+  rule <k> unpackTargetAssignStmt(TS:Targets, tupleVal(VS:ValItems)) => stmtNoResult ... </k>
+       <env> Rho => bindTargets(Rho, TS, VS) </env>
+       <result> _ => .K </result>
+    requires sameTargetsValArity(TS, VS)
+  rule <k> unpackTargetAssignStmt(TS:Targets, setVal(VS:ValItems)) => stmtNoResult ... </k>
+       <env> Rho => bindTargets(Rho, TS, VS) </env>
+       <result> _ => .K </result>
+    requires sameTargetsValArity(TS, VS)
 
   rule <k> unpackStarAssignStmt(Prefix:IdItems, Star:Id, Suffix:IdItems, listVal(VS:ValItems)) => stmtNoResult ... </k>
        <env> Rho => bindStarUnpack(Rho, Prefix, Star, Suffix, VS) </env>

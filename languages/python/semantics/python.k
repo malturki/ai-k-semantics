@@ -8799,6 +8799,8 @@ module PYTHON
   rule #floatCtor(F:Float) => F
   rule #floatCtor(V:Val) => floatValue(V)
     requires isIntLike(V)
+  rule #floatCtor(S:String) => Int2Float(intStringValue(S, 10), 53, 11)
+    requires intStringOk(S, 10)
   rule #complexCtor() => #complex(0.0, 0.0)
   rule #complexCtor(V:Val) => #complex(complexReal(V), complexImag(V))
     requires isComplexLike(V)

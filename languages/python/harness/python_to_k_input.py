@@ -364,7 +364,11 @@ def emit_list_comprehension_two_generators(
         raise unsupported(node, "async list comprehensions are not supported yet")
     if not isinstance(outer.target, ast.Name) or not isinstance(inner.target, ast.Name):
         if outer.ifs or inner.ifs:
-            raise unsupported(outer.target, "unpacking two-generator list comprehension targets with filters are not supported yet")
+            return (
+                f"#listCompTargetForIfs({emit_exp(outer.iter)}, {emit_target(outer.target)}, "
+                f"{emit_maybe_comp_filters(outer.ifs)}, {emit_exp(inner.iter)}, "
+                f"{emit_target(inner.target)}, {emit_maybe_comp_filters(inner.ifs)}, {emit_exp(elt)})"
+            )
         return (
             f"#listCompTargetFor({emit_exp(outer.iter)}, {emit_target(outer.target)}, "
             f"{emit_exp(inner.iter)}, {emit_target(inner.target)}, {emit_exp(elt)})"
@@ -453,7 +457,12 @@ def emit_dict_comprehension_two_generators(
         raise unsupported(node, "async dict comprehensions are not supported yet")
     if not isinstance(outer.target, ast.Name) or not isinstance(inner.target, ast.Name):
         if outer.ifs or inner.ifs:
-            raise unsupported(outer.target, "unpacking two-generator dict comprehension targets with filters are not supported yet")
+            return (
+                f"#dictCompTargetForIfs({emit_exp(outer.iter)}, {emit_target(outer.target)}, "
+                f"{emit_maybe_comp_filters(outer.ifs)}, {emit_exp(inner.iter)}, "
+                f"{emit_target(inner.target)}, {emit_maybe_comp_filters(inner.ifs)}, "
+                f"{emit_exp(key)}, {emit_exp(value)})"
+            )
         return (
             f"#dictCompTargetFor({emit_exp(outer.iter)}, {emit_target(outer.target)}, "
             f"{emit_exp(inner.iter)}, {emit_target(inner.target)}, {emit_exp(key)}, {emit_exp(value)})"
@@ -537,7 +546,11 @@ def emit_set_comprehension_two_generators(
         raise unsupported(node, "async set comprehensions are not supported yet")
     if not isinstance(outer.target, ast.Name) or not isinstance(inner.target, ast.Name):
         if outer.ifs or inner.ifs:
-            raise unsupported(outer.target, "unpacking two-generator set comprehension targets with filters are not supported yet")
+            return (
+                f"#setCompTargetForIfs({emit_exp(outer.iter)}, {emit_target(outer.target)}, "
+                f"{emit_maybe_comp_filters(outer.ifs)}, {emit_exp(inner.iter)}, "
+                f"{emit_target(inner.target)}, {emit_maybe_comp_filters(inner.ifs)}, {emit_exp(elt)})"
+            )
         return (
             f"#setCompTargetFor({emit_exp(outer.iter)}, {emit_target(outer.target)}, "
             f"{emit_exp(inner.iter)}, {emit_target(inner.target)}, {emit_exp(elt)})"

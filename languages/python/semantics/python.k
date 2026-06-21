@@ -13,6 +13,8 @@ module PYTHON-SYNTAX
                | "False" [symbol(pyFalse)]
                | "None" [symbol(pyNone)]
                | "Ellipsis" [symbol(pyEllipsis)]
+               | "#bytes" "(" ")" [symbol(emptyBytesVal)]
+               | "#bytes" "(" ValItems ")" [symbol(bytesVal)]
                | "[" "]" [symbol(emptyListVal)]
                | "[" ValItems "]" [symbol(listVal)]
                | "(" ")" [symbol(emptyTupleVal)]
@@ -683,6 +685,7 @@ module PYTHON
                 | valItemsLt(ValItems, ValItems) [function, symbol(valItemsLt)]
                 | isListSequence(Val) [function, symbol(isListSequence)]
                 | isTupleSequence(Val) [function, symbol(isTupleSequence)]
+                | isBytesSequence(Val) [function, symbol(isBytesSequence)]
                 | seqOrderComparable(Val, Val) [function, symbol(seqOrderComparable)]
                 | seqLt(Val, Val) [function, symbol(seqLt)]
                 | dictsEq(DictItems, DictItems) [function, symbol(dictsEq)]
@@ -913,8 +916,11 @@ module PYTHON
   syntax Val ::= dictCtorMergeKw(Val, KwArgVals) [function, symbol(dictCtorMergeKw)]
   syntax Val ::= listSlice(ValItems, Int, Int) [function, symbol(listSlice)]
                | tupleSlice(ValItems, Int, Int) [function, symbol(tupleSlice)]
+               | bytesSlice(ValItems, Int, Int) [function, symbol(bytesSlice)]
                | listSliceStep(ValItems, Int, Int, Int) [function, symbol(listSliceStep)]
                | tupleSliceStep(ValItems, Int, Int, Int) [function, symbol(tupleSliceStep)]
+               | bytesSliceStep(ValItems, Int, Int, Int) [function, symbol(bytesSliceStep)]
+               | bytesRepeat(ValItems, Int) [function, symbol(bytesRepeat)]
                | listGet(ValItems, Int) [function, symbol(listGet)]
                | rangeSlice(Int, Int, Int, Int, Int) [function, symbol(rangeSlice)]
                | rangeSliceStep(Int, Int, Int, Int, Int, Int) [function, symbol(rangeSliceStep)]
@@ -930,6 +936,8 @@ module PYTHON
   rule truthy(False) => false
   rule truthy(None) => false
   rule truthy(Ellipsis) => true
+  rule truthy(#bytes()) => false
+  rule truthy(bytesVal(_:ValItems)) => true
   rule truthy([]) => false
   rule truthy(listVal(_:ValItems)) => true
   rule truthy(()) => false
@@ -1025,6 +1033,8 @@ module PYTHON
   rule isIntLike(_:Int) => true
   rule isIntLike(_:Float) => false
   rule isIntLike(_:String) => false
+  rule isIntLike(#bytes()) => false
+  rule isIntLike(bytesVal(_:ValItems)) => false
   rule isIntLike(True) => true
   rule isIntLike(False) => true
   rule isIntLike(None) => false
@@ -1128,6 +1138,8 @@ module PYTHON
   rule singletonIdentity(_:Int) => false
   rule singletonIdentity(_:Float) => false
   rule singletonIdentity(_:String) => false
+  rule singletonIdentity(#bytes()) => false
+  rule singletonIdentity(bytesVal(_:ValItems)) => false
   rule singletonIdentity([]) => false
   rule singletonIdentity(listVal(_:ValItems)) => false
   rule singletonIdentity(()) => false
@@ -1226,6 +1238,8 @@ module PYTHON
     requires isIntLike(V)
 
   rule pyLen(S:String) => lengthString(S)
+  rule pyLen(#bytes()) => 0
+  rule pyLen(bytesVal(VS:ValItems)) => valItemsLen(VS)
   rule pyLen([]) => 0
   rule pyLen(listVal(VS:ValItems)) => valItemsLen(VS)
   rule pyLen(()) => 0
@@ -1392,6 +1406,14 @@ module PYTHON
   rule valEq(_:Float, _:Val) => false [owise]
   rule valEq(_:Val, _:Float) => false [owise]
   rule valEq(S1:String, S2:String) => S1 ==String S2
+  rule valEq(#bytes(), #bytes()) => true
+  rule valEq(#bytes(), bytesVal(_:ValItems)) => false
+  rule valEq(bytesVal(_:ValItems), #bytes()) => false
+  rule valEq(bytesVal(VS1:ValItems), bytesVal(VS2:ValItems)) => valsEq(VS1, VS2)
+  rule valEq(#bytes(), _:Val) => false [owise]
+  rule valEq(_:Val, #bytes()) => false [owise]
+  rule valEq(bytesVal(_:ValItems), _:Val) => false [owise]
+  rule valEq(_:Val, bytesVal(_:ValItems)) => false [owise]
   rule valEq(_:String, _:Int) => false
   rule valEq(_:Int, _:String) => false
   rule valEq([], []) => true
@@ -1593,6 +1615,13 @@ module PYTHON
   rule cmpHolds(#is, V1:Val, V2:Val) => valIs(V1, V2)
   rule cmpHolds(#isNot, V1:Val, V2:Val) => notBool valIs(V1, V2)
   rule cmpHolds(#in, Needle:String, Haystack:String) => findString(Haystack, Needle, 0) >=Int 0
+  rule cmpHolds(#in, _V:Val, #bytes()) => false
+  rule cmpHolds(#in, V:Val, bytesVal(VS:ValItems)) => containsVal(intValue(V), VS)
+    requires isIntLike(V) andBool intValue(V) >=Int 0 andBool intValue(V) <=Int 255
+  rule cmpHolds(#in, V:Val, bytesVal(_VS:ValItems)) => false
+    requires notBool isIntLike(V)
+  rule cmpHolds(#in, V:Val, bytesVal(_VS:ValItems)) => false
+    requires isIntLike(V) andBool (intValue(V) <Int 0 orBool intValue(V) >Int 255)
   rule cmpHolds(#in, _V:Val, []) => false
   rule cmpHolds(#in, V:Val, listVal(VS:ValItems)) => containsVal(V, VS)
   rule cmpHolds(#in, _V:Val, ()) => false
@@ -2309,6 +2338,8 @@ module PYTHON
     requires lengthString(S) ==Int 0
   rule iterableArgVals(S:String) => valItemsToArgVals(stringToValItems(S, 0, lengthString(S)))
     requires lengthString(S) >Int 0
+  rule iterableArgVals(#bytes()) => #noArgVals
+  rule iterableArgVals(bytesVal(VS:ValItems)) => valItemsToArgVals(VS)
   rule iterableArgVals(({}):Val) => #noArgVals
   rule iterableArgVals(dictVal(DS:DictItems)) => valItemsToArgVals(dictKeysToValItems(DS))
   rule iterableArgVals(set()) => #noArgVals
@@ -2715,6 +2746,11 @@ module PYTHON
   rule repeatValItems(VS:ValItems, N:Int) => concatValItems(VS, repeatValItems(VS, N -Int 1))
     requires N >Int 1
 
+  rule bytesRepeat(_:ValItems, N:Int) => #bytes() requires N <=Int 0
+  rule bytesRepeat(VS:ValItems, 1) => bytesVal(VS)
+  rule bytesRepeat(VS:ValItems, N:Int) => bytesVal(repeatValItems(VS, N))
+    requires N >Int 1
+
   rule dropValItems(VS:ValItems, 0) => VS
   rule dropValItems(valItemsCons(_:Val, VS:ValItems), N:Int) => dropValItems(VS, N -Int 1)
     requires N >Int 0
@@ -2742,6 +2778,10 @@ module PYTHON
   rule tupleSlice(VS:ValItems, Start:Int, Stop:Int) => tupleVal(sliceValItems(VS, Start, Stop))
     requires Start <Int Stop
 
+  rule bytesSlice(_:ValItems, Start:Int, Stop:Int) => #bytes() requires Start >=Int Stop
+  rule bytesSlice(VS:ValItems, Start:Int, Stop:Int) => bytesVal(sliceValItems(VS, Start, Stop))
+    requires Start <Int Stop
+
   rule listSliceStep(_:ValItems, Start:Int, Stop:Int, Step:Int) => []
     requires Start >=Int Stop andBool Step >Int 0
   rule listSliceStep(VS:ValItems, Start:Int, Stop:Int, Step:Int) =>
@@ -2762,6 +2802,17 @@ module PYTHON
     requires Start <=Int Stop andBool Step <Int 0
   rule tupleSliceStep(VS:ValItems, Start:Int, Stop:Int, Step:Int) =>
     tupleVal(sliceStepValItems(VS, Start, Stop, Step))
+    requires Start >Int Stop andBool Step <Int 0
+
+  rule bytesSliceStep(_:ValItems, Start:Int, Stop:Int, Step:Int) => #bytes()
+    requires Start >=Int Stop andBool Step >Int 0
+  rule bytesSliceStep(VS:ValItems, Start:Int, Stop:Int, Step:Int) =>
+    bytesVal(sliceStepValItems(VS, Start, Stop, Step))
+    requires Start <Int Stop andBool Step >Int 0
+  rule bytesSliceStep(_:ValItems, Start:Int, Stop:Int, Step:Int) => #bytes()
+    requires Start <=Int Stop andBool Step <Int 0
+  rule bytesSliceStep(VS:ValItems, Start:Int, Stop:Int, Step:Int) =>
+    bytesVal(sliceStepValItems(VS, Start, Stop, Step))
     requires Start >Int Stop andBool Step <Int 0
 
   rule sliceValItems(valItemsLast(V:Val), 0, Stop:Int) => valItemsLast(V)
@@ -3005,9 +3056,14 @@ module PYTHON
   rule isTupleSequence(dictArgsVal(_:DictVals)) => false
   rule isTupleSequence(_:Float) => false
 
+  rule isBytesSequence(#bytes()) => true
+  rule isBytesSequence(bytesVal(_:ValItems)) => true
+  rule isBytesSequence(_:Val) => false [owise]
+
   rule seqOrderComparable(V1:Val, V2:Val) =>
     (isListSequence(V1) andBool isListSequence(V2))
       orBool (isTupleSequence(V1) andBool isTupleSequence(V2))
+      orBool (isBytesSequence(V1) andBool isBytesSequence(V2))
 
   rule seqLt([], []) => false
   rule seqLt([], listVal(_:ValItems)) => true
@@ -3017,6 +3073,10 @@ module PYTHON
   rule seqLt((), tupleVal(_:ValItems)) => true
   rule seqLt(tupleVal(_:ValItems), ()) => false
   rule seqLt(tupleVal(VS1:ValItems), tupleVal(VS2:ValItems)) => valItemsLt(VS1, VS2)
+  rule seqLt(#bytes(), #bytes()) => false
+  rule seqLt(#bytes(), bytesVal(_:ValItems)) => true
+  rule seqLt(bytesVal(_:ValItems), #bytes()) => false
+  rule seqLt(bytesVal(VS1:ValItems), bytesVal(VS2:ValItems)) => valItemsLt(VS1, VS2)
 
   rule dictsEq(DS1:DictItems, DS2:DictItems) =>
     dictItemsLen(DS1) ==Int dictItemsLen(DS2)
@@ -3190,6 +3250,18 @@ module PYTHON
   rule V1:Val | V2:Val => intValue(V1) |Int intValue(V2)
     requires isIntLike(V1) andBool isIntLike(V2)
   rule S1:String + S2:String => S1 +String S2
+  rule #bytes() + #bytes() => #bytes()
+  rule #bytes() + bytesVal(VS:ValItems) => bytesVal(VS)
+  rule bytesVal(VS:ValItems) + #bytes() => bytesVal(VS)
+  rule bytesVal(VS1:ValItems) + bytesVal(VS2:ValItems) => bytesVal(concatValItems(VS1, VS2))
+  rule #bytes() * V:Val => #bytes()
+    requires isIntLike(V)
+  rule bytesVal(VS:ValItems) * V:Val => bytesRepeat(VS, intValue(V))
+    requires isIntLike(V)
+  rule V:Val * #bytes() => #bytes()
+    requires isIntLike(V)
+  rule V:Val * bytesVal(VS:ValItems) => bytesRepeat(VS, intValue(V))
+    requires isIntLike(V)
   rule [] + [] => []
   rule [] + listVal(VS:ValItems) => listVal(VS)
   rule listVal(VS:ValItems) + [] => listVal(VS)
@@ -3201,6 +3273,9 @@ module PYTHON
   rule lenExp(V:Val) => pyLen(V)
   rule sliceExp(S:String, Lower:Val, Upper:Val) =>
     sliceString(S, pySliceLower(Lower, lengthString(S)), pySliceUpper(Upper, lengthString(S)))
+  rule sliceExp(#bytes(), _Lower:Val, _Upper:Val) => #bytes()
+  rule sliceExp(bytesVal(VS:ValItems), Lower:Val, Upper:Val) =>
+    bytesSlice(VS, pySliceLower(Lower, valItemsLen(VS)), pySliceUpper(Upper, valItemsLen(VS)))
   rule sliceExp([], _Lower:Val, _Upper:Val) => []
   rule sliceExp(listVal(VS:ValItems), Lower:Val, Upper:Val) =>
     listSlice(VS, pySliceLower(Lower, valItemsLen(VS)), pySliceUpper(Upper, valItemsLen(VS)))
@@ -3217,6 +3292,14 @@ module PYTHON
     requires isIntLike(Step) andBool intValue(Step) >Int 0
   rule sliceStepExp(S:String, Lower:Val, Upper:Val, Step:Val) =>
     sliceStepString(S, pySliceLowerNeg(Lower, lengthString(S)), pySliceUpperNeg(Upper, lengthString(S)), intValue(Step))
+    requires isIntLike(Step) andBool intValue(Step) <Int 0
+  rule sliceStepExp(#bytes(), _Lower:Val, _Upper:Val, Step:Val) => #bytes()
+    requires isIntLike(Step) andBool intValue(Step) =/=Int 0
+  rule sliceStepExp(bytesVal(VS:ValItems), Lower:Val, Upper:Val, Step:Val) =>
+    bytesSliceStep(VS, pySliceLower(Lower, valItemsLen(VS)), pySliceUpper(Upper, valItemsLen(VS)), intValue(Step))
+    requires isIntLike(Step) andBool intValue(Step) >Int 0
+  rule sliceStepExp(bytesVal(VS:ValItems), Lower:Val, Upper:Val, Step:Val) =>
+    bytesSliceStep(VS, pySliceLowerNeg(Lower, valItemsLen(VS)), pySliceUpperNeg(Upper, valItemsLen(VS)), intValue(Step))
     requires isIntLike(Step) andBool intValue(Step) <Int 0
   rule sliceStepExp([], _Lower:Val, _Upper:Val, Step:Val) => []
     requires isIntLike(Step) andBool intValue(Step) =/=Int 0
@@ -3354,6 +3437,13 @@ module PYTHON
            L ~> compareChain(Chain)
        ... </k>
   rule Needle:String in Haystack:String => boolValue(findString(Haystack, Needle, 0) >=Int 0)
+  rule _V:Val in #bytes() => False
+  rule V:Val in bytesVal(VS:ValItems) => boolValue(containsVal(intValue(V), VS))
+    requires isIntLike(V) andBool intValue(V) >=Int 0 andBool intValue(V) <=Int 255
+  rule V:Val in bytesVal(_VS:ValItems) => False
+    requires notBool isIntLike(V)
+  rule V:Val in bytesVal(_VS:ValItems) => False
+    requires isIntLike(V) andBool (intValue(V) <Int 0 orBool intValue(V) >Int 255)
   rule _V:Val in [] => False
   rule V:Val in listVal(VS:ValItems) => boolValue(containsVal(V, VS))
   rule _V:Val in () => False
@@ -3365,6 +3455,13 @@ module PYTHON
   rule V:Val in rangeVal(Start:Int, Stop:Int) => boolValue(rangeContains(V, Start, Stop))
   rule V:Val in rangeVal(Start:Int, Stop:Int, Step:Int) => boolValue(rangeContains(V, Start, Stop, Step))
   rule Needle:String not in Haystack:String => boolValue(findString(Haystack, Needle, 0) <Int 0)
+  rule _V:Val not in #bytes() => True
+  rule V:Val not in bytesVal(VS:ValItems) => boolValue(notBool containsVal(intValue(V), VS))
+    requires isIntLike(V) andBool intValue(V) >=Int 0 andBool intValue(V) <=Int 255
+  rule V:Val not in bytesVal(_VS:ValItems) => True
+    requires notBool isIntLike(V)
+  rule V:Val not in bytesVal(_VS:ValItems) => True
+    requires isIntLike(V) andBool (intValue(V) <Int 0 orBool intValue(V) >Int 255)
   rule _V:Val not in [] => True
   rule V:Val not in listVal(VS:ValItems) => boolValue(notBool containsVal(V, VS))
   rule _V:Val not in () => True
@@ -3385,6 +3482,12 @@ module PYTHON
     requires isIntLike(I)
      andBool intValue(I) <Int 0
      andBool lengthString(S) +Int intValue(I) >=Int 0
+  rule subscriptExp(bytesVal(VS:ValItems), I:Val) => listGet(VS, intValue(I))
+    requires isIntLike(I) andBool intValue(I) >=Int 0 andBool intValue(I) <Int valItemsLen(VS)
+  rule subscriptExp(bytesVal(VS:ValItems), I:Val) => listGet(VS, valItemsLen(VS) +Int intValue(I))
+    requires isIntLike(I)
+     andBool intValue(I) <Int 0
+     andBool valItemsLen(VS) +Int intValue(I) >=Int 0
   rule subscriptExp(rangeVal(Start:Int, Stop:Int), I:Val) =>
     rangeGet(Start, Stop, 1, intValue(I))
     requires isIntLike(I)
@@ -6638,6 +6741,8 @@ module PYTHON
     requires lengthString(S) ==Int 0
   rule #listCtor(S:String) => listVal(stringToValItems(S, 0, lengthString(S)))
     requires lengthString(S) >Int 0
+  rule #listCtor(#bytes()) => []
+  rule #listCtor(bytesVal(VS:ValItems)) => listVal(VS)
   rule #listCtor(({}):Val) => []
   rule #listCtor(dictVal(DS:DictItems)) => listVal(dictKeysToValItems(DS))
   rule #listCtor(set()) => []
@@ -6660,6 +6765,8 @@ module PYTHON
     requires lengthString(S) ==Int 0
   rule #tupleCtor(S:String) => tupleVal(stringToValItems(S, 0, lengthString(S)))
     requires lengthString(S) >Int 0
+  rule #tupleCtor(#bytes()) => ()
+  rule #tupleCtor(bytesVal(VS:ValItems)) => tupleVal(VS)
   rule #tupleCtor(({}):Val) => ()
   rule #tupleCtor(dictVal(DS:DictItems)) => tupleVal(dictKeysToValItems(DS))
   rule #tupleCtor(set()) => ()
@@ -6681,6 +6788,8 @@ module PYTHON
   rule #all(()) => True
   rule #all(tupleVal(VS:ValItems)) => boolValue(allValItems(VS))
   rule #all(_:String) => True
+  rule #all(#bytes()) => True
+  rule #all(bytesVal(VS:ValItems)) => boolValue(allValItems(VS))
   rule #all(({}):Val) => True
   rule #all(dictVal(DS:DictItems)) => boolValue(allValItems(dictKeysToValItems(DS)))
   rule #all(set()) => True
@@ -6693,6 +6802,8 @@ module PYTHON
   rule #any(()) => False
   rule #any(tupleVal(VS:ValItems)) => boolValue(anyValItems(VS))
   rule #any(S:String) => boolValue(lengthString(S) >Int 0)
+  rule #any(#bytes()) => False
+  rule #any(bytesVal(VS:ValItems)) => boolValue(anyValItems(VS))
   rule #any(({}):Val) => False
   rule #any(dictVal(DS:DictItems)) => boolValue(anyValItems(dictKeysToValItems(DS)))
   rule #any(set()) => False
@@ -6705,6 +6816,9 @@ module PYTHON
     requires valItemsAllIntLike(VS)
   rule #sum(()) => 0
   rule #sum(tupleVal(VS:ValItems)) => sumValItems(VS)
+    requires valItemsAllIntLike(VS)
+  rule #sum(#bytes()) => 0
+  rule #sum(bytesVal(VS:ValItems)) => sumValItems(VS)
     requires valItemsAllIntLike(VS)
   rule #sum(({}):Val) => 0
   rule #sum(dictVal(DS:DictItems)) => sumValItems(dictKeysToValItems(DS))
@@ -6722,6 +6836,10 @@ module PYTHON
   rule #sum((), Seed:Val) => Seed
     requires isIntLike(Seed)
   rule #sum(tupleVal(VS:ValItems), Seed:Val) => intValue(Seed) +Int sumValItems(VS)
+    requires isIntLike(Seed) andBool valItemsAllIntLike(VS)
+  rule #sum(#bytes(), Seed:Val) => Seed
+    requires isIntLike(Seed)
+  rule #sum(bytesVal(VS:ValItems), Seed:Val) => intValue(Seed) +Int sumValItems(VS)
     requires isIntLike(Seed) andBool valItemsAllIntLike(VS)
   rule #sum(({}):Val, Seed:Val) => Seed
     requires isIntLike(Seed)
@@ -6743,6 +6861,8 @@ module PYTHON
     requires valItemsAllIntLike(VS)
   rule #min(tupleVal(VS:ValItems)) => minValItems(VS)
     requires valItemsAllIntLike(VS)
+  rule #min(bytesVal(VS:ValItems)) => minValItems(VS)
+    requires valItemsAllIntLike(VS)
   rule #min(dictVal(DS:DictItems)) => minValItems(dictKeysToValItems(DS))
     requires valItemsAllIntLike(dictKeysToValItems(DS))
   rule #min(setVal(VS:ValItems)) => minValItems(VS)
@@ -6754,6 +6874,8 @@ module PYTHON
   rule #max(listVal(VS:ValItems)) => maxValItems(VS)
     requires valItemsAllIntLike(VS)
   rule #max(tupleVal(VS:ValItems)) => maxValItems(VS)
+    requires valItemsAllIntLike(VS)
+  rule #max(bytesVal(VS:ValItems)) => maxValItems(VS)
     requires valItemsAllIntLike(VS)
   rule #max(dictVal(DS:DictItems)) => maxValItems(dictKeysToValItems(DS))
     requires valItemsAllIntLike(dictKeysToValItems(DS))

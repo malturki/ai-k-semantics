@@ -57,6 +57,8 @@ run_case "adapter-string-ordering" "$ROOT/tests/adapter/adapter-string-ordering.
 run_case "adapter-string-slice" "$ROOT/tests/adapter/adapter-string-slice.py" "True ~> .K"
 run_case "adapter-string-slice-step" "$ROOT/tests/adapter/adapter-string-slice-step.py" "True ~> .K"
 run_case "adapter-string-slice-negative-step" "$ROOT/tests/adapter/adapter-string-slice-negative-step.py" "True ~> .K"
+run_case "adapter-bytes-basic" "$ROOT/tests/adapter/adapter-bytes-basic.py" "True ~> .K"
+run_case "adapter-bytes-iterable-builtins" "$ROOT/tests/adapter/adapter-bytes-iterable-builtins.py" "True ~> .K"
 run_case "adapter-list-normal" "$ROOT/tests/adapter/adapter-list-normal.py" "True ~> .K"
 run_case "adapter-list-expressions" "$ROOT/tests/adapter/adapter-list-expressions.py" "True ~> .K"
 run_case "adapter-list-comprehension" "$ROOT/tests/adapter/adapter-list-comprehension.py" "True ~> .K"

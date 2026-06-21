@@ -102,6 +102,20 @@
       "coverage": ["string-slicing", "negative-step-sequence-slicing", "omitted-slice-bounds", "negative-slice-bounds", "slice-bound-clamping", "ordinary-python-source-adapter"]
     },
     {
+      "id": "adapter-bytes-basic",
+      "source": "../adapter/adapter-bytes-basic.py",
+      "reference": "Python Language Reference 2.5.5 String and bytes literals; 6.2.2 Atoms; 6.3.2 Subscriptions; 6.3.3 Slicings; 6.10 Comparisons; Standard Library binary sequence types",
+      "expected_result": "True ~> .K",
+      "coverage": ["bytes-literal", "bytes-truthiness", "bytes-length", "bytes-equality", "bytes-ordering", "bytes-indexing", "bytes-slicing", "bytes-membership", "bytes-concatenation", "bytes-repetition", "bytes-list-tuple-conversion", "ordinary-python-source-adapter"]
+    },
+    {
+      "id": "adapter-bytes-iterable-builtins",
+      "source": "../adapter/adapter-bytes-iterable-builtins.py",
+      "reference": "Python Language Reference 2.5.5 String and bytes literals; Standard Library binary sequence types; Built-in Functions all, any, sum, min, max",
+      "expected_result": "True ~> .K",
+      "coverage": ["bytes-literal", "bytes-iteration-yields-int", "bytes-starred-display-unpacking", "bytes-all-any", "bytes-sum", "bytes-min-max", "ordinary-python-source-adapter"]
+    },
+    {
       "id": "adapter-list-normal",
       "source": "../adapter/adapter-list-normal.py",
       "reference": "Python Language Reference 6.2.4 Displays for lists, sets and dictionaries; 6.3.2 Subscriptions",

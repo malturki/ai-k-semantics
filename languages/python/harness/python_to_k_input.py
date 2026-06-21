@@ -299,7 +299,15 @@ def emit_constant(node: ast.AST, value: object) -> str:
         return repr(value)
     if isinstance(value, str):
         return json.dumps(value)
+    if isinstance(value, bytes):
+        return emit_bytes(value)
     raise unsupported(node, f"constant {value!r} is not supported")
+
+
+def emit_bytes(value: bytes) -> str:
+    if not value:
+        return "#bytes()"
+    return "#bytes(" + ", ".join(str(byte) for byte in value) + ",)"
 
 
 def emit_bin_op(left: ast.expr, op: ast.operator, right: ast.expr) -> str:

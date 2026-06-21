@@ -648,6 +648,20 @@
       "coverage": ["function-definition", "positional-only-parameter", "positional-or-keyword-parameter", "varargs-parameter", "kwargs-parameter", "default-parameter-values", "definition-time-default-evaluation", "positional-call-default-filling", "keyword-argument-call", "mixed-positional-keyword-call", "collected-positional-arguments-tuple", "collected-keyword-arguments-dict", "ordinary-python-source-adapter"]
     },
     {
+      "id": "adapter-function-pos-only-varargs-kw-only",
+      "source": "../adapter/adapter-function-pos-only-varargs-kw-only.py",
+      "reference": "Python Language Reference 8.7 Function definitions; 6.3.4 Calls; 6.16 Evaluation order",
+      "expected_result": "True ~> .K",
+      "coverage": ["function-definition", "positional-only-parameter", "positional-or-keyword-parameter", "varargs-parameter", "keyword-only-parameter", "keyword-only-default", "default-parameter-values", "definition-time-default-evaluation", "positional-call-default-filling", "keyword-argument-call", "mixed-positional-keyword-call", "collected-positional-arguments-tuple", "ordinary-python-source-adapter"]
+    },
+    {
+      "id": "adapter-function-pos-only-varargs-kw-only-kwargs",
+      "source": "../adapter/adapter-function-pos-only-varargs-kw-only-kwargs.py",
+      "reference": "Python Language Reference 8.7 Function definitions; 6.3.4 Calls; 6.16 Evaluation order",
+      "expected_result": "True ~> .K",
+      "coverage": ["function-definition", "positional-only-parameter", "positional-or-keyword-parameter", "varargs-parameter", "keyword-only-parameter", "kwargs-parameter", "keyword-only-default", "default-parameter-values", "definition-time-default-evaluation", "positional-call-default-filling", "keyword-argument-call", "mixed-positional-keyword-call", "collected-positional-arguments-tuple", "collected-keyword-arguments-dict", "ordinary-python-source-adapter"]
+    },
+    {
       "id": "adapter-function-pos-only-kw-only",
       "source": "../adapter/adapter-function-pos-only-kw-only.py",
       "reference": "Python Language Reference 8.7 Function definitions; 6.3.4 Calls; 6.16 Evaluation order",
@@ -828,6 +842,20 @@
       "reference": "Python Language Reference 6.14 Lambdas; 6.3.4 Calls; 6.16 Evaluation order",
       "expected_result": "True ~> .K",
       "coverage": ["lambda-expression", "positional-only-parameter", "positional-or-keyword-parameter", "varargs-parameter", "kwargs-parameter", "default-parameter-values", "lambda-definition-time-default-evaluation", "positional-call-default-filling", "keyword-argument-call", "mixed-positional-keyword-call", "collected-positional-arguments-tuple", "collected-keyword-arguments-dict", "ordinary-python-source-adapter"]
+    },
+    {
+      "id": "adapter-lambda-pos-only-varargs-kw-only",
+      "source": "../adapter/adapter-lambda-pos-only-varargs-kw-only.py",
+      "reference": "Python Language Reference 6.14 Lambdas; 6.3.4 Calls; 6.16 Evaluation order",
+      "expected_result": "True ~> .K",
+      "coverage": ["lambda-expression", "positional-only-parameter", "positional-or-keyword-parameter", "varargs-parameter", "keyword-only-parameter", "keyword-only-default", "default-parameter-values", "lambda-definition-time-default-evaluation", "positional-call-default-filling", "keyword-argument-call", "mixed-positional-keyword-call", "collected-positional-arguments-tuple", "ordinary-python-source-adapter"]
+    },
+    {
+      "id": "adapter-lambda-pos-only-varargs-kw-only-kwargs",
+      "source": "../adapter/adapter-lambda-pos-only-varargs-kw-only-kwargs.py",
+      "reference": "Python Language Reference 6.14 Lambdas; 6.3.4 Calls; 6.16 Evaluation order",
+      "expected_result": "True ~> .K",
+      "coverage": ["lambda-expression", "positional-only-parameter", "positional-or-keyword-parameter", "varargs-parameter", "keyword-only-parameter", "kwargs-parameter", "keyword-only-default", "default-parameter-values", "lambda-definition-time-default-evaluation", "positional-call-default-filling", "keyword-argument-call", "mixed-positional-keyword-call", "collected-positional-arguments-tuple", "collected-keyword-arguments-dict", "ordinary-python-source-adapter"]
     },
     {
       "id": "adapter-lambda-pos-only-kw-only",

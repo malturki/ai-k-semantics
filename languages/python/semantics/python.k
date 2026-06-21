@@ -1100,6 +1100,11 @@ module PYTHON
                | intPrefixedBodyStart(String, Int) [function, symbol(intPrefixedBodyStart)]
                | intPrefixedStringValue(String, Int) [function, symbol(intPrefixedStringValue)]
                | intBase0StringValue(String) [function, symbol(intBase0StringValue)]
+               | intAbs(Int) [function, symbol(intAbs)]
+               | pyGcd(Int, Int) [function, symbol(pyGcd)]
+               | pyExtendedGcdX(Int, Int) [function, symbol(pyExtendedGcdX)]
+               | pyExtendedGcdY(Int, Int) [function, symbol(pyExtendedGcdY)]
+               | pyModInverse(Int, Int) [function, symbol(pyModInverse)]
                | floatDecimalDigitsValue(String, Int, Int) [function, symbol(floatDecimalDigitsValue)]
                | floatDecimalFractionDigits(String, Int, Int, Bool) [function, symbol(floatDecimalFractionDigits)]
                | floatDecimalPow10(Int) [function, symbol(floatDecimalPow10)]
@@ -2189,6 +2194,31 @@ module PYTHON
 
   rule pyModulo(I1:Int, I2:Int) => I1 -Int (I2 *Int pyFloorDiv(I1, I2))
     requires I2 =/=Int 0
+
+  rule intAbs(I:Int) => 0 -Int I
+    requires I <Int 0
+  rule intAbs(I:Int) => I
+    requires I >=Int 0
+
+  rule pyGcd(A:Int, B:Int) => pyGcd(intAbs(A), intAbs(B))
+    requires A <Int 0 orBool B <Int 0
+  rule pyGcd(A:Int, 0) => A
+    requires A >=Int 0
+  rule pyGcd(A:Int, B:Int) => pyGcd(B, A %Int B)
+    requires A >=Int 0 andBool B >Int 0
+
+  rule pyExtendedGcdX(_:Int, 0) => 1
+  rule pyExtendedGcdY(_:Int, 0) => 0
+  rule pyExtendedGcdX(A:Int, B:Int) => pyExtendedGcdY(B, A %Int B)
+    requires A >=Int 0 andBool B >Int 0
+  rule pyExtendedGcdY(A:Int, B:Int) =>
+    pyExtendedGcdX(B, A %Int B) -Int ((A /Int B) *Int pyExtendedGcdY(B, A %Int B))
+    requires A >=Int 0 andBool B >Int 0
+
+  rule pyModInverse(Base:Int, Mod:Int) =>
+    pyModulo(pyExtendedGcdX(pyModulo(Base, intAbs(Mod)), intAbs(Mod)), intAbs(Mod))
+    requires intAbs(Mod) >Int 0
+      andBool pyGcd(pyModulo(Base, intAbs(Mod)), intAbs(Mod)) ==Int 1
 
   rule pyFloatFloorDiv(F1:Float, F2:Float) => floorFloat(F1 /Float F2)
     requires F2 =/=Float 0.0
@@ -9248,6 +9278,14 @@ module PYTHON
       andBool isIntLike(V3)
       andBool intValue(V2) >=Int 0
       andBool intValue(V3) =/=Int 0
+  rule #pow(V1:Val, V2:Val, V3:Val) =>
+    pyModulo(pyModInverse(intValue(V1), intValue(V3)) ^Int (0 -Int intValue(V2)), intValue(V3))
+    requires isIntLike(V1)
+      andBool isIntLike(V2)
+      andBool isIntLike(V3)
+      andBool intValue(V2) <Int 0
+      andBool intValue(V3) =/=Int 0
+      andBool pyGcd(pyModulo(intValue(V1), intAbs(intValue(V3))), intAbs(intValue(V3))) ==Int 1
 
   rule range1Exp(N:Val) => rangeVal(0, intValue(N))
     requires isIntLike(N)

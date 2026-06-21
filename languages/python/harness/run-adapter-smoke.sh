@@ -114,6 +114,7 @@ run_case "adapter-divmod-int" "$ROOT/tests/adapter/adapter-divmod-int.py" "True 
 run_case "adapter-pow-int" "$ROOT/tests/adapter/adapter-pow-int.py" "True ~> .K"
 run_case "adapter-pow-negative" "$ROOT/tests/adapter/adapter-pow-negative.py" "True ~> .K"
 run_case "adapter-pow-mod" "$ROOT/tests/adapter/adapter-pow-mod.py" "True ~> .K"
+run_case "adapter-pow-mod-negative" "$ROOT/tests/adapter/adapter-pow-mod-negative.py" "True ~> .K"
 run_case "adapter-int-string-constructor" "$ROOT/tests/adapter/adapter-int-string-constructor.py" "True ~> .K"
 run_case "adapter-int-string-underscores" "$ROOT/tests/adapter/adapter-int-string-underscores.py" "True ~> .K"
 run_case "adapter-int-prefix-base-constructor" "$ROOT/tests/adapter/adapter-int-prefix-base-constructor.py" "True ~> .K"

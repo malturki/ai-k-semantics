@@ -106,6 +106,13 @@
       "reference": "Python Language Reference 7.3 The assert statement; 7.12 The global statement",
       "expected_result": "2 ~> .K",
       "coverage": ["truthy-assert", "module-scope-global-declaration"]
+    },
+    {
+      "id": "smoke-function-decorator",
+      "source": "../examples/smoke-function-decorator.py",
+      "reference": "Python Language Reference 8.7 Function definitions",
+      "expected_result": "1 ~> .K",
+      "coverage": ["function-decorator", "decorator-application-order", "function-name-bound-to-decorator-result"]
     }
   ]
 }

@@ -85,6 +85,9 @@ module PYTHON-SYNTAX
   syntax Block ::= "{" "}" [symbol(emptyBlock)]
                  | "{" Stmts "}" [symbol(block)]
 
+  syntax FunctionSpec ::= "#function" "(" Id "," Block ")" [symbol(functionSpecOne)]
+                        | "#functionArgs" "(" IdItems "," Block ")" [symbol(functionSpecArgs)]
+
   syntax Stmt ::= Exp
                 | "pass" [symbol(passStmt)]
                 | "break" [symbol(breakStmt)]
@@ -153,6 +156,7 @@ module PYTHON-SYNTAX
                 | "#defPosKwDefaults" "(" Id "," IdItems "," ArgExps "," IdItems "," ArgExps "," Block ")" [symbol(functionDefPosKwDefaultsStmt)]
                 | "#defPosKwOnlyKwArgs" "(" Id "," IdItems "," IdItems "," Id "," Block ")" [symbol(functionDefPosKwOnlyKwArgsStmt)]
                 | "#defPosKwDefaultsKwArgs" "(" Id "," IdItems "," ArgExps "," IdItems "," ArgExps "," Id "," Block ")" [symbol(functionDefPosKwDefaultsKwArgsStmt)]
+                | "#defDecorated" "(" Id "," ArgExps "," FunctionSpec ")" [symbol(functionDefDecoratedStmt)]
                 | "#if" "(" Exp "," Block "," Block ")" [symbol(ifStmt)]
                 | "#while" "(" Exp "," Block ")" [symbol(whileStmt)]
                 | "#whileElse" "(" Exp "," Block "," Block ")" [symbol(whileElseStmt)]
@@ -648,6 +652,8 @@ module PYTHON
                  | "continueSignal" [symbol(continueSignal)]
                  | returnSignal(Val) [symbol(returnSignal)]
                  | functionDone(Map) [symbol(functionDone)]
+                 | bindDecoratedFunction(Id, Val) [symbol(bindDecoratedFunction)]
+                 | applyDecorators(Id, ArgVals) [symbol(applyDecorators)]
                  | bindFunctionDefaults(Id, IdItems, Block) [symbol(bindFunctionDefaults)]
                  | bindFunctionVarArgsDefaults(Id, IdItems, Id, Block) [symbol(bindFunctionVarArgsDefaults)]
                  | bindFunctionVarArgsKwDefaults(Id, IdItems, ArgExps, Id, IdItems, Block) [symbol(bindFunctionVarArgsKwDefaults)]
@@ -841,6 +847,8 @@ module PYTHON
                    | argValsCons(Val, ArgVals) [symbol(argValsCons)]
                    | appendArgVal(ArgVals, Val) [function, symbol(appendArgVal)]
                    | concatArgVals(ArgVals, ArgVals) [function, symbol(concatArgVals)]
+                   | reverseArgVals(ArgVals) [function, symbol(reverseArgVals)]
+                   | reverseArgVals(ArgVals, ArgVals) [function, symbol(reverseArgValsAcc)]
                    | dropArgVals(ArgVals, Int) [function, symbol(dropArgVals)]
                    | takeArgVals(ArgVals, Int) [function, symbol(takeArgVals)]
                    | varArgTail(ArgVals, Int) [function, symbol(varArgTail)]
@@ -2248,6 +2256,11 @@ module PYTHON
   rule concatArgVals(#noArgVals, VS:ArgVals) => VS
   rule concatArgVals(argValsCons(V:Val, VS1:ArgVals), VS2:ArgVals) =>
     argValsCons(V, concatArgVals(VS1, VS2))
+
+  rule reverseArgVals(VS:ArgVals) => reverseArgVals(VS, #noArgVals)
+  rule reverseArgVals(#noArgVals, Acc:ArgVals) => Acc
+  rule reverseArgVals(argValsCons(V:Val, VS:ArgVals), Acc:ArgVals) =>
+    reverseArgVals(VS, argValsCons(V, Acc))
 
   rule dropArgVals(VS:ArgVals, 0) => VS
   rule dropArgVals(#noArgVals, N:Int) => #noArgVals
@@ -7318,6 +7331,22 @@ module PYTHON
   rule <k> argsVal(Defaults:ArgVals) ~> bindFunctionDefaults(F:Id, IDS:IdItems, Body:Block) => stmtNoResult ... </k>
        <env> Rho => Rho [ F <- functionValDefaults(IDS, Defaults, Body) ] </env>
        <result> _ => .K </result>
+
+  rule <k> functionDefDecoratedStmt(F:Id, Decorators:ArgExps, functionSpecOne(X:Id, Body:Block)) =>
+           evalArgs(Decorators, #noArgVals) ~> bindDecoratedFunction(F, functionVal(X, Body))
+       ... </k>
+  rule <k> functionDefDecoratedStmt(F:Id, Decorators:ArgExps, functionSpecArgs(IDS:IdItems, Body:Block)) =>
+           evalArgs(Decorators, #noArgVals) ~> bindDecoratedFunction(F, functionValArgs(IDS, Body))
+       ... </k>
+  rule <k> argsVal(Decorators:ArgVals) ~> bindDecoratedFunction(F:Id, Fun:Val) =>
+           Fun ~> applyDecorators(F, reverseArgVals(Decorators))
+       ... </k>
+  rule <k> Fun:Val ~> applyDecorators(F:Id, #noArgVals) => stmtNoResult ... </k>
+       <env> Rho => Rho [ F <- Fun ] </env>
+       <result> _ => .K </result>
+  rule <k> Fun:Val ~> applyDecorators(F:Id, argValsCons(Decorator:Val, Rest:ArgVals)) =>
+           Decorator ~> callArg(Fun) ~> applyDecorators(F, Rest)
+       ... </k>
 
   rule <k> tryFinallyStmt(block(SS:Stmts), Finally:Block) =>
            SS ~> tryFinallyDone(Finally)

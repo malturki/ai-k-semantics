@@ -723,12 +723,12 @@ def emit_function_def(
     returns: ast.expr | None,
     type_comment: str | None,
 ) -> str:
-    if decorators:
-        raise unsupported(decorators[0], "function decorators are not supported yet")
     # Python 3.14 annotations are lazy metadata. The current function values do
     # not expose metadata/introspection, so annotations are erased in this subset.
     if type_comment is not None:
         raise unsupported(node, "function type comments are not supported yet")
+    if decorators:
+        return emit_decorated_function_def(node, name, args, body, decorators)
     if args.kwonlyargs:
         kw_names = [arg.arg for arg in args.kwonlyargs]
         kw_defaults = emit_kw_defaults(args.kw_defaults)
@@ -834,6 +834,34 @@ def emit_function_def(
     if len(names) == 1:
         return f"#def({name}, {names[0]}, {emit_block(body)})"
     return f"#defArgs({name}, {emit_id_items(names)}, {emit_block(body)})"
+
+
+def emit_decorated_function_def(
+    node: ast.AST,
+    name: str,
+    args: ast.arguments,
+    body: list[ast.stmt],
+    decorators: list[ast.expr],
+) -> str:
+    if (
+        args.posonlyargs
+        or args.vararg is not None
+        or args.kwonlyargs
+        or args.kwarg is not None
+        or args.defaults
+        or any(default is not None for default in args.kw_defaults)
+    ):
+        raise unsupported(
+            node,
+            "decorated functions are supported only for positional parameters without defaults",
+        )
+    names = [arg.arg for arg in args.args]
+    body_text = emit_block(body)
+    if len(names) == 1:
+        function_value = f"#function({names[0]}, {body_text})"
+    else:
+        function_value = f"#functionArgs({emit_id_items(names)}, {body_text})"
+    return f"#defDecorated({name}, {emit_arg_exps(decorators)}, {function_value})"
 
 
 def emit_for_stmt(

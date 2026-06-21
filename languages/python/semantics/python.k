@@ -87,6 +87,7 @@ module PYTHON-SYNTAX
 
   syntax FunctionSpec ::= "#function" "(" Id "," Block ")" [symbol(functionSpecOne)]
                         | "#functionArgs" "(" IdItems "," Block ")" [symbol(functionSpecArgs)]
+                        | "#functionDefaults" "(" IdItems "," ArgExps "," Block ")" [symbol(functionSpecDefaults)]
 
   syntax Stmt ::= Exp
                 | "pass" [symbol(passStmt)]
@@ -653,6 +654,8 @@ module PYTHON
                  | returnSignal(Val) [symbol(returnSignal)]
                  | functionDone(Map) [symbol(functionDone)]
                  | bindDecoratedFunction(Id, Val) [symbol(bindDecoratedFunction)]
+                 | bindDecoratedFunctionDefaults(Id, IdItems, ArgExps, Block) [symbol(bindDecoratedFunctionDefaults)]
+                 | bindDecoratedFunctionDefaultVals(Id, ArgVals, IdItems, Block) [symbol(bindDecoratedFunctionDefaultVals)]
                  | applyDecorators(Id, ArgVals) [symbol(applyDecorators)]
                  | bindFunctionDefaults(Id, IdItems, Block) [symbol(bindFunctionDefaults)]
                  | bindFunctionVarArgsDefaults(Id, IdItems, Id, Block) [symbol(bindFunctionVarArgsDefaults)]
@@ -7338,8 +7341,17 @@ module PYTHON
   rule <k> functionDefDecoratedStmt(F:Id, Decorators:ArgExps, functionSpecArgs(IDS:IdItems, Body:Block)) =>
            evalArgs(Decorators, #noArgVals) ~> bindDecoratedFunction(F, functionValArgs(IDS, Body))
        ... </k>
+  rule <k> functionDefDecoratedStmt(F:Id, Decorators:ArgExps, functionSpecDefaults(IDS:IdItems, Defaults:ArgExps, Body:Block)) =>
+           evalArgs(Decorators, #noArgVals) ~> bindDecoratedFunctionDefaults(F, IDS, Defaults, Body)
+       ... </k>
   rule <k> argsVal(Decorators:ArgVals) ~> bindDecoratedFunction(F:Id, Fun:Val) =>
            Fun ~> applyDecorators(F, reverseArgVals(Decorators))
+       ... </k>
+  rule <k> argsVal(Decorators:ArgVals) ~> bindDecoratedFunctionDefaults(F:Id, IDS:IdItems, Defaults:ArgExps, Body:Block) =>
+           evalArgs(Defaults, #noArgVals) ~> bindDecoratedFunctionDefaultVals(F, Decorators, IDS, Body)
+       ... </k>
+  rule <k> argsVal(Defaults:ArgVals) ~> bindDecoratedFunctionDefaultVals(F:Id, Decorators:ArgVals, IDS:IdItems, Body:Block) =>
+           functionValDefaults(IDS, Defaults, Body) ~> applyDecorators(F, reverseArgVals(Decorators))
        ... </k>
   rule <k> Fun:Val ~> applyDecorators(F:Id, #noArgVals) => stmtNoResult ... </k>
        <env> Rho => Rho [ F <- Fun ] </env>

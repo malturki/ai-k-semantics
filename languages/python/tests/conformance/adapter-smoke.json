@@ -578,6 +578,13 @@
       "coverage": ["function-definition", "function-decorator", "decorator-expression-evaluation", "decorator-application-order", "function-name-bound-to-decorator-result", "ordinary-python-source-adapter"]
     },
     {
+      "id": "adapter-function-decorators-defaults",
+      "source": "../adapter/adapter-function-decorators-defaults.py",
+      "reference": "Python Language Reference 8.7 Function definitions",
+      "expected_result": "True ~> .K",
+      "coverage": ["function-definition", "function-decorator", "decorator-expression-evaluation", "definition-time-default-evaluation", "decorator-default-evaluation-order", "decorator-application-order", "function-name-bound-to-decorator-result", "ordinary-python-source-adapter"]
+    },
+    {
       "id": "adapter-function-varargs",
       "source": "../adapter/adapter-function-varargs.py",
       "reference": "Python Language Reference 8.7 Function definitions; 6.3.4 Calls",

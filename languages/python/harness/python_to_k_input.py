@@ -848,16 +848,17 @@ def emit_decorated_function_def(
         or args.vararg is not None
         or args.kwonlyargs
         or args.kwarg is not None
-        or args.defaults
         or any(default is not None for default in args.kw_defaults)
     ):
         raise unsupported(
             node,
-            "decorated functions are supported only for positional parameters without defaults",
+            "decorated functions are supported only for positional parameters with optional suffix defaults",
         )
     names = [arg.arg for arg in args.args]
     body_text = emit_block(body)
-    if len(names) == 1:
+    if args.defaults:
+        function_value = f"#functionDefaults({emit_id_items(names)}, {emit_arg_exps(args.defaults)}, {body_text})"
+    elif len(names) == 1:
         function_value = f"#function({names[0]}, {body_text})"
     else:
         function_value = f"#functionArgs({emit_id_items(names)}, {body_text})"

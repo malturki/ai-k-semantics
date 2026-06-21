@@ -125,6 +125,7 @@ run_case "adapter-function-arg-expressions" "$ROOT/tests/adapter/adapter-functio
 run_case "adapter-function-defaults" "$ROOT/tests/adapter/adapter-function-defaults.py" "True ~> .K"
 run_case "adapter-function-annotations" "$ROOT/tests/adapter/adapter-function-annotations.py" "True ~> .K"
 run_case "adapter-function-decorators" "$ROOT/tests/adapter/adapter-function-decorators.py" "True ~> .K"
+run_case "adapter-function-decorators-defaults" "$ROOT/tests/adapter/adapter-function-decorators-defaults.py" "True ~> .K"
 run_case "adapter-function-varargs" "$ROOT/tests/adapter/adapter-function-varargs.py" "True ~> .K"
 run_case "adapter-function-varargs-keyword" "$ROOT/tests/adapter/adapter-function-varargs-keyword.py" "True ~> .K"
 run_case "adapter-function-varargs-defaults" "$ROOT/tests/adapter/adapter-function-varargs-defaults.py" "True ~> .K"

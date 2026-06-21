@@ -111,8 +111,8 @@
       "id": "smoke-function-decorator",
       "source": "../examples/smoke-function-decorator.py",
       "reference": "Python Language Reference 8.7 Function definitions",
-      "expected_result": "1 ~> .K",
-      "coverage": ["function-decorator", "decorator-application-order", "function-name-bound-to-decorator-result"]
+      "expected_result": "True ~> .K",
+      "coverage": ["function-decorator", "decorator-application-order", "function-name-bound-to-decorator-result", "decorated-function-default"]
     }
   ]
 }

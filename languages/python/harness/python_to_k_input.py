@@ -394,12 +394,24 @@ def emit_list_comprehension_three_generators(
 ) -> str:
     if outer.is_async or middle.is_async or inner.is_async:
         raise unsupported(node, "async list comprehensions are not supported yet")
-    if not isinstance(outer.target, ast.Name):
-        raise unsupported(outer.target, "only simple-name list comprehension targets are supported")
-    if not isinstance(middle.target, ast.Name):
-        raise unsupported(middle.target, "only simple-name list comprehension targets are supported")
-    if not isinstance(inner.target, ast.Name):
-        raise unsupported(inner.target, "only simple-name list comprehension targets are supported")
+    if not (
+        isinstance(outer.target, ast.Name)
+        and isinstance(middle.target, ast.Name)
+        and isinstance(inner.target, ast.Name)
+    ):
+        if outer.ifs or middle.ifs or inner.ifs:
+            return (
+                f"#listCompTargetForForIfs({emit_exp(outer.iter)}, {emit_target(outer.target)}, "
+                f"{emit_maybe_comp_filters(outer.ifs)}, {emit_exp(middle.iter)}, "
+                f"{emit_target(middle.target)}, {emit_maybe_comp_filters(middle.ifs)}, "
+                f"{emit_exp(inner.iter)}, {emit_target(inner.target)}, "
+                f"{emit_maybe_comp_filters(inner.ifs)}, {emit_exp(elt)})"
+            )
+        return (
+            f"#listCompTargetForFor({emit_exp(outer.iter)}, {emit_target(outer.target)}, "
+            f"{emit_exp(middle.iter)}, {emit_target(middle.target)}, "
+            f"{emit_exp(inner.iter)}, {emit_target(inner.target)}, {emit_exp(elt)})"
+        )
     if outer.ifs or middle.ifs or inner.ifs:
         return (
             f"#listCompForForIfs({emit_exp(outer.iter)}, {outer.target.id}, "
@@ -490,12 +502,24 @@ def emit_dict_comprehension_three_generators(
 ) -> str:
     if outer.is_async or middle.is_async or inner.is_async:
         raise unsupported(node, "async dict comprehensions are not supported yet")
-    if not isinstance(outer.target, ast.Name):
-        raise unsupported(outer.target, "only simple-name dict comprehension targets are supported")
-    if not isinstance(middle.target, ast.Name):
-        raise unsupported(middle.target, "only simple-name dict comprehension targets are supported")
-    if not isinstance(inner.target, ast.Name):
-        raise unsupported(inner.target, "only simple-name dict comprehension targets are supported")
+    if not (
+        isinstance(outer.target, ast.Name)
+        and isinstance(middle.target, ast.Name)
+        and isinstance(inner.target, ast.Name)
+    ):
+        if outer.ifs or middle.ifs or inner.ifs:
+            return (
+                f"#dictCompTargetForForIfs({emit_exp(outer.iter)}, {emit_target(outer.target)}, "
+                f"{emit_maybe_comp_filters(outer.ifs)}, {emit_exp(middle.iter)}, "
+                f"{emit_target(middle.target)}, {emit_maybe_comp_filters(middle.ifs)}, "
+                f"{emit_exp(inner.iter)}, {emit_target(inner.target)}, "
+                f"{emit_maybe_comp_filters(inner.ifs)}, {emit_exp(key)}, {emit_exp(value)})"
+            )
+        return (
+            f"#dictCompTargetForFor({emit_exp(outer.iter)}, {emit_target(outer.target)}, "
+            f"{emit_exp(middle.iter)}, {emit_target(middle.target)}, "
+            f"{emit_exp(inner.iter)}, {emit_target(inner.target)}, {emit_exp(key)}, {emit_exp(value)})"
+        )
     if outer.ifs or middle.ifs or inner.ifs:
         return (
             f"#dictCompForForIfs({emit_exp(outer.iter)}, {outer.target.id}, "
@@ -576,12 +600,24 @@ def emit_set_comprehension_three_generators(
 ) -> str:
     if outer.is_async or middle.is_async or inner.is_async:
         raise unsupported(node, "async set comprehensions are not supported yet")
-    if not isinstance(outer.target, ast.Name):
-        raise unsupported(outer.target, "only simple-name set comprehension targets are supported")
-    if not isinstance(middle.target, ast.Name):
-        raise unsupported(middle.target, "only simple-name set comprehension targets are supported")
-    if not isinstance(inner.target, ast.Name):
-        raise unsupported(inner.target, "only simple-name set comprehension targets are supported")
+    if not (
+        isinstance(outer.target, ast.Name)
+        and isinstance(middle.target, ast.Name)
+        and isinstance(inner.target, ast.Name)
+    ):
+        if outer.ifs or middle.ifs or inner.ifs:
+            return (
+                f"#setCompTargetForForIfs({emit_exp(outer.iter)}, {emit_target(outer.target)}, "
+                f"{emit_maybe_comp_filters(outer.ifs)}, {emit_exp(middle.iter)}, "
+                f"{emit_target(middle.target)}, {emit_maybe_comp_filters(middle.ifs)}, "
+                f"{emit_exp(inner.iter)}, {emit_target(inner.target)}, "
+                f"{emit_maybe_comp_filters(inner.ifs)}, {emit_exp(elt)})"
+            )
+        return (
+            f"#setCompTargetForFor({emit_exp(outer.iter)}, {emit_target(outer.target)}, "
+            f"{emit_exp(middle.iter)}, {emit_target(middle.target)}, "
+            f"{emit_exp(inner.iter)}, {emit_target(inner.target)}, {emit_exp(elt)})"
+        )
     if outer.ifs or middle.ifs or inner.ifs:
         return (
             f"#setCompForForIfs({emit_exp(outer.iter)}, {outer.target.id}, "

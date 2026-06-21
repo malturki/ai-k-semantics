@@ -3639,6 +3639,14 @@ module PYTHON
   rule V1:Val * V2:Val => intValue(V1) *Int intValue(V2)
     requires isIntLike(V1) andBool isIntLike(V2)
   rule F1:Float * F2:Float => F1 *Float F2
+  rule #complex(R1:Float, I1:Float) * #complex(R2:Float, I2:Float) =>
+    #complex((R1 *Float R2) -Float (I1 *Float I2), (R1 *Float I2) +Float (I1 *Float R2))
+  rule #complex(R:Float, I:Float) * V:Val => #complex(R *Float floatValue(V), I *Float floatValue(V))
+    requires isIntLike(V)
+  rule V:Val * #complex(R:Float, I:Float) => #complex(floatValue(V) *Float R, floatValue(V) *Float I)
+    requires isIntLike(V)
+  rule #complex(R:Float, I:Float) * F:Float => #complex(R *Float F, I *Float F)
+  rule F:Float * #complex(R:Float, I:Float) => #complex(F *Float R, F *Float I)
   rule F:Float * V:Val => F *Float floatValue(V)
     requires isIntLike(V)
   rule V:Val * F:Float => floatValue(V) *Float F
@@ -3702,6 +3710,26 @@ module PYTHON
     requires isIntLike(V1) andBool isIntLike(V2) andBool intValue(V2) =/=Int 0
   rule trueDivInternal(F1:Float, F2:Float) => F1 /Float F2
     requires F2 =/=Float 0.0
+  rule trueDivInternal(#complex(R1:Float, I1:Float), #complex(R2:Float, I2:Float)) =>
+    #complex(
+      ((R1 *Float R2) +Float (I1 *Float I2)) /Float ((R2 *Float R2) +Float (I2 *Float I2)),
+      ((I1 *Float R2) -Float (R1 *Float I2)) /Float ((R2 *Float R2) +Float (I2 *Float I2)))
+    requires (R2 *Float R2) +Float (I2 *Float I2) =/=Float 0.0
+  rule trueDivInternal(#complex(R:Float, I:Float), V:Val) =>
+    #complex(R /Float floatValue(V), I /Float floatValue(V))
+    requires isIntLike(V) andBool intValue(V) =/=Int 0
+  rule trueDivInternal(V:Val, #complex(R:Float, I:Float)) =>
+    #complex(
+      (floatValue(V) *Float R) /Float ((R *Float R) +Float (I *Float I)),
+      (0.0 -Float (floatValue(V) *Float I)) /Float ((R *Float R) +Float (I *Float I)))
+    requires isIntLike(V) andBool (R *Float R) +Float (I *Float I) =/=Float 0.0
+  rule trueDivInternal(#complex(R:Float, I:Float), F:Float) => #complex(R /Float F, I /Float F)
+    requires F =/=Float 0.0
+  rule trueDivInternal(F:Float, #complex(R:Float, I:Float)) =>
+    #complex(
+      (F *Float R) /Float ((R *Float R) +Float (I *Float I)),
+      (0.0 -Float (F *Float I)) /Float ((R *Float R) +Float (I *Float I)))
+    requires (R *Float R) +Float (I *Float I) =/=Float 0.0
   rule trueDivInternal(F:Float, V:Val) => F /Float floatValue(V)
     requires isIntLike(V) andBool intValue(V) =/=Int 0
   rule trueDivInternal(V:Val, F:Float) => floatValue(V) /Float F

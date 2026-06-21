@@ -46,6 +46,13 @@
       "coverage": ["imaginary-literals", "complex-values", "complex-truth-value-testing", "complex-equality", "complex-addition-subtraction", "ordinary-python-source-adapter"]
     },
     {
+      "id": "adapter-complex-arithmetic",
+      "source": "../adapter/adapter-complex-arithmetic.py",
+      "reference": "Python Language Reference 6.7 Binary arithmetic operations; Python Standard Library numeric types",
+      "expected_result": "True ~> .K",
+      "coverage": ["complex-values", "complex-multiplication", "complex-true-division", "nonzero-complex-denominator", "ordinary-python-source-adapter"]
+    },
+    {
       "id": "adapter-ellipsis",
       "source": "../adapter/adapter-ellipsis.py",
       "reference": "Python Language Reference 6.2.2 Atoms; Python Standard Library Built-in Constants Ellipsis",

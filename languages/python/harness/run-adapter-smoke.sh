@@ -49,6 +49,7 @@ run_case "adapter-float-arithmetic" "$ROOT/tests/adapter/adapter-float-arithmeti
 run_case "adapter-float-floor-mod" "$ROOT/tests/adapter/adapter-float-floor-mod.py" "True ~> .K"
 run_case "adapter-float-pow" "$ROOT/tests/adapter/adapter-float-pow.py" "True ~> .K"
 run_case "adapter-complex-literals" "$ROOT/tests/adapter/adapter-complex-literals.py" "True ~> .K"
+run_case "adapter-complex-arithmetic" "$ROOT/tests/adapter/adapter-complex-arithmetic.py" "True ~> .K"
 run_case "adapter-ellipsis" "$ROOT/tests/adapter/adapter-ellipsis.py" "True ~> .K"
 run_case "adapter-ellipsis-name" "$ROOT/tests/adapter/adapter-ellipsis-name.py" "True ~> .K"
 run_case "adapter-debug-constant" "$ROOT/tests/adapter/adapter-debug-constant.py" "True ~> .K"

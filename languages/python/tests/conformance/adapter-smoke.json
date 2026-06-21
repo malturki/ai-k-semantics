@@ -1005,6 +1005,13 @@
       "coverage": ["for-statement", "string-iteration-subset", "simple-name-target", "break-statement", "continue-statement", "ordinary-python-source-adapter"]
     },
     {
+      "id": "adapter-for-bytes",
+      "source": "../adapter/adapter-for-bytes.py",
+      "reference": "Python Language Reference 8.3 The for statement; Python Standard Library binary sequence types",
+      "expected_result": "True ~> .K",
+      "coverage": ["for-statement", "bytes-iteration-yields-int", "simple-name-target", "loop-else-normal-completion", "loop-else-break-suppression", "break-statement", "ordinary-python-source-adapter"]
+    },
+    {
       "id": "adapter-for-dict",
       "source": "../adapter/adapter-for-dict.py",
       "reference": "Python Language Reference 8.3 The for statement; Python Standard Library Built-in Types dict",
@@ -1556,6 +1563,13 @@
       "reference": "Python Language Reference 7.2 Assignment statements; Python Standard Library sequence types str and range",
       "expected_result": "True ~> .K",
       "coverage": ["sequence-unpacking-assignment", "starred-target-assignment", "nested-sequence-targets", "string-iteration-profile", "range-iteration-profile", "empty-starred-rest-list", "ordinary-python-source-adapter"]
+    },
+    {
+      "id": "adapter-bytes-unpacking",
+      "source": "../adapter/adapter-bytes-unpacking.py",
+      "reference": "Python Language Reference 7.2 Assignment statements; 8.3 The for statement; Python Standard Library binary sequence types",
+      "expected_result": "True ~> .K",
+      "coverage": ["sequence-unpacking-assignment", "starred-target-assignment", "for-statement", "sequence-unpacking-target", "nested-sequence-targets", "bytes-iteration-yields-int", "empty-starred-rest-list", "ordinary-python-source-adapter"]
     },
     {
       "id": "adapter-unpack-set",

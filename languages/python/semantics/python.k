@@ -2017,6 +2017,8 @@ module PYTHON
     sameTargetsValArity(TS, VS)
   rule targetValueArityOk(targetSeq(TS:Targets), tupleVal(VS:ValItems)) =>
     sameTargetsValArity(TS, VS)
+  rule targetValueArityOk(targetSeq(TS:Targets), bytesVal(VS:ValItems)) =>
+    sameTargetsValArity(TS, VS)
   rule targetValueArityOk(targetSeq(TS:Targets), S:String) =>
     sameTargetsValArity(TS, stringToValItems(S, 0, lengthString(S)))
     requires lengthString(S) >Int 0
@@ -2566,6 +2568,8 @@ module PYTHON
   rule bindTarget(Rho:Map, targetSeq(TS:Targets), listVal(VS:ValItems)) =>
     bindTargets(Rho, TS, VS)
   rule bindTarget(Rho:Map, targetSeq(TS:Targets), tupleVal(VS:ValItems)) =>
+    bindTargets(Rho, TS, VS)
+  rule bindTarget(Rho:Map, targetSeq(TS:Targets), bytesVal(VS:ValItems)) =>
     bindTargets(Rho, TS, VS)
   rule bindTarget(Rho:Map, targetSeq(TS:Targets), S:String) =>
     bindTargets(Rho, TS, stringToValItems(S, 0, lengthString(S)))
@@ -6978,6 +6982,10 @@ module PYTHON
        <env> Rho => bindVals(Rho, IDS, VS) </env>
        <result> _ => .K </result>
     requires sameIdValArity(IDS, VS)
+  rule <k> unpackAssignStmt(IDS:IdItems, bytesVal(VS:ValItems)) => stmtNoResult ... </k>
+       <env> Rho => bindVals(Rho, IDS, VS) </env>
+       <result> _ => .K </result>
+    requires sameIdValArity(IDS, VS)
   rule <k> unpackAssignStmt(IDS:IdItems, S:String) => stmtNoResult ... </k>
        <env> Rho => bindVals(Rho, IDS, stringToValItems(S, 0, lengthString(S))) </env>
        <result> _ => .K </result>
@@ -7011,6 +7019,10 @@ module PYTHON
        <env> Rho => bindTargets(Rho, TS, VS) </env>
        <result> _ => .K </result>
     requires sameTargetsValArity(TS, VS)
+  rule <k> unpackTargetAssignStmt(TS:Targets, bytesVal(VS:ValItems)) => stmtNoResult ... </k>
+       <env> Rho => bindTargets(Rho, TS, VS) </env>
+       <result> _ => .K </result>
+    requires sameTargetsValArity(TS, VS)
   rule <k> unpackTargetAssignStmt(TS:Targets, S:String) => stmtNoResult ... </k>
        <env> Rho => bindTargets(Rho, TS, stringToValItems(S, 0, lengthString(S))) </env>
        <result> _ => .K </result>
@@ -7041,6 +7053,10 @@ module PYTHON
        <result> _ => .K </result>
     requires starUnpackArityOk(Prefix, Suffix, valItemsLen(VS))
   rule <k> unpackStarAssignStmt(Prefix:IdItems, Star:Id, Suffix:IdItems, tupleVal(VS:ValItems)) => stmtNoResult ... </k>
+       <env> Rho => bindStarUnpack(Rho, Prefix, Star, Suffix, VS) </env>
+       <result> _ => .K </result>
+    requires starUnpackArityOk(Prefix, Suffix, valItemsLen(VS))
+  rule <k> unpackStarAssignStmt(Prefix:IdItems, Star:Id, Suffix:IdItems, bytesVal(VS:ValItems)) => stmtNoResult ... </k>
        <env> Rho => bindStarUnpack(Rho, Prefix, Star, Suffix, VS) </env>
        <result> _ => .K </result>
     requires starUnpackArityOk(Prefix, Suffix, valItemsLen(VS))
@@ -7081,6 +7097,10 @@ module PYTHON
        <result> _ => .K </result>
     requires idItemsLen(Prefix) +Int idItemsLen(Suffix) ==Int 0
   rule <k> unpackStarAssignStmt(Prefix:IdItems, Star:Id, Suffix:IdItems, ({}):Val) => stmtNoResult ... </k>
+       <env> Rho => Rho [ Star <- [] ] </env>
+       <result> _ => .K </result>
+    requires idItemsLen(Prefix) +Int idItemsLen(Suffix) ==Int 0
+  rule <k> unpackStarAssignStmt(Prefix:IdItems, Star:Id, Suffix:IdItems, #bytes()) => stmtNoResult ... </k>
        <env> Rho => Rho [ Star <- [] ] </env>
        <result> _ => .K </result>
     requires idItemsLen(Prefix) +Int idItemsLen(Suffix) ==Int 0
@@ -7396,6 +7416,10 @@ module PYTHON
   rule <k> tupleVal(VS:ValItems) ~> forIter(X:Id, Body:Block) =>
            forItems(X, VS, Body)
        ... </k>
+  rule <k> #bytes() ~> forIter(_:Id, _:Block) => stmtNoResult ... </k>
+  rule <k> bytesVal(VS:ValItems) ~> forIter(X:Id, Body:Block) =>
+           forItems(X, VS, Body)
+       ... </k>
   rule <k> S:String ~> forIter(_:Id, _:Block) => stmtNoResult ... </k>
     requires lengthString(S) ==Int 0
   rule <k> S:String ~> forIter(X:Id, Body:Block) =>
@@ -7447,6 +7471,7 @@ module PYTHON
   rule <k> tupleVal(VS:ValItems) ~> forUnpackIter(IDS:IdItems, Body:Block) =>
            forUnpackItems(IDS, VS, Body)
        ... </k>
+  rule <k> #bytes() ~> forUnpackIter(_:IdItems, _:Block) => stmtNoResult ... </k>
   rule <k> S:String ~> forUnpackIter(_:IdItems, _:Block) => stmtNoResult ... </k>
     requires lengthString(S) ==Int 0
   rule <k> S:String ~> forUnpackIter(IDS:IdItems, Body:Block) =>
@@ -7480,6 +7505,11 @@ module PYTHON
        <env> Rho => bindVals(Rho, IDS, VS) </env>
     requires sameIdValArity(IDS, VS)
   rule <k> forUnpackItems(IDS:IdItems, valItemsCons(tupleVal(VS:ValItems), Rest:ValItems), block(SS:Stmts)) =>
+           SS ~> forUnpackItems(IDS, Rest, block(SS))
+       ... </k>
+       <env> Rho => bindVals(Rho, IDS, VS) </env>
+    requires sameIdValArity(IDS, VS)
+  rule <k> forUnpackItems(IDS:IdItems, valItemsCons(bytesVal(VS:ValItems), Rest:ValItems), block(SS:Stmts)) =>
            SS ~> forUnpackItems(IDS, Rest, block(SS))
        ... </k>
        <env> Rho => bindVals(Rho, IDS, VS) </env>
@@ -7523,6 +7553,11 @@ module PYTHON
        ... </k>
        <env> Rho => bindVals(Rho, IDS, VS) </env>
     requires sameIdValArity(IDS, VS)
+  rule <k> forUnpackItems(IDS:IdItems, valItemsLast(bytesVal(VS:ValItems)), block(SS:Stmts)) =>
+           SS ~> forDone
+       ... </k>
+       <env> Rho => bindVals(Rho, IDS, VS) </env>
+    requires sameIdValArity(IDS, VS)
   rule <k> forUnpackItems(IDS:IdItems, valItemsLast(S:String), block(SS:Stmts)) =>
            SS ~> forDone
        ... </k>
@@ -7562,6 +7597,11 @@ module PYTHON
        ... </k>
        <env> Rho => bindVals(Rho, IDS, VS) </env>
     requires sameIdValArity(IDS, VS)
+  rule <k> forUnpackItems(IDS:IdItems, valItemsCons(bytesVal(VS:ValItems), Rest:ValItems), {}) =>
+           forUnpackItems(IDS, Rest, {})
+       ... </k>
+       <env> Rho => bindVals(Rho, IDS, VS) </env>
+    requires sameIdValArity(IDS, VS)
   rule <k> forUnpackItems(IDS:IdItems, valItemsCons(S:String, Rest:ValItems), {}) =>
            forUnpackItems(IDS, Rest, {})
        ... </k>
@@ -7597,6 +7637,11 @@ module PYTHON
        <env> Rho => bindVals(Rho, IDS, VS) </env>
     requires sameIdValArity(IDS, VS)
   rule <k> forUnpackItems(IDS:IdItems, valItemsLast(tupleVal(VS:ValItems)), {}) =>
+           stmtNoResult
+       ... </k>
+       <env> Rho => bindVals(Rho, IDS, VS) </env>
+    requires sameIdValArity(IDS, VS)
+  rule <k> forUnpackItems(IDS:IdItems, valItemsLast(bytesVal(VS:ValItems)), {}) =>
            stmtNoResult
        ... </k>
        <env> Rho => bindVals(Rho, IDS, VS) </env>
@@ -7642,6 +7687,7 @@ module PYTHON
   rule <k> tupleVal(VS:ValItems) ~> forTargetUnpackIter(TS:Targets, Body:Block) =>
            forTargetUnpackItems(TS, VS, Body)
        ... </k>
+  rule <k> #bytes() ~> forTargetUnpackIter(_:Targets, _:Block) => stmtNoResult ... </k>
   rule <k> S:String ~> forTargetUnpackIter(_:Targets, _:Block) => stmtNoResult ... </k>
     requires lengthString(S) ==Int 0
   rule <k> S:String ~> forTargetUnpackIter(TS:Targets, Body:Block) =>
@@ -7701,6 +7747,7 @@ module PYTHON
   rule <k> tupleVal(VS:ValItems) ~> forStarUnpackIter(Prefix:IdItems, Star:Id, Suffix:IdItems, Body:Block) =>
            forStarUnpackItems(Prefix, Star, Suffix, VS, Body)
        ... </k>
+  rule <k> #bytes() ~> forStarUnpackIter(_:IdItems, _:Id, _:IdItems, _:Block) => stmtNoResult ... </k>
   rule <k> S:String ~> forStarUnpackIter(_:IdItems, _:Id, _:IdItems, _:Block) => stmtNoResult ... </k>
     requires lengthString(S) ==Int 0
   rule <k> S:String ~> forStarUnpackIter(Prefix:IdItems, Star:Id, Suffix:IdItems, Body:Block) =>
@@ -7734,6 +7781,11 @@ module PYTHON
        <env> Rho => bindStarUnpack(Rho, Prefix, Star, Suffix, VS) </env>
     requires starUnpackArityOk(Prefix, Suffix, valItemsLen(VS))
   rule <k> forStarUnpackItems(Prefix:IdItems, Star:Id, Suffix:IdItems, valItemsCons(tupleVal(VS:ValItems), Rest:ValItems), block(SS:Stmts)) =>
+           SS ~> forStarUnpackItems(Prefix, Star, Suffix, Rest, block(SS))
+       ... </k>
+       <env> Rho => bindStarUnpack(Rho, Prefix, Star, Suffix, VS) </env>
+    requires starUnpackArityOk(Prefix, Suffix, valItemsLen(VS))
+  rule <k> forStarUnpackItems(Prefix:IdItems, Star:Id, Suffix:IdItems, valItemsCons(bytesVal(VS:ValItems), Rest:ValItems), block(SS:Stmts)) =>
            SS ~> forStarUnpackItems(Prefix, Star, Suffix, Rest, block(SS))
        ... </k>
        <env> Rho => bindStarUnpack(Rho, Prefix, Star, Suffix, VS) </env>
@@ -7782,6 +7834,11 @@ module PYTHON
        ... </k>
        <env> Rho => Rho [ Star <- [] ] </env>
     requires idItemsLen(Prefix) +Int idItemsLen(Suffix) ==Int 0
+  rule <k> forStarUnpackItems(Prefix:IdItems, Star:Id, Suffix:IdItems, valItemsCons(#bytes(), Rest:ValItems), block(SS:Stmts)) =>
+           SS ~> forStarUnpackItems(Prefix, Star, Suffix, Rest, block(SS))
+       ... </k>
+       <env> Rho => Rho [ Star <- [] ] </env>
+    requires idItemsLen(Prefix) +Int idItemsLen(Suffix) ==Int 0
   rule <k> forStarUnpackItems(Prefix:IdItems, Star:Id, Suffix:IdItems, valItemsCons(set(), Rest:ValItems), block(SS:Stmts)) =>
            SS ~> forStarUnpackItems(Prefix, Star, Suffix, Rest, block(SS))
        ... </k>
@@ -7812,6 +7869,11 @@ module PYTHON
        <env> Rho => bindStarUnpack(Rho, Prefix, Star, Suffix, VS) </env>
     requires starUnpackArityOk(Prefix, Suffix, valItemsLen(VS))
   rule <k> forStarUnpackItems(Prefix:IdItems, Star:Id, Suffix:IdItems, valItemsLast(tupleVal(VS:ValItems)), block(SS:Stmts)) =>
+           SS ~> forDone
+       ... </k>
+       <env> Rho => bindStarUnpack(Rho, Prefix, Star, Suffix, VS) </env>
+    requires starUnpackArityOk(Prefix, Suffix, valItemsLen(VS))
+  rule <k> forStarUnpackItems(Prefix:IdItems, Star:Id, Suffix:IdItems, valItemsLast(bytesVal(VS:ValItems)), block(SS:Stmts)) =>
            SS ~> forDone
        ... </k>
        <env> Rho => bindStarUnpack(Rho, Prefix, Star, Suffix, VS) </env>
@@ -7860,6 +7922,11 @@ module PYTHON
        ... </k>
        <env> Rho => Rho [ Star <- [] ] </env>
     requires idItemsLen(Prefix) +Int idItemsLen(Suffix) ==Int 0
+  rule <k> forStarUnpackItems(Prefix:IdItems, Star:Id, Suffix:IdItems, valItemsLast(#bytes()), block(SS:Stmts)) =>
+           SS ~> forDone
+       ... </k>
+       <env> Rho => Rho [ Star <- [] ] </env>
+    requires idItemsLen(Prefix) +Int idItemsLen(Suffix) ==Int 0
   rule <k> forStarUnpackItems(Prefix:IdItems, Star:Id, Suffix:IdItems, valItemsLast(set()), block(SS:Stmts)) =>
            SS ~> forDone
        ... </k>
@@ -7890,6 +7957,11 @@ module PYTHON
        <env> Rho => bindStarUnpack(Rho, Prefix, Star, Suffix, VS) </env>
     requires starUnpackArityOk(Prefix, Suffix, valItemsLen(VS))
   rule <k> forStarUnpackItems(Prefix:IdItems, Star:Id, Suffix:IdItems, valItemsCons(tupleVal(VS:ValItems), Rest:ValItems), {}) =>
+           forStarUnpackItems(Prefix, Star, Suffix, Rest, {})
+       ... </k>
+       <env> Rho => bindStarUnpack(Rho, Prefix, Star, Suffix, VS) </env>
+    requires starUnpackArityOk(Prefix, Suffix, valItemsLen(VS))
+  rule <k> forStarUnpackItems(Prefix:IdItems, Star:Id, Suffix:IdItems, valItemsCons(bytesVal(VS:ValItems), Rest:ValItems), {}) =>
            forStarUnpackItems(Prefix, Star, Suffix, Rest, {})
        ... </k>
        <env> Rho => bindStarUnpack(Rho, Prefix, Star, Suffix, VS) </env>
@@ -7938,6 +8010,11 @@ module PYTHON
        ... </k>
        <env> Rho => Rho [ Star <- [] ] </env>
     requires idItemsLen(Prefix) +Int idItemsLen(Suffix) ==Int 0
+  rule <k> forStarUnpackItems(Prefix:IdItems, Star:Id, Suffix:IdItems, valItemsCons(#bytes(), Rest:ValItems), {}) =>
+           forStarUnpackItems(Prefix, Star, Suffix, Rest, {})
+       ... </k>
+       <env> Rho => Rho [ Star <- [] ] </env>
+    requires idItemsLen(Prefix) +Int idItemsLen(Suffix) ==Int 0
   rule <k> forStarUnpackItems(Prefix:IdItems, Star:Id, Suffix:IdItems, valItemsCons(set(), Rest:ValItems), {}) =>
            forStarUnpackItems(Prefix, Star, Suffix, Rest, {})
        ... </k>
@@ -7968,6 +8045,11 @@ module PYTHON
        <env> Rho => bindStarUnpack(Rho, Prefix, Star, Suffix, VS) </env>
     requires starUnpackArityOk(Prefix, Suffix, valItemsLen(VS))
   rule <k> forStarUnpackItems(Prefix:IdItems, Star:Id, Suffix:IdItems, valItemsLast(tupleVal(VS:ValItems)), {}) =>
+           stmtNoResult
+       ... </k>
+       <env> Rho => bindStarUnpack(Rho, Prefix, Star, Suffix, VS) </env>
+    requires starUnpackArityOk(Prefix, Suffix, valItemsLen(VS))
+  rule <k> forStarUnpackItems(Prefix:IdItems, Star:Id, Suffix:IdItems, valItemsLast(bytesVal(VS:ValItems)), {}) =>
            stmtNoResult
        ... </k>
        <env> Rho => bindStarUnpack(Rho, Prefix, Star, Suffix, VS) </env>
@@ -8012,6 +8094,11 @@ module PYTHON
        <env> Rho => Rho [ Star <- [] ] </env>
     requires idItemsLen(Prefix) +Int idItemsLen(Suffix) ==Int 0
   rule <k> forStarUnpackItems(Prefix:IdItems, Star:Id, Suffix:IdItems, valItemsLast(({}):Val), {}) =>
+           stmtNoResult
+       ... </k>
+       <env> Rho => Rho [ Star <- [] ] </env>
+    requires idItemsLen(Prefix) +Int idItemsLen(Suffix) ==Int 0
+  rule <k> forStarUnpackItems(Prefix:IdItems, Star:Id, Suffix:IdItems, valItemsLast(#bytes()), {}) =>
            stmtNoResult
        ... </k>
        <env> Rho => Rho [ Star <- [] ] </env>
@@ -8087,6 +8174,10 @@ module PYTHON
   rule <k> tupleVal(VS:ValItems) ~> forElseIter(X:Id, Body:Block, Else:Block) =>
            forElseItems(X, VS, Body, Else)
        ... </k>
+  rule <k> #bytes() ~> forElseIter(_:Id, _:Block, Else:Block) => runLoopElse(Else) ... </k>
+  rule <k> bytesVal(VS:ValItems) ~> forElseIter(X:Id, Body:Block, Else:Block) =>
+           forElseItems(X, VS, Body, Else)
+       ... </k>
   rule <k> S:String ~> forElseIter(_:Id, _:Block, Else:Block) => runLoopElse(Else) ... </k>
     requires lengthString(S) ==Int 0
   rule <k> S:String ~> forElseIter(X:Id, Body:Block, Else:Block) =>
@@ -8138,6 +8229,7 @@ module PYTHON
   rule <k> tupleVal(VS:ValItems) ~> forUnpackElseIter(IDS:IdItems, Body:Block, Else:Block) =>
            forUnpackElseItems(IDS, VS, Body, Else)
        ... </k>
+  rule <k> #bytes() ~> forUnpackElseIter(_:IdItems, _:Block, Else:Block) => runLoopElse(Else) ... </k>
   rule <k> S:String ~> forUnpackElseIter(_:IdItems, _:Block, Else:Block) => runLoopElse(Else) ... </k>
     requires lengthString(S) ==Int 0
   rule <k> S:String ~> forUnpackElseIter(IDS:IdItems, Body:Block, Else:Block) =>
@@ -8171,6 +8263,11 @@ module PYTHON
        <env> Rho => bindVals(Rho, IDS, VS) </env>
     requires sameIdValArity(IDS, VS)
   rule <k> forUnpackElseItems(IDS:IdItems, valItemsCons(tupleVal(VS:ValItems), Rest:ValItems), block(SS:Stmts), Else:Block) =>
+           SS ~> forUnpackElseItems(IDS, Rest, block(SS), Else)
+       ... </k>
+       <env> Rho => bindVals(Rho, IDS, VS) </env>
+    requires sameIdValArity(IDS, VS)
+  rule <k> forUnpackElseItems(IDS:IdItems, valItemsCons(bytesVal(VS:ValItems), Rest:ValItems), block(SS:Stmts), Else:Block) =>
            SS ~> forUnpackElseItems(IDS, Rest, block(SS), Else)
        ... </k>
        <env> Rho => bindVals(Rho, IDS, VS) </env>
@@ -8214,6 +8311,11 @@ module PYTHON
        ... </k>
        <env> Rho => bindVals(Rho, IDS, VS) </env>
     requires sameIdValArity(IDS, VS)
+  rule <k> forUnpackElseItems(IDS:IdItems, valItemsLast(bytesVal(VS:ValItems)), block(SS:Stmts), Else:Block) =>
+           SS ~> forUnpackElseDone(Else)
+       ... </k>
+       <env> Rho => bindVals(Rho, IDS, VS) </env>
+    requires sameIdValArity(IDS, VS)
   rule <k> forUnpackElseItems(IDS:IdItems, valItemsLast(S:String), block(SS:Stmts), Else:Block) =>
            SS ~> forUnpackElseDone(Else)
        ... </k>
@@ -8253,6 +8355,11 @@ module PYTHON
        ... </k>
        <env> Rho => bindVals(Rho, IDS, VS) </env>
     requires sameIdValArity(IDS, VS)
+  rule <k> forUnpackElseItems(IDS:IdItems, valItemsCons(bytesVal(VS:ValItems), Rest:ValItems), {}, Else:Block) =>
+           forUnpackElseItems(IDS, Rest, {}, Else)
+       ... </k>
+       <env> Rho => bindVals(Rho, IDS, VS) </env>
+    requires sameIdValArity(IDS, VS)
   rule <k> forUnpackElseItems(IDS:IdItems, valItemsCons(S:String, Rest:ValItems), {}, Else:Block) =>
            forUnpackElseItems(IDS, Rest, {}, Else)
        ... </k>
@@ -8288,6 +8395,11 @@ module PYTHON
        <env> Rho => bindVals(Rho, IDS, VS) </env>
     requires sameIdValArity(IDS, VS)
   rule <k> forUnpackElseItems(IDS:IdItems, valItemsLast(tupleVal(VS:ValItems)), {}, Else:Block) =>
+           runLoopElse(Else)
+       ... </k>
+       <env> Rho => bindVals(Rho, IDS, VS) </env>
+    requires sameIdValArity(IDS, VS)
+  rule <k> forUnpackElseItems(IDS:IdItems, valItemsLast(bytesVal(VS:ValItems)), {}, Else:Block) =>
            runLoopElse(Else)
        ... </k>
        <env> Rho => bindVals(Rho, IDS, VS) </env>
@@ -8334,6 +8446,7 @@ module PYTHON
   rule <k> tupleVal(VS:ValItems) ~> forTargetUnpackElseIter(TS:Targets, Body:Block, Else:Block) =>
            forTargetUnpackElseItems(TS, VS, Body, Else)
        ... </k>
+  rule <k> #bytes() ~> forTargetUnpackElseIter(_:Targets, _:Block, Else:Block) => runLoopElse(Else) ... </k>
   rule <k> S:String ~> forTargetUnpackElseIter(_:Targets, _:Block, Else:Block) => runLoopElse(Else) ... </k>
     requires lengthString(S) ==Int 0
   rule <k> S:String ~> forTargetUnpackElseIter(TS:Targets, Body:Block, Else:Block) =>
@@ -8393,6 +8506,7 @@ module PYTHON
   rule <k> tupleVal(VS:ValItems) ~> forStarUnpackElseIter(Prefix:IdItems, Star:Id, Suffix:IdItems, Body:Block, Else:Block) =>
            forStarUnpackElseItems(Prefix, Star, Suffix, VS, Body, Else)
        ... </k>
+  rule <k> #bytes() ~> forStarUnpackElseIter(_:IdItems, _:Id, _:IdItems, _:Block, Else:Block) => runLoopElse(Else) ... </k>
   rule <k> S:String ~> forStarUnpackElseIter(_:IdItems, _:Id, _:IdItems, _:Block, Else:Block) => runLoopElse(Else) ... </k>
     requires lengthString(S) ==Int 0
   rule <k> S:String ~> forStarUnpackElseIter(Prefix:IdItems, Star:Id, Suffix:IdItems, Body:Block, Else:Block) =>
@@ -8426,6 +8540,11 @@ module PYTHON
        <env> Rho => bindStarUnpack(Rho, Prefix, Star, Suffix, VS) </env>
     requires starUnpackArityOk(Prefix, Suffix, valItemsLen(VS))
   rule <k> forStarUnpackElseItems(Prefix:IdItems, Star:Id, Suffix:IdItems, valItemsCons(tupleVal(VS:ValItems), Rest:ValItems), block(SS:Stmts), Else:Block) =>
+           SS ~> forStarUnpackElseItems(Prefix, Star, Suffix, Rest, block(SS), Else)
+       ... </k>
+       <env> Rho => bindStarUnpack(Rho, Prefix, Star, Suffix, VS) </env>
+    requires starUnpackArityOk(Prefix, Suffix, valItemsLen(VS))
+  rule <k> forStarUnpackElseItems(Prefix:IdItems, Star:Id, Suffix:IdItems, valItemsCons(bytesVal(VS:ValItems), Rest:ValItems), block(SS:Stmts), Else:Block) =>
            SS ~> forStarUnpackElseItems(Prefix, Star, Suffix, Rest, block(SS), Else)
        ... </k>
        <env> Rho => bindStarUnpack(Rho, Prefix, Star, Suffix, VS) </env>
@@ -8474,6 +8593,11 @@ module PYTHON
        ... </k>
        <env> Rho => Rho [ Star <- [] ] </env>
     requires idItemsLen(Prefix) +Int idItemsLen(Suffix) ==Int 0
+  rule <k> forStarUnpackElseItems(Prefix:IdItems, Star:Id, Suffix:IdItems, valItemsCons(#bytes(), Rest:ValItems), block(SS:Stmts), Else:Block) =>
+           SS ~> forStarUnpackElseItems(Prefix, Star, Suffix, Rest, block(SS), Else)
+       ... </k>
+       <env> Rho => Rho [ Star <- [] ] </env>
+    requires idItemsLen(Prefix) +Int idItemsLen(Suffix) ==Int 0
   rule <k> forStarUnpackElseItems(Prefix:IdItems, Star:Id, Suffix:IdItems, valItemsCons(set(), Rest:ValItems), block(SS:Stmts), Else:Block) =>
            SS ~> forStarUnpackElseItems(Prefix, Star, Suffix, Rest, block(SS), Else)
        ... </k>
@@ -8504,6 +8628,11 @@ module PYTHON
        <env> Rho => bindStarUnpack(Rho, Prefix, Star, Suffix, VS) </env>
     requires starUnpackArityOk(Prefix, Suffix, valItemsLen(VS))
   rule <k> forStarUnpackElseItems(Prefix:IdItems, Star:Id, Suffix:IdItems, valItemsLast(tupleVal(VS:ValItems)), block(SS:Stmts), Else:Block) =>
+           SS ~> forUnpackElseDone(Else)
+       ... </k>
+       <env> Rho => bindStarUnpack(Rho, Prefix, Star, Suffix, VS) </env>
+    requires starUnpackArityOk(Prefix, Suffix, valItemsLen(VS))
+  rule <k> forStarUnpackElseItems(Prefix:IdItems, Star:Id, Suffix:IdItems, valItemsLast(bytesVal(VS:ValItems)), block(SS:Stmts), Else:Block) =>
            SS ~> forUnpackElseDone(Else)
        ... </k>
        <env> Rho => bindStarUnpack(Rho, Prefix, Star, Suffix, VS) </env>
@@ -8552,6 +8681,11 @@ module PYTHON
        ... </k>
        <env> Rho => Rho [ Star <- [] ] </env>
     requires idItemsLen(Prefix) +Int idItemsLen(Suffix) ==Int 0
+  rule <k> forStarUnpackElseItems(Prefix:IdItems, Star:Id, Suffix:IdItems, valItemsLast(#bytes()), block(SS:Stmts), Else:Block) =>
+           SS ~> forUnpackElseDone(Else)
+       ... </k>
+       <env> Rho => Rho [ Star <- [] ] </env>
+    requires idItemsLen(Prefix) +Int idItemsLen(Suffix) ==Int 0
   rule <k> forStarUnpackElseItems(Prefix:IdItems, Star:Id, Suffix:IdItems, valItemsLast(set()), block(SS:Stmts), Else:Block) =>
            SS ~> forUnpackElseDone(Else)
        ... </k>
@@ -8582,6 +8716,11 @@ module PYTHON
        <env> Rho => bindStarUnpack(Rho, Prefix, Star, Suffix, VS) </env>
     requires starUnpackArityOk(Prefix, Suffix, valItemsLen(VS))
   rule <k> forStarUnpackElseItems(Prefix:IdItems, Star:Id, Suffix:IdItems, valItemsCons(tupleVal(VS:ValItems), Rest:ValItems), {}, Else:Block) =>
+           forStarUnpackElseItems(Prefix, Star, Suffix, Rest, {}, Else)
+       ... </k>
+       <env> Rho => bindStarUnpack(Rho, Prefix, Star, Suffix, VS) </env>
+    requires starUnpackArityOk(Prefix, Suffix, valItemsLen(VS))
+  rule <k> forStarUnpackElseItems(Prefix:IdItems, Star:Id, Suffix:IdItems, valItemsCons(bytesVal(VS:ValItems), Rest:ValItems), {}, Else:Block) =>
            forStarUnpackElseItems(Prefix, Star, Suffix, Rest, {}, Else)
        ... </k>
        <env> Rho => bindStarUnpack(Rho, Prefix, Star, Suffix, VS) </env>
@@ -8630,6 +8769,11 @@ module PYTHON
        ... </k>
        <env> Rho => Rho [ Star <- [] ] </env>
     requires idItemsLen(Prefix) +Int idItemsLen(Suffix) ==Int 0
+  rule <k> forStarUnpackElseItems(Prefix:IdItems, Star:Id, Suffix:IdItems, valItemsCons(#bytes(), Rest:ValItems), {}, Else:Block) =>
+           forStarUnpackElseItems(Prefix, Star, Suffix, Rest, {}, Else)
+       ... </k>
+       <env> Rho => Rho [ Star <- [] ] </env>
+    requires idItemsLen(Prefix) +Int idItemsLen(Suffix) ==Int 0
   rule <k> forStarUnpackElseItems(Prefix:IdItems, Star:Id, Suffix:IdItems, valItemsCons(set(), Rest:ValItems), {}, Else:Block) =>
            forStarUnpackElseItems(Prefix, Star, Suffix, Rest, {}, Else)
        ... </k>
@@ -8660,6 +8804,11 @@ module PYTHON
        <env> Rho => bindStarUnpack(Rho, Prefix, Star, Suffix, VS) </env>
     requires starUnpackArityOk(Prefix, Suffix, valItemsLen(VS))
   rule <k> forStarUnpackElseItems(Prefix:IdItems, Star:Id, Suffix:IdItems, valItemsLast(tupleVal(VS:ValItems)), {}, Else:Block) =>
+           runLoopElse(Else)
+       ... </k>
+       <env> Rho => bindStarUnpack(Rho, Prefix, Star, Suffix, VS) </env>
+    requires starUnpackArityOk(Prefix, Suffix, valItemsLen(VS))
+  rule <k> forStarUnpackElseItems(Prefix:IdItems, Star:Id, Suffix:IdItems, valItemsLast(bytesVal(VS:ValItems)), {}, Else:Block) =>
            runLoopElse(Else)
        ... </k>
        <env> Rho => bindStarUnpack(Rho, Prefix, Star, Suffix, VS) </env>
@@ -8704,6 +8853,11 @@ module PYTHON
        <env> Rho => Rho [ Star <- [] ] </env>
     requires idItemsLen(Prefix) +Int idItemsLen(Suffix) ==Int 0
   rule <k> forStarUnpackElseItems(Prefix:IdItems, Star:Id, Suffix:IdItems, valItemsLast(({}):Val), {}, Else:Block) =>
+           runLoopElse(Else)
+       ... </k>
+       <env> Rho => Rho [ Star <- [] ] </env>
+    requires idItemsLen(Prefix) +Int idItemsLen(Suffix) ==Int 0
+  rule <k> forStarUnpackElseItems(Prefix:IdItems, Star:Id, Suffix:IdItems, valItemsLast(#bytes()), {}, Else:Block) =>
            runLoopElse(Else)
        ... </k>
        <env> Rho => Rho [ Star <- [] ] </env>

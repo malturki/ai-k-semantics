@@ -335,7 +335,12 @@ def emit_list_comprehension(
     if generator.is_async:
         raise unsupported(node, "async list comprehensions are not supported yet")
     if not isinstance(generator.target, ast.Name):
-        raise unsupported(generator.target, "only simple-name list comprehension targets are supported")
+        if generator.ifs:
+            raise unsupported(generator.target, "unpacking list comprehension targets with filters are not supported yet")
+        return (
+            f"#listCompTarget({emit_exp(generator.iter)}, {emit_target(generator.target)}, "
+            f"{emit_exp(elt)})"
+        )
     if len(generator.ifs) > 1:
         return (
             f"#listCompIfs({emit_exp(generator.iter)}, {generator.target.id}, "
@@ -406,7 +411,12 @@ def emit_dict_comprehension(
     if generator.is_async:
         raise unsupported(node, "async dict comprehensions are not supported yet")
     if not isinstance(generator.target, ast.Name):
-        raise unsupported(generator.target, "only simple-name dict comprehension targets are supported")
+        if generator.ifs:
+            raise unsupported(generator.target, "unpacking dict comprehension targets with filters are not supported yet")
+        return (
+            f"#dictCompTarget({emit_exp(generator.iter)}, {emit_target(generator.target)}, "
+            f"{emit_exp(key)}, {emit_exp(value)})"
+        )
     if len(generator.ifs) > 1:
         return (
             f"#dictCompIfs({emit_exp(generator.iter)}, {generator.target.id}, "
@@ -486,7 +496,12 @@ def emit_set_comprehension(
     if generator.is_async:
         raise unsupported(node, "async set comprehensions are not supported yet")
     if not isinstance(generator.target, ast.Name):
-        raise unsupported(generator.target, "only simple-name set comprehension targets are supported")
+        if generator.ifs:
+            raise unsupported(generator.target, "unpacking set comprehension targets with filters are not supported yet")
+        return (
+            f"#setCompTarget({emit_exp(generator.iter)}, {emit_target(generator.target)}, "
+            f"{emit_exp(elt)})"
+        )
     if len(generator.ifs) > 1:
         return (
             f"#setCompIfs({emit_exp(generator.iter)}, {generator.target.id}, "

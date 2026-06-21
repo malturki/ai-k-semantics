@@ -260,6 +260,7 @@ run_case "adapter-set-comprehension-two-for" "$ROOT/tests/adapter/adapter-set-co
 run_case "adapter-set-comprehension-two-for-filters" "$ROOT/tests/adapter/adapter-set-comprehension-two-for-filters.py" "True ~> .K"
 run_case "adapter-set-comprehension-three-for" "$ROOT/tests/adapter/adapter-set-comprehension-three-for.py" "True ~> .K"
 run_case "adapter-set-comprehension-three-for-filters" "$ROOT/tests/adapter/adapter-set-comprehension-three-for-filters.py" "True ~> .K"
+run_case "adapter-comprehension-targets" "$ROOT/tests/adapter/adapter-comprehension-targets.py" "True ~> .K"
 run_case "adapter-starred-displays" "$ROOT/tests/adapter/adapter-starred-displays.py" "True ~> .K"
 run_case "adapter-set-empty" "$ROOT/tests/adapter/adapter-set-empty.py" "True ~> .K"
 run_case "adapter-set-equality" "$ROOT/tests/adapter/adapter-set-equality.py" "True ~> .K"

@@ -8,6 +8,7 @@ module PYTHON-SYNTAX
 
   syntax Val ::= Int
                | Float
+               | "#complex" "(" Float "," Float ")" [symbol(complexVal)]
                | String
                | "True" [symbol(pyTrue)]
                | "False" [symbol(pyFalse)]
@@ -1200,6 +1201,7 @@ module PYTHON
   rule truthy(0) => false
   rule truthy(I:Int) => true requires I =/=Int 0
   rule truthy(F:Float) => F =/=Float 0.0
+  rule truthy(#complex(R:Float, I:Float)) => R =/=Float 0.0 orBool I =/=Float 0.0
   rule truthy(S:String) => lengthString(S) =/=Int 0
   rule truthy(True) => true
   rule truthy(False) => false
@@ -1301,6 +1303,7 @@ module PYTHON
 
   rule isIntLike(_:Int) => true
   rule isIntLike(_:Float) => false
+  rule isIntLike(#complex(_:Float, _:Float)) => false
   rule isIntLike(_:String) => false
   rule isIntLike(#bytes()) => false
   rule isIntLike(bytesVal(_:ValItems)) => false
@@ -1406,6 +1409,7 @@ module PYTHON
   rule singletonIdentity(Ellipsis) => true
   rule singletonIdentity(_:Int) => false
   rule singletonIdentity(_:Float) => false
+  rule singletonIdentity(#complex(_:Float, _:Float)) => false
   rule singletonIdentity(_:String) => false
   rule singletonIdentity(#bytes()) => false
   rule singletonIdentity(bytesVal(_:ValItems)) => false
@@ -1678,6 +1682,18 @@ module PYTHON
   rule valEq(False, F:Float) => Int2Float(0, 53, 11) ==Float F
   rule valEq(F:Float, True) => F ==Float Int2Float(1, 53, 11)
   rule valEq(F:Float, False) => F ==Float Int2Float(0, 53, 11)
+  rule valEq(#complex(R1:Float, I1:Float), #complex(R2:Float, I2:Float)) =>
+    R1 ==Float R2 andBool I1 ==Float I2
+  rule valEq(#complex(R:Float, I:Float), V:Val) =>
+    R ==Float floatValue(V) andBool I ==Float 0.0
+    requires isIntLike(V)
+  rule valEq(V:Val, #complex(R:Float, I:Float)) =>
+    floatValue(V) ==Float R andBool I ==Float 0.0
+    requires isIntLike(V)
+  rule valEq(#complex(R:Float, I:Float), F:Float) => R ==Float F andBool I ==Float 0.0
+  rule valEq(F:Float, #complex(R:Float, I:Float)) => F ==Float R andBool I ==Float 0.0
+  rule valEq(#complex(_:Float, _:Float), _:Val) => false [owise]
+  rule valEq(_:Val, #complex(_:Float, _:Float)) => false [owise]
   rule valEq(_:Float, _:Val) => false [owise]
   rule valEq(_:Val, _:Float) => false [owise]
   rule valEq(S1:String, S2:String) => S1 ==String S2
@@ -3584,13 +3600,23 @@ module PYTHON
 
   rule + V:Val => intValue(V) requires isIntLike(V)
   rule + F:Float => F
+  rule + #complex(R:Float, I:Float) => #complex(R, I)
   rule - V:Val => 0 -Int intValue(V) requires isIntLike(V)
   rule - F:Float => --Float F
+  rule - #complex(R:Float, I:Float) => #complex(0.0 -Float R, 0.0 -Float I)
   rule ~ V:Val => ~Int intValue(V) requires isIntLike(V)
 
   rule V1:Val + V2:Val => intValue(V1) +Int intValue(V2)
     requires isIntLike(V1) andBool isIntLike(V2)
   rule F1:Float + F2:Float => F1 +Float F2
+  rule #complex(R1:Float, I1:Float) + #complex(R2:Float, I2:Float) =>
+    #complex(R1 +Float R2, I1 +Float I2)
+  rule #complex(R:Float, I:Float) + V:Val => #complex(R +Float floatValue(V), I)
+    requires isIntLike(V)
+  rule V:Val + #complex(R:Float, I:Float) => #complex(floatValue(V) +Float R, I)
+    requires isIntLike(V)
+  rule #complex(R:Float, I:Float) + F:Float => #complex(R +Float F, I)
+  rule F:Float + #complex(R:Float, I:Float) => #complex(F +Float R, I)
   rule F:Float + V:Val => F +Float floatValue(V)
     requires isIntLike(V)
   rule V:Val + F:Float => floatValue(V) +Float F
@@ -3598,6 +3624,14 @@ module PYTHON
   rule V1:Val - V2:Val => intValue(V1) -Int intValue(V2)
     requires isIntLike(V1) andBool isIntLike(V2)
   rule F1:Float - F2:Float => F1 -Float F2
+  rule #complex(R1:Float, I1:Float) - #complex(R2:Float, I2:Float) =>
+    #complex(R1 -Float R2, I1 -Float I2)
+  rule #complex(R:Float, I:Float) - V:Val => #complex(R -Float floatValue(V), I)
+    requires isIntLike(V)
+  rule V:Val - #complex(R:Float, I:Float) => #complex(floatValue(V) -Float R, 0.0 -Float I)
+    requires isIntLike(V)
+  rule #complex(R:Float, I:Float) - F:Float => #complex(R -Float F, I)
+  rule F:Float - #complex(R:Float, I:Float) => #complex(F -Float R, 0.0 -Float I)
   rule F:Float - V:Val => F -Float floatValue(V)
     requires isIntLike(V)
   rule V:Val - F:Float => floatValue(V) -Float F

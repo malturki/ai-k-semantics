@@ -275,6 +275,8 @@ def emit_constant(node: ast.AST, value: object) -> str:
         return "None"
     if value is Ellipsis:
         return "Ellipsis"
+    if isinstance(value, complex):
+        return emit_complex(value)
     if isinstance(value, int):
         return str(value)
     if isinstance(value, float):
@@ -284,6 +286,10 @@ def emit_constant(node: ast.AST, value: object) -> str:
     if isinstance(value, bytes):
         return emit_bytes(value)
     raise unsupported(node, f"constant {value!r} is not supported")
+
+
+def emit_complex(value: complex) -> str:
+    return f"#complex({repr(value.real)}, {repr(value.imag)})"
 
 
 def emit_bytes(value: bytes) -> str:

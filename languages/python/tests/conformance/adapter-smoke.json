@@ -39,6 +39,13 @@
       "coverage": ["float-power", "mixed-int-bool-float-coercion", "two-argument-pow", "ordinary-python-source-adapter"]
     },
     {
+      "id": "adapter-complex-literals",
+      "source": "../adapter/adapter-complex-literals.py",
+      "reference": "Python Language Reference 2.4.6 Imaginary literals; 6.7 Binary arithmetic operations; 6.10 Comparisons; Python Standard Library truth value testing",
+      "expected_result": "True ~> .K",
+      "coverage": ["imaginary-literals", "complex-values", "complex-truth-value-testing", "complex-equality", "complex-addition-subtraction", "ordinary-python-source-adapter"]
+    },
+    {
       "id": "adapter-ellipsis",
       "source": "../adapter/adapter-ellipsis.py",
       "reference": "Python Language Reference 6.2.2 Atoms; Python Standard Library Built-in Constants Ellipsis",

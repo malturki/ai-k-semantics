@@ -313,6 +313,7 @@ module PYTHON-SYNTAX
                | "#complexCtor" "(" ")" [symbol(complexCtor0Exp)]
                | "#complexCtor" "(" Exp ")" [symbol(complexCtor1Exp), strict]
                | "#complexCtor" "(" Exp "," Exp ")" [symbol(complexCtor2Exp), strict]
+               | "#conjugate" "(" Exp ")" [symbol(conjugateExp), strict]
                | "#abs" "(" Exp ")" [symbol(absExp), strict]
                | "#divmod" "(" Exp "," Exp ")" [symbol(divmodExp), strict]
                | "#pow" "(" Exp "," Exp ")" [symbol(powBuiltinExp), strict]
@@ -9275,6 +9276,10 @@ module PYTHON
   rule #complexCtor(V1:Val, V2:Val) =>
     #complex(complexReal(V1) -Float complexImag(V2), complexImag(V1) +Float complexReal(V2))
     requires isComplexLike(V1) andBool isComplexLike(V2)
+  rule #conjugate(#complex(R:Float, I:Float)) => #complex(R, 0.0 -Float I)
+  rule #conjugate(F:Float) => F
+  rule #conjugate(V:Val) => intValue(V)
+    requires isIntLike(V)
   rule #abs(V:Val) => 0 -Int intValue(V)
     requires isIntLike(V) andBool intValue(V) <Int 0
   rule #abs(V:Val) => intValue(V)

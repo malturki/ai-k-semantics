@@ -8,6 +8,11 @@ result = result and letters[slice(1, 5, 2)] == "bd"
 items = (0, 1, 2, 3, 4)
 result = result and items[slice(0, 5, 2)] == (0, 2, 4)
 
+data = b"abcdef"
+result = result and data[slice(1, 5, 2)] == b"bd"
+result = result and data[slice(None, None, -1)] == b"fedcba"
+result = result and b""[slice(None, None, -1)] == b""
+
 r = range(10)
 result = result and r[slice(2, 8, 2)] == range(2, 8, 2)
 

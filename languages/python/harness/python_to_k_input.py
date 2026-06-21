@@ -219,24 +219,24 @@ def emit_exp(exp: ast.expr) -> str:
             return emit_list_comprehension_two_generators(exp, elt, outer, inner)
         case ast.ListComp(elt=elt, generators=[outer, middle, inner]):
             return emit_list_comprehension_three_generators(exp, elt, outer, middle, inner)
-        case ast.ListComp():
-            raise unsupported(exp, "only one-, two-, and three-generator list comprehensions are supported yet")
+        case ast.ListComp(elt=elt, generators=generators):
+            return emit_list_comprehension_many(exp, elt, generators)
         case ast.DictComp(key=key, value=value, generators=[generator]):
             return emit_dict_comprehension(exp, key, value, generator)
         case ast.DictComp(key=key, value=value, generators=[outer, inner]):
             return emit_dict_comprehension_two_generators(exp, key, value, outer, inner)
         case ast.DictComp(key=key, value=value, generators=[outer, middle, inner]):
             return emit_dict_comprehension_three_generators(exp, key, value, outer, middle, inner)
-        case ast.DictComp():
-            raise unsupported(exp, "only one-, two-, and three-generator dict comprehensions are supported yet")
+        case ast.DictComp(key=key, value=value, generators=generators):
+            return emit_dict_comprehension_many(exp, key, value, generators)
         case ast.SetComp(elt=elt, generators=[generator]):
             return emit_set_comprehension(exp, elt, generator)
         case ast.SetComp(elt=elt, generators=[outer, inner]):
             return emit_set_comprehension_two_generators(exp, elt, outer, inner)
         case ast.SetComp(elt=elt, generators=[outer, middle, inner]):
             return emit_set_comprehension_three_generators(exp, elt, outer, middle, inner)
-        case ast.SetComp():
-            raise unsupported(exp, "only one-, two-, and three-generator set comprehensions are supported yet")
+        case ast.SetComp(elt=elt, generators=generators):
+            return emit_set_comprehension_many(exp, elt, generators)
         case ast.List(elts=elts, ctx=ast.Load()):
             return emit_list(elts)
         case ast.Tuple(elts=elts, ctx=ast.Load()):
@@ -327,6 +327,52 @@ def emit_maybe_comp_filters(filters: list[ast.expr]) -> str:
     if not filters:
         return "#noFilters"
     return emit_comp_filters(filters)
+
+
+def ensure_non_async_comprehension(
+    node: ast.AST, kind: str, generators: list[ast.comprehension]
+) -> None:
+    if any(generator.is_async for generator in generators):
+        raise unsupported(node, f"async {kind} comprehensions are not supported yet")
+
+
+def emit_comp_clause(generator: ast.comprehension) -> str:
+    return (
+        f"#compClause({emit_exp(generator.iter)}, {emit_target(generator.target)}, "
+        f"{emit_maybe_comp_filters(generator.ifs)})"
+    )
+
+
+def emit_comp_clauses(generators: list[ast.comprehension]) -> str:
+    if not generators:
+        raise ValueError("comprehension clause list must be nonempty")
+    if len(generators) == 1:
+        return emit_comp_clause(generators[0])
+    generator = generators[0]
+    return (
+        f"#compClauses({emit_exp(generator.iter)}, {emit_target(generator.target)}, "
+        f"{emit_maybe_comp_filters(generator.ifs)}, {emit_comp_clauses(generators[1:])})"
+    )
+
+
+def emit_maybe_comp_clauses(generators: list[ast.comprehension]) -> str:
+    if not generators:
+        return "#noCompClauses"
+    return f"#compRest({emit_comp_clauses(generators)})"
+
+
+def emit_list_comprehension_many(
+    node: ast.AST, elt: ast.expr, generators: list[ast.comprehension]
+) -> str:
+    if len(generators) < 4:
+        raise unsupported(node, "list comprehension generator shape is not supported")
+    ensure_non_async_comprehension(node, "list", generators)
+    outer = generators[0]
+    return (
+        f"#listCompMany({emit_exp(outer.iter)}, {emit_target(outer.target)}, "
+        f"{emit_maybe_comp_filters(outer.ifs)}, "
+        f"{emit_maybe_comp_clauses(generators[1:])}, {emit_exp(elt)})"
+    )
 
 
 def emit_list_comprehension(
@@ -535,6 +581,23 @@ def emit_dict_comprehension_three_generators(
     )
 
 
+def emit_dict_comprehension_many(
+    node: ast.AST,
+    key: ast.expr,
+    value: ast.expr,
+    generators: list[ast.comprehension],
+) -> str:
+    if len(generators) < 4:
+        raise unsupported(node, "dict comprehension generator shape is not supported")
+    ensure_non_async_comprehension(node, "dict", generators)
+    outer = generators[0]
+    return (
+        f"#dictCompMany({emit_exp(outer.iter)}, {emit_target(outer.target)}, "
+        f"{emit_maybe_comp_filters(outer.ifs)}, "
+        f"{emit_maybe_comp_clauses(generators[1:])}, {emit_exp(key)}, {emit_exp(value)})"
+    )
+
+
 def emit_set_comprehension(
     node: ast.AST, elt: ast.expr, generator: ast.comprehension
 ) -> str:
@@ -630,6 +693,20 @@ def emit_set_comprehension_three_generators(
         f"#setCompForFor({emit_exp(outer.iter)}, {outer.target.id}, "
         f"{emit_exp(middle.iter)}, {middle.target.id}, "
         f"{emit_exp(inner.iter)}, {inner.target.id}, {emit_exp(elt)})"
+    )
+
+
+def emit_set_comprehension_many(
+    node: ast.AST, elt: ast.expr, generators: list[ast.comprehension]
+) -> str:
+    if len(generators) < 4:
+        raise unsupported(node, "set comprehension generator shape is not supported")
+    ensure_non_async_comprehension(node, "set", generators)
+    outer = generators[0]
+    return (
+        f"#setCompMany({emit_exp(outer.iter)}, {emit_target(outer.target)}, "
+        f"{emit_maybe_comp_filters(outer.ifs)}, "
+        f"{emit_maybe_comp_clauses(generators[1:])}, {emit_exp(elt)})"
     )
 
 

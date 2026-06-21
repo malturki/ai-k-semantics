@@ -69,6 +69,12 @@ module PYTHON-SYNTAX
   syntax MaybeCompFilters ::= "#noFilters" [symbol(noCompFilters)]
                             | CompFilters
 
+  syntax CompClauses ::= "#compClause" "(" Exp "," Target "," MaybeCompFilters ")" [symbol(compClause)]
+                       | "#compClauses" "(" Exp "," Target "," MaybeCompFilters "," CompClauses ")" [symbol(compClausesCons)]
+
+  syntax MaybeCompClauses ::= "#noCompClauses" [symbol(noCompClauses)]
+                            | "#compRest" "(" CompClauses ")" [symbol(compRest)]
+
   syntax CmpOp ::= "#lt" [symbol(cmpLt)]
                  | "#le" [symbol(cmpLe)]
                  | "#gt" [symbol(cmpGt)]
@@ -244,6 +250,7 @@ module PYTHON-SYNTAX
                | "#listCompTargetForFor" "(" Exp "," Target "," Exp "," Target "," Exp "," Target "," Exp ")" [symbol(listCompTargetForForExp), strict(1)]
                | "#listCompForForIfs" "(" Exp "," Id "," MaybeCompFilters "," Exp "," Id "," MaybeCompFilters "," Exp "," Id "," MaybeCompFilters "," Exp ")" [symbol(listCompForForIfsExp), strict(1)]
                | "#listCompTargetForForIfs" "(" Exp "," Target "," MaybeCompFilters "," Exp "," Target "," MaybeCompFilters "," Exp "," Target "," MaybeCompFilters "," Exp ")" [symbol(listCompTargetForForIfsExp), strict(1)]
+               | "#listCompMany" "(" Exp "," Target "," MaybeCompFilters "," MaybeCompClauses "," Exp ")" [symbol(listCompManyExp), strict(1)]
                | "#dictComp" "(" Exp "," Id "," Exp "," Exp ")" [symbol(dictCompExp), strict(1)]
                | "#dictCompTarget" "(" Exp "," Target "," Exp "," Exp ")" [symbol(dictCompTargetExp), strict(1)]
                | "#dictCompTargetIfs" "(" Exp "," Target "," CompFilters "," Exp "," Exp ")" [symbol(dictCompTargetIfsExp), strict(1)]
@@ -257,6 +264,7 @@ module PYTHON-SYNTAX
                | "#dictCompTargetForFor" "(" Exp "," Target "," Exp "," Target "," Exp "," Target "," Exp "," Exp ")" [symbol(dictCompTargetForForExp), strict(1)]
                | "#dictCompForForIfs" "(" Exp "," Id "," MaybeCompFilters "," Exp "," Id "," MaybeCompFilters "," Exp "," Id "," MaybeCompFilters "," Exp "," Exp ")" [symbol(dictCompForForIfsExp), strict(1)]
                | "#dictCompTargetForForIfs" "(" Exp "," Target "," MaybeCompFilters "," Exp "," Target "," MaybeCompFilters "," Exp "," Target "," MaybeCompFilters "," Exp "," Exp ")" [symbol(dictCompTargetForForIfsExp), strict(1)]
+               | "#dictCompMany" "(" Exp "," Target "," MaybeCompFilters "," MaybeCompClauses "," Exp "," Exp ")" [symbol(dictCompManyExp), strict(1)]
                | "#setComp" "(" Exp "," Id "," Exp ")" [symbol(setCompExp), strict(1)]
                | "#setCompTarget" "(" Exp "," Target "," Exp ")" [symbol(setCompTargetExp), strict(1)]
                | "#setCompTargetIfs" "(" Exp "," Target "," CompFilters "," Exp ")" [symbol(setCompTargetIfsExp), strict(1)]
@@ -270,6 +278,7 @@ module PYTHON-SYNTAX
                | "#setCompTargetForFor" "(" Exp "," Target "," Exp "," Target "," Exp "," Target "," Exp ")" [symbol(setCompTargetForForExp), strict(1)]
                | "#setCompForForIfs" "(" Exp "," Id "," MaybeCompFilters "," Exp "," Id "," MaybeCompFilters "," Exp "," Id "," MaybeCompFilters "," Exp ")" [symbol(setCompForForIfsExp), strict(1)]
                | "#setCompTargetForForIfs" "(" Exp "," Target "," MaybeCompFilters "," Exp "," Target "," MaybeCompFilters "," Exp "," Target "," MaybeCompFilters "," Exp ")" [symbol(setCompTargetForForIfsExp), strict(1)]
+               | "#setCompMany" "(" Exp "," Target "," MaybeCompFilters "," MaybeCompClauses "," Exp ")" [symbol(setCompManyExp), strict(1)]
                | "#listCtor" "(" ")" [symbol(listCtorExp)]
                | "#listCtor" "(" Exp ")" [symbol(listCtor1Exp), strict]
                | "#tupleCtor" "(" ")" [symbol(tupleCtorExp)]
@@ -469,6 +478,12 @@ module PYTHON
                | argsVal(ArgVals) [symbol(argsVal)]
                | dictArgsVal(DictVals) [symbol(dictArgsVal)]
 
+  syntax CompArgStack ::= "#noCompArgStack" [symbol(noCompArgStack)]
+                        | compArgFrame(Target, MaybeCompFilters, MaybeCompClauses, Exp, ArgVals, Map, CompArgStack) [symbol(compArgFrame)]
+
+  syntax CompDictStack ::= "#noCompDictStack" [symbol(noCompDictStack)]
+                         | compDictFrame(Target, MaybeCompFilters, MaybeCompClauses, Exp, Exp, ArgVals, Map, CompDictStack) [symbol(compDictFrame)]
+
   syntax KResult ::= Val
   syntax KItem ::= stmtNext(Stmts) [symbol(stmtNext)]
                  | "stmtEnd" [symbol(stmtEnd)]
@@ -606,6 +621,13 @@ module PYTHON
                  | listCompTargetForForIfsInnerFilterNext(Target, MaybeCompFilters, Exp, Target, MaybeCompFilters, Exp, Target, MaybeCompFilters, CompFilters, Exp, ArgVals, ArgVals, ArgVals, ArgVals, Map) [symbol(listCompTargetForForIfsInnerFilterNext)]
                  | listCompTargetForForIfsInnerFilterLast(Target, MaybeCompFilters, Exp, Target, MaybeCompFilters, Exp, Target, MaybeCompFilters, Exp, ArgVals, ArgVals, ArgVals, ArgVals, Map) [symbol(listCompTargetForForIfsInnerFilterLast)]
                  | listCompTargetForForIfsNext(Target, MaybeCompFilters, Exp, Target, MaybeCompFilters, Exp, Target, MaybeCompFilters, Exp, ArgVals, ArgVals, ArgVals, ArgVals, Map) [symbol(listCompTargetForForIfsNext)]
+                 | listCompManyIter(Target, MaybeCompFilters, MaybeCompClauses, Exp, ArgVals, ArgVals, CompArgStack, Map, Map) [symbol(listCompManyIter)]
+                 | listCompManyAfter(Target, MaybeCompFilters, MaybeCompClauses, Exp, ArgVals, ArgVals, CompArgStack, Map, Map) [symbol(listCompManyAfter)]
+                 | listCompManyFilter(Target, MaybeCompFilters, CompFilters, MaybeCompClauses, Exp, ArgVals, ArgVals, CompArgStack, Map, Map) [symbol(listCompManyFilter)]
+                 | listCompManyFilterNext(Target, MaybeCompFilters, CompFilters, MaybeCompClauses, Exp, ArgVals, ArgVals, CompArgStack, Map, Map) [symbol(listCompManyFilterNext)]
+                 | listCompManyFilterLast(Target, MaybeCompFilters, MaybeCompClauses, Exp, ArgVals, ArgVals, CompArgStack, Map, Map) [symbol(listCompManyFilterLast)]
+                 | listCompManyDescend(Target, MaybeCompFilters, MaybeCompClauses, Target, MaybeCompFilters, MaybeCompClauses, Exp, ArgVals, ArgVals, CompArgStack, Map, Map) [symbol(listCompManyDescend)]
+                 | listCompManyNext(Target, MaybeCompFilters, MaybeCompClauses, Exp, ArgVals, ArgVals, CompArgStack, Map, Map) [symbol(listCompManyNext)]
                  | setCompIter(Id, Exp, ArgVals, ArgVals, Map) [symbol(setCompIter)]
                  | setCompNext(Id, Exp, ArgVals, ArgVals, Map) [symbol(setCompNext)]
                  | setCompTargetIter(Target, Exp, ArgVals, ArgVals, Map) [symbol(setCompTargetIter)]
@@ -693,6 +715,13 @@ module PYTHON
                  | setCompForIfsInnerFilterNext(Id, MaybeCompFilters, Exp, Id, MaybeCompFilters, CompFilters, Exp, ArgVals, ArgVals, ArgVals, Map) [symbol(setCompForIfsInnerFilterNext)]
                  | setCompForIfsInnerFilterLast(Id, MaybeCompFilters, Exp, Id, MaybeCompFilters, Exp, ArgVals, ArgVals, ArgVals, Map) [symbol(setCompForIfsInnerFilterLast)]
                  | setCompForIfsNext(Id, MaybeCompFilters, Exp, Id, MaybeCompFilters, Exp, ArgVals, ArgVals, ArgVals, Map) [symbol(setCompForIfsNext)]
+                 | setCompManyIter(Target, MaybeCompFilters, MaybeCompClauses, Exp, ArgVals, ArgVals, CompArgStack, Map, Map) [symbol(setCompManyIter)]
+                 | setCompManyAfter(Target, MaybeCompFilters, MaybeCompClauses, Exp, ArgVals, ArgVals, CompArgStack, Map, Map) [symbol(setCompManyAfter)]
+                 | setCompManyFilter(Target, MaybeCompFilters, CompFilters, MaybeCompClauses, Exp, ArgVals, ArgVals, CompArgStack, Map, Map) [symbol(setCompManyFilter)]
+                 | setCompManyFilterNext(Target, MaybeCompFilters, CompFilters, MaybeCompClauses, Exp, ArgVals, ArgVals, CompArgStack, Map, Map) [symbol(setCompManyFilterNext)]
+                 | setCompManyFilterLast(Target, MaybeCompFilters, MaybeCompClauses, Exp, ArgVals, ArgVals, CompArgStack, Map, Map) [symbol(setCompManyFilterLast)]
+                 | setCompManyDescend(Target, MaybeCompFilters, MaybeCompClauses, Target, MaybeCompFilters, MaybeCompClauses, Exp, ArgVals, ArgVals, CompArgStack, Map, Map) [symbol(setCompManyDescend)]
+                 | setCompManyNext(Target, MaybeCompFilters, MaybeCompClauses, Exp, ArgVals, ArgVals, CompArgStack, Map, Map) [symbol(setCompManyNext)]
                  | "buildTuple" [symbol(buildTuple)]
                  | "buildSet" [symbol(buildSet)]
                  | "minArgsResult" [symbol(minArgsResult)]
@@ -804,6 +833,14 @@ module PYTHON
                  | dictCompForIfsInnerFilterLast(Id, MaybeCompFilters, Exp, Id, MaybeCompFilters, Exp, Exp, ArgVals, ArgVals, DictVals, Map) [symbol(dictCompForIfsInnerFilterLast)]
                  | dictCompForIfsKey(Id, MaybeCompFilters, Exp, Id, MaybeCompFilters, Exp, Exp, ArgVals, ArgVals, DictVals, Map) [symbol(dictCompForIfsKey)]
                  | dictCompForIfsValue(Id, MaybeCompFilters, Exp, Id, MaybeCompFilters, Exp, Exp, ArgVals, ArgVals, DictVals, Map, Val) [symbol(dictCompForIfsValue)]
+                 | dictCompManyIter(Target, MaybeCompFilters, MaybeCompClauses, Exp, Exp, ArgVals, DictVals, CompDictStack, Map, Map) [symbol(dictCompManyIter)]
+                 | dictCompManyAfter(Target, MaybeCompFilters, MaybeCompClauses, Exp, Exp, ArgVals, DictVals, CompDictStack, Map, Map) [symbol(dictCompManyAfter)]
+                 | dictCompManyFilter(Target, MaybeCompFilters, CompFilters, MaybeCompClauses, Exp, Exp, ArgVals, DictVals, CompDictStack, Map, Map) [symbol(dictCompManyFilter)]
+                 | dictCompManyFilterNext(Target, MaybeCompFilters, CompFilters, MaybeCompClauses, Exp, Exp, ArgVals, DictVals, CompDictStack, Map, Map) [symbol(dictCompManyFilterNext)]
+                 | dictCompManyFilterLast(Target, MaybeCompFilters, MaybeCompClauses, Exp, Exp, ArgVals, DictVals, CompDictStack, Map, Map) [symbol(dictCompManyFilterLast)]
+                 | dictCompManyDescend(Target, MaybeCompFilters, MaybeCompClauses, Target, MaybeCompFilters, MaybeCompClauses, Exp, Exp, ArgVals, DictVals, CompDictStack, Map, Map) [symbol(dictCompManyDescend)]
+                 | dictCompManyKey(Target, MaybeCompFilters, MaybeCompClauses, Exp, Exp, ArgVals, DictVals, CompDictStack, Map, Map) [symbol(dictCompManyKey)]
+                 | dictCompManyValue(Target, MaybeCompFilters, MaybeCompClauses, Exp, Exp, ArgVals, DictVals, CompDictStack, Map, Map, Val) [symbol(dictCompManyValue)]
                  | compareChain(CmpChain) [symbol(compareChain)]
                  | compareChainLast(CmpOp, Val) [symbol(compareChainLast)]
                  | compareChainNext(CmpOp, Val, CmpChain) [symbol(compareChainNext)]
@@ -6663,6 +6700,68 @@ module PYTHON
   rule <k> V:Val ~> listCompTargetForForIfsNext(Outer:Target, OuterFilters:MaybeCompFilters, Middle:Exp, MiddleTarget:Target, MiddleFilters:MaybeCompFilters, Inner:Exp, InnerTarget:Target, InnerFilters:MaybeCompFilters, Elem:Exp, RestOuter:ArgVals, RestMiddle:ArgVals, RestInner:ArgVals, Acc:ArgVals, Rho:Map) =>
            listCompTargetForForIfsInnerIter(Outer, OuterFilters, Middle, MiddleTarget, MiddleFilters, Inner, InnerTarget, InnerFilters, Elem, RestOuter, RestMiddle, RestInner, appendArgVal(Acc, V), Rho)
        ... </k>
+  rule <k> listCompManyExp(Iter:Val, T:Target, Filters:MaybeCompFilters, RestClauses:MaybeCompClauses, Elem:Exp) =>
+           listCompManyIter(T, Filters, RestClauses, Elem, iterableArgVals(Iter), #noArgVals, #noCompArgStack, Rho, Rho)
+       ... </k>
+       <env> Rho </env>
+  rule <k> listCompManyIter(_:Target, _:MaybeCompFilters, _:MaybeCompClauses, _:Exp, #noArgVals, #noArgVals, #noCompArgStack, _:Map, OuterRho:Map) =>
+           [] ~> restoreEnv(OuterRho)
+       ... </k>
+  rule <k> listCompManyIter(_:Target, _:MaybeCompFilters, _:MaybeCompClauses, _:Exp, #noArgVals, Acc:ArgVals, #noCompArgStack, _:Map, OuterRho:Map) =>
+           listVal(argValsToValItems(Acc)) ~> restoreEnv(OuterRho)
+       ... </k>
+    requires notBool emptyArgVals(Acc)
+  rule <k> listCompManyIter(_:Target, _:MaybeCompFilters, _:MaybeCompClauses, _:Exp, #noArgVals, Acc:ArgVals, compArgFrame(ParentT:Target, ParentFilters:MaybeCompFilters, ParentRest:MaybeCompClauses, ParentElem:Exp, ParentRestItems:ArgVals, ParentBaseRho:Map, ParentStack:CompArgStack), _:Map, OuterRho:Map) =>
+           listCompManyIter(ParentT, ParentFilters, ParentRest, ParentElem, ParentRestItems, Acc, ParentStack, ParentBaseRho, OuterRho)
+       ... </k>
+  rule <k> listCompManyIter(T:Target, #noFilters, RestClauses:MaybeCompClauses, Elem:Exp, argValsCons(V:Val, RestItems:ArgVals), Acc:ArgVals, Stack:CompArgStack, BaseRho:Map, OuterRho:Map) =>
+           listCompManyAfter(T, #noFilters, RestClauses, Elem, RestItems, Acc, Stack, BaseRho, OuterRho)
+       ... </k>
+       <env> _ => bindTarget(BaseRho, T, V) </env>
+    requires targetValueArityOk(T, V)
+  rule <k> listCompManyIter(T:Target, Filters:CompFilters, RestClauses:MaybeCompClauses, Elem:Exp, argValsCons(V:Val, RestItems:ArgVals), Acc:ArgVals, Stack:CompArgStack, BaseRho:Map, OuterRho:Map) =>
+           listCompManyFilter(T, Filters, Filters, RestClauses, Elem, RestItems, Acc, Stack, BaseRho, OuterRho)
+       ... </k>
+       <env> _ => bindTarget(BaseRho, T, V) </env>
+    requires targetValueArityOk(T, V)
+  rule <k> listCompManyFilter(T:Target, Filters:MaybeCompFilters, #filters(Filter:Exp, RestFilters:CompFilters), RestClauses:MaybeCompClauses, Elem:Exp, RestItems:ArgVals, Acc:ArgVals, Stack:CompArgStack, BaseRho:Map, OuterRho:Map) =>
+           Filter ~> listCompManyFilterNext(T, Filters, RestFilters, RestClauses, Elem, RestItems, Acc, Stack, BaseRho, OuterRho)
+       ... </k>
+  rule <k> listCompManyFilter(T:Target, Filters:MaybeCompFilters, #filter(Filter:Exp), RestClauses:MaybeCompClauses, Elem:Exp, RestItems:ArgVals, Acc:ArgVals, Stack:CompArgStack, BaseRho:Map, OuterRho:Map) =>
+           Filter ~> listCompManyFilterLast(T, Filters, RestClauses, Elem, RestItems, Acc, Stack, BaseRho, OuterRho)
+       ... </k>
+  rule <k> V:Val ~> listCompManyFilterNext(T:Target, Filters:MaybeCompFilters, RestFilters:CompFilters, RestClauses:MaybeCompClauses, Elem:Exp, RestItems:ArgVals, Acc:ArgVals, Stack:CompArgStack, BaseRho:Map, OuterRho:Map) =>
+           listCompManyFilter(T, Filters, RestFilters, RestClauses, Elem, RestItems, Acc, Stack, BaseRho, OuterRho)
+       ... </k>
+    requires truthy(V)
+  rule <k> V:Val ~> listCompManyFilterNext(T:Target, Filters:MaybeCompFilters, _:CompFilters, RestClauses:MaybeCompClauses, Elem:Exp, RestItems:ArgVals, Acc:ArgVals, Stack:CompArgStack, BaseRho:Map, OuterRho:Map) =>
+           listCompManyIter(T, Filters, RestClauses, Elem, RestItems, Acc, Stack, BaseRho, OuterRho)
+       ... </k>
+    requires notBool truthy(V)
+  rule <k> V:Val ~> listCompManyFilterLast(T:Target, Filters:MaybeCompFilters, RestClauses:MaybeCompClauses, Elem:Exp, RestItems:ArgVals, Acc:ArgVals, Stack:CompArgStack, BaseRho:Map, OuterRho:Map) =>
+           listCompManyAfter(T, Filters, RestClauses, Elem, RestItems, Acc, Stack, BaseRho, OuterRho)
+       ... </k>
+    requires truthy(V)
+  rule <k> V:Val ~> listCompManyFilterLast(T:Target, Filters:MaybeCompFilters, RestClauses:MaybeCompClauses, Elem:Exp, RestItems:ArgVals, Acc:ArgVals, Stack:CompArgStack, BaseRho:Map, OuterRho:Map) =>
+           listCompManyIter(T, Filters, RestClauses, Elem, RestItems, Acc, Stack, BaseRho, OuterRho)
+       ... </k>
+    requires notBool truthy(V)
+  rule <k> listCompManyAfter(T:Target, Filters:MaybeCompFilters, #noCompClauses, Elem:Exp, RestItems:ArgVals, Acc:ArgVals, Stack:CompArgStack, BaseRho:Map, OuterRho:Map) =>
+           Elem ~> listCompManyNext(T, Filters, #noCompClauses, Elem, RestItems, Acc, Stack, BaseRho, OuterRho)
+       ... </k>
+  rule <k> listCompManyAfter(T:Target, Filters:MaybeCompFilters, #compRest(#compClause(NextIter:Exp, NextT:Target, NextFilters:MaybeCompFilters)), Elem:Exp, RestItems:ArgVals, Acc:ArgVals, Stack:CompArgStack, BaseRho:Map, OuterRho:Map) =>
+           NextIter ~> listCompManyDescend(NextT, NextFilters, #noCompClauses, T, Filters, #compRest(#compClause(NextIter, NextT, NextFilters)), Elem, RestItems, Acc, Stack, BaseRho, OuterRho)
+       ... </k>
+  rule <k> listCompManyAfter(T:Target, Filters:MaybeCompFilters, #compRest(#compClauses(NextIter:Exp, NextT:Target, NextFilters:MaybeCompFilters, More:CompClauses)), Elem:Exp, RestItems:ArgVals, Acc:ArgVals, Stack:CompArgStack, BaseRho:Map, OuterRho:Map) =>
+           NextIter ~> listCompManyDescend(NextT, NextFilters, #compRest(More), T, Filters, #compRest(#compClauses(NextIter, NextT, NextFilters, More)), Elem, RestItems, Acc, Stack, BaseRho, OuterRho)
+       ... </k>
+  rule <k> NextIter:Val ~> listCompManyDescend(NextT:Target, NextFilters:MaybeCompFilters, NextRest:MaybeCompClauses, ParentT:Target, ParentFilters:MaybeCompFilters, ParentRest:MaybeCompClauses, Elem:Exp, ParentRestItems:ArgVals, Acc:ArgVals, Stack:CompArgStack, ParentBaseRho:Map, OuterRho:Map) =>
+           listCompManyIter(NextT, NextFilters, NextRest, Elem, iterableArgVals(NextIter), Acc, compArgFrame(ParentT, ParentFilters, ParentRest, Elem, ParentRestItems, ParentBaseRho, Stack), CurrentBaseRho, OuterRho)
+       ... </k>
+       <env> CurrentBaseRho </env>
+  rule <k> V:Val ~> listCompManyNext(T:Target, Filters:MaybeCompFilters, RestClauses:MaybeCompClauses, Elem:Exp, RestItems:ArgVals, Acc:ArgVals, Stack:CompArgStack, BaseRho:Map, OuterRho:Map) =>
+           listCompManyIter(T, Filters, RestClauses, Elem, RestItems, appendArgVal(Acc, V), Stack, BaseRho, OuterRho)
+       ... </k>
   rule <k> setCompExp(Iter:Val, X:Id, Elem:Exp) =>
            setCompIter(X, Elem, iterableArgVals(Iter), #noArgVals, Rho)
        ... </k>
@@ -7345,6 +7444,68 @@ module PYTHON
     requires notBool truthy(V)
   rule <k> V:Val ~> setCompForIfsNext(X:Id, OuterFilters:MaybeCompFilters, Inner:Exp, Y:Id, InnerFilters:MaybeCompFilters, Elem:Exp, RestOuter:ArgVals, RestInner:ArgVals, Acc:ArgVals, Rho:Map) =>
            setCompForIfsInnerIter(X, OuterFilters, Inner, Y, InnerFilters, Elem, RestOuter, RestInner, appendArgVal(Acc, V), Rho)
+       ... </k>
+  rule <k> setCompManyExp(Iter:Val, T:Target, Filters:MaybeCompFilters, RestClauses:MaybeCompClauses, Elem:Exp) =>
+           setCompManyIter(T, Filters, RestClauses, Elem, iterableArgVals(Iter), #noArgVals, #noCompArgStack, Rho, Rho)
+       ... </k>
+       <env> Rho </env>
+  rule <k> setCompManyIter(_:Target, _:MaybeCompFilters, _:MaybeCompClauses, _:Exp, #noArgVals, #noArgVals, #noCompArgStack, _:Map, OuterRho:Map) =>
+           set() ~> restoreEnv(OuterRho)
+       ... </k>
+  rule <k> setCompManyIter(_:Target, _:MaybeCompFilters, _:MaybeCompClauses, _:Exp, #noArgVals, Acc:ArgVals, #noCompArgStack, _:Map, OuterRho:Map) =>
+           setFromArgVals(Acc) ~> restoreEnv(OuterRho)
+       ... </k>
+    requires notBool emptyArgVals(Acc)
+  rule <k> setCompManyIter(_:Target, _:MaybeCompFilters, _:MaybeCompClauses, _:Exp, #noArgVals, Acc:ArgVals, compArgFrame(ParentT:Target, ParentFilters:MaybeCompFilters, ParentRest:MaybeCompClauses, ParentElem:Exp, ParentRestItems:ArgVals, ParentBaseRho:Map, ParentStack:CompArgStack), _:Map, OuterRho:Map) =>
+           setCompManyIter(ParentT, ParentFilters, ParentRest, ParentElem, ParentRestItems, Acc, ParentStack, ParentBaseRho, OuterRho)
+       ... </k>
+  rule <k> setCompManyIter(T:Target, #noFilters, RestClauses:MaybeCompClauses, Elem:Exp, argValsCons(V:Val, RestItems:ArgVals), Acc:ArgVals, Stack:CompArgStack, BaseRho:Map, OuterRho:Map) =>
+           setCompManyAfter(T, #noFilters, RestClauses, Elem, RestItems, Acc, Stack, BaseRho, OuterRho)
+       ... </k>
+       <env> _ => bindTarget(BaseRho, T, V) </env>
+    requires targetValueArityOk(T, V)
+  rule <k> setCompManyIter(T:Target, Filters:CompFilters, RestClauses:MaybeCompClauses, Elem:Exp, argValsCons(V:Val, RestItems:ArgVals), Acc:ArgVals, Stack:CompArgStack, BaseRho:Map, OuterRho:Map) =>
+           setCompManyFilter(T, Filters, Filters, RestClauses, Elem, RestItems, Acc, Stack, BaseRho, OuterRho)
+       ... </k>
+       <env> _ => bindTarget(BaseRho, T, V) </env>
+    requires targetValueArityOk(T, V)
+  rule <k> setCompManyFilter(T:Target, Filters:MaybeCompFilters, #filters(Filter:Exp, RestFilters:CompFilters), RestClauses:MaybeCompClauses, Elem:Exp, RestItems:ArgVals, Acc:ArgVals, Stack:CompArgStack, BaseRho:Map, OuterRho:Map) =>
+           Filter ~> setCompManyFilterNext(T, Filters, RestFilters, RestClauses, Elem, RestItems, Acc, Stack, BaseRho, OuterRho)
+       ... </k>
+  rule <k> setCompManyFilter(T:Target, Filters:MaybeCompFilters, #filter(Filter:Exp), RestClauses:MaybeCompClauses, Elem:Exp, RestItems:ArgVals, Acc:ArgVals, Stack:CompArgStack, BaseRho:Map, OuterRho:Map) =>
+           Filter ~> setCompManyFilterLast(T, Filters, RestClauses, Elem, RestItems, Acc, Stack, BaseRho, OuterRho)
+       ... </k>
+  rule <k> V:Val ~> setCompManyFilterNext(T:Target, Filters:MaybeCompFilters, RestFilters:CompFilters, RestClauses:MaybeCompClauses, Elem:Exp, RestItems:ArgVals, Acc:ArgVals, Stack:CompArgStack, BaseRho:Map, OuterRho:Map) =>
+           setCompManyFilter(T, Filters, RestFilters, RestClauses, Elem, RestItems, Acc, Stack, BaseRho, OuterRho)
+       ... </k>
+    requires truthy(V)
+  rule <k> V:Val ~> setCompManyFilterNext(T:Target, Filters:MaybeCompFilters, _:CompFilters, RestClauses:MaybeCompClauses, Elem:Exp, RestItems:ArgVals, Acc:ArgVals, Stack:CompArgStack, BaseRho:Map, OuterRho:Map) =>
+           setCompManyIter(T, Filters, RestClauses, Elem, RestItems, Acc, Stack, BaseRho, OuterRho)
+       ... </k>
+    requires notBool truthy(V)
+  rule <k> V:Val ~> setCompManyFilterLast(T:Target, Filters:MaybeCompFilters, RestClauses:MaybeCompClauses, Elem:Exp, RestItems:ArgVals, Acc:ArgVals, Stack:CompArgStack, BaseRho:Map, OuterRho:Map) =>
+           setCompManyAfter(T, Filters, RestClauses, Elem, RestItems, Acc, Stack, BaseRho, OuterRho)
+       ... </k>
+    requires truthy(V)
+  rule <k> V:Val ~> setCompManyFilterLast(T:Target, Filters:MaybeCompFilters, RestClauses:MaybeCompClauses, Elem:Exp, RestItems:ArgVals, Acc:ArgVals, Stack:CompArgStack, BaseRho:Map, OuterRho:Map) =>
+           setCompManyIter(T, Filters, RestClauses, Elem, RestItems, Acc, Stack, BaseRho, OuterRho)
+       ... </k>
+    requires notBool truthy(V)
+  rule <k> setCompManyAfter(T:Target, Filters:MaybeCompFilters, #noCompClauses, Elem:Exp, RestItems:ArgVals, Acc:ArgVals, Stack:CompArgStack, BaseRho:Map, OuterRho:Map) =>
+           Elem ~> setCompManyNext(T, Filters, #noCompClauses, Elem, RestItems, Acc, Stack, BaseRho, OuterRho)
+       ... </k>
+  rule <k> setCompManyAfter(T:Target, Filters:MaybeCompFilters, #compRest(#compClause(NextIter:Exp, NextT:Target, NextFilters:MaybeCompFilters)), Elem:Exp, RestItems:ArgVals, Acc:ArgVals, Stack:CompArgStack, BaseRho:Map, OuterRho:Map) =>
+           NextIter ~> setCompManyDescend(NextT, NextFilters, #noCompClauses, T, Filters, #compRest(#compClause(NextIter, NextT, NextFilters)), Elem, RestItems, Acc, Stack, BaseRho, OuterRho)
+       ... </k>
+  rule <k> setCompManyAfter(T:Target, Filters:MaybeCompFilters, #compRest(#compClauses(NextIter:Exp, NextT:Target, NextFilters:MaybeCompFilters, More:CompClauses)), Elem:Exp, RestItems:ArgVals, Acc:ArgVals, Stack:CompArgStack, BaseRho:Map, OuterRho:Map) =>
+           NextIter ~> setCompManyDescend(NextT, NextFilters, #compRest(More), T, Filters, #compRest(#compClauses(NextIter, NextT, NextFilters, More)), Elem, RestItems, Acc, Stack, BaseRho, OuterRho)
+       ... </k>
+  rule <k> NextIter:Val ~> setCompManyDescend(NextT:Target, NextFilters:MaybeCompFilters, NextRest:MaybeCompClauses, ParentT:Target, ParentFilters:MaybeCompFilters, ParentRest:MaybeCompClauses, Elem:Exp, ParentRestItems:ArgVals, Acc:ArgVals, Stack:CompArgStack, ParentBaseRho:Map, OuterRho:Map) =>
+           setCompManyIter(NextT, NextFilters, NextRest, Elem, iterableArgVals(NextIter), Acc, compArgFrame(ParentT, ParentFilters, ParentRest, Elem, ParentRestItems, ParentBaseRho, Stack), CurrentBaseRho, OuterRho)
+       ... </k>
+       <env> CurrentBaseRho </env>
+  rule <k> V:Val ~> setCompManyNext(T:Target, Filters:MaybeCompFilters, RestClauses:MaybeCompClauses, Elem:Exp, RestItems:ArgVals, Acc:ArgVals, Stack:CompArgStack, BaseRho:Map, OuterRho:Map) =>
+           setCompManyIter(T, Filters, RestClauses, Elem, RestItems, appendArgVal(Acc, V), Stack, BaseRho, OuterRho)
        ... </k>
 
   rule <k> tupleDisplayExp(Args:ArgExps) => evalArgs(Args, #noArgVals) ~> buildTuple ... </k>
@@ -8104,6 +8265,71 @@ module PYTHON
        ... </k>
   rule <k> V:Val ~> dictCompForIfsValue(X:Id, OuterFilters:MaybeCompFilters, Inner:Exp, Y:Id, InnerFilters:MaybeCompFilters, Key:Exp, Value:Exp, RestOuter:ArgVals, RestInner:ArgVals, Acc:DictVals, Rho:Map, K:Val) =>
            dictCompForIfsInnerIter(X, OuterFilters, Inner, Y, InnerFilters, Key, Value, RestOuter, RestInner, appendDictVal(Acc, K, V), Rho)
+       ... </k>
+  rule <k> dictCompManyExp(Iter:Val, T:Target, Filters:MaybeCompFilters, RestClauses:MaybeCompClauses, Key:Exp, Value:Exp) =>
+           dictCompManyIter(T, Filters, RestClauses, Key, Value, iterableArgVals(Iter), #noDictVals, #noCompDictStack, Rho, Rho)
+       ... </k>
+       <env> Rho </env>
+  rule <k> dictCompManyIter(_:Target, _:MaybeCompFilters, _:MaybeCompClauses, _:Exp, _:Exp, #noArgVals, #noDictVals, #noCompDictStack, _:Map, OuterRho:Map) =>
+           ({}):Val ~> restoreEnv(OuterRho)
+       ... </k>
+  rule <k> dictCompManyIter(_:Target, _:MaybeCompFilters, _:MaybeCompClauses, _:Exp, _:Exp, #noArgVals, Acc:DictVals, #noCompDictStack, _:Map, OuterRho:Map) =>
+           dictVal(dictValsToDictItems(Acc)) ~> restoreEnv(OuterRho)
+       ... </k>
+    requires notBool emptyDictVals(Acc)
+  rule <k> dictCompManyIter(_:Target, _:MaybeCompFilters, _:MaybeCompClauses, _:Exp, _:Exp, #noArgVals, Acc:DictVals, compDictFrame(ParentT:Target, ParentFilters:MaybeCompFilters, ParentRest:MaybeCompClauses, ParentKey:Exp, ParentValue:Exp, ParentRestItems:ArgVals, ParentBaseRho:Map, ParentStack:CompDictStack), _:Map, OuterRho:Map) =>
+           dictCompManyIter(ParentT, ParentFilters, ParentRest, ParentKey, ParentValue, ParentRestItems, Acc, ParentStack, ParentBaseRho, OuterRho)
+       ... </k>
+  rule <k> dictCompManyIter(T:Target, #noFilters, RestClauses:MaybeCompClauses, Key:Exp, Value:Exp, argValsCons(V:Val, RestItems:ArgVals), Acc:DictVals, Stack:CompDictStack, BaseRho:Map, OuterRho:Map) =>
+           dictCompManyAfter(T, #noFilters, RestClauses, Key, Value, RestItems, Acc, Stack, BaseRho, OuterRho)
+       ... </k>
+       <env> _ => bindTarget(BaseRho, T, V) </env>
+    requires targetValueArityOk(T, V)
+  rule <k> dictCompManyIter(T:Target, Filters:CompFilters, RestClauses:MaybeCompClauses, Key:Exp, Value:Exp, argValsCons(V:Val, RestItems:ArgVals), Acc:DictVals, Stack:CompDictStack, BaseRho:Map, OuterRho:Map) =>
+           dictCompManyFilter(T, Filters, Filters, RestClauses, Key, Value, RestItems, Acc, Stack, BaseRho, OuterRho)
+       ... </k>
+       <env> _ => bindTarget(BaseRho, T, V) </env>
+    requires targetValueArityOk(T, V)
+  rule <k> dictCompManyFilter(T:Target, Filters:MaybeCompFilters, #filters(Filter:Exp, RestFilters:CompFilters), RestClauses:MaybeCompClauses, Key:Exp, Value:Exp, RestItems:ArgVals, Acc:DictVals, Stack:CompDictStack, BaseRho:Map, OuterRho:Map) =>
+           Filter ~> dictCompManyFilterNext(T, Filters, RestFilters, RestClauses, Key, Value, RestItems, Acc, Stack, BaseRho, OuterRho)
+       ... </k>
+  rule <k> dictCompManyFilter(T:Target, Filters:MaybeCompFilters, #filter(Filter:Exp), RestClauses:MaybeCompClauses, Key:Exp, Value:Exp, RestItems:ArgVals, Acc:DictVals, Stack:CompDictStack, BaseRho:Map, OuterRho:Map) =>
+           Filter ~> dictCompManyFilterLast(T, Filters, RestClauses, Key, Value, RestItems, Acc, Stack, BaseRho, OuterRho)
+       ... </k>
+  rule <k> V:Val ~> dictCompManyFilterNext(T:Target, Filters:MaybeCompFilters, RestFilters:CompFilters, RestClauses:MaybeCompClauses, Key:Exp, Value:Exp, RestItems:ArgVals, Acc:DictVals, Stack:CompDictStack, BaseRho:Map, OuterRho:Map) =>
+           dictCompManyFilter(T, Filters, RestFilters, RestClauses, Key, Value, RestItems, Acc, Stack, BaseRho, OuterRho)
+       ... </k>
+    requires truthy(V)
+  rule <k> V:Val ~> dictCompManyFilterNext(T:Target, Filters:MaybeCompFilters, _:CompFilters, RestClauses:MaybeCompClauses, Key:Exp, Value:Exp, RestItems:ArgVals, Acc:DictVals, Stack:CompDictStack, BaseRho:Map, OuterRho:Map) =>
+           dictCompManyIter(T, Filters, RestClauses, Key, Value, RestItems, Acc, Stack, BaseRho, OuterRho)
+       ... </k>
+    requires notBool truthy(V)
+  rule <k> V:Val ~> dictCompManyFilterLast(T:Target, Filters:MaybeCompFilters, RestClauses:MaybeCompClauses, Key:Exp, Value:Exp, RestItems:ArgVals, Acc:DictVals, Stack:CompDictStack, BaseRho:Map, OuterRho:Map) =>
+           dictCompManyAfter(T, Filters, RestClauses, Key, Value, RestItems, Acc, Stack, BaseRho, OuterRho)
+       ... </k>
+    requires truthy(V)
+  rule <k> V:Val ~> dictCompManyFilterLast(T:Target, Filters:MaybeCompFilters, RestClauses:MaybeCompClauses, Key:Exp, Value:Exp, RestItems:ArgVals, Acc:DictVals, Stack:CompDictStack, BaseRho:Map, OuterRho:Map) =>
+           dictCompManyIter(T, Filters, RestClauses, Key, Value, RestItems, Acc, Stack, BaseRho, OuterRho)
+       ... </k>
+    requires notBool truthy(V)
+  rule <k> dictCompManyAfter(T:Target, Filters:MaybeCompFilters, #noCompClauses, Key:Exp, Value:Exp, RestItems:ArgVals, Acc:DictVals, Stack:CompDictStack, BaseRho:Map, OuterRho:Map) =>
+           Key ~> dictCompManyKey(T, Filters, #noCompClauses, Key, Value, RestItems, Acc, Stack, BaseRho, OuterRho)
+       ... </k>
+  rule <k> dictCompManyAfter(T:Target, Filters:MaybeCompFilters, #compRest(#compClause(NextIter:Exp, NextT:Target, NextFilters:MaybeCompFilters)), Key:Exp, Value:Exp, RestItems:ArgVals, Acc:DictVals, Stack:CompDictStack, BaseRho:Map, OuterRho:Map) =>
+           NextIter ~> dictCompManyDescend(NextT, NextFilters, #noCompClauses, T, Filters, #compRest(#compClause(NextIter, NextT, NextFilters)), Key, Value, RestItems, Acc, Stack, BaseRho, OuterRho)
+       ... </k>
+  rule <k> dictCompManyAfter(T:Target, Filters:MaybeCompFilters, #compRest(#compClauses(NextIter:Exp, NextT:Target, NextFilters:MaybeCompFilters, More:CompClauses)), Key:Exp, Value:Exp, RestItems:ArgVals, Acc:DictVals, Stack:CompDictStack, BaseRho:Map, OuterRho:Map) =>
+           NextIter ~> dictCompManyDescend(NextT, NextFilters, #compRest(More), T, Filters, #compRest(#compClauses(NextIter, NextT, NextFilters, More)), Key, Value, RestItems, Acc, Stack, BaseRho, OuterRho)
+       ... </k>
+  rule <k> NextIter:Val ~> dictCompManyDescend(NextT:Target, NextFilters:MaybeCompFilters, NextRest:MaybeCompClauses, ParentT:Target, ParentFilters:MaybeCompFilters, ParentRest:MaybeCompClauses, Key:Exp, Value:Exp, ParentRestItems:ArgVals, Acc:DictVals, Stack:CompDictStack, ParentBaseRho:Map, OuterRho:Map) =>
+           dictCompManyIter(NextT, NextFilters, NextRest, Key, Value, iterableArgVals(NextIter), Acc, compDictFrame(ParentT, ParentFilters, ParentRest, Key, Value, ParentRestItems, ParentBaseRho, Stack), CurrentBaseRho, OuterRho)
+       ... </k>
+       <env> CurrentBaseRho </env>
+  rule <k> K:Val ~> dictCompManyKey(T:Target, Filters:MaybeCompFilters, RestClauses:MaybeCompClauses, Key:Exp, Value:Exp, RestItems:ArgVals, Acc:DictVals, Stack:CompDictStack, BaseRho:Map, OuterRho:Map) =>
+           Value ~> dictCompManyValue(T, Filters, RestClauses, Key, Value, RestItems, Acc, Stack, BaseRho, OuterRho, K)
+       ... </k>
+  rule <k> V:Val ~> dictCompManyValue(T:Target, Filters:MaybeCompFilters, RestClauses:MaybeCompClauses, Key:Exp, Value:Exp, RestItems:ArgVals, Acc:DictVals, Stack:CompDictStack, BaseRho:Map, OuterRho:Map, K:Val) =>
+           dictCompManyIter(T, Filters, RestClauses, Key, Value, RestItems, appendDictVal(Acc, K, V), Stack, BaseRho, OuterRho)
        ... </k>
 
   rule <k> dictCtorKwExp(KWS:KwArgExps) =>

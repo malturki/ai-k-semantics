@@ -1063,6 +1063,9 @@ module PYTHON
                 | intDigitInBase(String, Int) [function, symbol(intDigitInBase)]
                 | floatDecimalStringOk(String) [function, symbol(floatDecimalStringOk)]
                 | floatDecimalBodyOk(String, Int, Bool, Bool) [function, symbol(floatDecimalBodyOk)]
+                | floatMantissaStringOk(String) [function, symbol(floatMantissaStringOk)]
+                | floatExponentPartOk(String) [function, symbol(floatExponentPartOk)]
+                | floatExponentStringOk(String) [function, symbol(floatExponentStringOk)]
                 | containsVal(Val, ValItems) [function, symbol(containsVal)]
                 | bytesContains(ValItems, ValItems) [function, symbol(bytesContains)]
                 | bytesPrefix(ValItems, ValItems) [function, symbol(bytesPrefix)]
@@ -1084,6 +1087,8 @@ module PYTHON
                | floatDecimalDigitsValue(String, Int, Int) [function, symbol(floatDecimalDigitsValue)]
                | floatDecimalFractionDigits(String, Int, Int, Bool) [function, symbol(floatDecimalFractionDigits)]
                | floatDecimalPow10(Int) [function, symbol(floatDecimalPow10)]
+               | floatExponentIndex(String) [function, symbol(floatExponentIndex)]
+               | floatExponentIndexFrom(String, Int) [function, symbol(floatExponentIndexFrom)]
                | pyFloorDiv(Int, Int) [function, symbol(pyFloorDiv)]
                | pyModulo(Int, Int) [function, symbol(pyModulo)]
                | pyLen(Val) [function, symbol(pyLen)]
@@ -1112,8 +1117,11 @@ module PYTHON
                | rangeMax(Int, Int, Int) [function, symbol(rangeMax)]
   syntax IdItems ::= concatIdItems(IdItems, IdItems) [function, symbol(concatIdItems)]
   syntax Float ::= floatValue(Val) [function, symbol(floatValue)]
+                 | floatMantissaStringValue(String) [function, symbol(floatMantissaStringValue)]
                  | floatDecimalStringValue(String) [function, symbol(floatDecimalStringValue)]
                  | floatDecimalMagnitude(String, Int) [function, symbol(floatDecimalMagnitude)]
+                 | floatExponentStringValue(String) [function, symbol(floatExponentStringValue)]
+                 | floatScale10(Float, Int) [function, symbol(floatScale10)]
                  | complexReal(Val) [function, symbol(complexReal)]
                  | complexImag(Val) [function, symbol(complexImag)]
                  | pyFloatFloorDiv(Float, Float) [function, symbol(pyFloatFloorDiv)]
@@ -1617,6 +1625,53 @@ module PYTHON
   rule floatDecimalPow10(0) => 1
   rule floatDecimalPow10(N:Int) => 10 *Int floatDecimalPow10(N -Int 1)
     requires N >Int 0
+
+  rule floatMantissaStringOk(S:String) => true
+    requires intStringOk(S, 10)
+  rule floatMantissaStringOk(S:String) => true
+    requires floatDecimalStringOk(S)
+  rule floatMantissaStringOk(_:String) => false [owise]
+
+  rule floatMantissaStringValue(S:String) => Int2Float(intStringValue(S, 10), 53, 11)
+    requires intStringOk(S, 10)
+  rule floatMantissaStringValue(S:String) => floatDecimalStringValue(S)
+    requires floatDecimalStringOk(S)
+
+  rule floatExponentPartOk(S:String) =>
+    intStringValue(S, 10) >=Int -9 andBool intStringValue(S, 10) <=Int 9
+    requires intStringOk(S, 10)
+  rule floatExponentPartOk(_:String) => false [owise]
+
+  rule floatExponentStringOk(S:String) =>
+    floatMantissaStringOk(substrString(S, 0, floatExponentIndex(S)))
+    andBool floatExponentPartOk(substrString(S, floatExponentIndex(S) +Int 1, lengthString(S)))
+    requires floatExponentIndex(S) >Int 0
+      andBool floatExponentIndex(S) <Int lengthString(S) -Int 1
+  rule floatExponentStringOk(_:String) => false [owise]
+
+  rule floatExponentIndex(S:String) => floatExponentIndexFrom(S, 0)
+
+  rule floatExponentIndexFrom(S:String, I:Int) => -1
+    requires I >=Int lengthString(S)
+  rule floatExponentIndexFrom(S:String, I:Int) => I
+    requires I <Int lengthString(S)
+      andBool (substrString(S, I, I +Int 1) ==String "e"
+        orBool substrString(S, I, I +Int 1) ==String "E")
+  rule floatExponentIndexFrom(S:String, I:Int) => floatExponentIndexFrom(S, I +Int 1)
+    requires I <Int lengthString(S)
+      andBool substrString(S, I, I +Int 1) =/=String "e"
+      andBool substrString(S, I, I +Int 1) =/=String "E"
+
+  rule floatExponentStringValue(S:String) =>
+    floatScale10(
+      floatMantissaStringValue(substrString(S, 0, floatExponentIndex(S))),
+      intStringValue(substrString(S, floatExponentIndex(S) +Int 1, lengthString(S)), 10))
+
+  rule floatScale10(F:Float, 0) => F
+  rule floatScale10(F:Float, N:Int) => floatScale10(F *Float 10.0, N -Int 1)
+    requires N >Int 0
+  rule floatScale10(F:Float, N:Int) => floatScale10(F /Float 10.0, N +Int 1)
+    requires N <Int 0
 
   rule isComplexLike(#complex(_:Float, _:Float)) => true
   rule isComplexLike(_:Float) => true
@@ -8894,6 +8949,8 @@ module PYTHON
     requires intStringOk(S, 10)
   rule #floatCtor(S:String) => floatDecimalStringValue(S)
     requires floatDecimalStringOk(S)
+  rule #floatCtor(S:String) => floatExponentStringValue(S)
+    requires floatExponentStringOk(S)
   rule #complexCtor() => #complex(0.0, 0.0)
   rule #complexCtor(V:Val) => #complex(complexReal(V), complexImag(V))
     requires isComplexLike(V)

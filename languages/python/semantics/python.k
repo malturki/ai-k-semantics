@@ -313,6 +313,8 @@ module PYTHON-SYNTAX
                | "#complexCtor" "(" ")" [symbol(complexCtor0Exp)]
                | "#complexCtor" "(" Exp ")" [symbol(complexCtor1Exp), strict]
                | "#complexCtor" "(" Exp "," Exp ")" [symbol(complexCtor2Exp), strict]
+               | "#complexCtorKw" "(" KwArgExps ")" [symbol(complexCtorKwExp)]
+               | "#complexCtorMixed" "(" Exp "," KwArgExps ")" [symbol(complexCtorMixedExp), strict(1)]
                | "#conjugate" "(" Exp ")" [symbol(conjugateExp), strict]
                | "#abs" "(" Exp ")" [symbol(absExp), strict]
                | "#divmod" "(" Exp "," Exp ")" [symbol(divmodExp), strict]
@@ -741,6 +743,8 @@ module PYTHON
                  | "buildDict" [symbol(buildDict)]
                  | "buildDictCtorKw" [symbol(buildDictCtorKw)]
                  | buildDictCtorMixed(Val) [symbol(buildDictCtorMixed)]
+                 | "buildComplexCtorKw" [symbol(buildComplexCtorKw)]
+                 | buildComplexCtorMixed(Val) [symbol(buildComplexCtorMixed)]
                  | dictCompIter(Id, Exp, Exp, ArgVals, DictVals, Map) [symbol(dictCompIter)]
                  | dictCompKey(Id, Exp, Exp, ArgVals, DictVals, Map) [symbol(dictCompKey)]
                  | dictCompValue(Id, Exp, Exp, ArgVals, DictVals, Map, Val) [symbol(dictCompValue)]
@@ -1241,6 +1245,10 @@ module PYTHON
   syntax Val ::= dictCtorFromPairs(ValItems) [function, symbol(dictCtorFromPairs)]
   syntax Val ::= dictCtorFromKwArgs(KwArgVals) [function, symbol(dictCtorFromKwArgs)]
   syntax Val ::= dictCtorMergeKw(Val, KwArgVals) [function, symbol(dictCtorMergeKw)]
+  syntax Val ::= complexCtorFromKwArgs(KwArgVals) [function, symbol(complexCtorFromKwArgs)]
+  syntax Val ::= complexCtorMergeKw(Val, KwArgVals) [function, symbol(complexCtorMergeKw)]
+  syntax Val ::= complexCtorRealArg(KwArgVals) [function, symbol(complexCtorRealArg)]
+               | complexCtorImagArg(KwArgVals) [function, symbol(complexCtorImagArg)]
   syntax Val ::= listSlice(ValItems, Int, Int) [function, symbol(listSlice)]
                | tupleSlice(ValItems, Int, Int) [function, symbol(tupleSlice)]
                | bytesSlice(ValItems, Int, Int) [function, symbol(bytesSlice)]
@@ -3372,6 +3380,38 @@ module PYTHON
   rule dictCtorMergeKw((), KWS:KwArgVals) => dictCtorFromKwArgs(KWS)
   rule dictCtorMergeKw(tupleVal(VS:ValItems), KWS:KwArgVals) =>
     dictFromDictVals(appendKwDictVals(dictCtorPairs(VS, #noDictVals), KWS))
+
+  rule complexCtorRealArg(KWS:KwArgVals) => kwLookup(#token("real", "Id"), KWS)
+    requires kwContains(#token("real", "Id"), KWS)
+  rule complexCtorRealArg(KWS:KwArgVals) => 0
+    requires notBool kwContains(#token("real", "Id"), KWS)
+
+  rule complexCtorImagArg(KWS:KwArgVals) => kwLookup(#token("imag", "Id"), KWS)
+    requires kwContains(#token("imag", "Id"), KWS)
+  rule complexCtorImagArg(KWS:KwArgVals) => 0
+    requires notBool kwContains(#token("imag", "Id"), KWS)
+
+  rule complexCtorFromKwArgs(KWS:KwArgVals) =>
+    #complex(
+      complexReal(complexCtorRealArg(KWS)) -Float complexImag(complexCtorImagArg(KWS)),
+      complexImag(complexCtorRealArg(KWS)) +Float complexReal(complexCtorImagArg(KWS)))
+    requires kwNoDuplicates(KWS)
+      andBool kwAllInIds(KWS, idItemsCons(#token("real", "Id"), idItemsLast(#token("imag", "Id"))))
+      andBool isComplexLike(complexCtorRealArg(KWS))
+      andBool isComplexLike(complexCtorImagArg(KWS))
+
+  rule complexCtorMergeKw(Base:Val, #noKwArgVals) =>
+    #complex(complexReal(Base), complexImag(Base))
+    requires isComplexLike(Base)
+  rule complexCtorMergeKw(Base:Val, KWS:KwArgVals) =>
+    #complex(
+      complexReal(Base) -Float complexImag(complexCtorImagArg(KWS)),
+      complexImag(Base) +Float complexReal(complexCtorImagArg(KWS)))
+    requires notBool emptyKwArgVals(KWS)
+      andBool kwNoDuplicates(KWS)
+      andBool kwAllInIds(KWS, idItemsLast(#token("imag", "Id")))
+      andBool isComplexLike(Base)
+      andBool isComplexLike(complexCtorImagArg(KWS))
 
   rule appendKwDictVals(DVS:DictVals, #noKwArgVals) => DVS
   rule appendKwDictVals(DVS:DictVals, kwArgValsCons(X:Id, V:Val, KWS:KwArgVals)) =>
@@ -9038,6 +9078,18 @@ module PYTHON
        ... </k>
   rule <k> kwArgsVal(KWS:KwArgVals) ~> buildDictCtorMixed(Base:Val) =>
            dictCtorMergeKw(Base, KWS)
+       ... </k>
+  rule <k> complexCtorKwExp(KWS:KwArgExps) =>
+           evalKwArgs(KWS, #noKwArgVals) ~> buildComplexCtorKw
+       ... </k>
+  rule <k> kwArgsVal(KWS:KwArgVals) ~> buildComplexCtorKw =>
+           complexCtorFromKwArgs(KWS)
+       ... </k>
+  rule <k> complexCtorMixedExp(Base:Val, KWS:KwArgExps) =>
+           evalKwArgs(KWS, #noKwArgVals) ~> buildComplexCtorMixed(Base)
+       ... </k>
+  rule <k> kwArgsVal(KWS:KwArgVals) ~> buildComplexCtorMixed(Base:Val) =>
+           complexCtorMergeKw(Base, KWS)
        ... </k>
 
   rule #listCtor() => []

@@ -212,6 +212,12 @@ def emit_exp(exp: ast.expr) -> str:
             return f"#complexCtor({emit_exp(arg)})"
         case ast.Call(func=ast.Name(id="complex"), args=[real, imag], keywords=[]):
             return f"#complexCtor({emit_exp(real)}, {emit_exp(imag)})"
+        case ast.Call(func=ast.Name(id="complex"), args=[], keywords=keywords) if keywords:
+            return emit_complex_ctor_keywords(exp, None, keywords)
+        case ast.Call(func=ast.Name(id="complex"), args=[arg], keywords=keywords) if keywords:
+            return emit_complex_ctor_keywords(exp, arg, keywords)
+        case ast.Call(func=ast.Name(id="complex"), keywords=keywords) if keywords:
+            raise unsupported(exp, "complex constructor supports at most one positional argument with keywords")
         case ast.Call(func=ast.Attribute(value=value, attr="conjugate", ctx=ast.Load()), args=[], keywords=[]):
             return f"#conjugate({emit_exp(value)})"
         case ast.Call(func=ast.Name(id="abs"), args=[arg], keywords=[]):
@@ -1443,6 +1449,15 @@ def emit_dict_ctor_keywords(
     if base is None:
         return f"#dictCtorKw({kws})"
     return f"#dictCtorMixed({emit_exp(base)}, {kws})"
+
+
+def emit_complex_ctor_keywords(
+    node: ast.AST, base: ast.expr | None, keywords: list[ast.keyword]
+) -> str:
+    kws = emit_kw_arg_exps(node, keywords)
+    if base is None:
+        return f"#complexCtorKw({kws})"
+    return f"#complexCtorMixed({emit_exp(base)}, {kws})"
 
 
 def emit_list(elts: list[ast.expr]) -> str:

@@ -487,6 +487,13 @@
       "coverage": ["int-constructor", "string-to-int", "explicit-int-base", "ordinary-python-source-adapter"]
     },
     {
+      "id": "adapter-int-string-underscores",
+      "source": "../adapter/adapter-int-string-underscores.py",
+      "reference": "Python Standard Library Built-in Types int; Python Standard Library Built-in Functions int and float",
+      "expected_result": "True ~> .K",
+      "coverage": ["int-constructor", "float-constructor", "underscore-digit-separators", "ordinary-python-source-adapter"]
+    },
+    {
       "id": "adapter-chained-comparison",
       "source": "../adapter/adapter-chained-comparison.py",
       "reference": "Python Language Reference 6.10 Comparisons; 6.16 Evaluation order",

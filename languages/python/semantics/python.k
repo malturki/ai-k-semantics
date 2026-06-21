@@ -1061,6 +1061,7 @@ module PYTHON
                 | intStringOk(String, Int) [function, symbol(intStringOk)]
                 | intStringBodyOk(String, Int, Int) [function, symbol(intStringBodyOk)]
                 | intDigitInBase(String, Int) [function, symbol(intDigitInBase)]
+                | intUnderscoreInBase(String, Int, Int) [function, symbol(intUnderscoreInBase)]
                 | floatDecimalStringOk(String) [function, symbol(floatDecimalStringOk)]
                 | floatDecimalBodyOk(String, Int, Bool, Bool) [function, symbol(floatDecimalBodyOk)]
                 | floatMantissaStringOk(String) [function, symbol(floatMantissaStringOk)]
@@ -1460,10 +1461,27 @@ module PYTHON
   rule intStringBodyOk(S:String, _:Int, I:Int) => true
     requires I >=Int lengthString(S)
   rule intStringBodyOk(S:String, B:Int, I:Int) =>
-    intDigitInBase(substrString(S, I, I +Int 1), B) andBool intStringBodyOk(S, B, I +Int 1)
+    intStringBodyOk(S, B, I +Int 1)
     requires I <Int lengthString(S)
+      andBool intDigitInBase(substrString(S, I, I +Int 1), B)
+  rule intStringBodyOk(S:String, B:Int, I:Int) =>
+    intStringBodyOk(S, B, I +Int 1)
+    requires I <Int lengthString(S)
+      andBool intUnderscoreInBase(S, B, I)
+  rule intStringBodyOk(S:String, B:Int, I:Int) => false
+    requires I <Int lengthString(S)
+      andBool notBool intDigitInBase(substrString(S, I, I +Int 1), B)
+      andBool notBool intUnderscoreInBase(S, B, I)
 
   rule intDigitInBase(C:String, B:Int) => digitValue(C) >=Int 0 andBool digitValue(C) <Int B
+
+  rule intUnderscoreInBase(S:String, B:Int, I:Int) => true
+    requires I >Int 0
+      andBool I +Int 1 <Int lengthString(S)
+      andBool substrString(S, I, I +Int 1) ==String "_"
+      andBool intDigitInBase(substrString(S, I -Int 1, I), B)
+      andBool intDigitInBase(substrString(S, I +Int 1, I +Int 2), B)
+  rule intUnderscoreInBase(_:String, _:Int, _:Int) => false [owise]
 
   rule digitValue("0") => 0
   rule digitValue("1") => 1
@@ -1543,8 +1561,13 @@ module PYTHON
   rule intStringAccum(S:String, _:Int, I:Int, Acc:Int) => Acc
     requires I >=Int lengthString(S)
   rule intStringAccum(S:String, B:Int, I:Int, Acc:Int) =>
+    intStringAccum(S, B, I +Int 1, Acc)
+    requires I <Int lengthString(S)
+      andBool substrString(S, I, I +Int 1) ==String "_"
+  rule intStringAccum(S:String, B:Int, I:Int, Acc:Int) =>
     intStringAccum(S, B, I +Int 1, (Acc *Int B) +Int digitValue(substrString(S, I, I +Int 1)))
     requires I <Int lengthString(S)
+      andBool intDigitInBase(substrString(S, I, I +Int 1), B)
 
   rule floatDecimalStringOk(S:String) =>
     floatDecimalBodyOk(S, 1, false, false)

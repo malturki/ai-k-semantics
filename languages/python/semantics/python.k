@@ -1066,6 +1066,7 @@ module PYTHON
                 | floatMantissaStringOk(String) [function, symbol(floatMantissaStringOk)]
                 | floatExponentPartOk(String) [function, symbol(floatExponentPartOk)]
                 | floatExponentStringOk(String) [function, symbol(floatExponentStringOk)]
+                | asciiSpace(String) [function, symbol(asciiSpace)]
                 | containsVal(Val, ValItems) [function, symbol(containsVal)]
                 | bytesContains(ValItems, ValItems) [function, symbol(bytesContains)]
                 | bytesPrefix(ValItems, ValItems) [function, symbol(bytesPrefix)]
@@ -1129,6 +1130,9 @@ module PYTHON
   syntax String ::= repeatString(String, Int) [function, symbol(repeatString)]
                   | sliceString(String, Int, Int) [function, symbol(sliceString)]
                   | sliceStepString(String, Int, Int, Int) [function, symbol(sliceStepString)]
+                  | stripAsciiSpace(String) [function, symbol(stripAsciiSpace)]
+                  | lstripAsciiSpace(String) [function, symbol(lstripAsciiSpace)]
+                  | rstripAsciiSpace(String) [function, symbol(rstripAsciiSpace)]
   syntax ArgVals ::= "#noArgVals" [symbol(noArgVals)]
                    | argValsCons(Val, ArgVals) [symbol(argValsCons)]
                    | appendArgVal(ArgVals, Val) [function, symbol(appendArgVal)]
@@ -1672,6 +1676,29 @@ module PYTHON
     requires N >Int 0
   rule floatScale10(F:Float, N:Int) => floatScale10(F /Float 10.0, N +Int 1)
     requires N <Int 0
+
+  rule asciiSpace(" ") => true
+  rule asciiSpace(_:String) => false [owise]
+
+  rule stripAsciiSpace(S:String) => rstripAsciiSpace(lstripAsciiSpace(S))
+
+  rule lstripAsciiSpace(S:String) => lstripAsciiSpace(substrString(S, 1, lengthString(S)))
+    requires lengthString(S) >Int 0
+      andBool asciiSpace(substrString(S, 0, 1))
+  rule lstripAsciiSpace(S:String) => S
+    requires lengthString(S) ==Int 0
+  rule lstripAsciiSpace(S:String) => S
+    requires lengthString(S) >Int 0
+      andBool notBool asciiSpace(substrString(S, 0, 1))
+
+  rule rstripAsciiSpace(S:String) => rstripAsciiSpace(substrString(S, 0, lengthString(S) -Int 1))
+    requires lengthString(S) >Int 0
+      andBool asciiSpace(substrString(S, lengthString(S) -Int 1, lengthString(S)))
+  rule rstripAsciiSpace(S:String) => S
+    requires lengthString(S) ==Int 0
+  rule rstripAsciiSpace(S:String) => S
+    requires lengthString(S) >Int 0
+      andBool notBool asciiSpace(substrString(S, lengthString(S) -Int 1, lengthString(S)))
 
   rule isComplexLike(#complex(_:Float, _:Float)) => true
   rule isComplexLike(_:Float) => true
@@ -8937,14 +8964,26 @@ module PYTHON
   rule #intCtor() => 0
   rule #intCtor(V:Val) => intValue(V)
     requires isIntLike(V)
+  rule #intCtor(S:String) => intStringValue(stripAsciiSpace(S), 10)
+    requires stripAsciiSpace(S) =/=String S
+      andBool intStringOk(stripAsciiSpace(S), 10)
   rule #intCtor(S:String) => intStringValue(S, 10)
     requires intStringOk(S, 10)
+  rule #intCtor(S:String, B:Val) => intStringValue(stripAsciiSpace(S), intValue(B))
+    requires stripAsciiSpace(S) =/=String S
+      andBool isIntLike(B)
+      andBool intStringOk(stripAsciiSpace(S), intValue(B))
   rule #intCtor(S:String, B:Val) => intStringValue(S, intValue(B))
     requires isIntLike(B) andBool intStringOk(S, intValue(B))
   rule #floatCtor() => 0.0
   rule #floatCtor(F:Float) => F
   rule #floatCtor(V:Val) => floatValue(V)
     requires isIntLike(V)
+  rule #floatCtor(S:String) => #floatCtor(stripAsciiSpace(S))
+    requires stripAsciiSpace(S) =/=String S
+      andBool (intStringOk(stripAsciiSpace(S), 10)
+        orBool floatDecimalStringOk(stripAsciiSpace(S))
+        orBool floatExponentStringOk(stripAsciiSpace(S)))
   rule #floatCtor(S:String) => Int2Float(intStringValue(S, 10), 53, 11)
     requires intStringOk(S, 10)
   rule #floatCtor(S:String) => floatDecimalStringValue(S)

@@ -60,6 +60,13 @@
       "coverage": ["complex-constructor", "complex-values", "numeric-constructor", "ordinary-python-source-adapter"]
     },
     {
+      "id": "adapter-numeric-real-imag-attributes",
+      "source": "../adapter/adapter-numeric-real-imag-attributes.py",
+      "reference": "Python Language Reference data model numbers; Python Standard Library Built-in Types numeric types; CPython numeric real/imag attributes",
+      "expected_result": "True ~> .K",
+      "coverage": ["attribute-reference", "numeric-real-attribute", "numeric-imag-attribute", "complex-values", "int-values", "float-values", "bool-as-int", "ordinary-python-source-adapter"]
+    },
+    {
       "id": "adapter-complex-power",
       "source": "../adapter/adapter-complex-power.py",
       "reference": "Python Language Reference 6.5 The power operator; Python Standard Library Built-in Functions pow",

@@ -4427,6 +4427,18 @@ module PYTHON
     requires Id2String(Attr) ==String "stop"
   rule attrExp(sliceVal(_:Val, _:Val, Step:Val), Attr:Id) => Step
     requires Id2String(Attr) ==String "step"
+  rule attrExp(#complex(R:Float, _:Float), Attr:Id) => R
+    requires Id2String(Attr) ==String "real"
+  rule attrExp(#complex(_:Float, I:Float), Attr:Id) => I
+    requires Id2String(Attr) ==String "imag"
+  rule attrExp(F:Float, Attr:Id) => F
+    requires Id2String(Attr) ==String "real"
+  rule attrExp(_:Float, Attr:Id) => 0.0
+    requires Id2String(Attr) ==String "imag"
+  rule attrExp(V:Val, Attr:Id) => intValue(V)
+    requires isIntLike(V) andBool Id2String(Attr) ==String "real"
+  rule attrExp(V:Val, Attr:Id) => 0
+    requires isIntLike(V) andBool Id2String(Attr) ==String "imag"
 
   rule V1:Val < V2:Val => boolValue(intValue(V1) <Int intValue(V2))
     requires isIntLike(V1) andBool isIntLike(V2)

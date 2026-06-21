@@ -843,20 +843,217 @@ def emit_decorated_function_def(
     body: list[ast.stmt],
     decorators: list[ast.expr],
 ) -> str:
-    if (
-        args.posonlyargs
-        or args.vararg is not None
-        or args.kwonlyargs
-        or args.kwarg is not None
-        or any(default is not None for default in args.kw_defaults)
-    ):
-        raise unsupported(
-            node,
-            "decorated functions are supported only for positional parameters with optional suffix defaults",
-        )
+    def value_spec(value: str) -> str:
+        return value
+
+    def default_spec(defaults: str, builder: str) -> str:
+        return f"#functionDefaultSpec({defaults}, {builder})"
+
+    def two_default_spec(defaults: str, kw_defaults: str, builder: str) -> str:
+        return f"#functionTwoDefaultSpec({defaults}, {kw_defaults}, {builder})"
+
     names = [arg.arg for arg in args.args]
     body_text = emit_block(body)
-    if args.defaults:
+    if args.kwonlyargs:
+        kw_names = [arg.arg for arg in args.kwonlyargs]
+        kw_defaults = emit_kw_defaults(args.kw_defaults)
+        kw_defaults_exp = kw_defaults if kw_defaults is not None else "#noArgs"
+        if args.posonlyargs:
+            pos_names = [arg.arg for arg in args.posonlyargs]
+            pos_ids = emit_id_items(pos_names)
+            rest_ids = emit_id_items(names)
+            kw_ids = emit_id_items(kw_names)
+            if args.vararg is not None:
+                if args.kwarg is not None:
+                    if args.defaults or kw_defaults is not None:
+                        pos_defaults = emit_arg_exps(args.defaults) if args.defaults else "#noArgs"
+                        function_value = two_default_spec(
+                            pos_defaults,
+                            kw_defaults_exp,
+                            f"#buildFunctionPosOnlyVarArgsKwDefaultsKwArgs({pos_ids}, {rest_ids}, {args.vararg.arg}, {kw_ids}, {args.kwarg.arg}, {body_text})",
+                        )
+                    else:
+                        function_value = value_spec(
+                            f"#functionPosOnlyVarArgsKwOnlyKwArgs({pos_ids}, {rest_ids}, {args.vararg.arg}, {kw_ids}, {args.kwarg.arg}, {body_text})"
+                        )
+                elif args.defaults or kw_defaults is not None:
+                    pos_defaults = emit_arg_exps(args.defaults) if args.defaults else "#noArgs"
+                    function_value = two_default_spec(
+                        pos_defaults,
+                        kw_defaults_exp,
+                        f"#buildFunctionPosOnlyVarArgsKwDefaults({pos_ids}, {rest_ids}, {args.vararg.arg}, {kw_ids}, {body_text})",
+                    )
+                else:
+                    function_value = value_spec(
+                        f"#functionPosOnlyVarArgsKwOnly({pos_ids}, {rest_ids}, {args.vararg.arg}, {kw_ids}, {body_text})"
+                    )
+            elif args.kwarg is not None:
+                if args.defaults or kw_defaults is not None:
+                    pos_defaults = emit_arg_exps(args.defaults) if args.defaults else "#noArgs"
+                    function_value = two_default_spec(
+                        pos_defaults,
+                        kw_defaults_exp,
+                        f"#buildFunctionPosOnlyKwDefaultsKwArgs({pos_ids}, {rest_ids}, {kw_ids}, {args.kwarg.arg}, {body_text})",
+                    )
+                else:
+                    function_value = value_spec(
+                        f"#functionPosOnlyKwOnlyKwArgs({pos_ids}, {rest_ids}, {kw_ids}, {args.kwarg.arg}, {body_text})"
+                    )
+            elif args.defaults or kw_defaults is not None:
+                pos_defaults = emit_arg_exps(args.defaults) if args.defaults else "#noArgs"
+                function_value = two_default_spec(
+                    pos_defaults,
+                    kw_defaults_exp,
+                    f"#buildFunctionPosOnlyKwOnlyDefaults({pos_ids}, {rest_ids}, {kw_ids}, {body_text})",
+                )
+            else:
+                function_value = value_spec(
+                    f"#functionPosOnlyKwOnly({pos_ids}, {rest_ids}, {kw_ids}, {body_text})"
+                )
+        else:
+            ids = emit_id_items(names)
+            kw_ids = emit_id_items(kw_names)
+            if args.kwarg is not None:
+                if args.vararg is not None:
+                    if args.defaults or kw_defaults is not None:
+                        pos_defaults = emit_arg_exps(args.defaults) if args.defaults else "#noArgs"
+                        function_value = two_default_spec(
+                            pos_defaults,
+                            kw_defaults_exp,
+                            f"#buildFunctionVarArgsKwDefaultsKwArgs({ids}, {args.vararg.arg}, {kw_ids}, {args.kwarg.arg}, {body_text})",
+                        )
+                    else:
+                        function_value = value_spec(
+                            f"#functionVarArgsKwOnlyKwArgs({ids}, {args.vararg.arg}, {kw_ids}, {args.kwarg.arg}, {body_text})"
+                        )
+                elif names:
+                    if args.defaults or kw_defaults is not None:
+                        pos_defaults = emit_arg_exps(args.defaults) if args.defaults else "#noArgs"
+                        function_value = two_default_spec(
+                            pos_defaults,
+                            kw_defaults_exp,
+                            f"#buildFunctionPosKwDefaultsKwArgs({ids}, {kw_ids}, {args.kwarg.arg}, {body_text})",
+                        )
+                    else:
+                        function_value = value_spec(
+                            f"#functionPosKwOnlyKwArgs({ids}, {kw_ids}, {args.kwarg.arg}, {body_text})"
+                        )
+                elif kw_defaults is not None:
+                    function_value = default_spec(
+                        kw_defaults,
+                        f"#buildFunctionKwDefaultsKwArgs({kw_ids}, {args.kwarg.arg}, {body_text})",
+                    )
+                else:
+                    function_value = value_spec(
+                        f"#functionKwOnlyKwArgs({kw_ids}, {args.kwarg.arg}, {body_text})"
+                    )
+            elif args.vararg is not None:
+                if args.defaults or kw_defaults is not None:
+                    pos_defaults = emit_arg_exps(args.defaults) if args.defaults else "#noArgs"
+                    function_value = two_default_spec(
+                        pos_defaults,
+                        kw_defaults_exp,
+                        f"#buildFunctionVarArgsKwDefaults({ids}, {args.vararg.arg}, {kw_ids}, {body_text})",
+                    )
+                else:
+                    function_value = value_spec(
+                        f"#functionVarArgsKwOnly({ids}, {args.vararg.arg}, {kw_ids}, {body_text})"
+                    )
+            elif names:
+                if args.defaults or kw_defaults is not None:
+                    pos_defaults = emit_arg_exps(args.defaults) if args.defaults else "#noArgs"
+                    function_value = two_default_spec(
+                        pos_defaults,
+                        kw_defaults_exp,
+                        f"#buildFunctionPosKwDefaults({ids}, {kw_ids}, {body_text})",
+                    )
+                else:
+                    function_value = value_spec(
+                        f"#functionPosKwOnly({ids}, {kw_ids}, {body_text})"
+                    )
+            elif kw_defaults is not None:
+                function_value = default_spec(
+                    kw_defaults,
+                    f"#buildFunctionKwDefaults({kw_ids}, {body_text})",
+                )
+            else:
+                function_value = value_spec(f"#functionKwOnly({kw_ids}, {body_text})")
+    elif args.posonlyargs:
+        pos_names = [arg.arg for arg in args.posonlyargs]
+        pos_ids = emit_id_items(pos_names)
+        rest_ids = emit_id_items(names)
+        if args.kwarg is not None:
+            if args.vararg is not None:
+                if args.defaults:
+                    function_value = default_spec(
+                        emit_arg_exps(args.defaults),
+                        f"#buildFunctionPosOnlyVarKwArgsDefaults({pos_ids}, {rest_ids}, {args.vararg.arg}, {args.kwarg.arg}, {body_text})",
+                    )
+                else:
+                    function_value = value_spec(
+                        f"#functionPosOnlyVarKwArgs({pos_ids}, {rest_ids}, {args.vararg.arg}, {args.kwarg.arg}, {body_text})"
+                    )
+            elif args.defaults:
+                function_value = default_spec(
+                    emit_arg_exps(args.defaults),
+                    f"#buildFunctionPosOnlyKwArgsDefaults({pos_ids}, {rest_ids}, {args.kwarg.arg}, {body_text})",
+                )
+            else:
+                function_value = value_spec(
+                    f"#functionPosOnlyKwArgs({pos_ids}, {rest_ids}, {args.kwarg.arg}, {body_text})"
+                )
+        elif args.vararg is not None:
+            if args.defaults:
+                function_value = default_spec(
+                    emit_arg_exps(args.defaults),
+                    f"#buildFunctionPosOnlyVarArgsDefaults({pos_ids}, {rest_ids}, {args.vararg.arg}, {body_text})",
+                )
+            else:
+                function_value = value_spec(
+                    f"#functionPosOnlyVarArgs({pos_ids}, {rest_ids}, {args.vararg.arg}, {body_text})"
+                )
+        elif args.defaults:
+            function_value = default_spec(
+                emit_arg_exps(args.defaults),
+                f"#buildFunctionPosOnlyDefaults({pos_ids}, {rest_ids}, {body_text})",
+            )
+        else:
+            function_value = value_spec(
+                f"#functionPosOnly({pos_ids}, {rest_ids}, {body_text})"
+            )
+    elif args.kwarg is not None:
+        ids = emit_id_items(names)
+        if args.vararg is not None:
+            if args.defaults:
+                function_value = default_spec(
+                    emit_arg_exps(args.defaults),
+                    f"#buildFunctionVarKwArgsDefaults({ids}, {args.vararg.arg}, {args.kwarg.arg}, {body_text})",
+                )
+            else:
+                function_value = value_spec(
+                    f"#functionVarKwArgs({ids}, {args.vararg.arg}, {args.kwarg.arg}, {body_text})"
+                )
+        elif args.defaults:
+            function_value = default_spec(
+                emit_arg_exps(args.defaults),
+                f"#buildFunctionKwArgsDefaults({ids}, {args.kwarg.arg}, {body_text})",
+            )
+        else:
+            function_value = value_spec(
+                f"#functionKwArgs({ids}, {args.kwarg.arg}, {body_text})"
+            )
+    elif args.vararg is not None:
+        ids = emit_id_items(names)
+        if args.defaults:
+            function_value = default_spec(
+                emit_arg_exps(args.defaults),
+                f"#buildFunctionVarArgsDefaults({ids}, {args.vararg.arg}, {body_text})",
+            )
+        else:
+            function_value = value_spec(
+                f"#functionVarArgs({ids}, {args.vararg.arg}, {body_text})"
+            )
+    elif args.defaults:
         function_value = f"#functionDefaults({emit_id_items(names)}, {emit_arg_exps(args.defaults)}, {body_text})"
     elif len(names) == 1:
         function_value = f"#function({names[0]}, {body_text})"

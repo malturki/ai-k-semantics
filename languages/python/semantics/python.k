@@ -88,6 +88,45 @@ module PYTHON-SYNTAX
   syntax FunctionSpec ::= "#function" "(" Id "," Block ")" [symbol(functionSpecOne)]
                         | "#functionArgs" "(" IdItems "," Block ")" [symbol(functionSpecArgs)]
                         | "#functionDefaults" "(" IdItems "," ArgExps "," Block ")" [symbol(functionSpecDefaults)]
+                        | "#functionVarArgs" "(" IdItems "," Id "," Block ")" [symbol(functionSpecVarArgs)]
+                        | "#functionVarArgsKwOnly" "(" IdItems "," Id "," IdItems "," Block ")" [symbol(functionSpecVarArgsKwOnly)]
+                        | "#functionVarArgsKwOnlyKwArgs" "(" IdItems "," Id "," IdItems "," Id "," Block ")" [symbol(functionSpecVarArgsKwOnlyKwArgs)]
+                        | "#functionVarKwArgs" "(" IdItems "," Id "," Id "," Block ")" [symbol(functionSpecVarKwArgs)]
+                        | "#functionKwArgs" "(" IdItems "," Id "," Block ")" [symbol(functionSpecKwArgs)]
+                        | "#functionPosOnly" "(" IdItems "," IdItems "," Block ")" [symbol(functionSpecPosOnly)]
+                        | "#functionPosOnlyVarArgs" "(" IdItems "," IdItems "," Id "," Block ")" [symbol(functionSpecPosOnlyVarArgs)]
+                        | "#functionPosOnlyKwArgs" "(" IdItems "," IdItems "," Id "," Block ")" [symbol(functionSpecPosOnlyKwArgs)]
+                        | "#functionPosOnlyVarKwArgs" "(" IdItems "," IdItems "," Id "," Id "," Block ")" [symbol(functionSpecPosOnlyVarKwArgs)]
+                        | "#functionPosOnlyVarArgsKwOnly" "(" IdItems "," IdItems "," Id "," IdItems "," Block ")" [symbol(functionSpecPosOnlyVarArgsKwOnly)]
+                        | "#functionPosOnlyVarArgsKwOnlyKwArgs" "(" IdItems "," IdItems "," Id "," IdItems "," Id "," Block ")" [symbol(functionSpecPosOnlyVarArgsKwOnlyKwArgs)]
+                        | "#functionPosOnlyKwOnly" "(" IdItems "," IdItems "," IdItems "," Block ")" [symbol(functionSpecPosOnlyKwOnly)]
+                        | "#functionPosOnlyKwOnlyKwArgs" "(" IdItems "," IdItems "," IdItems "," Id "," Block ")" [symbol(functionSpecPosOnlyKwOnlyKwArgs)]
+                        | "#functionKwOnly" "(" IdItems "," Block ")" [symbol(functionSpecKwOnly)]
+                        | "#functionKwOnlyKwArgs" "(" IdItems "," Id "," Block ")" [symbol(functionSpecKwOnlyKwArgs)]
+                        | "#functionPosKwOnly" "(" IdItems "," IdItems "," Block ")" [symbol(functionSpecPosKwOnly)]
+                        | "#functionPosKwOnlyKwArgs" "(" IdItems "," IdItems "," Id "," Block ")" [symbol(functionSpecPosKwOnlyKwArgs)]
+                        | "#functionDefaultSpec" "(" ArgExps "," FunctionDefaultBuilder ")" [symbol(functionSpecDefaultBuilder)]
+                        | "#functionTwoDefaultSpec" "(" ArgExps "," ArgExps "," FunctionTwoDefaultBuilder ")" [symbol(functionSpecTwoDefaultBuilder)]
+
+  syntax FunctionDefaultBuilder ::= "#buildFunctionDefaults" "(" IdItems "," Block ")" [symbol(functionDefaultBuilderDefaults)]
+                                  | "#buildFunctionVarArgsDefaults" "(" IdItems "," Id "," Block ")" [symbol(functionDefaultBuilderVarArgsDefaults)]
+                                  | "#buildFunctionVarKwArgsDefaults" "(" IdItems "," Id "," Id "," Block ")" [symbol(functionDefaultBuilderVarKwArgsDefaults)]
+                                  | "#buildFunctionKwArgsDefaults" "(" IdItems "," Id "," Block ")" [symbol(functionDefaultBuilderKwArgsDefaults)]
+                                  | "#buildFunctionPosOnlyDefaults" "(" IdItems "," IdItems "," Block ")" [symbol(functionDefaultBuilderPosOnlyDefaults)]
+                                  | "#buildFunctionPosOnlyVarArgsDefaults" "(" IdItems "," IdItems "," Id "," Block ")" [symbol(functionDefaultBuilderPosOnlyVarArgsDefaults)]
+                                  | "#buildFunctionPosOnlyKwArgsDefaults" "(" IdItems "," IdItems "," Id "," Block ")" [symbol(functionDefaultBuilderPosOnlyKwArgsDefaults)]
+                                  | "#buildFunctionPosOnlyVarKwArgsDefaults" "(" IdItems "," IdItems "," Id "," Id "," Block ")" [symbol(functionDefaultBuilderPosOnlyVarKwArgsDefaults)]
+                                  | "#buildFunctionKwDefaults" "(" IdItems "," Block ")" [symbol(functionDefaultBuilderKwDefaults)]
+                                  | "#buildFunctionKwDefaultsKwArgs" "(" IdItems "," Id "," Block ")" [symbol(functionDefaultBuilderKwDefaultsKwArgs)]
+
+  syntax FunctionTwoDefaultBuilder ::= "#buildFunctionVarArgsKwDefaults" "(" IdItems "," Id "," IdItems "," Block ")" [symbol(functionTwoDefaultBuilderVarArgsKwDefaults)]
+                                     | "#buildFunctionVarArgsKwDefaultsKwArgs" "(" IdItems "," Id "," IdItems "," Id "," Block ")" [symbol(functionTwoDefaultBuilderVarArgsKwDefaultsKwArgs)]
+                                     | "#buildFunctionPosOnlyVarArgsKwDefaults" "(" IdItems "," IdItems "," Id "," IdItems "," Block ")" [symbol(functionTwoDefaultBuilderPosOnlyVarArgsKwDefaults)]
+                                     | "#buildFunctionPosOnlyVarArgsKwDefaultsKwArgs" "(" IdItems "," IdItems "," Id "," IdItems "," Id "," Block ")" [symbol(functionTwoDefaultBuilderPosOnlyVarArgsKwDefaultsKwArgs)]
+                                     | "#buildFunctionPosOnlyKwOnlyDefaults" "(" IdItems "," IdItems "," IdItems "," Block ")" [symbol(functionTwoDefaultBuilderPosOnlyKwOnlyDefaults)]
+                                     | "#buildFunctionPosOnlyKwDefaultsKwArgs" "(" IdItems "," IdItems "," IdItems "," Id "," Block ")" [symbol(functionTwoDefaultBuilderPosOnlyKwDefaultsKwArgs)]
+                                     | "#buildFunctionPosKwDefaults" "(" IdItems "," IdItems "," Block ")" [symbol(functionTwoDefaultBuilderPosKwDefaults)]
+                                     | "#buildFunctionPosKwDefaultsKwArgs" "(" IdItems "," IdItems "," Id "," Block ")" [symbol(functionTwoDefaultBuilderPosKwDefaultsKwArgs)]
 
   syntax Stmt ::= Exp
                 | "pass" [symbol(passStmt)]
@@ -397,6 +436,8 @@ module PYTHON
                | functionValPosKwDefaults(IdItems, ArgVals, IdItems, ArgVals, Block) [symbol(functionValPosKwDefaults)]
                | functionValPosKwOnlyKwArgs(IdItems, IdItems, Id, Block) [symbol(functionValPosKwOnlyKwArgs)]
                | functionValPosKwDefaultsKwArgs(IdItems, ArgVals, IdItems, ArgVals, Id, Block) [symbol(functionValPosKwDefaultsKwArgs)]
+               | buildFunctionDefault(FunctionDefaultBuilder, ArgVals) [function, symbol(buildFunctionDefault)]
+               | buildFunctionTwoDefaults(FunctionTwoDefaultBuilder, ArgVals, ArgVals) [function, symbol(buildFunctionTwoDefaults)]
                | rangeVal(Int, Int) [symbol(rangeVal)]
                | rangeVal(Int, Int, Int) [symbol(rangeValStep)]
                | sliceVal(Val, Val, Val) [symbol(sliceVal)]
@@ -656,6 +697,11 @@ module PYTHON
                  | bindDecoratedFunction(Id, Val) [symbol(bindDecoratedFunction)]
                  | bindDecoratedFunctionDefaults(Id, IdItems, ArgExps, Block) [symbol(bindDecoratedFunctionDefaults)]
                  | bindDecoratedFunctionDefaultVals(Id, ArgVals, IdItems, Block) [symbol(bindDecoratedFunctionDefaultVals)]
+                 | bindDecoratedFunctionDefaultBuilder(Id, FunctionDefaultBuilder, ArgExps) [symbol(bindDecoratedFunctionDefaultBuilder)]
+                 | bindDecoratedFunctionDefaultBuilderVals(Id, ArgVals, FunctionDefaultBuilder) [symbol(bindDecoratedFunctionDefaultBuilderVals)]
+                 | bindDecoratedFunctionTwoDefaultBuilder(Id, FunctionTwoDefaultBuilder, ArgExps, ArgExps) [symbol(bindDecoratedFunctionTwoDefaultBuilder)]
+                 | bindDecoratedFunctionTwoDefaultBuilderKw(Id, ArgVals, FunctionTwoDefaultBuilder, ArgExps) [symbol(bindDecoratedFunctionTwoDefaultBuilderKw)]
+                 | bindDecoratedFunctionTwoDefaultBuilderVals(Id, ArgVals, ArgVals, FunctionTwoDefaultBuilder) [symbol(bindDecoratedFunctionTwoDefaultBuilderVals)]
                  | applyDecorators(Id, ArgVals) [symbol(applyDecorators)]
                  | bindFunctionDefaults(Id, IdItems, Block) [symbol(bindFunctionDefaults)]
                  | bindFunctionVarArgsDefaults(Id, IdItems, Id, Block) [symbol(bindFunctionVarArgsDefaults)]
@@ -7335,6 +7381,44 @@ module PYTHON
        <env> Rho => Rho [ F <- functionValDefaults(IDS, Defaults, Body) ] </env>
        <result> _ => .K </result>
 
+  rule buildFunctionDefault(functionDefaultBuilderDefaults(IDS:IdItems, Body:Block), Defaults:ArgVals) =>
+         functionValDefaults(IDS, Defaults, Body)
+  rule buildFunctionDefault(functionDefaultBuilderVarArgsDefaults(IDS:IdItems, Var:Id, Body:Block), Defaults:ArgVals) =>
+         functionValVarArgsDefaults(IDS, Defaults, Var, Body)
+  rule buildFunctionDefault(functionDefaultBuilderVarKwArgsDefaults(IDS:IdItems, Var:Id, Kw:Id, Body:Block), Defaults:ArgVals) =>
+         functionValVarKwArgsDefaults(IDS, Defaults, Var, Kw, Body)
+  rule buildFunctionDefault(functionDefaultBuilderKwArgsDefaults(IDS:IdItems, Kw:Id, Body:Block), Defaults:ArgVals) =>
+         functionValKwArgsDefaults(IDS, Defaults, Kw, Body)
+  rule buildFunctionDefault(functionDefaultBuilderPosOnlyDefaults(Pos:IdItems, Rest:IdItems, Body:Block), Defaults:ArgVals) =>
+         functionValPosOnlyDefaults(Pos, Rest, Defaults, Body)
+  rule buildFunctionDefault(functionDefaultBuilderPosOnlyVarArgsDefaults(Pos:IdItems, Rest:IdItems, Var:Id, Body:Block), Defaults:ArgVals) =>
+         functionValPosOnlyVarArgsDefaults(Pos, Rest, Defaults, Var, Body)
+  rule buildFunctionDefault(functionDefaultBuilderPosOnlyKwArgsDefaults(Pos:IdItems, Rest:IdItems, Kw:Id, Body:Block), Defaults:ArgVals) =>
+         functionValPosOnlyKwArgsDefaults(Pos, Rest, Defaults, Kw, Body)
+  rule buildFunctionDefault(functionDefaultBuilderPosOnlyVarKwArgsDefaults(Pos:IdItems, Rest:IdItems, Var:Id, Kw:Id, Body:Block), Defaults:ArgVals) =>
+         functionValPosOnlyVarKwArgsDefaults(Pos, Rest, Defaults, Var, Kw, Body)
+  rule buildFunctionDefault(functionDefaultBuilderKwDefaults(IDS:IdItems, Body:Block), Defaults:ArgVals) =>
+         functionValKwDefaults(IDS, Defaults, Body)
+  rule buildFunctionDefault(functionDefaultBuilderKwDefaultsKwArgs(IDS:IdItems, Kw:Id, Body:Block), Defaults:ArgVals) =>
+         functionValKwDefaultsKwArgs(IDS, Defaults, Kw, Body)
+
+  rule buildFunctionTwoDefaults(functionTwoDefaultBuilderVarArgsKwDefaults(IDS:IdItems, Var:Id, KwOnly:IdItems, Body:Block), Defaults:ArgVals, KwDefaults:ArgVals) =>
+         functionValVarArgsKwDefaults(IDS, Defaults, Var, KwOnly, KwDefaults, Body)
+  rule buildFunctionTwoDefaults(functionTwoDefaultBuilderVarArgsKwDefaultsKwArgs(IDS:IdItems, Var:Id, KwOnly:IdItems, Kw:Id, Body:Block), Defaults:ArgVals, KwDefaults:ArgVals) =>
+         functionValVarArgsKwDefaultsKwArgs(IDS, Defaults, Var, KwOnly, KwDefaults, Kw, Body)
+  rule buildFunctionTwoDefaults(functionTwoDefaultBuilderPosOnlyVarArgsKwDefaults(Pos:IdItems, Rest:IdItems, Var:Id, KwOnly:IdItems, Body:Block), Defaults:ArgVals, KwDefaults:ArgVals) =>
+         functionValPosOnlyVarArgsKwDefaults(Pos, Rest, Defaults, Var, KwOnly, KwDefaults, Body)
+  rule buildFunctionTwoDefaults(functionTwoDefaultBuilderPosOnlyVarArgsKwDefaultsKwArgs(Pos:IdItems, Rest:IdItems, Var:Id, KwOnly:IdItems, Kw:Id, Body:Block), Defaults:ArgVals, KwDefaults:ArgVals) =>
+         functionValPosOnlyVarArgsKwDefaultsKwArgs(Pos, Rest, Defaults, Var, KwOnly, KwDefaults, Kw, Body)
+  rule buildFunctionTwoDefaults(functionTwoDefaultBuilderPosOnlyKwOnlyDefaults(Pos:IdItems, Rest:IdItems, KwOnly:IdItems, Body:Block), Defaults:ArgVals, KwDefaults:ArgVals) =>
+         functionValPosOnlyKwOnlyDefaults(Pos, Rest, Defaults, KwOnly, KwDefaults, Body)
+  rule buildFunctionTwoDefaults(functionTwoDefaultBuilderPosOnlyKwDefaultsKwArgs(Pos:IdItems, Rest:IdItems, KwOnly:IdItems, Kw:Id, Body:Block), Defaults:ArgVals, KwDefaults:ArgVals) =>
+         functionValPosOnlyKwDefaultsKwArgs(Pos, Rest, Defaults, KwOnly, KwDefaults, Kw, Body)
+  rule buildFunctionTwoDefaults(functionTwoDefaultBuilderPosKwDefaults(Pos:IdItems, KwOnly:IdItems, Body:Block), Defaults:ArgVals, KwDefaults:ArgVals) =>
+         functionValPosKwDefaults(Pos, Defaults, KwOnly, KwDefaults, Body)
+  rule buildFunctionTwoDefaults(functionTwoDefaultBuilderPosKwDefaultsKwArgs(Pos:IdItems, KwOnly:IdItems, Kw:Id, Body:Block), Defaults:ArgVals, KwDefaults:ArgVals) =>
+         functionValPosKwDefaultsKwArgs(Pos, Defaults, KwOnly, KwDefaults, Kw, Body)
+
   rule <k> functionDefDecoratedStmt(F:Id, Decorators:ArgExps, functionSpecOne(X:Id, Body:Block)) =>
            evalArgs(Decorators, #noArgVals) ~> bindDecoratedFunction(F, functionVal(X, Body))
        ... </k>
@@ -7344,6 +7428,63 @@ module PYTHON
   rule <k> functionDefDecoratedStmt(F:Id, Decorators:ArgExps, functionSpecDefaults(IDS:IdItems, Defaults:ArgExps, Body:Block)) =>
            evalArgs(Decorators, #noArgVals) ~> bindDecoratedFunctionDefaults(F, IDS, Defaults, Body)
        ... </k>
+  rule <k> functionDefDecoratedStmt(F:Id, Decorators:ArgExps, functionSpecVarArgs(IDS:IdItems, Var:Id, Body:Block)) =>
+           evalArgs(Decorators, #noArgVals) ~> bindDecoratedFunction(F, functionValVarArgs(IDS, Var, Body))
+       ... </k>
+  rule <k> functionDefDecoratedStmt(F:Id, Decorators:ArgExps, functionSpecVarArgsKwOnly(IDS:IdItems, Var:Id, KwOnly:IdItems, Body:Block)) =>
+           evalArgs(Decorators, #noArgVals) ~> bindDecoratedFunction(F, functionValVarArgsKwOnly(IDS, Var, KwOnly, Body))
+       ... </k>
+  rule <k> functionDefDecoratedStmt(F:Id, Decorators:ArgExps, functionSpecVarArgsKwOnlyKwArgs(IDS:IdItems, Var:Id, KwOnly:IdItems, Kw:Id, Body:Block)) =>
+           evalArgs(Decorators, #noArgVals) ~> bindDecoratedFunction(F, functionValVarArgsKwOnlyKwArgs(IDS, Var, KwOnly, Kw, Body))
+       ... </k>
+  rule <k> functionDefDecoratedStmt(F:Id, Decorators:ArgExps, functionSpecVarKwArgs(IDS:IdItems, Var:Id, Kw:Id, Body:Block)) =>
+           evalArgs(Decorators, #noArgVals) ~> bindDecoratedFunction(F, functionValVarKwArgs(IDS, Var, Kw, Body))
+       ... </k>
+  rule <k> functionDefDecoratedStmt(F:Id, Decorators:ArgExps, functionSpecKwArgs(IDS:IdItems, Kw:Id, Body:Block)) =>
+           evalArgs(Decorators, #noArgVals) ~> bindDecoratedFunction(F, functionValKwArgs(IDS, Kw, Body))
+       ... </k>
+  rule <k> functionDefDecoratedStmt(F:Id, Decorators:ArgExps, functionSpecPosOnly(Pos:IdItems, Rest:IdItems, Body:Block)) =>
+           evalArgs(Decorators, #noArgVals) ~> bindDecoratedFunction(F, functionValPosOnly(Pos, Rest, Body))
+       ... </k>
+  rule <k> functionDefDecoratedStmt(F:Id, Decorators:ArgExps, functionSpecPosOnlyVarArgs(Pos:IdItems, Rest:IdItems, Var:Id, Body:Block)) =>
+           evalArgs(Decorators, #noArgVals) ~> bindDecoratedFunction(F, functionValPosOnlyVarArgs(Pos, Rest, Var, Body))
+       ... </k>
+  rule <k> functionDefDecoratedStmt(F:Id, Decorators:ArgExps, functionSpecPosOnlyKwArgs(Pos:IdItems, Rest:IdItems, Kw:Id, Body:Block)) =>
+           evalArgs(Decorators, #noArgVals) ~> bindDecoratedFunction(F, functionValPosOnlyKwArgs(Pos, Rest, Kw, Body))
+       ... </k>
+  rule <k> functionDefDecoratedStmt(F:Id, Decorators:ArgExps, functionSpecPosOnlyVarKwArgs(Pos:IdItems, Rest:IdItems, Var:Id, Kw:Id, Body:Block)) =>
+           evalArgs(Decorators, #noArgVals) ~> bindDecoratedFunction(F, functionValPosOnlyVarKwArgs(Pos, Rest, Var, Kw, Body))
+       ... </k>
+  rule <k> functionDefDecoratedStmt(F:Id, Decorators:ArgExps, functionSpecPosOnlyVarArgsKwOnly(Pos:IdItems, Rest:IdItems, Var:Id, KwOnly:IdItems, Body:Block)) =>
+           evalArgs(Decorators, #noArgVals) ~> bindDecoratedFunction(F, functionValPosOnlyVarArgsKwOnly(Pos, Rest, Var, KwOnly, Body))
+       ... </k>
+  rule <k> functionDefDecoratedStmt(F:Id, Decorators:ArgExps, functionSpecPosOnlyVarArgsKwOnlyKwArgs(Pos:IdItems, Rest:IdItems, Var:Id, KwOnly:IdItems, Kw:Id, Body:Block)) =>
+           evalArgs(Decorators, #noArgVals) ~> bindDecoratedFunction(F, functionValPosOnlyVarArgsKwOnlyKwArgs(Pos, Rest, Var, KwOnly, Kw, Body))
+       ... </k>
+  rule <k> functionDefDecoratedStmt(F:Id, Decorators:ArgExps, functionSpecPosOnlyKwOnly(Pos:IdItems, Rest:IdItems, KwOnly:IdItems, Body:Block)) =>
+           evalArgs(Decorators, #noArgVals) ~> bindDecoratedFunction(F, functionValPosOnlyKwOnly(Pos, Rest, KwOnly, Body))
+       ... </k>
+  rule <k> functionDefDecoratedStmt(F:Id, Decorators:ArgExps, functionSpecPosOnlyKwOnlyKwArgs(Pos:IdItems, Rest:IdItems, KwOnly:IdItems, Kw:Id, Body:Block)) =>
+           evalArgs(Decorators, #noArgVals) ~> bindDecoratedFunction(F, functionValPosOnlyKwOnlyKwArgs(Pos, Rest, KwOnly, Kw, Body))
+       ... </k>
+  rule <k> functionDefDecoratedStmt(F:Id, Decorators:ArgExps, functionSpecKwOnly(IDS:IdItems, Body:Block)) =>
+           evalArgs(Decorators, #noArgVals) ~> bindDecoratedFunction(F, functionValKwOnly(IDS, Body))
+       ... </k>
+  rule <k> functionDefDecoratedStmt(F:Id, Decorators:ArgExps, functionSpecKwOnlyKwArgs(IDS:IdItems, Kw:Id, Body:Block)) =>
+           evalArgs(Decorators, #noArgVals) ~> bindDecoratedFunction(F, functionValKwOnlyKwArgs(IDS, Kw, Body))
+       ... </k>
+  rule <k> functionDefDecoratedStmt(F:Id, Decorators:ArgExps, functionSpecPosKwOnly(Pos:IdItems, KwOnly:IdItems, Body:Block)) =>
+           evalArgs(Decorators, #noArgVals) ~> bindDecoratedFunction(F, functionValPosKwOnly(Pos, KwOnly, Body))
+       ... </k>
+  rule <k> functionDefDecoratedStmt(F:Id, Decorators:ArgExps, functionSpecPosKwOnlyKwArgs(Pos:IdItems, KwOnly:IdItems, Kw:Id, Body:Block)) =>
+           evalArgs(Decorators, #noArgVals) ~> bindDecoratedFunction(F, functionValPosKwOnlyKwArgs(Pos, KwOnly, Kw, Body))
+       ... </k>
+  rule <k> functionDefDecoratedStmt(F:Id, Decorators:ArgExps, functionSpecDefaultBuilder(Defaults:ArgExps, Builder:FunctionDefaultBuilder)) =>
+           evalArgs(Decorators, #noArgVals) ~> bindDecoratedFunctionDefaultBuilder(F, Builder, Defaults)
+       ... </k>
+  rule <k> functionDefDecoratedStmt(F:Id, Decorators:ArgExps, functionSpecTwoDefaultBuilder(Defaults:ArgExps, KwDefaults:ArgExps, Builder:FunctionTwoDefaultBuilder)) =>
+           evalArgs(Decorators, #noArgVals) ~> bindDecoratedFunctionTwoDefaultBuilder(F, Builder, Defaults, KwDefaults)
+       ... </k>
   rule <k> argsVal(Decorators:ArgVals) ~> bindDecoratedFunction(F:Id, Fun:Val) =>
            Fun ~> applyDecorators(F, reverseArgVals(Decorators))
        ... </k>
@@ -7352,6 +7493,21 @@ module PYTHON
        ... </k>
   rule <k> argsVal(Defaults:ArgVals) ~> bindDecoratedFunctionDefaultVals(F:Id, Decorators:ArgVals, IDS:IdItems, Body:Block) =>
            functionValDefaults(IDS, Defaults, Body) ~> applyDecorators(F, reverseArgVals(Decorators))
+       ... </k>
+  rule <k> argsVal(Decorators:ArgVals) ~> bindDecoratedFunctionDefaultBuilder(F:Id, Builder:FunctionDefaultBuilder, Defaults:ArgExps) =>
+           evalArgs(Defaults, #noArgVals) ~> bindDecoratedFunctionDefaultBuilderVals(F, Decorators, Builder)
+       ... </k>
+  rule <k> argsVal(Defaults:ArgVals) ~> bindDecoratedFunctionDefaultBuilderVals(F:Id, Decorators:ArgVals, Builder:FunctionDefaultBuilder) =>
+           buildFunctionDefault(Builder, Defaults) ~> applyDecorators(F, reverseArgVals(Decorators))
+       ... </k>
+  rule <k> argsVal(Decorators:ArgVals) ~> bindDecoratedFunctionTwoDefaultBuilder(F:Id, Builder:FunctionTwoDefaultBuilder, Defaults:ArgExps, KwDefaults:ArgExps) =>
+           evalArgs(Defaults, #noArgVals) ~> bindDecoratedFunctionTwoDefaultBuilderKw(F, Decorators, Builder, KwDefaults)
+       ... </k>
+  rule <k> argsVal(Defaults:ArgVals) ~> bindDecoratedFunctionTwoDefaultBuilderKw(F:Id, Decorators:ArgVals, Builder:FunctionTwoDefaultBuilder, KwDefaults:ArgExps) =>
+           evalArgs(KwDefaults, #noArgVals) ~> bindDecoratedFunctionTwoDefaultBuilderVals(F, Decorators, Defaults, Builder)
+       ... </k>
+  rule <k> argsVal(KwDefaults:ArgVals) ~> bindDecoratedFunctionTwoDefaultBuilderVals(F:Id, Decorators:ArgVals, Defaults:ArgVals, Builder:FunctionTwoDefaultBuilder) =>
+           buildFunctionTwoDefaults(Builder, Defaults, KwDefaults) ~> applyDecorators(F, reverseArgVals(Decorators))
        ... </k>
   rule <k> Fun:Val ~> applyDecorators(F:Id, #noArgVals) => stmtNoResult ... </k>
        <env> Rho => Rho [ F <- Fun ] </env>

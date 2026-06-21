@@ -1062,6 +1062,11 @@ module PYTHON
                 | intStringBodyOk(String, Int, Int) [function, symbol(intStringBodyOk)]
                 | intDigitInBase(String, Int) [function, symbol(intDigitInBase)]
                 | intUnderscoreInBase(String, Int, Int) [function, symbol(intUnderscoreInBase)]
+                | intPrefixMatches(String, Int, Int) [function, symbol(intPrefixMatches)]
+                | intPrefixedStringOk(String, Int) [function, symbol(intPrefixedStringOk)]
+                | intBase0StringOk(String) [function, symbol(intBase0StringOk)]
+                | intBase0DecimalOk(String) [function, symbol(intBase0DecimalOk)]
+                | intZeroDecimalBodyOk(String, Int) [function, symbol(intZeroDecimalBodyOk)]
                 | floatDecimalStringOk(String) [function, symbol(floatDecimalStringOk)]
                 | floatDecimalBodyOk(String, Int, Bool, Bool) [function, symbol(floatDecimalBodyOk)]
                 | floatMantissaStringOk(String) [function, symbol(floatMantissaStringOk)]
@@ -1086,6 +1091,10 @@ module PYTHON
                | digitValue(String) [function, symbol(digitValue)]
                | intStringValue(String, Int) [function, symbol(intStringValue)]
                | intStringAccum(String, Int, Int, Int) [function, symbol(intStringAccum)]
+               | intSignStart(String) [function, symbol(intSignStart)]
+               | intPrefixedBodyStart(String, Int) [function, symbol(intPrefixedBodyStart)]
+               | intPrefixedStringValue(String, Int) [function, symbol(intPrefixedStringValue)]
+               | intBase0StringValue(String) [function, symbol(intBase0StringValue)]
                | floatDecimalDigitsValue(String, Int, Int) [function, symbol(floatDecimalDigitsValue)]
                | floatDecimalFractionDigits(String, Int, Int, Bool) [function, symbol(floatDecimalFractionDigits)]
                | floatDecimalPow10(Int) [function, symbol(floatDecimalPow10)]
@@ -1568,6 +1577,99 @@ module PYTHON
     intStringAccum(S, B, I +Int 1, (Acc *Int B) +Int digitValue(substrString(S, I, I +Int 1)))
     requires I <Int lengthString(S)
       andBool intDigitInBase(substrString(S, I, I +Int 1), B)
+
+  rule intSignStart(S:String) => 1
+    requires lengthString(S) >Int 0
+      andBool (substrString(S, 0, 1) ==String "+"
+        orBool substrString(S, 0, 1) ==String "-")
+  rule intSignStart(_:String) => 0 [owise]
+
+  rule intPrefixMatches(S:String, 2, Start:Int) => true
+    requires Start +Int 2 <=Int lengthString(S)
+      andBool substrString(S, Start, Start +Int 1) ==String "0"
+      andBool (substrString(S, Start +Int 1, Start +Int 2) ==String "b"
+        orBool substrString(S, Start +Int 1, Start +Int 2) ==String "B")
+  rule intPrefixMatches(S:String, 8, Start:Int) => true
+    requires Start +Int 2 <=Int lengthString(S)
+      andBool substrString(S, Start, Start +Int 1) ==String "0"
+      andBool (substrString(S, Start +Int 1, Start +Int 2) ==String "o"
+        orBool substrString(S, Start +Int 1, Start +Int 2) ==String "O")
+  rule intPrefixMatches(S:String, 16, Start:Int) => true
+    requires Start +Int 2 <=Int lengthString(S)
+      andBool substrString(S, Start, Start +Int 1) ==String "0"
+      andBool (substrString(S, Start +Int 1, Start +Int 2) ==String "x"
+        orBool substrString(S, Start +Int 1, Start +Int 2) ==String "X")
+  rule intPrefixMatches(_:String, _:Int, _:Int) => false [owise]
+
+  rule intPrefixedBodyStart(S:String, B:Int) => intSignStart(S) +Int 3
+    requires intPrefixMatches(S, B, intSignStart(S))
+      andBool lengthString(S) >Int intSignStart(S) +Int 3
+      andBool substrString(S, intSignStart(S) +Int 2, intSignStart(S) +Int 3) ==String "_"
+  rule intPrefixedBodyStart(S:String, _:Int) => intSignStart(S) +Int 2 [owise]
+
+  rule intPrefixedStringOk(S:String, B:Int) =>
+    intStringBodyOk(S, B, intPrefixedBodyStart(S, B))
+    requires (B ==Int 2 orBool B ==Int 8 orBool B ==Int 16)
+      andBool intPrefixMatches(S, B, intSignStart(S))
+      andBool intPrefixedBodyStart(S, B) <Int lengthString(S)
+  rule intPrefixedStringOk(_:String, _:Int) => false [owise]
+
+  rule intBase0StringOk(S:String) => true
+    requires intPrefixedStringOk(S, 2)
+  rule intBase0StringOk(S:String) => true
+    requires intPrefixedStringOk(S, 8)
+  rule intBase0StringOk(S:String) => true
+    requires intPrefixedStringOk(S, 16)
+  rule intBase0StringOk(S:String) => true
+    requires intBase0DecimalOk(S)
+  rule intBase0StringOk(_:String) => false [owise]
+
+  rule intBase0DecimalOk(S:String) =>
+    intStringOk(S, 10)
+    andBool (substrString(S, intSignStart(S), intSignStart(S) +Int 1) =/=String "0"
+      orBool intZeroDecimalBodyOk(S, intSignStart(S)))
+    requires lengthString(S) >Int intSignStart(S)
+  rule intBase0DecimalOk(_:String) => false [owise]
+
+  rule intZeroDecimalBodyOk(S:String, I:Int) => true
+    requires I >=Int lengthString(S)
+  rule intZeroDecimalBodyOk(S:String, I:Int) =>
+    intZeroDecimalBodyOk(S, I +Int 1)
+    requires I <Int lengthString(S)
+      andBool substrString(S, I, I +Int 1) ==String "0"
+  rule intZeroDecimalBodyOk(S:String, I:Int) =>
+    intZeroDecimalBodyOk(S, I +Int 1)
+    requires I >Int intSignStart(S)
+      andBool I +Int 1 <Int lengthString(S)
+      andBool substrString(S, I, I +Int 1) ==String "_"
+      andBool substrString(S, I -Int 1, I) ==String "0"
+      andBool substrString(S, I +Int 1, I +Int 2) ==String "0"
+  rule intZeroDecimalBodyOk(S:String, I:Int) => false
+    requires I <Int lengthString(S)
+      andBool substrString(S, I, I +Int 1) =/=String "0"
+      andBool notBool (I >Int intSignStart(S)
+        andBool I +Int 1 <Int lengthString(S)
+        andBool substrString(S, I, I +Int 1) ==String "_"
+        andBool substrString(S, I -Int 1, I) ==String "0"
+        andBool substrString(S, I +Int 1, I +Int 2) ==String "0")
+
+  rule intPrefixedStringValue(S:String, B:Int) =>
+    intStringAccum(S, B, intPrefixedBodyStart(S, B), 0)
+    requires lengthString(S) >Int 0
+      andBool substrString(S, 0, 1) =/=String "-"
+  rule intPrefixedStringValue(S:String, B:Int) =>
+    0 -Int intStringAccum(S, B, intPrefixedBodyStart(S, B), 0)
+    requires lengthString(S) >Int 0
+      andBool substrString(S, 0, 1) ==String "-"
+
+  rule intBase0StringValue(S:String) => intPrefixedStringValue(S, 2)
+    requires intPrefixedStringOk(S, 2)
+  rule intBase0StringValue(S:String) => intPrefixedStringValue(S, 8)
+    requires intPrefixedStringOk(S, 8)
+  rule intBase0StringValue(S:String) => intPrefixedStringValue(S, 16)
+    requires intPrefixedStringOk(S, 16)
+  rule intBase0StringValue(S:String) => intStringValue(S, 10)
+    requires intBase0DecimalOk(S)
 
   rule floatDecimalStringOk(S:String) =>
     floatDecimalBodyOk(S, 1, false, false)
@@ -8992,6 +9094,22 @@ module PYTHON
       andBool intStringOk(stripAsciiSpace(S), 10)
   rule #intCtor(S:String) => intStringValue(S, 10)
     requires intStringOk(S, 10)
+  rule #intCtor(S:String, B:Val) => intBase0StringValue(stripAsciiSpace(S))
+    requires stripAsciiSpace(S) =/=String S
+      andBool isIntLike(B)
+      andBool intValue(B) ==Int 0
+      andBool intBase0StringOk(stripAsciiSpace(S))
+  rule #intCtor(S:String, B:Val) => intBase0StringValue(S)
+    requires isIntLike(B)
+      andBool intValue(B) ==Int 0
+      andBool intBase0StringOk(S)
+  rule #intCtor(S:String, B:Val) => intPrefixedStringValue(stripAsciiSpace(S), intValue(B))
+    requires stripAsciiSpace(S) =/=String S
+      andBool isIntLike(B)
+      andBool intPrefixedStringOk(stripAsciiSpace(S), intValue(B))
+  rule #intCtor(S:String, B:Val) => intPrefixedStringValue(S, intValue(B))
+    requires isIntLike(B)
+      andBool intPrefixedStringOk(S, intValue(B))
   rule #intCtor(S:String, B:Val) => intStringValue(stripAsciiSpace(S), intValue(B))
     requires stripAsciiSpace(S) =/=String S
       andBool isIntLike(B)

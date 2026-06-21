@@ -494,6 +494,13 @@
       "coverage": ["int-constructor", "float-constructor", "underscore-digit-separators", "ordinary-python-source-adapter"]
     },
     {
+      "id": "adapter-int-prefix-base-constructor",
+      "source": "../adapter/adapter-int-prefix-base-constructor.py",
+      "reference": "Python Standard Library Built-in Types int; Python Standard Library Built-in Functions int",
+      "expected_result": "True ~> .K",
+      "coverage": ["int-constructor", "string-to-int", "explicit-int-base", "base-prefix", "base-zero-autodetection", "ordinary-python-source-adapter"]
+    },
+    {
       "id": "adapter-chained-comparison",
       "source": "../adapter/adapter-chained-comparison.py",
       "reference": "Python Language Reference 6.10 Comparisons; 6.16 Evaluation order",

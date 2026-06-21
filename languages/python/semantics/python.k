@@ -233,6 +233,7 @@ module PYTHON-SYNTAX
                | "#set" "(" ArgExps ")" [symbol(setDisplayExp)]
                | "#listComp" "(" Exp "," Id "," Exp ")" [symbol(listCompExp), strict(1)]
                | "#listCompTarget" "(" Exp "," Target "," Exp ")" [symbol(listCompTargetExp), strict(1)]
+               | "#listCompTargetIfs" "(" Exp "," Target "," CompFilters "," Exp ")" [symbol(listCompTargetIfsExp), strict(1)]
                | "#listCompIf" "(" Exp "," Id "," Exp "," Exp ")" [symbol(listCompIfExp), strict(1)]
                | "#listCompIfs" "(" Exp "," Id "," CompFilters "," Exp ")" [symbol(listCompIfsExp), strict(1)]
                | "#listCompFor" "(" Exp "," Id "," Exp "," Id "," Exp ")" [symbol(listCompForExp), strict(1)]
@@ -241,6 +242,7 @@ module PYTHON-SYNTAX
                | "#listCompForForIfs" "(" Exp "," Id "," MaybeCompFilters "," Exp "," Id "," MaybeCompFilters "," Exp "," Id "," MaybeCompFilters "," Exp ")" [symbol(listCompForForIfsExp), strict(1)]
                | "#dictComp" "(" Exp "," Id "," Exp "," Exp ")" [symbol(dictCompExp), strict(1)]
                | "#dictCompTarget" "(" Exp "," Target "," Exp "," Exp ")" [symbol(dictCompTargetExp), strict(1)]
+               | "#dictCompTargetIfs" "(" Exp "," Target "," CompFilters "," Exp "," Exp ")" [symbol(dictCompTargetIfsExp), strict(1)]
                | "#dictCompIf" "(" Exp "," Id "," Exp "," Exp "," Exp ")" [symbol(dictCompIfExp), strict(1)]
                | "#dictCompIfs" "(" Exp "," Id "," CompFilters "," Exp "," Exp ")" [symbol(dictCompIfsExp), strict(1)]
                | "#dictCompFor" "(" Exp "," Id "," Exp "," Id "," Exp "," Exp ")" [symbol(dictCompForExp), strict(1)]
@@ -249,6 +251,7 @@ module PYTHON-SYNTAX
                | "#dictCompForForIfs" "(" Exp "," Id "," MaybeCompFilters "," Exp "," Id "," MaybeCompFilters "," Exp "," Id "," MaybeCompFilters "," Exp "," Exp ")" [symbol(dictCompForForIfsExp), strict(1)]
                | "#setComp" "(" Exp "," Id "," Exp ")" [symbol(setCompExp), strict(1)]
                | "#setCompTarget" "(" Exp "," Target "," Exp ")" [symbol(setCompTargetExp), strict(1)]
+               | "#setCompTargetIfs" "(" Exp "," Target "," CompFilters "," Exp ")" [symbol(setCompTargetIfsExp), strict(1)]
                | "#setCompIf" "(" Exp "," Id "," Exp "," Exp ")" [symbol(setCompIfExp), strict(1)]
                | "#setCompIfs" "(" Exp "," Id "," CompFilters "," Exp ")" [symbol(setCompIfsExp), strict(1)]
                | "#setCompFor" "(" Exp "," Id "," Exp "," Id "," Exp ")" [symbol(setCompForExp), strict(1)]
@@ -508,6 +511,11 @@ module PYTHON
                  | listCompNext(Id, Exp, ArgVals, ArgVals, Map) [symbol(listCompNext)]
                  | listCompTargetIter(Target, Exp, ArgVals, ArgVals, Map) [symbol(listCompTargetIter)]
                  | listCompTargetNext(Target, Exp, ArgVals, ArgVals, Map) [symbol(listCompTargetNext)]
+                 | listCompTargetIfsIter(Target, CompFilters, Exp, ArgVals, ArgVals, Map) [symbol(listCompTargetIfsIter)]
+                 | listCompTargetIfsFilter(Target, CompFilters, CompFilters, Exp, ArgVals, ArgVals, Map) [symbol(listCompTargetIfsFilter)]
+                 | listCompTargetIfsFilterNext(Target, CompFilters, CompFilters, Exp, ArgVals, ArgVals, Map) [symbol(listCompTargetIfsFilterNext)]
+                 | listCompTargetIfsFilterLast(Target, CompFilters, Exp, ArgVals, ArgVals, Map) [symbol(listCompTargetIfsFilterLast)]
+                 | listCompTargetIfsNext(Target, CompFilters, Exp, ArgVals, ArgVals, Map) [symbol(listCompTargetIfsNext)]
                  | listCompIfIter(Id, Exp, Exp, ArgVals, ArgVals, Map) [symbol(listCompIfIter)]
                  | listCompIfFilter(Id, Exp, Exp, ArgVals, ArgVals, Map) [symbol(listCompIfFilter)]
                  | listCompIfNext(Id, Exp, Exp, ArgVals, ArgVals, Map) [symbol(listCompIfNext)]
@@ -555,6 +563,11 @@ module PYTHON
                  | setCompNext(Id, Exp, ArgVals, ArgVals, Map) [symbol(setCompNext)]
                  | setCompTargetIter(Target, Exp, ArgVals, ArgVals, Map) [symbol(setCompTargetIter)]
                  | setCompTargetNext(Target, Exp, ArgVals, ArgVals, Map) [symbol(setCompTargetNext)]
+                 | setCompTargetIfsIter(Target, CompFilters, Exp, ArgVals, ArgVals, Map) [symbol(setCompTargetIfsIter)]
+                 | setCompTargetIfsFilter(Target, CompFilters, CompFilters, Exp, ArgVals, ArgVals, Map) [symbol(setCompTargetIfsFilter)]
+                 | setCompTargetIfsFilterNext(Target, CompFilters, CompFilters, Exp, ArgVals, ArgVals, Map) [symbol(setCompTargetIfsFilterNext)]
+                 | setCompTargetIfsFilterLast(Target, CompFilters, Exp, ArgVals, ArgVals, Map) [symbol(setCompTargetIfsFilterLast)]
+                 | setCompTargetIfsNext(Target, CompFilters, Exp, ArgVals, ArgVals, Map) [symbol(setCompTargetIfsNext)]
                  | setCompIfIter(Id, Exp, Exp, ArgVals, ArgVals, Map) [symbol(setCompIfIter)]
                  | setCompIfFilter(Id, Exp, Exp, ArgVals, ArgVals, Map) [symbol(setCompIfFilter)]
                  | setCompIfNext(Id, Exp, Exp, ArgVals, ArgVals, Map) [symbol(setCompIfNext)]
@@ -615,6 +628,12 @@ module PYTHON
                  | dictCompTargetIter(Target, Exp, Exp, ArgVals, DictVals, Map) [symbol(dictCompTargetIter)]
                  | dictCompTargetKey(Target, Exp, Exp, ArgVals, DictVals, Map) [symbol(dictCompTargetKey)]
                  | dictCompTargetValue(Target, Exp, Exp, ArgVals, DictVals, Map, Val) [symbol(dictCompTargetValue)]
+                 | dictCompTargetIfsIter(Target, CompFilters, Exp, Exp, ArgVals, DictVals, Map) [symbol(dictCompTargetIfsIter)]
+                 | dictCompTargetIfsFilter(Target, CompFilters, CompFilters, Exp, Exp, ArgVals, DictVals, Map) [symbol(dictCompTargetIfsFilter)]
+                 | dictCompTargetIfsFilterNext(Target, CompFilters, CompFilters, Exp, Exp, ArgVals, DictVals, Map) [symbol(dictCompTargetIfsFilterNext)]
+                 | dictCompTargetIfsFilterLast(Target, CompFilters, Exp, Exp, ArgVals, DictVals, Map) [symbol(dictCompTargetIfsFilterLast)]
+                 | dictCompTargetIfsKey(Target, CompFilters, Exp, Exp, ArgVals, DictVals, Map) [symbol(dictCompTargetIfsKey)]
+                 | dictCompTargetIfsValue(Target, CompFilters, Exp, Exp, ArgVals, DictVals, Map, Val) [symbol(dictCompTargetIfsValue)]
                  | dictCompIfIter(Id, Exp, Exp, Exp, ArgVals, DictVals, Map) [symbol(dictCompIfIter)]
                  | dictCompIfFilter(Id, Exp, Exp, Exp, ArgVals, DictVals, Map) [symbol(dictCompIfFilter)]
                  | dictCompIfKey(Id, Exp, Exp, Exp, ArgVals, DictVals, Map) [symbol(dictCompIfKey)]
@@ -5877,6 +5896,47 @@ module PYTHON
   rule <k> V:Val ~> listCompTargetNext(T:Target, Elem:Exp, Rest:ArgVals, Acc:ArgVals, Rho:Map) =>
            listCompTargetIter(T, Elem, Rest, appendArgVal(Acc, V), Rho)
        ... </k>
+  rule <k> listCompTargetIfsExp(Iter:Val, T:Target, Filters:CompFilters, Elem:Exp) =>
+           listCompTargetIfsIter(T, Filters, Elem, iterableArgVals(Iter), #noArgVals, Rho)
+       ... </k>
+       <env> Rho </env>
+  rule <k> listCompTargetIfsIter(_:Target, _:CompFilters, _:Exp, #noArgVals, #noArgVals, Rho:Map) =>
+           [] ~> restoreEnv(Rho)
+       ... </k>
+  rule <k> listCompTargetIfsIter(_:Target, _:CompFilters, _:Exp, #noArgVals, Acc:ArgVals, Rho:Map) =>
+           listVal(argValsToValItems(Acc)) ~> restoreEnv(Rho)
+       ... </k>
+    requires notBool emptyArgVals(Acc)
+  rule <k> listCompTargetIfsIter(T:Target, Filters:CompFilters, Elem:Exp, argValsCons(V:Val, Rest:ArgVals), Acc:ArgVals, Rho:Map) =>
+           listCompTargetIfsFilter(T, Filters, Filters, Elem, Rest, Acc, Rho)
+       ... </k>
+       <env> _ => bindTarget(Rho, T, V) </env>
+    requires targetValueArityOk(T, V)
+  rule <k> listCompTargetIfsFilter(T:Target, Filters:CompFilters, #filters(Filter:Exp, RestFilters:CompFilters), Elem:Exp, Rest:ArgVals, Acc:ArgVals, Rho:Map) =>
+           Filter ~> listCompTargetIfsFilterNext(T, Filters, RestFilters, Elem, Rest, Acc, Rho)
+       ... </k>
+  rule <k> listCompTargetIfsFilter(T:Target, Filters:CompFilters, #filter(Filter:Exp), Elem:Exp, Rest:ArgVals, Acc:ArgVals, Rho:Map) =>
+           Filter ~> listCompTargetIfsFilterLast(T, Filters, Elem, Rest, Acc, Rho)
+       ... </k>
+  rule <k> V:Val ~> listCompTargetIfsFilterNext(T:Target, Filters:CompFilters, RestFilters:CompFilters, Elem:Exp, Rest:ArgVals, Acc:ArgVals, Rho:Map) =>
+           listCompTargetIfsFilter(T, Filters, RestFilters, Elem, Rest, Acc, Rho)
+       ... </k>
+    requires truthy(V)
+  rule <k> V:Val ~> listCompTargetIfsFilterNext(T:Target, Filters:CompFilters, _:CompFilters, Elem:Exp, Rest:ArgVals, Acc:ArgVals, Rho:Map) =>
+           listCompTargetIfsIter(T, Filters, Elem, Rest, Acc, Rho)
+       ... </k>
+    requires notBool truthy(V)
+  rule <k> V:Val ~> listCompTargetIfsFilterLast(T:Target, Filters:CompFilters, Elem:Exp, Rest:ArgVals, Acc:ArgVals, Rho:Map) =>
+           Elem ~> listCompTargetIfsNext(T, Filters, Elem, Rest, Acc, Rho)
+       ... </k>
+    requires truthy(V)
+  rule <k> V:Val ~> listCompTargetIfsFilterLast(T:Target, Filters:CompFilters, Elem:Exp, Rest:ArgVals, Acc:ArgVals, Rho:Map) =>
+           listCompTargetIfsIter(T, Filters, Elem, Rest, Acc, Rho)
+       ... </k>
+    requires notBool truthy(V)
+  rule <k> V:Val ~> listCompTargetIfsNext(T:Target, Filters:CompFilters, Elem:Exp, Rest:ArgVals, Acc:ArgVals, Rho:Map) =>
+           listCompTargetIfsIter(T, Filters, Elem, Rest, appendArgVal(Acc, V), Rho)
+       ... </k>
   rule <k> listCompIfExp(Iter:Val, X:Id, Filter:Exp, Elem:Exp) =>
            listCompIfIter(X, Filter, Elem, iterableArgVals(Iter), #noArgVals, Rho)
        ... </k>
@@ -6241,6 +6301,47 @@ module PYTHON
     requires targetValueArityOk(T, V)
   rule <k> V:Val ~> setCompTargetNext(T:Target, Elem:Exp, Rest:ArgVals, Acc:ArgVals, Rho:Map) =>
            setCompTargetIter(T, Elem, Rest, appendArgVal(Acc, V), Rho)
+       ... </k>
+  rule <k> setCompTargetIfsExp(Iter:Val, T:Target, Filters:CompFilters, Elem:Exp) =>
+           setCompTargetIfsIter(T, Filters, Elem, iterableArgVals(Iter), #noArgVals, Rho)
+       ... </k>
+       <env> Rho </env>
+  rule <k> setCompTargetIfsIter(_:Target, _:CompFilters, _:Exp, #noArgVals, #noArgVals, Rho:Map) =>
+           set() ~> restoreEnv(Rho)
+       ... </k>
+  rule <k> setCompTargetIfsIter(_:Target, _:CompFilters, _:Exp, #noArgVals, Acc:ArgVals, Rho:Map) =>
+           setFromArgVals(Acc) ~> restoreEnv(Rho)
+       ... </k>
+    requires notBool emptyArgVals(Acc)
+  rule <k> setCompTargetIfsIter(T:Target, Filters:CompFilters, Elem:Exp, argValsCons(V:Val, Rest:ArgVals), Acc:ArgVals, Rho:Map) =>
+           setCompTargetIfsFilter(T, Filters, Filters, Elem, Rest, Acc, Rho)
+       ... </k>
+       <env> _ => bindTarget(Rho, T, V) </env>
+    requires targetValueArityOk(T, V)
+  rule <k> setCompTargetIfsFilter(T:Target, Filters:CompFilters, #filters(Filter:Exp, RestFilters:CompFilters), Elem:Exp, Rest:ArgVals, Acc:ArgVals, Rho:Map) =>
+           Filter ~> setCompTargetIfsFilterNext(T, Filters, RestFilters, Elem, Rest, Acc, Rho)
+       ... </k>
+  rule <k> setCompTargetIfsFilter(T:Target, Filters:CompFilters, #filter(Filter:Exp), Elem:Exp, Rest:ArgVals, Acc:ArgVals, Rho:Map) =>
+           Filter ~> setCompTargetIfsFilterLast(T, Filters, Elem, Rest, Acc, Rho)
+       ... </k>
+  rule <k> V:Val ~> setCompTargetIfsFilterNext(T:Target, Filters:CompFilters, RestFilters:CompFilters, Elem:Exp, Rest:ArgVals, Acc:ArgVals, Rho:Map) =>
+           setCompTargetIfsFilter(T, Filters, RestFilters, Elem, Rest, Acc, Rho)
+       ... </k>
+    requires truthy(V)
+  rule <k> V:Val ~> setCompTargetIfsFilterNext(T:Target, Filters:CompFilters, _:CompFilters, Elem:Exp, Rest:ArgVals, Acc:ArgVals, Rho:Map) =>
+           setCompTargetIfsIter(T, Filters, Elem, Rest, Acc, Rho)
+       ... </k>
+    requires notBool truthy(V)
+  rule <k> V:Val ~> setCompTargetIfsFilterLast(T:Target, Filters:CompFilters, Elem:Exp, Rest:ArgVals, Acc:ArgVals, Rho:Map) =>
+           Elem ~> setCompTargetIfsNext(T, Filters, Elem, Rest, Acc, Rho)
+       ... </k>
+    requires truthy(V)
+  rule <k> V:Val ~> setCompTargetIfsFilterLast(T:Target, Filters:CompFilters, Elem:Exp, Rest:ArgVals, Acc:ArgVals, Rho:Map) =>
+           setCompTargetIfsIter(T, Filters, Elem, Rest, Acc, Rho)
+       ... </k>
+    requires notBool truthy(V)
+  rule <k> V:Val ~> setCompTargetIfsNext(T:Target, Filters:CompFilters, Elem:Exp, Rest:ArgVals, Acc:ArgVals, Rho:Map) =>
+           setCompTargetIfsIter(T, Filters, Elem, Rest, appendArgVal(Acc, V), Rho)
        ... </k>
   rule <k> setCompIfExp(Iter:Val, X:Id, Filter:Exp, Elem:Exp) =>
            setCompIfIter(X, Filter, Elem, iterableArgVals(Iter), #noArgVals, Rho)
@@ -6649,6 +6750,50 @@ module PYTHON
        ... </k>
   rule <k> V:Val ~> dictCompTargetValue(T:Target, Key:Exp, Value:Exp, Rest:ArgVals, Acc:DictVals, Rho:Map, K:Val) =>
            dictCompTargetIter(T, Key, Value, Rest, appendDictVal(Acc, K, V), Rho)
+       ... </k>
+  rule <k> dictCompTargetIfsExp(Iter:Val, T:Target, Filters:CompFilters, Key:Exp, Value:Exp) =>
+           dictCompTargetIfsIter(T, Filters, Key, Value, iterableArgVals(Iter), #noDictVals, Rho)
+       ... </k>
+       <env> Rho </env>
+  rule <k> dictCompTargetIfsIter(_:Target, _:CompFilters, _:Exp, _:Exp, #noArgVals, #noDictVals, Rho:Map) =>
+           ({}):Val ~> restoreEnv(Rho)
+       ... </k>
+  rule <k> dictCompTargetIfsIter(_:Target, _:CompFilters, _:Exp, _:Exp, #noArgVals, Acc:DictVals, Rho:Map) =>
+           dictVal(dictValsToDictItems(Acc)) ~> restoreEnv(Rho)
+       ... </k>
+    requires notBool emptyDictVals(Acc)
+  rule <k> dictCompTargetIfsIter(T:Target, Filters:CompFilters, Key:Exp, Value:Exp, argValsCons(V:Val, Rest:ArgVals), Acc:DictVals, Rho:Map) =>
+           dictCompTargetIfsFilter(T, Filters, Filters, Key, Value, Rest, Acc, Rho)
+       ... </k>
+       <env> _ => bindTarget(Rho, T, V) </env>
+    requires targetValueArityOk(T, V)
+  rule <k> dictCompTargetIfsFilter(T:Target, Filters:CompFilters, #filters(Filter:Exp, RestFilters:CompFilters), Key:Exp, Value:Exp, Rest:ArgVals, Acc:DictVals, Rho:Map) =>
+           Filter ~> dictCompTargetIfsFilterNext(T, Filters, RestFilters, Key, Value, Rest, Acc, Rho)
+       ... </k>
+  rule <k> dictCompTargetIfsFilter(T:Target, Filters:CompFilters, #filter(Filter:Exp), Key:Exp, Value:Exp, Rest:ArgVals, Acc:DictVals, Rho:Map) =>
+           Filter ~> dictCompTargetIfsFilterLast(T, Filters, Key, Value, Rest, Acc, Rho)
+       ... </k>
+  rule <k> V:Val ~> dictCompTargetIfsFilterNext(T:Target, Filters:CompFilters, RestFilters:CompFilters, Key:Exp, Value:Exp, Rest:ArgVals, Acc:DictVals, Rho:Map) =>
+           dictCompTargetIfsFilter(T, Filters, RestFilters, Key, Value, Rest, Acc, Rho)
+       ... </k>
+    requires truthy(V)
+  rule <k> V:Val ~> dictCompTargetIfsFilterNext(T:Target, Filters:CompFilters, _:CompFilters, Key:Exp, Value:Exp, Rest:ArgVals, Acc:DictVals, Rho:Map) =>
+           dictCompTargetIfsIter(T, Filters, Key, Value, Rest, Acc, Rho)
+       ... </k>
+    requires notBool truthy(V)
+  rule <k> V:Val ~> dictCompTargetIfsFilterLast(T:Target, Filters:CompFilters, Key:Exp, Value:Exp, Rest:ArgVals, Acc:DictVals, Rho:Map) =>
+           Key ~> dictCompTargetIfsKey(T, Filters, Key, Value, Rest, Acc, Rho)
+       ... </k>
+    requires truthy(V)
+  rule <k> V:Val ~> dictCompTargetIfsFilterLast(T:Target, Filters:CompFilters, Key:Exp, Value:Exp, Rest:ArgVals, Acc:DictVals, Rho:Map) =>
+           dictCompTargetIfsIter(T, Filters, Key, Value, Rest, Acc, Rho)
+       ... </k>
+    requires notBool truthy(V)
+  rule <k> K:Val ~> dictCompTargetIfsKey(T:Target, Filters:CompFilters, Key:Exp, Value:Exp, Rest:ArgVals, Acc:DictVals, Rho:Map) =>
+           Value ~> dictCompTargetIfsValue(T, Filters, Key, Value, Rest, Acc, Rho, K)
+       ... </k>
+  rule <k> V:Val ~> dictCompTargetIfsValue(T:Target, Filters:CompFilters, Key:Exp, Value:Exp, Rest:ArgVals, Acc:DictVals, Rho:Map, K:Val) =>
+           dictCompTargetIfsIter(T, Filters, Key, Value, Rest, appendDictVal(Acc, K, V), Rho)
        ... </k>
   rule <k> dictCompIfExp(Iter:Val, X:Id, Filter:Exp, Key:Exp, Value:Exp) =>
            dictCompIfIter(X, Filter, Key, Value, iterableArgVals(Iter), #noDictVals, Rho)

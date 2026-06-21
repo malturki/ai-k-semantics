@@ -336,7 +336,10 @@ def emit_list_comprehension(
         raise unsupported(node, "async list comprehensions are not supported yet")
     if not isinstance(generator.target, ast.Name):
         if generator.ifs:
-            raise unsupported(generator.target, "unpacking list comprehension targets with filters are not supported yet")
+            return (
+                f"#listCompTargetIfs({emit_exp(generator.iter)}, {emit_target(generator.target)}, "
+                f"{emit_comp_filters(generator.ifs)}, {emit_exp(elt)})"
+            )
         return (
             f"#listCompTarget({emit_exp(generator.iter)}, {emit_target(generator.target)}, "
             f"{emit_exp(elt)})"
@@ -412,7 +415,10 @@ def emit_dict_comprehension(
         raise unsupported(node, "async dict comprehensions are not supported yet")
     if not isinstance(generator.target, ast.Name):
         if generator.ifs:
-            raise unsupported(generator.target, "unpacking dict comprehension targets with filters are not supported yet")
+            return (
+                f"#dictCompTargetIfs({emit_exp(generator.iter)}, {emit_target(generator.target)}, "
+                f"{emit_comp_filters(generator.ifs)}, {emit_exp(key)}, {emit_exp(value)})"
+            )
         return (
             f"#dictCompTarget({emit_exp(generator.iter)}, {emit_target(generator.target)}, "
             f"{emit_exp(key)}, {emit_exp(value)})"
@@ -497,7 +503,10 @@ def emit_set_comprehension(
         raise unsupported(node, "async set comprehensions are not supported yet")
     if not isinstance(generator.target, ast.Name):
         if generator.ifs:
-            raise unsupported(generator.target, "unpacking set comprehension targets with filters are not supported yet")
+            return (
+                f"#setCompTargetIfs({emit_exp(generator.iter)}, {emit_target(generator.target)}, "
+                f"{emit_comp_filters(generator.ifs)}, {emit_exp(elt)})"
+            )
         return (
             f"#setCompTarget({emit_exp(generator.iter)}, {emit_target(generator.target)}, "
             f"{emit_exp(elt)})"

@@ -149,6 +149,7 @@ module PYTHON-SYNTAX
                 | "del" Id [symbol(delNameStmt)]
                 | "#delMany" "(" IdItems ")" [symbol(delManyStmt)]
                 | Id "=" Exp [symbol(assignStmt), strict(2)]
+                | "#assignName" "(" Id "," Exp ")" [symbol(assignNameStmt), strict(2)]
                 | Id "+=" Exp [symbol(augAddStmt)]
                 | Id "-=" Exp [symbol(augSubStmt)]
                 | Id "*=" Exp [symbol(augMulStmt)]
@@ -225,6 +226,7 @@ module PYTHON-SYNTAX
 
   syntax Exp ::= Val
                | Id
+               | "#name" "(" Id ")" [symbol(nameExp)]
                | "#debug" [symbol(debugExp)]
                | "#namedExpr" "(" Id "," Exp ")" [symbol(namedExprExp), strict(2)]
                | "(" Exp ")" [bracket]
@@ -3570,6 +3572,12 @@ module PYTHON
 
   rule <k> X:Id => V ... </k>
        <env> ... X |-> V:Val ... </env>
+
+  rule <k> #name(X:Id) => V ... </k>
+       <env> ... X |-> V:Val ... </env>
+  rule <k> #name(#token("kEllipsisName", "Id")) => Ellipsis ... </k>
+       <env> Rho </env>
+    requires notBool (#token("kEllipsisName", "Id") in_keys(Rho))
 
   rule <k> namedExprExp(X:Id, V:Val) => V ... </k>
        <env> Rho => Rho [ X <- V ] </env>
@@ -8609,6 +8617,10 @@ module PYTHON
     requires isIntLike(Start) andBool isIntLike(Stop) andBool isIntLike(Step) andBool intValue(Step) =/=Int 0
 
   rule <k> assignStmt(X:Id, V:Val) => stmtNoResult ... </k>
+       <env> Rho => Rho [ X <- V ] </env>
+       <result> _ => .K </result>
+
+  rule <k> assignNameStmt(X:Id, V:Val) => stmtNoResult ... </k>
        <env> Rho => Rho [ X <- V ] </env>
        <result> _ => .K </result>
 

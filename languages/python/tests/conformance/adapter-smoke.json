@@ -46,6 +46,13 @@
       "coverage": ["ellipsis-atom", "singleton-identity", "truth-value-testing", "ordinary-python-source-adapter"]
     },
     {
+      "id": "adapter-ellipsis-name",
+      "source": "../adapter/adapter-ellipsis-name.py",
+      "reference": "Python Standard Library Built-in Constants Ellipsis; Python Language Reference 6.2.2 Atoms; 7.2 Assignment statements; 7.5 The del statement",
+      "expected_result": "True ~> .K",
+      "coverage": ["ellipsis-builtin-name", "ellipsis-atom", "builtin-name-shadowing", "delete-name-fallback", "singleton-identity", "ordinary-python-source-adapter"]
+    },
+    {
       "id": "adapter-debug-constant",
       "source": "../adapter/adapter-debug-constant.py",
       "reference": "Python Standard Library Built-in Constants __debug__; Python Language Reference 7.3 The assert statement",

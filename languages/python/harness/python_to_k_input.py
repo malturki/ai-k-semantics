@@ -19,6 +19,15 @@ class UnsupportedPythonSubset(ValueError):
     """Raised when the current K semantics has no faithful target construct."""
 
 
+ELLIPSIS_NAME_ID = "kEllipsisName"
+
+
+def emit_id(name: str) -> str:
+    if name == "Ellipsis":
+        return ELLIPSIS_NAME_ID
+    return name
+
+
 def unsupported(node: ast.AST, message: str) -> UnsupportedPythonSubset:
     location = ""
     lineno = getattr(node, "lineno", None)
@@ -57,11 +66,11 @@ def emit_stmt(stmt: ast.stmt) -> str:
         case ast.Assert(test=test, msg=msg):
             return f"#assertMsg({emit_exp(test)}, {emit_exp(msg)})"
         case ast.Global(names=[name]):
-            return f"global {name}"
+            return f"global {emit_id(name)}"
         case ast.Global(names=names):
             return f"#globalMany({emit_id_items(names)})"
         case ast.Delete(targets=[ast.Name(id=name)]):
-            return f"del {name}"
+            return f"del {emit_id(name)}"
         case ast.Delete(targets=targets):
             return emit_delete(stmt, targets)
         case ast.Assign(targets=targets, value=value):
@@ -70,8 +79,8 @@ def emit_stmt(stmt: ast.stmt) -> str:
             return emit_ann_assign(stmt, target, value)
         case ast.AugAssign(target=ast.Name(id=name), op=op, value=value):
             if isinstance(op, ast.FloorDiv):
-                return f"#floorDivAssign({name}, {emit_exp(value)})"
-            return f"{name} {emit_aug_op(op)}= {emit_exp(value)}"
+                return f"#floorDivAssign({emit_id(name)}, {emit_exp(value)})"
+            return f"{emit_id(name)} {emit_aug_op(op)}= {emit_exp(value)}"
         case ast.AugAssign():
             raise unsupported(stmt, "only simple-name augmented assignment targets are supported")
         case ast.Return(value=None):
@@ -109,10 +118,12 @@ def emit_exp(exp: ast.expr) -> str:
             return emit_constant(exp, value)
         case ast.Name(id="__debug__"):
             return "#debug"
+        case ast.Name(id="Ellipsis"):
+            return f"#name({ELLIPSIS_NAME_ID})"
         case ast.Name(id=name):
             return name
         case ast.NamedExpr(target=ast.Name(id=name), value=value):
-            return f"#namedExpr({name}, {emit_exp(value)})"
+            return f"#namedExpr({emit_id(name)}, {emit_exp(value)})"
         case ast.NamedExpr():
             raise unsupported(exp, "only simple-name assignment expression targets are supported yet")
         case ast.BinOp(left=left, op=op, right=right):
@@ -1235,7 +1246,9 @@ def emit_assign(node: ast.AST, targets: list[ast.expr], value: ast.expr) -> str:
     if len(targets) == 1:
         target = targets[0]
         if isinstance(target, ast.Name):
-            return f"{target.id} = {emit_exp(value)}"
+            if target.id == "Ellipsis":
+                return f"#assignName({ELLIPSIS_NAME_ID}, {emit_exp(value)})"
+            return f"{emit_id(target.id)} = {emit_exp(value)}"
         if isinstance(target, ast.Tuple | ast.List):
             return emit_sequence_assign(target, value)
         raise unsupported(target, "only simple-name and flat/starred sequence assignment targets are supported")
@@ -1254,8 +1267,8 @@ def emit_ann_assign(node: ast.AST, target: ast.expr, value: ast.expr | None) -> 
     if not isinstance(target, ast.Name):
         raise unsupported(target, "only simple-name annotated assignment targets are supported")
     if value is None:
-        return f"#annOnly({target.id})"
-    return f"#annAssign({target.id}, {emit_exp(value)})"
+        return f"#annOnly({emit_id(target.id)})"
+    return f"#annAssign({emit_id(target.id)}, {emit_exp(value)})"
 
 
 def emit_delete(node: ast.AST, targets: list[ast.expr]) -> str:
@@ -1377,8 +1390,8 @@ def emit_id_items(names: list[str]) -> str:
     if not names:
         return "#noIds"
     if len(names) == 1:
-        return f"#id({names[0]})"
-    return f"#ids({names[0]}, {emit_id_items(names[1:])})"
+        return f"#id({emit_id(names[0])})"
+    return f"#ids({emit_id(names[0])}, {emit_id_items(names[1:])})"
 
 
 def emit_arg_exps(args: list[ast.expr]) -> str:

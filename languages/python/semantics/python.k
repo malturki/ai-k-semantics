@@ -1089,6 +1089,7 @@ module PYTHON
                 | allValItems(ValItems) [function, symbol(allValItems)]
                 | anyValItems(ValItems) [function, symbol(anyValItems)]
                 | valItemsAllIntLike(ValItems) [function, symbol(valItemsAllIntLike)]
+                | valItemsAllByteInts(ValItems) [function, symbol(valItemsAllByteInts)]
                 | rangeAllTruthy(Int, Int, Int) [function, symbol(rangeAllTruthy)]
                 | rangeAnyTruthy(Int, Int, Int) [function, symbol(rangeAnyTruthy)]
 
@@ -1154,6 +1155,7 @@ module PYTHON
                   | stripAsciiSpace(String) [function, symbol(stripAsciiSpace)]
                   | lstripAsciiSpace(String) [function, symbol(lstripAsciiSpace)]
                   | rstripAsciiSpace(String) [function, symbol(rstripAsciiSpace)]
+                  | bytesAsciiString(ValItems) [function, symbol(bytesAsciiString)]
   syntax ArgVals ::= "#noArgVals" [symbol(noArgVals)]
                    | argValsCons(Val, ArgVals) [symbol(argValsCons)]
                    | appendArgVal(ArgVals, Val) [function, symbol(appendArgVal)]
@@ -3650,6 +3652,13 @@ module PYTHON
   rule valItemsAllIntLike(valItemsLast(V:Val)) => isIntLike(V)
   rule valItemsAllIntLike(valItemsCons(V:Val, VS:ValItems)) =>
     isIntLike(V) andBool valItemsAllIntLike(VS)
+  rule valItemsAllByteInts(valItemsLast(V:Val)) =>
+    isIntLike(V) andBool intValue(V) >=Int 0 andBool intValue(V) <=Int 255
+  rule valItemsAllByteInts(valItemsCons(V:Val, VS:ValItems)) =>
+    isIntLike(V)
+      andBool intValue(V) >=Int 0
+      andBool intValue(V) <=Int 255
+      andBool valItemsAllByteInts(VS)
 
   rule rangeAllTruthy(Start:Int, Stop:Int, Step:Int) => notBool rangeContains(0, Start, Stop, Step)
     requires Step =/=Int 0
@@ -3731,6 +3740,15 @@ module PYTHON
   rule repeatString(S:String, 1) => S
   rule repeatString(S:String, N:Int) => S +String repeatString(S, N -Int 1)
     requires N >Int 1
+
+  rule bytesAsciiString(valItemsLast(V:Val)) => chrChar(intValue(V))
+    requires isIntLike(V) andBool intValue(V) >=Int 0 andBool intValue(V) <=Int 255
+  rule bytesAsciiString(valItemsCons(V:Val, VS:ValItems)) =>
+    chrChar(intValue(V)) +String bytesAsciiString(VS)
+    requires isIntLike(V)
+      andBool intValue(V) >=Int 0
+      andBool intValue(V) <=Int 255
+      andBool valItemsAllByteInts(VS)
 
   rule repeatValItems(VS:ValItems, 1) => VS
   rule repeatValItems(VS:ValItems, N:Int) => concatValItems(VS, repeatValItems(VS, N -Int 1))
@@ -9188,6 +9206,8 @@ module PYTHON
   rule #intCtor() => 0
   rule #intCtor(V:Val) => intValue(V)
     requires isIntLike(V)
+  rule #intCtor(bytesVal(VS:ValItems)) => #intCtor(bytesAsciiString(VS))
+    requires valItemsAllByteInts(VS)
   rule #intCtor(S:String) => intStringValue(stripAsciiSpace(S), 10)
     requires stripAsciiSpace(S) =/=String S
       andBool intStringOk(stripAsciiSpace(S), 10)
@@ -9215,10 +9235,14 @@ module PYTHON
       andBool intStringOk(stripAsciiSpace(S), intValue(B))
   rule #intCtor(S:String, B:Val) => intStringValue(S, intValue(B))
     requires isIntLike(B) andBool intStringOk(S, intValue(B))
+  rule #intCtor(bytesVal(VS:ValItems), B:Val) => #intCtor(bytesAsciiString(VS), B)
+    requires valItemsAllByteInts(VS)
   rule #floatCtor() => 0.0
   rule #floatCtor(F:Float) => F
   rule #floatCtor(V:Val) => floatValue(V)
     requires isIntLike(V)
+  rule #floatCtor(bytesVal(VS:ValItems)) => #floatCtor(bytesAsciiString(VS))
+    requires valItemsAllByteInts(VS)
   rule #floatCtor(S:String) => #floatCtor(stripAsciiSpace(S))
     requires stripAsciiSpace(S) =/=String S
       andBool (intStringOk(stripAsciiSpace(S), 10)

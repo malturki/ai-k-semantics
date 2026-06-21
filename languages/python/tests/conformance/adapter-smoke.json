@@ -452,6 +452,13 @@
       "coverage": ["float-constructor", "string-to-float", "infinity-string-to-float", "nan-string-to-float", "ordinary-python-source-adapter"]
     },
     {
+      "id": "adapter-float-bytes-constructor",
+      "source": "../adapter/adapter-float-bytes-constructor.py",
+      "reference": "CPython Lib/test/test_float.py PyFloat_FromString bytes coverage",
+      "expected_result": "True ~> .K",
+      "coverage": ["float-constructor", "bytes-to-float", "ascii-whitespace-padded-numeric-bytes", "underscore-digit-separators", "infinity-bytes-to-float", "nan-bytes-to-float", "ordinary-python-source-adapter"]
+    },
+    {
       "id": "adapter-numeric-string-spaces",
       "source": "../adapter/adapter-numeric-string-spaces.py",
       "reference": "Python Standard Library Built-in Functions int and float",
@@ -527,6 +534,13 @@
       "reference": "Python Standard Library Built-in Types int; Python Standard Library Built-in Functions int",
       "expected_result": "True ~> .K",
       "coverage": ["int-constructor", "string-to-int", "explicit-int-base", "base-prefix", "base-zero-autodetection", "ordinary-python-source-adapter"]
+    },
+    {
+      "id": "adapter-int-bytes-constructor",
+      "source": "../adapter/adapter-int-bytes-constructor.py",
+      "reference": "Python Standard Library Built-in Functions int; Python Standard Library Built-in Types int; CPython Lib/test/test_int.py byte-string constructor coverage",
+      "expected_result": "True ~> .K",
+      "coverage": ["int-constructor", "bytes-to-int", "explicit-int-base", "base-prefix", "base-zero-autodetection", "ascii-whitespace-padded-numeric-bytes", "underscore-digit-separators", "ordinary-python-source-adapter"]
     },
     {
       "id": "adapter-chained-comparison",

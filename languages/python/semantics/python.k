@@ -1050,6 +1050,8 @@ module PYTHON
                 | hasKwDefaultMissing(ArgVals) [function, symbol(hasKwDefaultMissing)]
                 | isKwDefaultMissing(Val) [function, symbol(isKwDefaultMissing)]
                 | containsVal(Val, ValItems) [function, symbol(containsVal)]
+                | bytesContains(ValItems, ValItems) [function, symbol(bytesContains)]
+                | bytesPrefix(ValItems, ValItems) [function, symbol(bytesPrefix)]
                 | containsKey(Val, DictItems) [function, symbol(containsKey)]
                 | rangeContains(Val, Int, Int) [function, symbol(rangeContains)]
                 | rangeContains(Val, Int, Int, Int) [function, symbol(rangeContainsStep)]
@@ -1886,11 +1888,17 @@ module PYTHON
   rule cmpHolds(#is, V1:Val, V2:Val) => valIs(V1, V2)
   rule cmpHolds(#isNot, V1:Val, V2:Val) => notBool valIs(V1, V2)
   rule cmpHolds(#in, Needle:String, Haystack:String) => findString(Haystack, Needle, 0) >=Int 0
-  rule cmpHolds(#in, _V:Val, #bytes()) => false
+  rule cmpHolds(#in, #bytes(), #bytes()) => true
+  rule cmpHolds(#in, #bytes(), bytesVal(_:ValItems)) => true
+  rule cmpHolds(#in, bytesVal(_:ValItems), #bytes()) => false
+  rule cmpHolds(#in, bytesVal(Needle:ValItems), bytesVal(Haystack:ValItems)) =>
+    bytesContains(Needle, Haystack)
+  rule cmpHolds(#in, V:Val, #bytes()) => false
+    requires notBool isBytesSequence(V)
   rule cmpHolds(#in, V:Val, bytesVal(VS:ValItems)) => containsVal(intValue(V), VS)
     requires isIntLike(V) andBool intValue(V) >=Int 0 andBool intValue(V) <=Int 255
   rule cmpHolds(#in, V:Val, bytesVal(_VS:ValItems)) => false
-    requires notBool isIntLike(V)
+    requires notBool isIntLike(V) andBool notBool isBytesSequence(V)
   rule cmpHolds(#in, V:Val, bytesVal(_VS:ValItems)) => false
     requires isIntLike(V) andBool (intValue(V) <Int 0 orBool intValue(V) >Int 255)
   rule cmpHolds(#in, _V:Val, []) => false
@@ -3512,6 +3520,22 @@ module PYTHON
   rule containsVal(V:Val, valItemsCons(V1:Val, VS:ValItems)) =>
     valEq(V, V1) orBool containsVal(V, VS)
 
+  rule bytesContains(Needle:ValItems, Haystack:ValItems) => false
+    requires valItemsLen(Needle) >Int valItemsLen(Haystack)
+  rule bytesContains(Needle:ValItems, Haystack:ValItems) => bytesPrefix(Needle, Haystack)
+    requires valItemsLen(Needle) ==Int valItemsLen(Haystack)
+  rule bytesContains(Needle:ValItems, valItemsCons(V:Val, Haystack:ValItems)) =>
+    bytesPrefix(Needle, valItemsCons(V, Haystack)) orBool bytesContains(Needle, Haystack)
+    requires valItemsLen(Needle) <Int valItemsLen(valItemsCons(V, Haystack))
+
+  rule bytesPrefix(valItemsLast(Needle:Val), valItemsLast(Haystack:Val)) =>
+    valEq(Needle, Haystack)
+  rule bytesPrefix(valItemsLast(Needle:Val), valItemsCons(Haystack:Val, _:ValItems)) =>
+    valEq(Needle, Haystack)
+  rule bytesPrefix(valItemsCons(_:Val, _:ValItems), valItemsLast(_:Val)) => false
+  rule bytesPrefix(valItemsCons(Needle:Val, Needles:ValItems), valItemsCons(Haystack:Val, Haystacks:ValItems)) =>
+    valEq(Needle, Haystack) andBool bytesPrefix(Needles, Haystacks)
+
   rule containsKey(K:Val, dictItemsLast(K1:Val, _:Val)) => valEq(K, K1)
   rule containsKey(K:Val, dictItemsCons(K1:Val, _:Val, DS:DictItems)) =>
     valEq(K, K1) orBool containsKey(K, DS)
@@ -3846,11 +3870,17 @@ module PYTHON
            L ~> compareChain(Chain)
        ... </k>
   rule Needle:String in Haystack:String => boolValue(findString(Haystack, Needle, 0) >=Int 0)
-  rule _V:Val in #bytes() => False
+  rule #bytes() in #bytes() => True
+  rule #bytes() in bytesVal(_:ValItems) => True
+  rule bytesVal(_:ValItems) in #bytes() => False
+  rule bytesVal(Needle:ValItems) in bytesVal(Haystack:ValItems) =>
+    boolValue(bytesContains(Needle, Haystack))
+  rule V:Val in #bytes() => False
+    requires notBool isBytesSequence(V)
   rule V:Val in bytesVal(VS:ValItems) => boolValue(containsVal(intValue(V), VS))
     requires isIntLike(V) andBool intValue(V) >=Int 0 andBool intValue(V) <=Int 255
   rule V:Val in bytesVal(_VS:ValItems) => False
-    requires notBool isIntLike(V)
+    requires notBool isIntLike(V) andBool notBool isBytesSequence(V)
   rule V:Val in bytesVal(_VS:ValItems) => False
     requires isIntLike(V) andBool (intValue(V) <Int 0 orBool intValue(V) >Int 255)
   rule _V:Val in [] => False
@@ -3864,11 +3894,17 @@ module PYTHON
   rule V:Val in rangeVal(Start:Int, Stop:Int) => boolValue(rangeContains(V, Start, Stop))
   rule V:Val in rangeVal(Start:Int, Stop:Int, Step:Int) => boolValue(rangeContains(V, Start, Stop, Step))
   rule Needle:String not in Haystack:String => boolValue(findString(Haystack, Needle, 0) <Int 0)
-  rule _V:Val not in #bytes() => True
+  rule #bytes() not in #bytes() => False
+  rule #bytes() not in bytesVal(_:ValItems) => False
+  rule bytesVal(_:ValItems) not in #bytes() => True
+  rule bytesVal(Needle:ValItems) not in bytesVal(Haystack:ValItems) =>
+    boolValue(notBool bytesContains(Needle, Haystack))
+  rule V:Val not in #bytes() => True
+    requires notBool isBytesSequence(V)
   rule V:Val not in bytesVal(VS:ValItems) => boolValue(notBool containsVal(intValue(V), VS))
     requires isIntLike(V) andBool intValue(V) >=Int 0 andBool intValue(V) <=Int 255
   rule V:Val not in bytesVal(_VS:ValItems) => True
-    requires notBool isIntLike(V)
+    requires notBool isIntLike(V) andBool notBool isBytesSequence(V)
   rule V:Val not in bytesVal(_VS:ValItems) => True
     requires isIntLike(V) andBool (intValue(V) <Int 0 orBool intValue(V) >Int 255)
   rule _V:Val not in [] => True

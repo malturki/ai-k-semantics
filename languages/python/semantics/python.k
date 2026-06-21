@@ -112,6 +112,8 @@ module PYTHON-SYNTAX
                 | "#unpackAssign" "(" IdItems ";" Exp ")" [symbol(unpackAssignStmt), strict(2)]
                 | "#unpackStarAssign" "(" IdItems ";" Id ";" IdItems ";" Exp ")" [symbol(unpackStarAssignStmt), strict(4)]
                 | "#unpackTargetAssign" "(" Targets ";" Exp ")" [symbol(unpackTargetAssignStmt), strict(2)]
+                | "#annAssign" "(" Id "," Exp ")" [symbol(annAssignStmt), strict(2)]
+                | "#annOnly" "(" Id ")" [symbol(annOnlyStmt)]
                 | "return" [symbol(returnNoneStmt)]
                 | "return" Exp [symbol(returnStmt), strict]
                 | "#def" "(" Id "," Id "," Block ")" [symbol(functionDefStmt)]
@@ -6972,6 +6974,12 @@ module PYTHON
        <result> _ => .K </result>
   rule <k> assignMany(idItemsCons(X:Id, IDS:IdItems), V:Val) => assignMany(IDS, V) ... </k>
        <env> Rho => Rho [ X <- V ] </env>
+       <result> _ => .K </result>
+
+  rule <k> annAssignStmt(X:Id, V:Val) => stmtNoResult ... </k>
+       <env> Rho => Rho [ X <- V ] </env>
+       <result> _ => .K </result>
+  rule <k> annOnlyStmt(_:Id) => stmtNoResult ... </k>
        <result> _ => .K </result>
 
   rule <k> unpackAssignStmt(IDS:IdItems, listVal(VS:ValItems)) => stmtNoResult ... </k>

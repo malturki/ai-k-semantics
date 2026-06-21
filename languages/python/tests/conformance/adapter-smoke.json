@@ -1523,6 +1523,13 @@
       "coverage": ["set-ordering-comparisons", "proper-subset", "subset", "proper-superset", "superset", "ordinary-python-source-adapter"]
     },
     {
+      "id": "adapter-annotated-assignment",
+      "source": "../adapter/adapter-annotated-assignment.py",
+      "reference": "Python Language Reference 7.2.2 Annotated assignment statements; 8.10 Annotations",
+      "expected_result": "True ~> .K",
+      "coverage": ["annotated-assignment", "annotation-no-introspection-profile", "lazy-annotation-evaluation", "simple-name-target", "ordinary-python-source-adapter"]
+    },
+    {
       "id": "adapter-assign-many",
       "source": "../adapter/adapter-assign-many.py",
       "reference": "Python Language Reference 7.2 Assignment statements",

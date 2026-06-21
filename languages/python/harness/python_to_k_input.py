@@ -66,6 +66,8 @@ def emit_stmt(stmt: ast.stmt) -> str:
             return emit_delete(stmt, targets)
         case ast.Assign(targets=targets, value=value):
             return emit_assign(stmt, targets, value)
+        case ast.AnnAssign(target=target, value=value):
+            return emit_ann_assign(stmt, target, value)
         case ast.AugAssign(target=ast.Name(id=name), op=op, value=value):
             if isinstance(op, ast.FloorDiv):
                 return f"#floorDivAssign({name}, {emit_exp(value)})"
@@ -887,6 +889,14 @@ def emit_assign(node: ast.AST, targets: list[ast.expr], value: ast.expr) -> str:
     if len(names) < 1:
         raise unsupported(node, "assignment needs at least one target")
     return f"#assignMany({emit_id_items(names)}; {emit_exp(value)})"
+
+
+def emit_ann_assign(node: ast.AST, target: ast.expr, value: ast.expr | None) -> str:
+    if not isinstance(target, ast.Name):
+        raise unsupported(target, "only simple-name annotated assignment targets are supported")
+    if value is None:
+        return f"#annOnly({target.id})"
+    return f"#annAssign({target.id}, {emit_exp(value)})"
 
 
 def emit_delete(node: ast.AST, targets: list[ast.expr]) -> str:

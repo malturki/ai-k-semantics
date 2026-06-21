@@ -52,6 +52,7 @@ The base modules should model portable Python semantics from the official docs. 
 - adapter-backed chained comparisons over the currently supported comparison operators, with short-circuiting
 - conditional expressions
 - adapter-backed assignment expressions `NAME := expr` for simple-name targets in the current environment
+- adapter-backed simple-name annotated assignment in the current no-introspection profile, with value assignments evaluated and annotation-only statements leaving the current binding unchanged
 - simple-name `+=`, `-=`, `*=`, `/=`, `%=`, `**=`, `//=`, `<<=`, `>>=`, `&=`, `^=`, and `|=`
 - multi-target simple-name assignment through the AST adapter
 - simple-name `del` and adapter-backed multi-target `del` for simple names
@@ -114,6 +115,8 @@ Current builtin caveat: `len` is defined only for the current concrete string/by
 Current bytes caveat: adapter-backed bytes literals are represented as immutable integer byte sequences. The current executable subset covers bytes truthiness, equality, same-type lexicographic ordering, concatenation, repetition, integer-byte membership, indexing, slicing, `len`, iterable conversion to list/tuple, starred display/call unpacking, assignment and `for`-target unpacking, simple `for` loops yielding integers, and simple iterable builtins. Bytes-subsequence membership, bytes methods, bytearray, memoryview, buffer protocol behavior, bytes formatting, bytes `%`, decoding/encoding APIs, and complete TypeError/ValueError diagnostics remain unsupported.
 
 Current assignment-expression caveat: adapter-backed `NAME := expr` evaluates `expr`, binds the resulting value to `NAME` in the current single environment, and yields that value. Full named-expression support still needs concrete parser integration, grammar-position restrictions and diagnostics, comprehension scope behavior, and interaction with real module/function/class scopes.
+
+Current annotated-assignment caveat: adapter-backed simple-name annotated assignments use internal `#annAssign` and `#annOnly` forms in the current no-introspection profile. The assigned value expression is evaluated and bound for `x: annotation = value`; annotation-only `x: annotation` leaves the current binding unchanged. Annotation expressions are erased as lazy metadata because the current environment has no `__annotations__` mapping or annotation scopes. Attribute/subscript annotated targets and annotation introspection remain unsupported.
 
 Current unpacking caveat: flat, non-starred nested, and starred assignment targets are adapter-backed for simple names and current concrete string/bytes/list/tuple/dict/set/range RHS values, with bytes yielding integers, dictionaries yielding keys, and sets using the current internal set iteration order profile, and flat, non-starred nested, and starred `for` targets are adapter-backed over current concrete string/bytes/list/tuple/dict/set/range outer iterables and item values. A starred target receives a list of remaining values, possibly empty, and prefix/star/suffix name binding follows left-to-right target order; non-starred nested assignment and loop targets recursively bind left to right. General iterable unpacking, nested starred targets, unpacking diagnostics, and attribute/subscript targets remain unsupported.
 

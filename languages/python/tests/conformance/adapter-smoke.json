@@ -452,6 +452,13 @@
       "coverage": ["pow-builtin", "three-argument-form", "modular-exponentiation", "nonnegative-integer-exponent", "negative-modulus", "bool-as-int-power", "ordinary-python-source-adapter"]
     },
     {
+      "id": "adapter-int-string-constructor",
+      "source": "../adapter/adapter-int-string-constructor.py",
+      "reference": "Python Standard Library Built-in Types int; Python Standard Library Built-in Functions int",
+      "expected_result": "True ~> .K",
+      "coverage": ["int-constructor", "string-to-int", "explicit-int-base", "ordinary-python-source-adapter"]
+    },
+    {
       "id": "adapter-chained-comparison",
       "source": "../adapter/adapter-chained-comparison.py",
       "reference": "Python Language Reference 6.10 Comparisons; 6.16 Evaluation order",

@@ -200,6 +200,8 @@ def emit_exp(exp: ast.expr) -> str:
             return "#intCtor()"
         case ast.Call(func=ast.Name(id="int"), args=[arg], keywords=[]):
             return f"#intCtor({emit_exp(arg)})"
+        case ast.Call(func=ast.Name(id="int"), args=[arg, base], keywords=[]):
+            return f"#intCtor({emit_exp(arg)}, {emit_exp(base)})"
         case ast.Call(func=ast.Name(id="float"), args=[], keywords=[]):
             return "#floatCtor()"
         case ast.Call(func=ast.Name(id="float"), args=[arg], keywords=[]):

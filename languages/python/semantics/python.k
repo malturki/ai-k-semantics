@@ -307,6 +307,7 @@ module PYTHON-SYNTAX
                | "#sliceCtor" "(" Exp "," Exp "," Exp ")" [symbol(sliceCtor3Exp), strict]
                | "#intCtor" "(" ")" [symbol(intCtor0Exp)]
                | "#intCtor" "(" Exp ")" [symbol(intCtor1Exp), strict]
+               | "#intCtor" "(" Exp "," Exp ")" [symbol(intCtor2Exp), strict]
                | "#floatCtor" "(" ")" [symbol(floatCtor0Exp)]
                | "#floatCtor" "(" Exp ")" [symbol(floatCtor1Exp), strict]
                | "#complexCtor" "(" ")" [symbol(complexCtor0Exp)]
@@ -1056,6 +1057,10 @@ module PYTHON
                 | kwRequiredAlignedPresent(IdItems, KwArgVals, ArgVals) [function, symbol(kwRequiredAlignedPresent)]
                 | hasKwDefaultMissing(ArgVals) [function, symbol(hasKwDefaultMissing)]
                 | isKwDefaultMissing(Val) [function, symbol(isKwDefaultMissing)]
+                | validIntBase(Int) [function, symbol(validIntBase)]
+                | intStringOk(String, Int) [function, symbol(intStringOk)]
+                | intStringBodyOk(String, Int, Int) [function, symbol(intStringBodyOk)]
+                | intDigitInBase(String, Int) [function, symbol(intDigitInBase)]
                 | containsVal(Val, ValItems) [function, symbol(containsVal)]
                 | bytesContains(ValItems, ValItems) [function, symbol(bytesContains)]
                 | bytesPrefix(ValItems, ValItems) [function, symbol(bytesPrefix)]
@@ -1071,6 +1076,9 @@ module PYTHON
                 | rangeAnyTruthy(Int, Int, Int) [function, symbol(rangeAnyTruthy)]
 
   syntax Int ::= intValue(Val) [function, symbol(intValue)]
+               | digitValue(String) [function, symbol(digitValue)]
+               | intStringValue(String, Int) [function, symbol(intStringValue)]
+               | intStringAccum(String, Int, Int, Int) [function, symbol(intStringAccum)]
                | pyFloorDiv(Int, Int) [function, symbol(pyFloorDiv)]
                | pyModulo(Int, Int) [function, symbol(pyModulo)]
                | pyLen(Val) [function, symbol(pyLen)]
@@ -1412,6 +1420,112 @@ module PYTHON
 
   rule isFloatLike(_:Float) => true
   rule isFloatLike(V:Val) => isIntLike(V) [owise]
+
+  rule validIntBase(B:Int) => B >=Int 2 andBool B <=Int 36
+
+  rule intStringOk(S:String, B:Int) =>
+    validIntBase(B) andBool intStringBodyOk(S, B, 1)
+    requires lengthString(S) >Int 1
+      andBool substrString(S, 0, 1) ==String "+"
+  rule intStringOk(S:String, B:Int) =>
+    validIntBase(B) andBool intStringBodyOk(S, B, 1)
+    requires lengthString(S) >Int 1
+      andBool substrString(S, 0, 1) ==String "-"
+  rule intStringOk(S:String, B:Int) =>
+    validIntBase(B) andBool intStringBodyOk(S, B, 0)
+    requires lengthString(S) >Int 0
+      andBool substrString(S, 0, 1) =/=String "+"
+      andBool substrString(S, 0, 1) =/=String "-"
+  rule intStringOk(_:String, _:Int) => false [owise]
+
+  rule intStringBodyOk(S:String, _:Int, I:Int) => true
+    requires I >=Int lengthString(S)
+  rule intStringBodyOk(S:String, B:Int, I:Int) =>
+    intDigitInBase(substrString(S, I, I +Int 1), B) andBool intStringBodyOk(S, B, I +Int 1)
+    requires I <Int lengthString(S)
+
+  rule intDigitInBase(C:String, B:Int) => digitValue(C) >=Int 0 andBool digitValue(C) <Int B
+
+  rule digitValue("0") => 0
+  rule digitValue("1") => 1
+  rule digitValue("2") => 2
+  rule digitValue("3") => 3
+  rule digitValue("4") => 4
+  rule digitValue("5") => 5
+  rule digitValue("6") => 6
+  rule digitValue("7") => 7
+  rule digitValue("8") => 8
+  rule digitValue("9") => 9
+  rule digitValue("a") => 10
+  rule digitValue("A") => 10
+  rule digitValue("b") => 11
+  rule digitValue("B") => 11
+  rule digitValue("c") => 12
+  rule digitValue("C") => 12
+  rule digitValue("d") => 13
+  rule digitValue("D") => 13
+  rule digitValue("e") => 14
+  rule digitValue("E") => 14
+  rule digitValue("f") => 15
+  rule digitValue("F") => 15
+  rule digitValue("g") => 16
+  rule digitValue("G") => 16
+  rule digitValue("h") => 17
+  rule digitValue("H") => 17
+  rule digitValue("i") => 18
+  rule digitValue("I") => 18
+  rule digitValue("j") => 19
+  rule digitValue("J") => 19
+  rule digitValue("k") => 20
+  rule digitValue("K") => 20
+  rule digitValue("l") => 21
+  rule digitValue("L") => 21
+  rule digitValue("m") => 22
+  rule digitValue("M") => 22
+  rule digitValue("n") => 23
+  rule digitValue("N") => 23
+  rule digitValue("o") => 24
+  rule digitValue("O") => 24
+  rule digitValue("p") => 25
+  rule digitValue("P") => 25
+  rule digitValue("q") => 26
+  rule digitValue("Q") => 26
+  rule digitValue("r") => 27
+  rule digitValue("R") => 27
+  rule digitValue("s") => 28
+  rule digitValue("S") => 28
+  rule digitValue("t") => 29
+  rule digitValue("T") => 29
+  rule digitValue("u") => 30
+  rule digitValue("U") => 30
+  rule digitValue("v") => 31
+  rule digitValue("V") => 31
+  rule digitValue("w") => 32
+  rule digitValue("W") => 32
+  rule digitValue("x") => 33
+  rule digitValue("X") => 33
+  rule digitValue("y") => 34
+  rule digitValue("Y") => 34
+  rule digitValue("z") => 35
+  rule digitValue("Z") => 35
+  rule digitValue(_:String) => -1 [owise]
+
+  rule intStringValue(S:String, B:Int) => intStringAccum(S, B, 1, 0)
+    requires lengthString(S) >Int 0
+      andBool substrString(S, 0, 1) ==String "+"
+  rule intStringValue(S:String, B:Int) => 0 -Int intStringAccum(S, B, 1, 0)
+    requires lengthString(S) >Int 0
+      andBool substrString(S, 0, 1) ==String "-"
+  rule intStringValue(S:String, B:Int) => intStringAccum(S, B, 0, 0)
+    requires lengthString(S) >Int 0
+      andBool substrString(S, 0, 1) =/=String "+"
+      andBool substrString(S, 0, 1) =/=String "-"
+
+  rule intStringAccum(S:String, _:Int, I:Int, Acc:Int) => Acc
+    requires I >=Int lengthString(S)
+  rule intStringAccum(S:String, B:Int, I:Int, Acc:Int) =>
+    intStringAccum(S, B, I +Int 1, (Acc *Int B) +Int digitValue(substrString(S, I, I +Int 1)))
+    requires I <Int lengthString(S)
 
   rule isComplexLike(#complex(_:Float, _:Float)) => true
   rule isComplexLike(_:Float) => true
@@ -8677,6 +8791,10 @@ module PYTHON
   rule #intCtor() => 0
   rule #intCtor(V:Val) => intValue(V)
     requires isIntLike(V)
+  rule #intCtor(S:String) => intStringValue(S, 10)
+    requires intStringOk(S, 10)
+  rule #intCtor(S:String, B:Val) => intStringValue(S, intValue(B))
+    requires isIntLike(B) andBool intStringOk(S, intValue(B))
   rule #floatCtor() => 0.0
   rule #floatCtor(F:Float) => F
   rule #floatCtor(V:Val) => floatValue(V)

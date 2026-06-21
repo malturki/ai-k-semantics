@@ -107,6 +107,7 @@ run_case "adapter-divmod-int" "$ROOT/tests/adapter/adapter-divmod-int.py" "True 
 run_case "adapter-pow-int" "$ROOT/tests/adapter/adapter-pow-int.py" "True ~> .K"
 run_case "adapter-pow-negative" "$ROOT/tests/adapter/adapter-pow-negative.py" "True ~> .K"
 run_case "adapter-pow-mod" "$ROOT/tests/adapter/adapter-pow-mod.py" "True ~> .K"
+run_case "adapter-int-string-constructor" "$ROOT/tests/adapter/adapter-int-string-constructor.py" "True ~> .K"
 run_case "adapter-chained-comparison" "$ROOT/tests/adapter/adapter-chained-comparison.py" "True ~> .K"
 run_case "adapter-chained-comparison-short-circuit" "$ROOT/tests/adapter/adapter-chained-comparison-short-circuit.py" "False ~> .K"
 run_case "adapter-chained-identity" "$ROOT/tests/adapter/adapter-chained-identity.py" "True ~> .K"

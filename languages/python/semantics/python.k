@@ -1061,6 +1061,8 @@ module PYTHON
                 | intStringOk(String, Int) [function, symbol(intStringOk)]
                 | intStringBodyOk(String, Int, Int) [function, symbol(intStringBodyOk)]
                 | intDigitInBase(String, Int) [function, symbol(intDigitInBase)]
+                | floatDecimalStringOk(String) [function, symbol(floatDecimalStringOk)]
+                | floatDecimalBodyOk(String, Int, Bool, Bool) [function, symbol(floatDecimalBodyOk)]
                 | containsVal(Val, ValItems) [function, symbol(containsVal)]
                 | bytesContains(ValItems, ValItems) [function, symbol(bytesContains)]
                 | bytesPrefix(ValItems, ValItems) [function, symbol(bytesPrefix)]
@@ -1079,6 +1081,9 @@ module PYTHON
                | digitValue(String) [function, symbol(digitValue)]
                | intStringValue(String, Int) [function, symbol(intStringValue)]
                | intStringAccum(String, Int, Int, Int) [function, symbol(intStringAccum)]
+               | floatDecimalDigitsValue(String, Int, Int) [function, symbol(floatDecimalDigitsValue)]
+               | floatDecimalFractionDigits(String, Int, Int, Bool) [function, symbol(floatDecimalFractionDigits)]
+               | floatDecimalPow10(Int) [function, symbol(floatDecimalPow10)]
                | pyFloorDiv(Int, Int) [function, symbol(pyFloorDiv)]
                | pyModulo(Int, Int) [function, symbol(pyModulo)]
                | pyLen(Val) [function, symbol(pyLen)]
@@ -1107,6 +1112,8 @@ module PYTHON
                | rangeMax(Int, Int, Int) [function, symbol(rangeMax)]
   syntax IdItems ::= concatIdItems(IdItems, IdItems) [function, symbol(concatIdItems)]
   syntax Float ::= floatValue(Val) [function, symbol(floatValue)]
+                 | floatDecimalStringValue(String) [function, symbol(floatDecimalStringValue)]
+                 | floatDecimalMagnitude(String, Int) [function, symbol(floatDecimalMagnitude)]
                  | complexReal(Val) [function, symbol(complexReal)]
                  | complexImag(Val) [function, symbol(complexImag)]
                  | pyFloatFloorDiv(Float, Float) [function, symbol(pyFloatFloorDiv)]
@@ -1526,6 +1533,90 @@ module PYTHON
   rule intStringAccum(S:String, B:Int, I:Int, Acc:Int) =>
     intStringAccum(S, B, I +Int 1, (Acc *Int B) +Int digitValue(substrString(S, I, I +Int 1)))
     requires I <Int lengthString(S)
+
+  rule floatDecimalStringOk(S:String) =>
+    floatDecimalBodyOk(S, 1, false, false)
+    requires lengthString(S) >Int 1
+      andBool substrString(S, 0, 1) ==String "+"
+  rule floatDecimalStringOk(S:String) =>
+    floatDecimalBodyOk(S, 1, false, false)
+    requires lengthString(S) >Int 1
+      andBool substrString(S, 0, 1) ==String "-"
+  rule floatDecimalStringOk(S:String) =>
+    floatDecimalBodyOk(S, 0, false, false)
+    requires lengthString(S) >Int 0
+      andBool substrString(S, 0, 1) =/=String "+"
+      andBool substrString(S, 0, 1) =/=String "-"
+  rule floatDecimalStringOk(_:String) => false [owise]
+
+  rule floatDecimalBodyOk(S:String, I:Int, SeenDot:Bool, SeenDigit:Bool) =>
+    SeenDot andBool SeenDigit
+    requires I >=Int lengthString(S)
+  rule floatDecimalBodyOk(S:String, I:Int, false, SeenDigit:Bool) =>
+    floatDecimalBodyOk(S, I +Int 1, true, SeenDigit)
+    requires I <Int lengthString(S)
+      andBool substrString(S, I, I +Int 1) ==String "."
+  rule floatDecimalBodyOk(S:String, I:Int, true, _:Bool) => false
+    requires I <Int lengthString(S)
+      andBool substrString(S, I, I +Int 1) ==String "."
+  rule floatDecimalBodyOk(S:String, I:Int, SeenDot:Bool, _:Bool) =>
+    floatDecimalBodyOk(S, I +Int 1, SeenDot, true)
+    requires I <Int lengthString(S)
+      andBool digitValue(substrString(S, I, I +Int 1)) >=Int 0
+      andBool digitValue(substrString(S, I, I +Int 1)) <=Int 9
+  rule floatDecimalBodyOk(S:String, I:Int, _:Bool, _:Bool) => false
+    requires I <Int lengthString(S)
+      andBool substrString(S, I, I +Int 1) =/=String "."
+      andBool (digitValue(substrString(S, I, I +Int 1)) <Int 0
+        orBool digitValue(substrString(S, I, I +Int 1)) >Int 9)
+
+  rule floatDecimalStringValue(S:String) => floatDecimalMagnitude(S, 1)
+    requires lengthString(S) >Int 0
+      andBool substrString(S, 0, 1) ==String "+"
+  rule floatDecimalStringValue(S:String) => 0.0 -Float floatDecimalMagnitude(S, 1)
+    requires lengthString(S) >Int 0
+      andBool substrString(S, 0, 1) ==String "-"
+  rule floatDecimalStringValue(S:String) => floatDecimalMagnitude(S, 0)
+    requires lengthString(S) >Int 0
+      andBool substrString(S, 0, 1) =/=String "+"
+      andBool substrString(S, 0, 1) =/=String "-"
+
+  rule floatDecimalMagnitude(S:String, Start:Int) =>
+    Int2Float(floatDecimalDigitsValue(S, Start, 0), 53, 11)
+    /Float Int2Float(floatDecimalPow10(floatDecimalFractionDigits(S, Start, 0, false)), 53, 11)
+
+  rule floatDecimalDigitsValue(S:String, I:Int, Acc:Int) => Acc
+    requires I >=Int lengthString(S)
+  rule floatDecimalDigitsValue(S:String, I:Int, Acc:Int) =>
+    floatDecimalDigitsValue(S, I +Int 1, Acc)
+    requires I <Int lengthString(S)
+      andBool substrString(S, I, I +Int 1) ==String "."
+  rule floatDecimalDigitsValue(S:String, I:Int, Acc:Int) =>
+    floatDecimalDigitsValue(S, I +Int 1, (Acc *Int 10) +Int digitValue(substrString(S, I, I +Int 1)))
+    requires I <Int lengthString(S)
+      andBool digitValue(substrString(S, I, I +Int 1)) >=Int 0
+      andBool digitValue(substrString(S, I, I +Int 1)) <=Int 9
+
+  rule floatDecimalFractionDigits(S:String, I:Int, Count:Int, _:Bool) => Count
+    requires I >=Int lengthString(S)
+  rule floatDecimalFractionDigits(S:String, I:Int, Count:Int, false) =>
+    floatDecimalFractionDigits(S, I +Int 1, Count, true)
+    requires I <Int lengthString(S)
+      andBool substrString(S, I, I +Int 1) ==String "."
+  rule floatDecimalFractionDigits(S:String, I:Int, Count:Int, false) =>
+    floatDecimalFractionDigits(S, I +Int 1, Count, false)
+    requires I <Int lengthString(S)
+      andBool digitValue(substrString(S, I, I +Int 1)) >=Int 0
+      andBool digitValue(substrString(S, I, I +Int 1)) <=Int 9
+  rule floatDecimalFractionDigits(S:String, I:Int, Count:Int, true) =>
+    floatDecimalFractionDigits(S, I +Int 1, Count +Int 1, true)
+    requires I <Int lengthString(S)
+      andBool digitValue(substrString(S, I, I +Int 1)) >=Int 0
+      andBool digitValue(substrString(S, I, I +Int 1)) <=Int 9
+
+  rule floatDecimalPow10(0) => 1
+  rule floatDecimalPow10(N:Int) => 10 *Int floatDecimalPow10(N -Int 1)
+    requires N >Int 0
 
   rule isComplexLike(#complex(_:Float, _:Float)) => true
   rule isComplexLike(_:Float) => true
@@ -8801,6 +8892,8 @@ module PYTHON
     requires isIntLike(V)
   rule #floatCtor(S:String) => Int2Float(intStringValue(S, 10), 53, 11)
     requires intStringOk(S, 10)
+  rule #floatCtor(S:String) => floatDecimalStringValue(S)
+    requires floatDecimalStringOk(S)
   rule #complexCtor() => #complex(0.0, 0.0)
   rule #complexCtor(V:Val) => #complex(complexReal(V), complexImag(V))
     requires isComplexLike(V)

@@ -1537,6 +1537,13 @@
       "coverage": ["list-comprehension", "dict-comprehension", "set-comprehension", "single-for-comprehension", "sequence-unpacking-target", "nested-starred-targets", "comprehension-if-clauses", "truth-value-testing", "comprehension-target-scope", "ordinary-python-source-adapter"]
     },
     {
+      "id": "adapter-comprehension-target-two-for",
+      "source": "../adapter/adapter-comprehension-target-two-for.py",
+      "reference": "Python Language Reference 6.2.4 Displays for lists, sets and dictionaries; 6.2.5 List displays; 6.2.6 Set displays; 6.2.7 Dictionary displays",
+      "expected_result": "True ~> .K",
+      "coverage": ["list-comprehension", "dict-comprehension", "set-comprehension", "two-for-comprehension", "dependent-inner-iterable", "sequence-unpacking-target", "nested-starred-targets", "comprehension-target-scope", "ordinary-python-source-adapter"]
+    },
+    {
       "id": "adapter-starred-displays",
       "source": "../adapter/adapter-starred-displays.py",
       "reference": "Python Language Reference 6.2.4 Displays for lists, sets and dictionaries; 6.2.5 List displays; 6.2.6 Set displays; 6.16 Evaluation order",

@@ -362,10 +362,13 @@ def emit_list_comprehension_two_generators(
 ) -> str:
     if outer.is_async or inner.is_async:
         raise unsupported(node, "async list comprehensions are not supported yet")
-    if not isinstance(outer.target, ast.Name):
-        raise unsupported(outer.target, "only simple-name list comprehension targets are supported")
-    if not isinstance(inner.target, ast.Name):
-        raise unsupported(inner.target, "only simple-name list comprehension targets are supported")
+    if not isinstance(outer.target, ast.Name) or not isinstance(inner.target, ast.Name):
+        if outer.ifs or inner.ifs:
+            raise unsupported(outer.target, "unpacking two-generator list comprehension targets with filters are not supported yet")
+        return (
+            f"#listCompTargetFor({emit_exp(outer.iter)}, {emit_target(outer.target)}, "
+            f"{emit_exp(inner.iter)}, {emit_target(inner.target)}, {emit_exp(elt)})"
+        )
     if outer.ifs or inner.ifs:
         return (
             f"#listCompForIfs({emit_exp(outer.iter)}, {outer.target.id}, "
@@ -448,10 +451,13 @@ def emit_dict_comprehension_two_generators(
 ) -> str:
     if outer.is_async or inner.is_async:
         raise unsupported(node, "async dict comprehensions are not supported yet")
-    if not isinstance(outer.target, ast.Name):
-        raise unsupported(outer.target, "only simple-name dict comprehension targets are supported")
-    if not isinstance(inner.target, ast.Name):
-        raise unsupported(inner.target, "only simple-name dict comprehension targets are supported")
+    if not isinstance(outer.target, ast.Name) or not isinstance(inner.target, ast.Name):
+        if outer.ifs or inner.ifs:
+            raise unsupported(outer.target, "unpacking two-generator dict comprehension targets with filters are not supported yet")
+        return (
+            f"#dictCompTargetFor({emit_exp(outer.iter)}, {emit_target(outer.target)}, "
+            f"{emit_exp(inner.iter)}, {emit_target(inner.target)}, {emit_exp(key)}, {emit_exp(value)})"
+        )
     if outer.ifs or inner.ifs:
         return (
             f"#dictCompForIfs({emit_exp(outer.iter)}, {outer.target.id}, "
@@ -529,10 +535,13 @@ def emit_set_comprehension_two_generators(
 ) -> str:
     if outer.is_async or inner.is_async:
         raise unsupported(node, "async set comprehensions are not supported yet")
-    if not isinstance(outer.target, ast.Name):
-        raise unsupported(outer.target, "only simple-name set comprehension targets are supported")
-    if not isinstance(inner.target, ast.Name):
-        raise unsupported(inner.target, "only simple-name set comprehension targets are supported")
+    if not isinstance(outer.target, ast.Name) or not isinstance(inner.target, ast.Name):
+        if outer.ifs or inner.ifs:
+            raise unsupported(outer.target, "unpacking two-generator set comprehension targets with filters are not supported yet")
+        return (
+            f"#setCompTargetFor({emit_exp(outer.iter)}, {emit_target(outer.target)}, "
+            f"{emit_exp(inner.iter)}, {emit_target(inner.target)}, {emit_exp(elt)})"
+        )
     if outer.ifs or inner.ifs:
         return (
             f"#setCompForIfs({emit_exp(outer.iter)}, {outer.target.id}, "

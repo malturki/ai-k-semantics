@@ -237,6 +237,7 @@ module PYTHON-SYNTAX
                | "#listCompIf" "(" Exp "," Id "," Exp "," Exp ")" [symbol(listCompIfExp), strict(1)]
                | "#listCompIfs" "(" Exp "," Id "," CompFilters "," Exp ")" [symbol(listCompIfsExp), strict(1)]
                | "#listCompFor" "(" Exp "," Id "," Exp "," Id "," Exp ")" [symbol(listCompForExp), strict(1)]
+               | "#listCompTargetFor" "(" Exp "," Target "," Exp "," Target "," Exp ")" [symbol(listCompTargetForExp), strict(1)]
                | "#listCompForIfs" "(" Exp "," Id "," MaybeCompFilters "," Exp "," Id "," MaybeCompFilters "," Exp ")" [symbol(listCompForIfsExp), strict(1)]
                | "#listCompForFor" "(" Exp "," Id "," Exp "," Id "," Exp "," Id "," Exp ")" [symbol(listCompForForExp), strict(1)]
                | "#listCompForForIfs" "(" Exp "," Id "," MaybeCompFilters "," Exp "," Id "," MaybeCompFilters "," Exp "," Id "," MaybeCompFilters "," Exp ")" [symbol(listCompForForIfsExp), strict(1)]
@@ -246,6 +247,7 @@ module PYTHON-SYNTAX
                | "#dictCompIf" "(" Exp "," Id "," Exp "," Exp "," Exp ")" [symbol(dictCompIfExp), strict(1)]
                | "#dictCompIfs" "(" Exp "," Id "," CompFilters "," Exp "," Exp ")" [symbol(dictCompIfsExp), strict(1)]
                | "#dictCompFor" "(" Exp "," Id "," Exp "," Id "," Exp "," Exp ")" [symbol(dictCompForExp), strict(1)]
+               | "#dictCompTargetFor" "(" Exp "," Target "," Exp "," Target "," Exp "," Exp ")" [symbol(dictCompTargetForExp), strict(1)]
                | "#dictCompForIfs" "(" Exp "," Id "," MaybeCompFilters "," Exp "," Id "," MaybeCompFilters "," Exp "," Exp ")" [symbol(dictCompForIfsExp), strict(1)]
                | "#dictCompForFor" "(" Exp "," Id "," Exp "," Id "," Exp "," Id "," Exp "," Exp ")" [symbol(dictCompForForExp), strict(1)]
                | "#dictCompForForIfs" "(" Exp "," Id "," MaybeCompFilters "," Exp "," Id "," MaybeCompFilters "," Exp "," Id "," MaybeCompFilters "," Exp "," Exp ")" [symbol(dictCompForForIfsExp), strict(1)]
@@ -255,6 +257,7 @@ module PYTHON-SYNTAX
                | "#setCompIf" "(" Exp "," Id "," Exp "," Exp ")" [symbol(setCompIfExp), strict(1)]
                | "#setCompIfs" "(" Exp "," Id "," CompFilters "," Exp ")" [symbol(setCompIfsExp), strict(1)]
                | "#setCompFor" "(" Exp "," Id "," Exp "," Id "," Exp ")" [symbol(setCompForExp), strict(1)]
+               | "#setCompTargetFor" "(" Exp "," Target "," Exp "," Target "," Exp ")" [symbol(setCompTargetForExp), strict(1)]
                | "#setCompForIfs" "(" Exp "," Id "," MaybeCompFilters "," Exp "," Id "," MaybeCompFilters "," Exp ")" [symbol(setCompForIfsExp), strict(1)]
                | "#setCompForFor" "(" Exp "," Id "," Exp "," Id "," Exp "," Id "," Exp ")" [symbol(setCompForForExp), strict(1)]
                | "#setCompForForIfs" "(" Exp "," Id "," MaybeCompFilters "," Exp "," Id "," MaybeCompFilters "," Exp "," Id "," MaybeCompFilters "," Exp ")" [symbol(setCompForForIfsExp), strict(1)]
@@ -528,6 +531,10 @@ module PYTHON
                  | listCompForInner(Id, Exp, Id, Exp, ArgVals, ArgVals, Map) [symbol(listCompForInner)]
                  | listCompForInnerIter(Id, Exp, Id, Exp, ArgVals, ArgVals, ArgVals, Map) [symbol(listCompForInnerIter)]
                  | listCompForNext(Id, Exp, Id, Exp, ArgVals, ArgVals, ArgVals, Map) [symbol(listCompForNext)]
+                 | listCompTargetForIter(Target, Exp, Target, Exp, ArgVals, ArgVals, Map) [symbol(listCompTargetForIter)]
+                 | listCompTargetForInner(Target, Exp, Target, Exp, ArgVals, ArgVals, Map) [symbol(listCompTargetForInner)]
+                 | listCompTargetForInnerIter(Target, Exp, Target, Exp, ArgVals, ArgVals, ArgVals, Map) [symbol(listCompTargetForInnerIter)]
+                 | listCompTargetForNext(Target, Exp, Target, Exp, ArgVals, ArgVals, ArgVals, Map) [symbol(listCompTargetForNext)]
                  | listCompForIfsIter(Id, MaybeCompFilters, Exp, Id, MaybeCompFilters, Exp, ArgVals, ArgVals, Map) [symbol(listCompForIfsIter)]
                  | listCompForIfsOuterFilter(Id, MaybeCompFilters, CompFilters, Exp, Id, MaybeCompFilters, Exp, ArgVals, ArgVals, Map) [symbol(listCompForIfsOuterFilter)]
                  | listCompForIfsOuterFilterNext(Id, MaybeCompFilters, CompFilters, Exp, Id, MaybeCompFilters, Exp, ArgVals, ArgVals, Map) [symbol(listCompForIfsOuterFilterNext)]
@@ -580,6 +587,10 @@ module PYTHON
                  | setCompForInner(Id, Exp, Id, Exp, ArgVals, ArgVals, Map) [symbol(setCompForInner)]
                  | setCompForInnerIter(Id, Exp, Id, Exp, ArgVals, ArgVals, ArgVals, Map) [symbol(setCompForInnerIter)]
                  | setCompForNext(Id, Exp, Id, Exp, ArgVals, ArgVals, ArgVals, Map) [symbol(setCompForNext)]
+                 | setCompTargetForIter(Target, Exp, Target, Exp, ArgVals, ArgVals, Map) [symbol(setCompTargetForIter)]
+                 | setCompTargetForInner(Target, Exp, Target, Exp, ArgVals, ArgVals, Map) [symbol(setCompTargetForInner)]
+                 | setCompTargetForInnerIter(Target, Exp, Target, Exp, ArgVals, ArgVals, ArgVals, Map) [symbol(setCompTargetForInnerIter)]
+                 | setCompTargetForNext(Target, Exp, Target, Exp, ArgVals, ArgVals, ArgVals, Map) [symbol(setCompTargetForNext)]
                  | setCompForForIter(Id, Exp, Id, Exp, Id, Exp, ArgVals, ArgVals, Map) [symbol(setCompForForIter)]
                  | setCompForForMiddle(Id, Exp, Id, Exp, Id, Exp, ArgVals, ArgVals, Map) [symbol(setCompForForMiddle)]
                  | setCompForForMiddleIter(Id, Exp, Id, Exp, Id, Exp, ArgVals, ArgVals, ArgVals, Map) [symbol(setCompForForMiddleIter)]
@@ -649,6 +660,11 @@ module PYTHON
                  | dictCompForInnerIter(Id, Exp, Id, Exp, Exp, ArgVals, ArgVals, DictVals, Map) [symbol(dictCompForInnerIter)]
                  | dictCompForKey(Id, Exp, Id, Exp, Exp, ArgVals, ArgVals, DictVals, Map) [symbol(dictCompForKey)]
                  | dictCompForValue(Id, Exp, Id, Exp, Exp, ArgVals, ArgVals, DictVals, Map, Val) [symbol(dictCompForValue)]
+                 | dictCompTargetForIter(Target, Exp, Target, Exp, Exp, ArgVals, DictVals, Map) [symbol(dictCompTargetForIter)]
+                 | dictCompTargetForInner(Target, Exp, Target, Exp, Exp, ArgVals, DictVals, Map) [symbol(dictCompTargetForInner)]
+                 | dictCompTargetForInnerIter(Target, Exp, Target, Exp, Exp, ArgVals, ArgVals, DictVals, Map) [symbol(dictCompTargetForInnerIter)]
+                 | dictCompTargetForKey(Target, Exp, Target, Exp, Exp, ArgVals, ArgVals, DictVals, Map) [symbol(dictCompTargetForKey)]
+                 | dictCompTargetForValue(Target, Exp, Target, Exp, Exp, ArgVals, ArgVals, DictVals, Map, Val) [symbol(dictCompTargetForValue)]
                  | dictCompForForIter(Id, Exp, Id, Exp, Id, Exp, Exp, ArgVals, DictVals, Map) [symbol(dictCompForForIter)]
                  | dictCompForForMiddle(Id, Exp, Id, Exp, Id, Exp, Exp, ArgVals, DictVals, Map) [symbol(dictCompForForMiddle)]
                  | dictCompForForMiddleIter(Id, Exp, Id, Exp, Id, Exp, Exp, ArgVals, ArgVals, DictVals, Map) [symbol(dictCompForForMiddleIter)]
@@ -6031,6 +6047,36 @@ module PYTHON
   rule <k> V:Val ~> listCompForNext(X:Id, Inner:Exp, Y:Id, Elem:Exp, RestOuter:ArgVals, RestInner:ArgVals, Acc:ArgVals, Rho:Map) =>
            listCompForInnerIter(X, Inner, Y, Elem, RestOuter, RestInner, appendArgVal(Acc, V), Rho)
        ... </k>
+  rule <k> listCompTargetForExp(Iter:Val, Outer:Target, Inner:Exp, InnerTarget:Target, Elem:Exp) =>
+           listCompTargetForIter(Outer, Inner, InnerTarget, Elem, iterableArgVals(Iter), #noArgVals, Rho)
+       ... </k>
+       <env> Rho </env>
+  rule <k> listCompTargetForIter(_:Target, _:Exp, _:Target, _:Exp, #noArgVals, #noArgVals, Rho:Map) =>
+           [] ~> restoreEnv(Rho)
+       ... </k>
+  rule <k> listCompTargetForIter(_:Target, _:Exp, _:Target, _:Exp, #noArgVals, Acc:ArgVals, Rho:Map) =>
+           listVal(argValsToValItems(Acc)) ~> restoreEnv(Rho)
+       ... </k>
+    requires notBool emptyArgVals(Acc)
+  rule <k> listCompTargetForIter(Outer:Target, Inner:Exp, InnerTarget:Target, Elem:Exp, argValsCons(V:Val, RestOuter:ArgVals), Acc:ArgVals, Rho:Map) =>
+           Inner ~> listCompTargetForInner(Outer, Inner, InnerTarget, Elem, RestOuter, Acc, Rho)
+       ... </k>
+       <env> _ => bindTarget(Rho, Outer, V) </env>
+    requires targetValueArityOk(Outer, V)
+  rule <k> InnerIter:Val ~> listCompTargetForInner(Outer:Target, Inner:Exp, InnerTarget:Target, Elem:Exp, RestOuter:ArgVals, Acc:ArgVals, Rho:Map) =>
+           listCompTargetForInnerIter(Outer, Inner, InnerTarget, Elem, RestOuter, iterableArgVals(InnerIter), Acc, Rho)
+       ... </k>
+  rule <k> listCompTargetForInnerIter(Outer:Target, Inner:Exp, InnerTarget:Target, Elem:Exp, RestOuter:ArgVals, #noArgVals, Acc:ArgVals, Rho:Map) =>
+           listCompTargetForIter(Outer, Inner, InnerTarget, Elem, RestOuter, Acc, Rho)
+       ... </k>
+  rule <k> listCompTargetForInnerIter(Outer:Target, Inner:Exp, InnerTarget:Target, Elem:Exp, RestOuter:ArgVals, argValsCons(V:Val, RestInner:ArgVals), Acc:ArgVals, Rho:Map) =>
+           Elem ~> listCompTargetForNext(Outer, Inner, InnerTarget, Elem, RestOuter, RestInner, Acc, Rho)
+       ... </k>
+       <env> RhoCurrent:Map => bindTarget(RhoCurrent, InnerTarget, V) </env>
+    requires targetValueArityOk(InnerTarget, V)
+  rule <k> V:Val ~> listCompTargetForNext(Outer:Target, Inner:Exp, InnerTarget:Target, Elem:Exp, RestOuter:ArgVals, RestInner:ArgVals, Acc:ArgVals, Rho:Map) =>
+           listCompTargetForInnerIter(Outer, Inner, InnerTarget, Elem, RestOuter, RestInner, appendArgVal(Acc, V), Rho)
+       ... </k>
   rule <k> listCompForIfsExp(Iter:Val, X:Id, OuterFilters:MaybeCompFilters, Inner:Exp, Y:Id, InnerFilters:MaybeCompFilters, Elem:Exp) =>
            listCompForIfsIter(X, OuterFilters, Inner, Y, InnerFilters, Elem, iterableArgVals(Iter), #noArgVals, Rho)
        ... </k>
@@ -6436,6 +6482,36 @@ module PYTHON
        <env> RhoCurrent:Map => RhoCurrent [ Y <- V ] </env>
   rule <k> V:Val ~> setCompForNext(X:Id, Inner:Exp, Y:Id, Elem:Exp, RestOuter:ArgVals, RestInner:ArgVals, Acc:ArgVals, Rho:Map) =>
            setCompForInnerIter(X, Inner, Y, Elem, RestOuter, RestInner, appendArgVal(Acc, V), Rho)
+       ... </k>
+  rule <k> setCompTargetForExp(Iter:Val, Outer:Target, Inner:Exp, InnerTarget:Target, Elem:Exp) =>
+           setCompTargetForIter(Outer, Inner, InnerTarget, Elem, iterableArgVals(Iter), #noArgVals, Rho)
+       ... </k>
+       <env> Rho </env>
+  rule <k> setCompTargetForIter(_:Target, _:Exp, _:Target, _:Exp, #noArgVals, #noArgVals, Rho:Map) =>
+           set() ~> restoreEnv(Rho)
+       ... </k>
+  rule <k> setCompTargetForIter(_:Target, _:Exp, _:Target, _:Exp, #noArgVals, Acc:ArgVals, Rho:Map) =>
+           setFromArgVals(Acc) ~> restoreEnv(Rho)
+       ... </k>
+    requires notBool emptyArgVals(Acc)
+  rule <k> setCompTargetForIter(Outer:Target, Inner:Exp, InnerTarget:Target, Elem:Exp, argValsCons(V:Val, RestOuter:ArgVals), Acc:ArgVals, Rho:Map) =>
+           Inner ~> setCompTargetForInner(Outer, Inner, InnerTarget, Elem, RestOuter, Acc, Rho)
+       ... </k>
+       <env> _ => bindTarget(Rho, Outer, V) </env>
+    requires targetValueArityOk(Outer, V)
+  rule <k> InnerIter:Val ~> setCompTargetForInner(Outer:Target, Inner:Exp, InnerTarget:Target, Elem:Exp, RestOuter:ArgVals, Acc:ArgVals, Rho:Map) =>
+           setCompTargetForInnerIter(Outer, Inner, InnerTarget, Elem, RestOuter, iterableArgVals(InnerIter), Acc, Rho)
+       ... </k>
+  rule <k> setCompTargetForInnerIter(Outer:Target, Inner:Exp, InnerTarget:Target, Elem:Exp, RestOuter:ArgVals, #noArgVals, Acc:ArgVals, Rho:Map) =>
+           setCompTargetForIter(Outer, Inner, InnerTarget, Elem, RestOuter, Acc, Rho)
+       ... </k>
+  rule <k> setCompTargetForInnerIter(Outer:Target, Inner:Exp, InnerTarget:Target, Elem:Exp, RestOuter:ArgVals, argValsCons(V:Val, RestInner:ArgVals), Acc:ArgVals, Rho:Map) =>
+           Elem ~> setCompTargetForNext(Outer, Inner, InnerTarget, Elem, RestOuter, RestInner, Acc, Rho)
+       ... </k>
+       <env> RhoCurrent:Map => bindTarget(RhoCurrent, InnerTarget, V) </env>
+    requires targetValueArityOk(InnerTarget, V)
+  rule <k> V:Val ~> setCompTargetForNext(Outer:Target, Inner:Exp, InnerTarget:Target, Elem:Exp, RestOuter:ArgVals, RestInner:ArgVals, Acc:ArgVals, Rho:Map) =>
+           setCompTargetForInnerIter(Outer, Inner, InnerTarget, Elem, RestOuter, RestInner, appendArgVal(Acc, V), Rho)
        ... </k>
   rule <k> setCompForForExp(Iter:Val, X:Id, Middle:Exp, Y:Id, Inner:Exp, Z:Id, Elem:Exp) =>
            setCompForForIter(X, Middle, Y, Inner, Z, Elem, iterableArgVals(Iter), #noArgVals, Rho)
@@ -6897,6 +6973,39 @@ module PYTHON
        ... </k>
   rule <k> V:Val ~> dictCompForValue(X:Id, Inner:Exp, Y:Id, Key:Exp, Value:Exp, RestOuter:ArgVals, RestInner:ArgVals, Acc:DictVals, Rho:Map, K:Val) =>
            dictCompForInnerIter(X, Inner, Y, Key, Value, RestOuter, RestInner, appendDictVal(Acc, K, V), Rho)
+       ... </k>
+  rule <k> dictCompTargetForExp(Iter:Val, Outer:Target, Inner:Exp, InnerTarget:Target, Key:Exp, Value:Exp) =>
+           dictCompTargetForIter(Outer, Inner, InnerTarget, Key, Value, iterableArgVals(Iter), #noDictVals, Rho)
+       ... </k>
+       <env> Rho </env>
+  rule <k> dictCompTargetForIter(_:Target, _:Exp, _:Target, _:Exp, _:Exp, #noArgVals, #noDictVals, Rho:Map) =>
+           ({}):Val ~> restoreEnv(Rho)
+       ... </k>
+  rule <k> dictCompTargetForIter(_:Target, _:Exp, _:Target, _:Exp, _:Exp, #noArgVals, Acc:DictVals, Rho:Map) =>
+           dictVal(dictValsToDictItems(Acc)) ~> restoreEnv(Rho)
+       ... </k>
+    requires notBool emptyDictVals(Acc)
+  rule <k> dictCompTargetForIter(Outer:Target, Inner:Exp, InnerTarget:Target, Key:Exp, Value:Exp, argValsCons(V:Val, RestOuter:ArgVals), Acc:DictVals, Rho:Map) =>
+           Inner ~> dictCompTargetForInner(Outer, Inner, InnerTarget, Key, Value, RestOuter, Acc, Rho)
+       ... </k>
+       <env> _ => bindTarget(Rho, Outer, V) </env>
+    requires targetValueArityOk(Outer, V)
+  rule <k> InnerIter:Val ~> dictCompTargetForInner(Outer:Target, Inner:Exp, InnerTarget:Target, Key:Exp, Value:Exp, RestOuter:ArgVals, Acc:DictVals, Rho:Map) =>
+           dictCompTargetForInnerIter(Outer, Inner, InnerTarget, Key, Value, RestOuter, iterableArgVals(InnerIter), Acc, Rho)
+       ... </k>
+  rule <k> dictCompTargetForInnerIter(Outer:Target, Inner:Exp, InnerTarget:Target, Key:Exp, Value:Exp, RestOuter:ArgVals, #noArgVals, Acc:DictVals, Rho:Map) =>
+           dictCompTargetForIter(Outer, Inner, InnerTarget, Key, Value, RestOuter, Acc, Rho)
+       ... </k>
+  rule <k> dictCompTargetForInnerIter(Outer:Target, Inner:Exp, InnerTarget:Target, Key:Exp, Value:Exp, RestOuter:ArgVals, argValsCons(V:Val, RestInner:ArgVals), Acc:DictVals, Rho:Map) =>
+           Key ~> dictCompTargetForKey(Outer, Inner, InnerTarget, Key, Value, RestOuter, RestInner, Acc, Rho)
+       ... </k>
+       <env> RhoCurrent:Map => bindTarget(RhoCurrent, InnerTarget, V) </env>
+    requires targetValueArityOk(InnerTarget, V)
+  rule <k> K:Val ~> dictCompTargetForKey(Outer:Target, Inner:Exp, InnerTarget:Target, Key:Exp, Value:Exp, RestOuter:ArgVals, RestInner:ArgVals, Acc:DictVals, Rho:Map) =>
+           Value ~> dictCompTargetForValue(Outer, Inner, InnerTarget, Key, Value, RestOuter, RestInner, Acc, Rho, K)
+       ... </k>
+  rule <k> V:Val ~> dictCompTargetForValue(Outer:Target, Inner:Exp, InnerTarget:Target, Key:Exp, Value:Exp, RestOuter:ArgVals, RestInner:ArgVals, Acc:DictVals, Rho:Map, K:Val) =>
+           dictCompTargetForInnerIter(Outer, Inner, InnerTarget, Key, Value, RestOuter, RestInner, appendDictVal(Acc, K, V), Rho)
        ... </k>
   rule <k> dictCompForForExp(Iter:Val, X:Id, Middle:Exp, Y:Id, Inner:Exp, Z:Id, Key:Exp, Value:Exp) =>
            dictCompForForIter(X, Middle, Y, Inner, Z, Key, Value, iterableArgVals(Iter), #noDictVals, Rho)

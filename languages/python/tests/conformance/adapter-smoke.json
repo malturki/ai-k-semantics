@@ -445,6 +445,13 @@
       "coverage": ["int-constructor", "float-constructor", "space-padded-numeric-strings", "ordinary-python-source-adapter"]
     },
     {
+      "id": "adapter-numeric-string-nonspace-whitespace",
+      "source": "../adapter/adapter-numeric-string-nonspace-whitespace.py",
+      "reference": "Python Standard Library Built-in Functions int and float",
+      "expected_result": "True ~> .K",
+      "coverage": ["int-constructor", "float-constructor", "ascii-whitespace-padded-numeric-strings", "ordinary-python-source-adapter"]
+    },
+    {
       "id": "adapter-abs-int",
       "source": "../adapter/adapter-abs-int.py",
       "reference": "Python Standard Library Built-in Functions abs",

@@ -1803,6 +1803,11 @@ module PYTHON
     requires N <Int 0
 
   rule asciiSpace(" ") => true
+  rule asciiSpace("\t") => true
+  rule asciiSpace("\n") => true
+  rule asciiSpace("\r") => true
+  rule asciiSpace("\f") => true
+  rule asciiSpace("\u000b") => true
   rule asciiSpace(_:String) => false [owise]
 
   rule stripAsciiSpace(S:String) => rstripAsciiSpace(lstripAsciiSpace(S))

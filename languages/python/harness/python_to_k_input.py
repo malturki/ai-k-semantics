@@ -723,8 +723,8 @@ def emit_function_def(
 ) -> str:
     if decorators:
         raise unsupported(decorators[0], "function decorators are not supported yet")
-    if returns is not None:
-        raise unsupported(returns, "function return annotations are not supported yet")
+    # Python 3.14 annotations are lazy metadata. The current function values do
+    # not expose metadata/introspection, so annotations are erased in this subset.
     if type_comment is not None:
         raise unsupported(node, "function type comments are not supported yet")
     if args.kwonlyargs:

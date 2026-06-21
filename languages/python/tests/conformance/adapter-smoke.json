@@ -53,6 +53,13 @@
       "coverage": ["complex-values", "complex-multiplication", "complex-true-division", "nonzero-complex-denominator", "ordinary-python-source-adapter"]
     },
     {
+      "id": "adapter-complex-constructor",
+      "source": "../adapter/adapter-complex-constructor.py",
+      "reference": "Python Standard Library Built-in Types complex; Python Language Reference 6.3.4 Calls",
+      "expected_result": "True ~> .K",
+      "coverage": ["complex-constructor", "complex-values", "numeric-constructor", "ordinary-python-source-adapter"]
+    },
+    {
       "id": "adapter-ellipsis",
       "source": "../adapter/adapter-ellipsis.py",
       "reference": "Python Language Reference 6.2.2 Atoms; Python Standard Library Built-in Constants Ellipsis",

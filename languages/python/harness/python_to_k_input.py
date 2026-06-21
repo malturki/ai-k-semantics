@@ -204,6 +204,12 @@ def emit_exp(exp: ast.expr) -> str:
             return "#floatCtor()"
         case ast.Call(func=ast.Name(id="float"), args=[arg], keywords=[]):
             return f"#floatCtor({emit_exp(arg)})"
+        case ast.Call(func=ast.Name(id="complex"), args=[], keywords=[]):
+            return "#complexCtor()"
+        case ast.Call(func=ast.Name(id="complex"), args=[arg], keywords=[]):
+            return f"#complexCtor({emit_exp(arg)})"
+        case ast.Call(func=ast.Name(id="complex"), args=[real, imag], keywords=[]):
+            return f"#complexCtor({emit_exp(real)}, {emit_exp(imag)})"
         case ast.Call(func=ast.Name(id="abs"), args=[arg], keywords=[]):
             return f"#abs({emit_exp(arg)})"
         case ast.Call(func=ast.Name(id="divmod"), args=[left, right], keywords=[]):

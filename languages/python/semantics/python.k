@@ -309,6 +309,9 @@ module PYTHON-SYNTAX
                | "#intCtor" "(" Exp ")" [symbol(intCtor1Exp), strict]
                | "#floatCtor" "(" ")" [symbol(floatCtor0Exp)]
                | "#floatCtor" "(" Exp ")" [symbol(floatCtor1Exp), strict]
+               | "#complexCtor" "(" ")" [symbol(complexCtor0Exp)]
+               | "#complexCtor" "(" Exp ")" [symbol(complexCtor1Exp), strict]
+               | "#complexCtor" "(" Exp "," Exp ")" [symbol(complexCtor2Exp), strict]
                | "#abs" "(" Exp ")" [symbol(absExp), strict]
                | "#divmod" "(" Exp "," Exp ")" [symbol(divmodExp), strict]
                | "#pow" "(" Exp "," Exp ")" [symbol(powBuiltinExp), strict]
@@ -935,6 +938,7 @@ module PYTHON
   syntax Bool ::= truthy(Val) [function, symbol(truthy)]
                 | isIntLike(Val) [function, symbol(isIntLike)]
                 | isFloatLike(Val) [function, symbol(isFloatLike)]
+                | isComplexLike(Val) [function, symbol(isComplexLike)]
                 | valEq(Val, Val) [function, symbol(valEq)]
                 | valIs(Val, Val) [function, symbol(valIs)]
                 | cmpHolds(CmpOp, Val, Val) [function, symbol(cmpHolds)]
@@ -1095,6 +1099,8 @@ module PYTHON
                | rangeMax(Int, Int, Int) [function, symbol(rangeMax)]
   syntax IdItems ::= concatIdItems(IdItems, IdItems) [function, symbol(concatIdItems)]
   syntax Float ::= floatValue(Val) [function, symbol(floatValue)]
+                 | complexReal(Val) [function, symbol(complexReal)]
+                 | complexImag(Val) [function, symbol(complexImag)]
                  | pyFloatFloorDiv(Float, Float) [function, symbol(pyFloatFloorDiv)]
                  | pyFloatModulo(Float, Float) [function, symbol(pyFloatModulo)]
   syntax String ::= repeatString(String, Int) [function, symbol(repeatString)]
@@ -1402,6 +1408,20 @@ module PYTHON
 
   rule isFloatLike(_:Float) => true
   rule isFloatLike(V:Val) => isIntLike(V) [owise]
+
+  rule isComplexLike(#complex(_:Float, _:Float)) => true
+  rule isComplexLike(_:Float) => true
+  rule isComplexLike(V:Val) => isIntLike(V) [owise]
+
+  rule complexReal(#complex(R:Float, _:Float)) => R
+  rule complexReal(F:Float) => F
+  rule complexReal(V:Val) => floatValue(V)
+    requires isIntLike(V)
+
+  rule complexImag(#complex(_:Float, I:Float)) => I
+  rule complexImag(_:Float) => 0.0
+  rule complexImag(V:Val) => 0.0
+    requires isIntLike(V)
 
   rule singletonIdentity(True) => true
   rule singletonIdentity(False) => true
@@ -8634,6 +8654,12 @@ module PYTHON
   rule #floatCtor(F:Float) => F
   rule #floatCtor(V:Val) => floatValue(V)
     requires isIntLike(V)
+  rule #complexCtor() => #complex(0.0, 0.0)
+  rule #complexCtor(V:Val) => #complex(complexReal(V), complexImag(V))
+    requires isComplexLike(V)
+  rule #complexCtor(V1:Val, V2:Val) =>
+    #complex(complexReal(V1) -Float complexImag(V2), complexImag(V1) +Float complexReal(V2))
+    requires isComplexLike(V1) andBool isComplexLike(V2)
   rule #abs(V:Val) => 0 -Int intValue(V)
     requires isIntLike(V) andBool intValue(V) <Int 0
   rule #abs(V:Val) => intValue(V)

@@ -60,6 +60,13 @@
       "coverage": ["complex-constructor", "complex-values", "numeric-constructor", "ordinary-python-source-adapter"]
     },
     {
+      "id": "adapter-complex-power",
+      "source": "../adapter/adapter-complex-power.py",
+      "reference": "Python Language Reference 6.5 The power operator; Python Standard Library Built-in Functions pow",
+      "expected_result": "True ~> .K",
+      "coverage": ["complex-values", "complex-power", "numeric-operators", "ordinary-python-source-adapter"]
+    },
+    {
       "id": "adapter-ellipsis",
       "source": "../adapter/adapter-ellipsis.py",
       "reference": "Python Language Reference 6.2.2 Atoms; Python Standard Library Built-in Constants Ellipsis",

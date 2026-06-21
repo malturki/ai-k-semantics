@@ -1203,6 +1203,10 @@ module PYTHON
   syntax Val ::= dictGet(DictItems, Val) [function, symbol(dictGet)]
   syntax Val ::= kwLookup(Id, KwArgVals) [function, symbol(kwLookup)]
   syntax Val ::= boolValue(Bool) [function, symbol(boolValue)]
+               | complexMulVal(Val, Val) [function, symbol(complexMulVal)]
+               | complexInv(Val) [function, symbol(complexInv)]
+               | complexPowNonNeg(Float, Float, Int) [function, symbol(complexPowNonNeg)]
+               | complexPowInt(Float, Float, Int) [function, symbol(complexPowInt)]
 
   rule truthy(0) => false
   rule truthy(I:Int) => true requires I =/=Int 0
@@ -1422,6 +1426,26 @@ module PYTHON
   rule complexImag(_:Float) => 0.0
   rule complexImag(V:Val) => 0.0
     requires isIntLike(V)
+
+  rule complexMulVal(#complex(R1:Float, I1:Float), #complex(R2:Float, I2:Float)) =>
+    #complex((R1 *Float R2) -Float (I1 *Float I2), (R1 *Float I2) +Float (I1 *Float R2))
+
+  rule complexInv(#complex(R:Float, I:Float)) =>
+    #complex(
+      R /Float ((R *Float R) +Float (I *Float I)),
+      (0.0 -Float I) /Float ((R *Float R) +Float (I *Float I)))
+    requires (R *Float R) +Float (I *Float I) =/=Float 0.0
+
+  rule complexPowNonNeg(_:Float, _:Float, 0) => #complex(1.0, 0.0)
+  rule complexPowNonNeg(R:Float, I:Float, N:Int) =>
+    complexMulVal(#complex(R, I), complexPowNonNeg(R, I, N -Int 1))
+    requires N >Int 0
+
+  rule complexPowInt(R:Float, I:Float, N:Int) => complexPowNonNeg(R, I, N)
+    requires N >=Int 0
+  rule complexPowInt(R:Float, I:Float, N:Int) =>
+    complexInv(complexPowNonNeg(R, I, 0 -Int N))
+    requires N <Int 0 andBool (R *Float R) +Float (I *Float I) =/=Float 0.0
 
   rule singletonIdentity(True) => true
   rule singletonIdentity(False) => true
@@ -3699,6 +3723,9 @@ module PYTHON
     requires isIntLike(V) andBool intValue(V) >Int 0
   rule V:Val * tupleVal(VS:ValItems) => tupleVal(repeatValItems(VS, intValue(V)))
     requires isIntLike(V) andBool intValue(V) >Int 0
+  rule #complex(R:Float, I:Float) ** V:Val => complexPowInt(R, I, intValue(V))
+    requires isIntLike(V)
+      andBool (intValue(V) >=Int 0 orBool (R *Float R) +Float (I *Float I) =/=Float 0.0)
   rule V1:Val ** V2:Val => intValue(V1) ^Int intValue(V2)
     requires isIntLike(V1) andBool isIntLike(V2) andBool intValue(V2) >=Int 0
   rule V1:Val ** V2:Val => Int2Float(intValue(V1), 53, 11) ^Float Int2Float(intValue(V2), 53, 11)
@@ -8690,6 +8717,9 @@ module PYTHON
     requires isIntLike(V) andBool F >=Float 0.0 andBool (F =/=Float 0.0 orBool intValue(V) >=Int 0)
   rule #pow(V:Val, F:Float) => floatValue(V) ^Float F
     requires isIntLike(V) andBool floatValue(V) >=Float 0.0 andBool (intValue(V) =/=Int 0 orBool F >=Float 0.0)
+  rule #pow(#complex(R:Float, I:Float), V:Val) => complexPowInt(R, I, intValue(V))
+    requires isIntLike(V)
+      andBool (intValue(V) >=Int 0 orBool (R *Float R) +Float (I *Float I) =/=Float 0.0)
   rule #pow(V1:Val, V2:Val, V3:Val) => pyModulo(intValue(V1) ^Int intValue(V2), intValue(V3))
     requires isIntLike(V1)
       andBool isIntLike(V2)

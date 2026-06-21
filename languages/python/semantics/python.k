@@ -37,9 +37,13 @@ module PYTHON-SYNTAX
 
   syntax Target ::= "#targetName" "(" Id ")" [symbol(targetName)]
                   | "#targetSeq" "(" Targets ")" [symbol(targetSeq)]
+                  | "#targetStarSeq" "(" MaybeTargets ";" Id ";" MaybeTargets ")" [symbol(targetStarSeq)]
 
   syntax Targets ::= "#targetLast" "(" Target ")" [symbol(targetsLast)]
                    | "#targetCons" "(" Target "," Targets ")" [symbol(targetsCons)]
+
+  syntax MaybeTargets ::= "#noTargets" [symbol(noTargets)]
+                        | "#targets" "(" Targets ")" [symbol(someTargets)]
 
   syntax ArgExps ::= "#noArgs" [symbol(noArgExps)]
                    | "#arg" "(" Exp ")" [symbol(argExp)]
@@ -155,6 +159,7 @@ module PYTHON-SYNTAX
                 | "#unpackAssign" "(" IdItems ";" Exp ")" [symbol(unpackAssignStmt), strict(2)]
                 | "#unpackStarAssign" "(" IdItems ";" Id ";" IdItems ";" Exp ")" [symbol(unpackStarAssignStmt), strict(4)]
                 | "#unpackTargetAssign" "(" Targets ";" Exp ")" [symbol(unpackTargetAssignStmt), strict(2)]
+                | "#targetAssign" "(" Target ";" Exp ")" [symbol(targetAssignStmt), strict(2)]
                 | "#annAssign" "(" Id "," Exp ")" [symbol(annAssignStmt), strict(2)]
                 | "#annOnly" "(" Id ")" [symbol(annOnlyStmt)]
                 | "return" [symbol(returnNoneStmt)]
@@ -206,6 +211,8 @@ module PYTHON-SYNTAX
                 | "#forUnpackElse" "(" IdItems "," Exp "," Block "," Block ")" [symbol(forUnpackElseStmt)]
                 | "#forTargetUnpack" "(" Targets "," Exp "," Block ")" [symbol(forTargetUnpackStmt)]
                 | "#forTargetUnpackElse" "(" Targets "," Exp "," Block "," Block ")" [symbol(forTargetUnpackElseStmt)]
+                | "#forTarget" "(" Target "," Exp "," Block ")" [symbol(forTargetStmt)]
+                | "#forTargetElse" "(" Target "," Exp "," Block "," Block ")" [symbol(forTargetElseStmt)]
                 | "#forStarUnpack" "(" IdItems "," Id "," IdItems "," Exp "," Block ")" [symbol(forStarUnpackStmt)]
                 | "#forStarUnpackElse" "(" IdItems "," Id "," IdItems "," Exp "," Block "," Block ")" [symbol(forStarUnpackElseStmt)]
                 | "#tryFinally" "(" Block "," Block ")" [symbol(tryFinallyStmt)]
@@ -664,6 +671,8 @@ module PYTHON
                  | forUnpackItems(IdItems, ValItems, Block) [symbol(forUnpackItems)]
                  | forTargetUnpackIter(Targets, Block) [symbol(forTargetUnpackIter)]
                  | forTargetUnpackItems(Targets, ValItems, Block) [symbol(forTargetUnpackItems)]
+                 | forTargetIter(Target, Block) [symbol(forTargetIter)]
+                 | forTargetItems(Target, ValItems, Block) [symbol(forTargetItems)]
                  | forStarUnpackIter(IdItems, Id, IdItems, Block) [symbol(forStarUnpackIter)]
                  | forStarUnpackItems(IdItems, Id, IdItems, ValItems, Block) [symbol(forStarUnpackItems)]
                  | forRange(Id, Int, Int, Block) [symbol(forRange)]
@@ -677,6 +686,8 @@ module PYTHON
                  | forUnpackElseItems(IdItems, ValItems, Block, Block) [symbol(forUnpackElseItems)]
                  | forTargetUnpackElseIter(Targets, Block, Block) [symbol(forTargetUnpackElseIter)]
                  | forTargetUnpackElseItems(Targets, ValItems, Block, Block) [symbol(forTargetUnpackElseItems)]
+                 | forTargetElseIter(Target, Block, Block) [symbol(forTargetElseIter)]
+                 | forTargetElseItems(Target, ValItems, Block, Block) [symbol(forTargetElseItems)]
                  | forUnpackElseDone(Block) [symbol(forUnpackElseDone)]
                  | forStarUnpackElseIter(IdItems, Id, IdItems, Block, Block) [symbol(forStarUnpackElseIter)]
                  | forStarUnpackElseItems(IdItems, Id, IdItems, ValItems, Block, Block) [symbol(forStarUnpackElseItems)]
@@ -834,6 +845,9 @@ module PYTHON
                 | mixedRequiredPresent(IdItems, ArgVals, KwArgVals, ArgVals) [function, symbol(mixedRequiredPresent)]
                 | sameTargetsValArity(Targets, ValItems) [function, symbol(sameTargetsValArity)]
                 | targetValueArityOk(Target, Val) [function, symbol(targetValueArityOk)]
+                | targetStarSeqArityOk(MaybeTargets, MaybeTargets, ValItems) [function, symbol(targetStarSeqArityOk)]
+                | maybeTargetsPrefixArityOk(MaybeTargets, ValItems) [function, symbol(maybeTargetsPrefixArityOk)]
+                | maybeTargetsSuffixArityOk(MaybeTargets, ValItems) [function, symbol(maybeTargetsSuffixArityOk)]
                 | emptyArgVals(ArgVals) [function, symbol(emptyArgVals)]
                 | emptyKwArgVals(KwArgVals) [function, symbol(emptyKwArgVals)]
                 | emptyDictVals(DictVals) [function, symbol(emptyDictVals)]
@@ -873,6 +887,8 @@ module PYTHON
                | pySliceIndexNeg(Int, Int) [function, symbol(pySliceIndexNeg)]
                | valItemsLen(ValItems) [function, symbol(valItemsLen)]
                | idItemsLen(IdItems) [function, symbol(idItemsLen)]
+               | targetsLen(Targets) [function, symbol(targetsLen)]
+               | maybeTargetsLen(MaybeTargets) [function, symbol(maybeTargetsLen)]
                | argValsLen(ArgVals) [function, symbol(argValsLen)]
                | kwArgValsLen(KwArgVals) [function, symbol(kwArgValsLen)]
                | dictItemsLen(DictItems) [function, symbol(dictItemsLen)]
@@ -953,6 +969,9 @@ module PYTHON
   syntax Map ::= bindVals(Map, IdItems, ValItems) [function, symbol(bindVals)]
   syntax Map ::= bindTarget(Map, Target, Val) [function, symbol(bindTarget)]
   syntax Map ::= bindTargets(Map, Targets, ValItems) [function, symbol(bindTargets)]
+  syntax Map ::= bindTargetStarSeq(Map, MaybeTargets, Id, MaybeTargets, ValItems) [function, symbol(bindTargetStarSeq)]
+  syntax Map ::= bindMaybePrefixTargets(Map, MaybeTargets, ValItems) [function, symbol(bindMaybePrefixTargets)]
+  syntax Map ::= bindMaybeSuffixTargets(Map, MaybeTargets, ValItems) [function, symbol(bindMaybeSuffixTargets)]
   syntax Map ::= delIds(Map, IdItems) [function, symbol(delIds)]
   syntax Map ::= bindPrefixVals(Map, IdItems, ValItems) [function, symbol(bindPrefixVals)]
   syntax Map ::= bindSuffixVals(Map, IdItems, ValItems, Int) [function, symbol(bindSuffixVals)]
@@ -1415,6 +1434,12 @@ module PYTHON
   rule idItemsLen(#noIds) => 0
   rule idItemsLen(idItemsLast(_:Id)) => 1
   rule idItemsLen(idItemsCons(_:Id, IDS:IdItems)) => 1 +Int idItemsLen(IDS)
+
+  rule targetsLen(targetsLast(_:Target)) => 1
+  rule targetsLen(targetsCons(_:Target, TS:Targets)) => 1 +Int targetsLen(TS)
+
+  rule maybeTargetsLen(#noTargets) => 0
+  rule maybeTargetsLen(#targets(TS:Targets)) => targetsLen(TS)
 
   rule concatIdItems(#noIds, IDS:IdItems) => IDS
   rule concatIdItems(IDS:IdItems, #noIds) => IDS
@@ -2074,25 +2099,90 @@ module PYTHON
   rule targetValueArityOk(targetName(_:Id), _:Val) => true
   rule targetValueArityOk(targetSeq(TS:Targets), listVal(VS:ValItems)) =>
     sameTargetsValArity(TS, VS)
+  rule targetValueArityOk(targetSeq(_:Targets), []) => false
   rule targetValueArityOk(targetSeq(TS:Targets), tupleVal(VS:ValItems)) =>
     sameTargetsValArity(TS, VS)
+  rule targetValueArityOk(targetSeq(_:Targets), ()) => false
   rule targetValueArityOk(targetSeq(TS:Targets), bytesVal(VS:ValItems)) =>
     sameTargetsValArity(TS, VS)
+  rule targetValueArityOk(targetSeq(_:Targets), #bytes()) => false
   rule targetValueArityOk(targetSeq(TS:Targets), S:String) =>
     sameTargetsValArity(TS, stringToValItems(S, 0, lengthString(S)))
     requires lengthString(S) >Int 0
+  rule targetValueArityOk(targetSeq(_:Targets), S:String) => false
+    requires lengthString(S) ==Int 0
+  rule targetValueArityOk(targetSeq(_:Targets), ({}):Val) => false
   rule targetValueArityOk(targetSeq(TS:Targets), dictVal(DS:DictItems)) =>
     sameTargetsValArity(TS, dictKeysToValItems(DS))
   rule targetValueArityOk(targetSeq(TS:Targets), setVal(VS:ValItems)) =>
     sameTargetsValArity(TS, VS)
+  rule targetValueArityOk(targetSeq(_:Targets), set()) => false
   rule targetValueArityOk(targetSeq(TS:Targets), rangeVal(Start:Int, Stop:Int)) =>
     sameTargetsValArity(TS, rangeToValItems(Start, Stop, 1, 0, pyRangeLen(Start, Stop, 1)))
     requires pyRangeLen(Start, Stop, 1) >Int 0
+  rule targetValueArityOk(targetSeq(_:Targets), rangeVal(Start:Int, Stop:Int)) => false
+    requires pyRangeLen(Start, Stop, 1) ==Int 0
   rule targetValueArityOk(targetSeq(TS:Targets), rangeVal(Start:Int, Stop:Int, Step:Int)) =>
     sameTargetsValArity(TS, rangeToValItems(Start, Stop, Step, 0, pyRangeLen(Start, Stop, Step)))
     requires Step =/=Int 0 andBool pyRangeLen(Start, Stop, Step) >Int 0
+  rule targetValueArityOk(targetSeq(_:Targets), rangeVal(Start:Int, Stop:Int, Step:Int)) => false
+    requires Step =/=Int 0 andBool pyRangeLen(Start, Stop, Step) ==Int 0
+  rule targetValueArityOk(targetStarSeq(Prefix:MaybeTargets, _:Id, Suffix:MaybeTargets), listVal(VS:ValItems)) =>
+    targetStarSeqArityOk(Prefix, Suffix, VS)
+  rule targetValueArityOk(targetStarSeq(Prefix:MaybeTargets, _:Id, Suffix:MaybeTargets), []) =>
+    maybeTargetsLen(Prefix) +Int maybeTargetsLen(Suffix) ==Int 0
+  rule targetValueArityOk(targetStarSeq(Prefix:MaybeTargets, _:Id, Suffix:MaybeTargets), tupleVal(VS:ValItems)) =>
+    targetStarSeqArityOk(Prefix, Suffix, VS)
+  rule targetValueArityOk(targetStarSeq(Prefix:MaybeTargets, _:Id, Suffix:MaybeTargets), ()) =>
+    maybeTargetsLen(Prefix) +Int maybeTargetsLen(Suffix) ==Int 0
+  rule targetValueArityOk(targetStarSeq(Prefix:MaybeTargets, _:Id, Suffix:MaybeTargets), bytesVal(VS:ValItems)) =>
+    targetStarSeqArityOk(Prefix, Suffix, VS)
+  rule targetValueArityOk(targetStarSeq(Prefix:MaybeTargets, _:Id, Suffix:MaybeTargets), #bytes()) =>
+    maybeTargetsLen(Prefix) +Int maybeTargetsLen(Suffix) ==Int 0
+  rule targetValueArityOk(targetStarSeq(Prefix:MaybeTargets, _:Id, Suffix:MaybeTargets), S:String) =>
+    targetStarSeqArityOk(Prefix, Suffix, stringToValItems(S, 0, lengthString(S)))
+    requires lengthString(S) >Int 0
+  rule targetValueArityOk(targetStarSeq(Prefix:MaybeTargets, _:Id, Suffix:MaybeTargets), S:String) =>
+    maybeTargetsLen(Prefix) +Int maybeTargetsLen(Suffix) ==Int 0
+    requires lengthString(S) ==Int 0
+  rule targetValueArityOk(targetStarSeq(Prefix:MaybeTargets, _:Id, Suffix:MaybeTargets), ({}):Val) =>
+    maybeTargetsLen(Prefix) +Int maybeTargetsLen(Suffix) ==Int 0
+  rule targetValueArityOk(targetStarSeq(Prefix:MaybeTargets, _:Id, Suffix:MaybeTargets), dictVal(DS:DictItems)) =>
+    targetStarSeqArityOk(Prefix, Suffix, dictKeysToValItems(DS))
+  rule targetValueArityOk(targetStarSeq(Prefix:MaybeTargets, _:Id, Suffix:MaybeTargets), setVal(VS:ValItems)) =>
+    targetStarSeqArityOk(Prefix, Suffix, VS)
+  rule targetValueArityOk(targetStarSeq(Prefix:MaybeTargets, _:Id, Suffix:MaybeTargets), set()) =>
+    maybeTargetsLen(Prefix) +Int maybeTargetsLen(Suffix) ==Int 0
+  rule targetValueArityOk(targetStarSeq(Prefix:MaybeTargets, _:Id, Suffix:MaybeTargets), rangeVal(Start:Int, Stop:Int)) =>
+    targetStarSeqArityOk(Prefix, Suffix, rangeToValItems(Start, Stop, 1, 0, pyRangeLen(Start, Stop, 1)))
+    requires pyRangeLen(Start, Stop, 1) >Int 0
+  rule targetValueArityOk(targetStarSeq(Prefix:MaybeTargets, _:Id, Suffix:MaybeTargets), rangeVal(Start:Int, Stop:Int)) =>
+    maybeTargetsLen(Prefix) +Int maybeTargetsLen(Suffix) ==Int 0
+    requires pyRangeLen(Start, Stop, 1) ==Int 0
+  rule targetValueArityOk(targetStarSeq(Prefix:MaybeTargets, _:Id, Suffix:MaybeTargets), rangeVal(Start:Int, Stop:Int, Step:Int)) =>
+    targetStarSeqArityOk(Prefix, Suffix, rangeToValItems(Start, Stop, Step, 0, pyRangeLen(Start, Stop, Step)))
+    requires Step =/=Int 0 andBool pyRangeLen(Start, Stop, Step) >Int 0
+  rule targetValueArityOk(targetStarSeq(Prefix:MaybeTargets, _:Id, Suffix:MaybeTargets), rangeVal(Start:Int, Stop:Int, Step:Int)) =>
+    maybeTargetsLen(Prefix) +Int maybeTargetsLen(Suffix) ==Int 0
+    requires Step =/=Int 0 andBool pyRangeLen(Start, Stop, Step) ==Int 0
   rule targetValueArityOk(targetSeq(_:Targets), _:Val) => false
     [owise]
+  rule targetValueArityOk(targetStarSeq(_:MaybeTargets, _:Id, _:MaybeTargets), _:Val) => false
+    [owise]
+
+  rule targetStarSeqArityOk(Prefix:MaybeTargets, Suffix:MaybeTargets, VS:ValItems) =>
+    maybeTargetsPrefixArityOk(Prefix, VS) andBool maybeTargetsSuffixArityOk(Suffix, VS)
+    requires maybeTargetsLen(Prefix) +Int maybeTargetsLen(Suffix) <=Int valItemsLen(VS)
+  rule targetStarSeqArityOk(Prefix:MaybeTargets, Suffix:MaybeTargets, VS:ValItems) => false
+    requires maybeTargetsLen(Prefix) +Int maybeTargetsLen(Suffix) >Int valItemsLen(VS)
+
+  rule maybeTargetsPrefixArityOk(#noTargets, _:ValItems) => true
+  rule maybeTargetsPrefixArityOk(#targets(TS:Targets), VS:ValItems) =>
+    sameTargetsValArity(TS, sliceValItems(VS, 0, targetsLen(TS)))
+
+  rule maybeTargetsSuffixArityOk(#noTargets, _:ValItems) => true
+  rule maybeTargetsSuffixArityOk(#targets(TS:Targets), VS:ValItems) =>
+    sameTargetsValArity(TS, dropValItems(VS, valItemsLen(VS) -Int targetsLen(TS)))
 
   rule starUnpackArityOk(Prefix:IdItems, Suffix:IdItems, Len:Int) =>
     idItemsLen(Prefix) +Int idItemsLen(Suffix) <=Int Len
@@ -2648,11 +2738,75 @@ module PYTHON
   rule bindTarget(Rho:Map, targetSeq(TS:Targets), rangeVal(Start:Int, Stop:Int, Step:Int)) =>
     bindTargets(Rho, TS, rangeToValItems(Start, Stop, Step, 0, pyRangeLen(Start, Stop, Step)))
     requires Step =/=Int 0 andBool pyRangeLen(Start, Stop, Step) >Int 0
+  rule bindTarget(Rho:Map, targetStarSeq(Prefix:MaybeTargets, Star:Id, Suffix:MaybeTargets), listVal(VS:ValItems)) =>
+    bindTargetStarSeq(Rho, Prefix, Star, Suffix, VS)
+  rule bindTarget(Rho:Map, targetStarSeq(Prefix:MaybeTargets, Star:Id, Suffix:MaybeTargets), []) =>
+    Rho [ Star <- [] ]
+    requires maybeTargetsLen(Prefix) +Int maybeTargetsLen(Suffix) ==Int 0
+  rule bindTarget(Rho:Map, targetStarSeq(Prefix:MaybeTargets, Star:Id, Suffix:MaybeTargets), tupleVal(VS:ValItems)) =>
+    bindTargetStarSeq(Rho, Prefix, Star, Suffix, VS)
+  rule bindTarget(Rho:Map, targetStarSeq(Prefix:MaybeTargets, Star:Id, Suffix:MaybeTargets), ()) =>
+    Rho [ Star <- [] ]
+    requires maybeTargetsLen(Prefix) +Int maybeTargetsLen(Suffix) ==Int 0
+  rule bindTarget(Rho:Map, targetStarSeq(Prefix:MaybeTargets, Star:Id, Suffix:MaybeTargets), bytesVal(VS:ValItems)) =>
+    bindTargetStarSeq(Rho, Prefix, Star, Suffix, VS)
+  rule bindTarget(Rho:Map, targetStarSeq(Prefix:MaybeTargets, Star:Id, Suffix:MaybeTargets), #bytes()) =>
+    Rho [ Star <- [] ]
+    requires maybeTargetsLen(Prefix) +Int maybeTargetsLen(Suffix) ==Int 0
+  rule bindTarget(Rho:Map, targetStarSeq(Prefix:MaybeTargets, Star:Id, Suffix:MaybeTargets), S:String) =>
+    bindTargetStarSeq(Rho, Prefix, Star, Suffix, stringToValItems(S, 0, lengthString(S)))
+    requires lengthString(S) >Int 0
+  rule bindTarget(Rho:Map, targetStarSeq(Prefix:MaybeTargets, Star:Id, Suffix:MaybeTargets), S:String) =>
+    Rho [ Star <- [] ]
+    requires lengthString(S) ==Int 0
+      andBool maybeTargetsLen(Prefix) +Int maybeTargetsLen(Suffix) ==Int 0
+  rule bindTarget(Rho:Map, targetStarSeq(Prefix:MaybeTargets, Star:Id, Suffix:MaybeTargets), ({}):Val) =>
+    Rho [ Star <- [] ]
+    requires maybeTargetsLen(Prefix) +Int maybeTargetsLen(Suffix) ==Int 0
+  rule bindTarget(Rho:Map, targetStarSeq(Prefix:MaybeTargets, Star:Id, Suffix:MaybeTargets), dictVal(DS:DictItems)) =>
+    bindTargetStarSeq(Rho, Prefix, Star, Suffix, dictKeysToValItems(DS))
+  rule bindTarget(Rho:Map, targetStarSeq(Prefix:MaybeTargets, Star:Id, Suffix:MaybeTargets), setVal(VS:ValItems)) =>
+    bindTargetStarSeq(Rho, Prefix, Star, Suffix, VS)
+  rule bindTarget(Rho:Map, targetStarSeq(Prefix:MaybeTargets, Star:Id, Suffix:MaybeTargets), set()) =>
+    Rho [ Star <- [] ]
+    requires maybeTargetsLen(Prefix) +Int maybeTargetsLen(Suffix) ==Int 0
+  rule bindTarget(Rho:Map, targetStarSeq(Prefix:MaybeTargets, Star:Id, Suffix:MaybeTargets), rangeVal(Start:Int, Stop:Int)) =>
+    bindTargetStarSeq(Rho, Prefix, Star, Suffix, rangeToValItems(Start, Stop, 1, 0, pyRangeLen(Start, Stop, 1)))
+    requires pyRangeLen(Start, Stop, 1) >Int 0
+  rule bindTarget(Rho:Map, targetStarSeq(Prefix:MaybeTargets, Star:Id, Suffix:MaybeTargets), rangeVal(Start:Int, Stop:Int)) =>
+    Rho [ Star <- [] ]
+    requires pyRangeLen(Start, Stop, 1) ==Int 0
+      andBool maybeTargetsLen(Prefix) +Int maybeTargetsLen(Suffix) ==Int 0
+  rule bindTarget(Rho:Map, targetStarSeq(Prefix:MaybeTargets, Star:Id, Suffix:MaybeTargets), rangeVal(Start:Int, Stop:Int, Step:Int)) =>
+    bindTargetStarSeq(Rho, Prefix, Star, Suffix, rangeToValItems(Start, Stop, Step, 0, pyRangeLen(Start, Stop, Step)))
+    requires Step =/=Int 0 andBool pyRangeLen(Start, Stop, Step) >Int 0
+  rule bindTarget(Rho:Map, targetStarSeq(Prefix:MaybeTargets, Star:Id, Suffix:MaybeTargets), rangeVal(Start:Int, Stop:Int, Step:Int)) =>
+    Rho [ Star <- [] ]
+    requires Step =/=Int 0
+      andBool pyRangeLen(Start, Stop, Step) ==Int 0
+      andBool maybeTargetsLen(Prefix) +Int maybeTargetsLen(Suffix) ==Int 0
 
   rule bindTargets(Rho:Map, targetsLast(T:Target), valItemsLast(V:Val)) =>
     bindTarget(Rho, T, V)
   rule bindTargets(Rho:Map, targetsCons(T:Target, TS:Targets), valItemsCons(V:Val, VS:ValItems)) =>
     bindTargets(bindTarget(Rho, T, V), TS, VS)
+
+  rule bindTargetStarSeq(Rho:Map, Prefix:MaybeTargets, Star:Id, Suffix:MaybeTargets, VS:ValItems) =>
+    bindMaybeSuffixTargets(
+      bindOneVal(
+        bindMaybePrefixTargets(Rho, Prefix, VS),
+        Star,
+        listSlice(VS, maybeTargetsLen(Prefix), valItemsLen(VS) -Int maybeTargetsLen(Suffix))),
+      Suffix,
+      VS)
+
+  rule bindMaybePrefixTargets(Rho:Map, #noTargets, _:ValItems) => Rho
+  rule bindMaybePrefixTargets(Rho:Map, #targets(TS:Targets), VS:ValItems) =>
+    bindTargets(Rho, TS, sliceValItems(VS, 0, targetsLen(TS)))
+
+  rule bindMaybeSuffixTargets(Rho:Map, #noTargets, _:ValItems) => Rho
+  rule bindMaybeSuffixTargets(Rho:Map, #targets(TS:Targets), VS:ValItems) =>
+    bindTargets(Rho, TS, dropValItems(VS, valItemsLen(VS) -Int targetsLen(TS)))
 
   rule delIds(Rho:Map, #noIds) => Rho
   rule delIds(Rho:Map, idItemsLast(X:Id)) => Rho [ X <- undef ]
@@ -7118,6 +7272,11 @@ module PYTHON
       andBool pyRangeLen(Start, Stop, Step) >Int 0
       andBool sameTargetsValArity(TS, rangeToValItems(Start, Stop, Step, 0, pyRangeLen(Start, Stop, Step)))
 
+  rule <k> targetAssignStmt(T:Target, V:Val) => stmtNoResult ... </k>
+       <env> Rho => bindTarget(Rho, T, V) </env>
+       <result> _ => .K </result>
+    requires targetValueArityOk(T, V)
+
   rule <k> unpackStarAssignStmt(Prefix:IdItems, Star:Id, Suffix:IdItems, listVal(VS:ValItems)) => stmtNoResult ... </k>
        <env> Rho => bindStarUnpack(Rho, Prefix, Star, Suffix, VS) </env>
        <result> _ => .K </result>
@@ -7941,6 +8100,66 @@ module PYTHON
        <env> Rho => bindTarget(Rho, targetSeq(TS), V) </env>
     requires targetValueArityOk(targetSeq(TS), V)
 
+  rule <k> forTargetStmt(T:Target, E:Exp, Body:Block) =>
+           E ~> forTargetIter(T, Body)
+       ... </k>
+  rule <k> [] ~> forTargetIter(_:Target, _:Block) => stmtNoResult ... </k>
+  rule <k> listVal(VS:ValItems) ~> forTargetIter(T:Target, Body:Block) =>
+           forTargetItems(T, VS, Body)
+       ... </k>
+  rule <k> () ~> forTargetIter(_:Target, _:Block) => stmtNoResult ... </k>
+  rule <k> tupleVal(VS:ValItems) ~> forTargetIter(T:Target, Body:Block) =>
+           forTargetItems(T, VS, Body)
+       ... </k>
+  rule <k> #bytes() ~> forTargetIter(_:Target, _:Block) => stmtNoResult ... </k>
+  rule <k> S:String ~> forTargetIter(_:Target, _:Block) => stmtNoResult ... </k>
+    requires lengthString(S) ==Int 0
+  rule <k> S:String ~> forTargetIter(T:Target, Body:Block) =>
+           forTargetItems(T, stringToValItems(S, 0, lengthString(S)), Body)
+       ... </k>
+    requires lengthString(S) >Int 0
+  rule <k> ({}):Val ~> forTargetIter(_:Target, _:Block) => stmtNoResult ... </k>
+  rule <k> dictVal(DS:DictItems) ~> forTargetIter(T:Target, Body:Block) =>
+           forTargetItems(T, dictKeysToValItems(DS), Body)
+       ... </k>
+  rule <k> set() ~> forTargetIter(_:Target, _:Block) => stmtNoResult ... </k>
+  rule <k> setVal(VS:ValItems) ~> forTargetIter(T:Target, Body:Block) =>
+           forTargetItems(T, VS, Body)
+       ... </k>
+  rule <k> rangeVal(Start:Int, Stop:Int) ~> forTargetIter(_:Target, _:Block) => stmtNoResult ... </k>
+    requires pyRangeLen(Start, Stop, 1) ==Int 0
+  rule <k> rangeVal(Start:Int, Stop:Int) ~> forTargetIter(T:Target, Body:Block) =>
+           forTargetItems(T, rangeToValItems(Start, Stop, 1, 0, pyRangeLen(Start, Stop, 1)), Body)
+       ... </k>
+    requires pyRangeLen(Start, Stop, 1) >Int 0
+  rule <k> rangeVal(Start:Int, Stop:Int, Step:Int) ~> forTargetIter(_:Target, _:Block) => stmtNoResult ... </k>
+    requires Step =/=Int 0 andBool pyRangeLen(Start, Stop, Step) ==Int 0
+  rule <k> rangeVal(Start:Int, Stop:Int, Step:Int) ~> forTargetIter(T:Target, Body:Block) =>
+           forTargetItems(T, rangeToValItems(Start, Stop, Step, 0, pyRangeLen(Start, Stop, Step)), Body)
+       ... </k>
+    requires Step =/=Int 0 andBool pyRangeLen(Start, Stop, Step) >Int 0
+
+  rule <k> forTargetItems(T:Target, valItemsCons(V:Val, Rest:ValItems), block(SS:Stmts)) =>
+           SS ~> forTargetItems(T, Rest, block(SS))
+       ... </k>
+       <env> Rho => bindTarget(Rho, T, V) </env>
+    requires targetValueArityOk(T, V)
+  rule <k> forTargetItems(T:Target, valItemsLast(V:Val), block(SS:Stmts)) =>
+           SS ~> forDone
+       ... </k>
+       <env> Rho => bindTarget(Rho, T, V) </env>
+    requires targetValueArityOk(T, V)
+  rule <k> forTargetItems(T:Target, valItemsCons(V:Val, Rest:ValItems), {}) =>
+           forTargetItems(T, Rest, {})
+       ... </k>
+       <env> Rho => bindTarget(Rho, T, V) </env>
+    requires targetValueArityOk(T, V)
+  rule <k> forTargetItems(T:Target, valItemsLast(V:Val), {}) =>
+           stmtNoResult
+       ... </k>
+       <env> Rho => bindTarget(Rho, T, V) </env>
+    requires targetValueArityOk(T, V)
+
   rule <k> forStarUnpackStmt(Prefix:IdItems, Star:Id, Suffix:IdItems, E:Exp, Body:Block) =>
            E ~> forStarUnpackIter(Prefix, Star, Suffix, Body)
        ... </k>
@@ -8700,6 +8919,66 @@ module PYTHON
        <env> Rho => bindTarget(Rho, targetSeq(TS), V) </env>
     requires targetValueArityOk(targetSeq(TS), V)
 
+  rule <k> forTargetElseStmt(T:Target, E:Exp, Body:Block, Else:Block) =>
+           E ~> forTargetElseIter(T, Body, Else)
+       ... </k>
+  rule <k> [] ~> forTargetElseIter(_:Target, _:Block, Else:Block) => runLoopElse(Else) ... </k>
+  rule <k> listVal(VS:ValItems) ~> forTargetElseIter(T:Target, Body:Block, Else:Block) =>
+           forTargetElseItems(T, VS, Body, Else)
+       ... </k>
+  rule <k> () ~> forTargetElseIter(_:Target, _:Block, Else:Block) => runLoopElse(Else) ... </k>
+  rule <k> tupleVal(VS:ValItems) ~> forTargetElseIter(T:Target, Body:Block, Else:Block) =>
+           forTargetElseItems(T, VS, Body, Else)
+       ... </k>
+  rule <k> #bytes() ~> forTargetElseIter(_:Target, _:Block, Else:Block) => runLoopElse(Else) ... </k>
+  rule <k> S:String ~> forTargetElseIter(_:Target, _:Block, Else:Block) => runLoopElse(Else) ... </k>
+    requires lengthString(S) ==Int 0
+  rule <k> S:String ~> forTargetElseIter(T:Target, Body:Block, Else:Block) =>
+           forTargetElseItems(T, stringToValItems(S, 0, lengthString(S)), Body, Else)
+       ... </k>
+    requires lengthString(S) >Int 0
+  rule <k> ({}):Val ~> forTargetElseIter(_:Target, _:Block, Else:Block) => runLoopElse(Else) ... </k>
+  rule <k> dictVal(DS:DictItems) ~> forTargetElseIter(T:Target, Body:Block, Else:Block) =>
+           forTargetElseItems(T, dictKeysToValItems(DS), Body, Else)
+       ... </k>
+  rule <k> set() ~> forTargetElseIter(_:Target, _:Block, Else:Block) => runLoopElse(Else) ... </k>
+  rule <k> setVal(VS:ValItems) ~> forTargetElseIter(T:Target, Body:Block, Else:Block) =>
+           forTargetElseItems(T, VS, Body, Else)
+       ... </k>
+  rule <k> rangeVal(Start:Int, Stop:Int) ~> forTargetElseIter(_:Target, _:Block, Else:Block) => runLoopElse(Else) ... </k>
+    requires pyRangeLen(Start, Stop, 1) ==Int 0
+  rule <k> rangeVal(Start:Int, Stop:Int) ~> forTargetElseIter(T:Target, Body:Block, Else:Block) =>
+           forTargetElseItems(T, rangeToValItems(Start, Stop, 1, 0, pyRangeLen(Start, Stop, 1)), Body, Else)
+       ... </k>
+    requires pyRangeLen(Start, Stop, 1) >Int 0
+  rule <k> rangeVal(Start:Int, Stop:Int, Step:Int) ~> forTargetElseIter(_:Target, _:Block, Else:Block) => runLoopElse(Else) ... </k>
+    requires Step =/=Int 0 andBool pyRangeLen(Start, Stop, Step) ==Int 0
+  rule <k> rangeVal(Start:Int, Stop:Int, Step:Int) ~> forTargetElseIter(T:Target, Body:Block, Else:Block) =>
+           forTargetElseItems(T, rangeToValItems(Start, Stop, Step, 0, pyRangeLen(Start, Stop, Step)), Body, Else)
+       ... </k>
+    requires Step =/=Int 0 andBool pyRangeLen(Start, Stop, Step) >Int 0
+
+  rule <k> forTargetElseItems(T:Target, valItemsCons(V:Val, Rest:ValItems), block(SS:Stmts), Else:Block) =>
+           SS ~> forTargetElseItems(T, Rest, block(SS), Else)
+       ... </k>
+       <env> Rho => bindTarget(Rho, T, V) </env>
+    requires targetValueArityOk(T, V)
+  rule <k> forTargetElseItems(T:Target, valItemsLast(V:Val), block(SS:Stmts), Else:Block) =>
+           SS ~> forUnpackElseDone(Else)
+       ... </k>
+       <env> Rho => bindTarget(Rho, T, V) </env>
+    requires targetValueArityOk(T, V)
+  rule <k> forTargetElseItems(T:Target, valItemsCons(V:Val, Rest:ValItems), {}, Else:Block) =>
+           forTargetElseItems(T, Rest, {}, Else)
+       ... </k>
+       <env> Rho => bindTarget(Rho, T, V) </env>
+    requires targetValueArityOk(T, V)
+  rule <k> forTargetElseItems(T:Target, valItemsLast(V:Val), {}, Else:Block) =>
+           runLoopElse(Else)
+       ... </k>
+       <env> Rho => bindTarget(Rho, T, V) </env>
+    requires targetValueArityOk(T, V)
+
   rule <k> forStarUnpackElseStmt(Prefix:IdItems, Star:Id, Suffix:IdItems, E:Exp, Body:Block, Else:Block) =>
            E ~> forStarUnpackElseIter(Prefix, Star, Suffix, Body, Else)
        ... </k>
@@ -9172,6 +9451,11 @@ module PYTHON
            forTargetUnpackItems(TS, VS, Body)
        ... </k>
   rule <k> returnSignal(V:Val) ~> forTargetUnpackItems(_:Targets, _:ValItems, _:Block) => returnSignal(V) ... </k>
+  rule <k> breakSignal ~> forTargetItems(_:Target, _:ValItems, _:Block) => stmtNoResult ... </k>
+  rule <k> continueSignal ~> forTargetItems(T:Target, VS:ValItems, Body:Block) =>
+           forTargetItems(T, VS, Body)
+       ... </k>
+  rule <k> returnSignal(V:Val) ~> forTargetItems(_:Target, _:ValItems, _:Block) => returnSignal(V) ... </k>
   rule <k> breakSignal ~> forStarUnpackItems(_:IdItems, _:Id, _:IdItems, _:ValItems, _:Block) => stmtNoResult ... </k>
   rule <k> continueSignal ~> forStarUnpackItems(Prefix:IdItems, Star:Id, Suffix:IdItems, VS:ValItems, Body:Block) =>
            forStarUnpackItems(Prefix, Star, Suffix, VS, Body)
@@ -9208,6 +9492,11 @@ module PYTHON
            forTargetUnpackElseItems(TS, VS, Body, Else)
        ... </k>
   rule <k> returnSignal(V:Val) ~> forTargetUnpackElseItems(_:Targets, _:ValItems, _:Block, _:Block) => returnSignal(V) ... </k>
+  rule <k> breakSignal ~> forTargetElseItems(_:Target, _:ValItems, _:Block, _:Block) => stmtNoResult ... </k>
+  rule <k> continueSignal ~> forTargetElseItems(T:Target, VS:ValItems, Body:Block, Else:Block) =>
+           forTargetElseItems(T, VS, Body, Else)
+       ... </k>
+  rule <k> returnSignal(V:Val) ~> forTargetElseItems(_:Target, _:ValItems, _:Block, _:Block) => returnSignal(V) ... </k>
   rule <k> breakSignal ~> forStarUnpackElseItems(_:IdItems, _:Id, _:IdItems, _:ValItems, _:Block, _:Block) => stmtNoResult ... </k>
   rule <k> continueSignal ~> forStarUnpackElseItems(Prefix:IdItems, Star:Id, Suffix:IdItems, VS:ValItems, Body:Block, Else:Block) =>
            forStarUnpackElseItems(Prefix, Star, Suffix, VS, Body, Else)

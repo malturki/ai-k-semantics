@@ -1635,6 +1635,13 @@
       "coverage": ["starred-target-assignment", "sequence-unpacking-assignment", "empty-starred-rest-list", "left-to-right-target-binding", "ordinary-python-source-adapter"]
     },
     {
+      "id": "adapter-nested-starred-targets",
+      "source": "../adapter/adapter-nested-starred-targets.py",
+      "reference": "Python Language Reference 7.2 Assignment statements; 8.3 The for statement; PEP 3132 Extended Iterable Unpacking",
+      "expected_result": "True ~> .K",
+      "coverage": ["starred-target-assignment", "nested-starred-targets", "sequence-unpacking-assignment", "for-statement", "sequence-unpacking-target", "empty-starred-rest-list", "left-to-right-target-binding", "ordinary-python-source-adapter"]
+    },
+    {
       "id": "adapter-augmented-true-div",
       "source": "../adapter/adapter-augmented-true-div.py",
       "reference": "Python Language Reference 7.2.1 Augmented assignment statements; Python Language Reference 6.7 Binary arithmetic operations",

@@ -1043,6 +1043,11 @@ def emit_for_stmt(
             return f"#for({target.id}, {emit_exp(iter_)}, {emit_block(body)})"
         return f"#forElse({target.id}, {emit_exp(iter_)}, {emit_block(body)}, {emit_block(orelse)})"
     if isinstance(target, ast.Tuple | ast.List):
+        if target_contains_star(target):
+            emitted_target = emit_target(target)
+            if not orelse:
+                return f"#forTarget({emitted_target}, {emit_exp(iter_)}, {emit_block(body)})"
+            return f"#forTargetElse({emitted_target}, {emit_exp(iter_)}, {emit_block(body)}, {emit_block(orelse)})"
         star_parts = emit_starred_target_parts(target, "for")
         if star_parts is not None:
             prefix, star, suffix = star_parts
@@ -1106,6 +1111,8 @@ def emit_delete(node: ast.AST, targets: list[ast.expr]) -> str:
 
 
 def emit_sequence_assign(target: ast.Tuple | ast.List, value: ast.expr) -> str:
+    if target_contains_star(target):
+        return f"#targetAssign({emit_target(target)}; {emit_exp(value)})"
     star_parts = emit_starred_target_parts(target, "assignment")
     if star_parts is None:
         if target_contains_nested(target):
@@ -1142,10 +1149,24 @@ def target_contains_nested(target: ast.Tuple | ast.List) -> bool:
     return any(isinstance(elt, ast.Tuple | ast.List) for elt in target.elts)
 
 
+def target_contains_star(target: ast.expr) -> bool:
+    if isinstance(target, ast.Starred):
+        return True
+    if isinstance(target, ast.Tuple | ast.List):
+        return any(target_contains_star(elt) for elt in target.elts)
+    return False
+
+
 def emit_targets_from_sequence(target: ast.Tuple | ast.List) -> str:
     if not target.elts:
         raise unsupported(target, "empty sequence assignment targets are not supported yet")
     return emit_targets(target.elts)
+
+
+def emit_maybe_targets(elts: list[ast.expr]) -> str:
+    if not elts:
+        return "#noTargets"
+    return f"#targets({emit_targets(elts)})"
 
 
 def emit_targets(elts: list[ast.expr]) -> str:
@@ -1161,6 +1182,18 @@ def emit_target(target: ast.expr) -> str:
     if isinstance(target, ast.Starred):
         raise unsupported(target, "starred nested sequence assignment targets are not supported yet")
     if isinstance(target, ast.Tuple | ast.List):
+        star_indexes = [index for index, elt in enumerate(target.elts) if isinstance(elt, ast.Starred)]
+        if len(star_indexes) > 1:
+            raise unsupported(target.elts[star_indexes[1]], "only one starred target is allowed in a target list")
+        if star_indexes:
+            star_index = star_indexes[0]
+            star = target.elts[star_index]
+            if not isinstance(star, ast.Starred) or not isinstance(star.value, ast.Name):
+                raise unsupported(star, "only simple-name starred targets are supported")
+            return (
+                f"#targetStarSeq({emit_maybe_targets(target.elts[:star_index])}; "
+                f"{star.value.id}; {emit_maybe_targets(target.elts[star_index + 1:])})"
+            )
         return f"#targetSeq({emit_targets_from_sequence(target)})"
     raise unsupported(target, "only simple-name and nested sequence assignment targets are supported")
 

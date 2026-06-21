@@ -438,6 +438,13 @@
       "coverage": ["float-constructor", "exponent-string-to-float", "ordinary-python-source-adapter"]
     },
     {
+      "id": "adapter-float-string-underscores",
+      "source": "../adapter/adapter-float-string-underscores.py",
+      "reference": "Python Standard Library Built-in Functions float",
+      "expected_result": "True ~> .K",
+      "coverage": ["float-constructor", "string-to-float", "underscore-digit-separators", "decimal-string-to-float", "exponent-string-to-float", "ordinary-python-source-adapter"]
+    },
+    {
       "id": "adapter-numeric-string-spaces",
       "source": "../adapter/adapter-numeric-string-spaces.py",
       "reference": "Python Standard Library Built-in Functions int and float",

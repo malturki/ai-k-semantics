@@ -1701,11 +1701,16 @@ module PYTHON
     requires I <Int lengthString(S)
       andBool digitValue(substrString(S, I, I +Int 1)) >=Int 0
       andBool digitValue(substrString(S, I, I +Int 1)) <=Int 9
+  rule floatDecimalBodyOk(S:String, I:Int, SeenDot:Bool, SeenDigit:Bool) =>
+    floatDecimalBodyOk(S, I +Int 1, SeenDot, SeenDigit)
+    requires I <Int lengthString(S)
+      andBool intUnderscoreInBase(S, 10, I)
   rule floatDecimalBodyOk(S:String, I:Int, _:Bool, _:Bool) => false
     requires I <Int lengthString(S)
       andBool substrString(S, I, I +Int 1) =/=String "."
       andBool (digitValue(substrString(S, I, I +Int 1)) <Int 0
         orBool digitValue(substrString(S, I, I +Int 1)) >Int 9)
+      andBool notBool intUnderscoreInBase(S, 10, I)
 
   rule floatDecimalStringValue(S:String) => floatDecimalMagnitude(S, 1)
     requires lengthString(S) >Int 0
@@ -1729,6 +1734,10 @@ module PYTHON
     requires I <Int lengthString(S)
       andBool substrString(S, I, I +Int 1) ==String "."
   rule floatDecimalDigitsValue(S:String, I:Int, Acc:Int) =>
+    floatDecimalDigitsValue(S, I +Int 1, Acc)
+    requires I <Int lengthString(S)
+      andBool intUnderscoreInBase(S, 10, I)
+  rule floatDecimalDigitsValue(S:String, I:Int, Acc:Int) =>
     floatDecimalDigitsValue(S, I +Int 1, (Acc *Int 10) +Int digitValue(substrString(S, I, I +Int 1)))
     requires I <Int lengthString(S)
       andBool digitValue(substrString(S, I, I +Int 1)) >=Int 0
@@ -1740,6 +1749,10 @@ module PYTHON
     floatDecimalFractionDigits(S, I +Int 1, Count, true)
     requires I <Int lengthString(S)
       andBool substrString(S, I, I +Int 1) ==String "."
+  rule floatDecimalFractionDigits(S:String, I:Int, Count:Int, SeenDot:Bool) =>
+    floatDecimalFractionDigits(S, I +Int 1, Count, SeenDot)
+    requires I <Int lengthString(S)
+      andBool intUnderscoreInBase(S, 10, I)
   rule floatDecimalFractionDigits(S:String, I:Int, Count:Int, false) =>
     floatDecimalFractionDigits(S, I +Int 1, Count, false)
     requires I <Int lengthString(S)

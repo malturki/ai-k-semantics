@@ -105,6 +105,7 @@ run_case "adapter-float-constructor" "$ROOT/tests/adapter/adapter-float-construc
 run_case "adapter-float-string-constructor" "$ROOT/tests/adapter/adapter-float-string-constructor.py" "True ~> .K"
 run_case "adapter-float-decimal-string-constructor" "$ROOT/tests/adapter/adapter-float-decimal-string-constructor.py" "True ~> .K"
 run_case "adapter-float-exponent-string-constructor" "$ROOT/tests/adapter/adapter-float-exponent-string-constructor.py" "True ~> .K"
+run_case "adapter-float-string-underscores" "$ROOT/tests/adapter/adapter-float-string-underscores.py" "True ~> .K"
 run_case "adapter-numeric-string-spaces" "$ROOT/tests/adapter/adapter-numeric-string-spaces.py" "True ~> .K"
 run_case "adapter-numeric-string-nonspace-whitespace" "$ROOT/tests/adapter/adapter-numeric-string-nonspace-whitespace.py" "True ~> .K"
 run_case "adapter-abs-int" "$ROOT/tests/adapter/adapter-abs-int.py" "True ~> .K"

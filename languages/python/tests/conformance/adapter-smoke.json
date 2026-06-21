@@ -445,6 +445,13 @@
       "coverage": ["float-constructor", "string-to-float", "underscore-digit-separators", "decimal-string-to-float", "exponent-string-to-float", "ordinary-python-source-adapter"]
     },
     {
+      "id": "adapter-float-special-string-constructor",
+      "source": "../adapter/adapter-float-special-string-constructor.py",
+      "reference": "Python Standard Library Built-in Functions float; Python Standard Library Built-in Types float",
+      "expected_result": "True ~> .K",
+      "coverage": ["float-constructor", "string-to-float", "infinity-string-to-float", "nan-string-to-float", "ordinary-python-source-adapter"]
+    },
+    {
       "id": "adapter-numeric-string-spaces",
       "source": "../adapter/adapter-numeric-string-spaces.py",
       "reference": "Python Standard Library Built-in Functions int and float",

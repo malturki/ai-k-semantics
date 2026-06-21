@@ -1072,6 +1072,11 @@ module PYTHON
                 | floatMantissaStringOk(String) [function, symbol(floatMantissaStringOk)]
                 | floatExponentPartOk(String) [function, symbol(floatExponentPartOk)]
                 | floatExponentStringOk(String) [function, symbol(floatExponentStringOk)]
+                | asciiCaselessEq(String, String) [function, symbol(asciiCaselessEq)]
+                | stringCaselessEq(String, String) [function, symbol(stringCaselessEq)]
+                | stringCaselessEqFrom(String, String, Int) [function, symbol(stringCaselessEqFrom)]
+                | floatSpecialInfStringOk(String) [function, symbol(floatSpecialInfStringOk)]
+                | floatSpecialStringOk(String) [function, symbol(floatSpecialStringOk)]
                 | asciiSpace(String) [function, symbol(asciiSpace)]
                 | containsVal(Val, ValItems) [function, symbol(containsVal)]
                 | bytesContains(ValItems, ValItems) [function, symbol(bytesContains)]
@@ -1132,6 +1137,7 @@ module PYTHON
                  | floatDecimalStringValue(String) [function, symbol(floatDecimalStringValue)]
                  | floatDecimalMagnitude(String, Int) [function, symbol(floatDecimalMagnitude)]
                  | floatExponentStringValue(String) [function, symbol(floatExponentStringValue)]
+                 | floatSpecialStringValue(String) [function, symbol(floatSpecialStringValue)]
                  | floatScale10(Float, Int) [function, symbol(floatScale10)]
                  | complexReal(Val) [function, symbol(complexReal)]
                  | complexImag(Val) [function, symbol(complexImag)]
@@ -1808,6 +1814,51 @@ module PYTHON
     floatScale10(
       floatMantissaStringValue(substrString(S, 0, floatExponentIndex(S))),
       intStringValue(substrString(S, floatExponentIndex(S) +Int 1, lengthString(S)), 10))
+
+  rule asciiCaselessEq("I", "i") => true
+  rule asciiCaselessEq("N", "n") => true
+  rule asciiCaselessEq("F", "f") => true
+  rule asciiCaselessEq("T", "t") => true
+  rule asciiCaselessEq("Y", "y") => true
+  rule asciiCaselessEq("A", "a") => true
+  rule asciiCaselessEq(C:String, T:String) => C ==String T [owise]
+
+  rule stringCaselessEq(S:String, T:String) =>
+    lengthString(S) ==Int lengthString(T) andBool stringCaselessEqFrom(S, T, 0)
+
+  rule stringCaselessEqFrom(S:String, T:String, I:Int) => true
+    requires I >=Int lengthString(S)
+      andBool I >=Int lengthString(T)
+  rule stringCaselessEqFrom(S:String, T:String, I:Int) =>
+    asciiCaselessEq(substrString(S, I, I +Int 1), substrString(T, I, I +Int 1))
+    andBool stringCaselessEqFrom(S, T, I +Int 1)
+    requires I <Int lengthString(S)
+      andBool I <Int lengthString(T)
+  rule stringCaselessEqFrom(_:String, _:String, _:Int) => false [owise]
+
+  rule floatSpecialInfStringOk(S:String) =>
+    stringCaselessEq(substrString(S, intSignStart(S), lengthString(S)), "inf")
+    orBool stringCaselessEq(substrString(S, intSignStart(S), lengthString(S)), "infinity")
+    requires lengthString(S) >Int intSignStart(S)
+  rule floatSpecialInfStringOk(_:String) => false [owise]
+
+  rule floatSpecialStringOk(S:String) =>
+    floatSpecialInfStringOk(S)
+    orBool stringCaselessEq(substrString(S, intSignStart(S), lengthString(S)), "nan")
+    requires lengthString(S) >Int intSignStart(S)
+  rule floatSpecialStringOk(_:String) => false [owise]
+
+  rule floatSpecialStringValue(S:String) => 0.0 -Float Infinity
+    requires floatSpecialInfStringOk(S)
+      andBool lengthString(S) >Int 0
+      andBool substrString(S, 0, 1) ==String "-"
+  rule floatSpecialStringValue(S:String) => Infinity
+    requires floatSpecialInfStringOk(S)
+      andBool notBool (lengthString(S) >Int 0
+        andBool substrString(S, 0, 1) ==String "-")
+  rule floatSpecialStringValue(S:String) => NaN
+    requires floatSpecialStringOk(S)
+      andBool notBool floatSpecialInfStringOk(S)
 
   rule floatScale10(F:Float, 0) => F
   rule floatScale10(F:Float, N:Int) => floatScale10(F *Float 10.0, N -Int 1)
@@ -9142,13 +9193,16 @@ module PYTHON
     requires stripAsciiSpace(S) =/=String S
       andBool (intStringOk(stripAsciiSpace(S), 10)
         orBool floatDecimalStringOk(stripAsciiSpace(S))
-        orBool floatExponentStringOk(stripAsciiSpace(S)))
+        orBool floatExponentStringOk(stripAsciiSpace(S))
+        orBool floatSpecialStringOk(stripAsciiSpace(S)))
   rule #floatCtor(S:String) => Int2Float(intStringValue(S, 10), 53, 11)
     requires intStringOk(S, 10)
   rule #floatCtor(S:String) => floatDecimalStringValue(S)
     requires floatDecimalStringOk(S)
   rule #floatCtor(S:String) => floatExponentStringValue(S)
     requires floatExponentStringOk(S)
+  rule #floatCtor(S:String) => floatSpecialStringValue(S)
+    requires floatSpecialStringOk(S)
   rule #complexCtor() => #complex(0.0, 0.0)
   rule #complexCtor(V:Val) => #complex(complexReal(V), complexImag(V))
     requires isComplexLike(V)

@@ -96,42 +96,11 @@ def emit_stmt(stmt: ast.stmt) -> str:
         case ast.For(target=target, iter=iter_, body=body, orelse=orelse):
             return emit_for_stmt(stmt, target, iter_, body, orelse)
         case ast.Try(body=body, handlers=[], orelse=[], finalbody=finalbody):
-            if block_contains_break_or_continue(finalbody):
-                raise unsupported(stmt, "try/finally with break or continue in the finally body is not supported yet")
             return f"#tryFinally({emit_block(body)}, {emit_block(finalbody)})"
         case ast.Try():
             raise unsupported(stmt, "only try/finally without except or else is supported")
         case _:
             raise unsupported(stmt, "statement is not supported by the current K subset")
-
-
-def block_contains_break_or_continue(stmts: list[ast.stmt]) -> bool:
-    return any(stmt_contains_break_or_continue(stmt) for stmt in stmts)
-
-
-def stmt_contains_break_or_continue(stmt: ast.stmt) -> bool:
-    match stmt:
-        case ast.Break() | ast.Continue():
-            return True
-        case ast.If(body=body, orelse=orelse):
-            return block_contains_break_or_continue(body) or block_contains_break_or_continue(orelse)
-        case ast.While(body=body, orelse=orelse) | ast.For(body=body, orelse=orelse):
-            return block_contains_break_or_continue(body) or block_contains_break_or_continue(orelse)
-        case ast.Try(body=body, handlers=handlers, orelse=orelse, finalbody=finalbody):
-            return (
-                block_contains_break_or_continue(body)
-                or any(block_contains_break_or_continue(handler.body) for handler in handlers)
-                or block_contains_break_or_continue(orelse)
-                or block_contains_break_or_continue(finalbody)
-            )
-        case ast.With(body=body) | ast.AsyncWith(body=body):
-            return block_contains_break_or_continue(body)
-        case ast.Match(cases=cases):
-            return any(block_contains_break_or_continue(case.body) for case in cases)
-        case ast.FunctionDef() | ast.AsyncFunctionDef() | ast.Lambda() | ast.ClassDef():
-            return False
-        case _:
-            return False
 
 
 def emit_exp(exp: ast.expr) -> str:

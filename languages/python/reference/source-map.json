@@ -616,9 +616,9 @@
               "section": "The try statement"
             }
           ],
-          "k_coverage": ["semantics/python.k: internal #tryFinally statement form runs the finally block after normal completion of the try block and when return, break, or continue leaves the try block, for explicit Block syntax and no exception profile", "semantics/python.k: a return, break, or continue from the finally block overrides pending return/break/continue in the internal abrupt-completion subset", "harness/python_to_k_input.py: CPython AST Try without handlers or else lowers to #tryFinally when the finally body contains no break or continue"],
-          "test_coverage": ["tests/adapter/adapter-try-finally.py", "tests/adapter/adapter-try-finally-return.py", "tests/adapter/adapter-try-finally-break-continue.py"],
-          "gaps": ["Need except and except* handlers, exception matching, try else, exception objects and groups, cleanup ordering with active exceptions, adapter support for break/continue issued directly by finally bodies, finalizer override of pending exception completion, and broader abrupt completion interactions."]
+          "k_coverage": ["semantics/python.k: internal #tryFinally statement form runs the finally block after normal completion of the try block and when return, break, or continue leaves the try block, for explicit Block syntax and no exception profile", "semantics/python.k: a return, break, or continue from the finally block overrides pending return/break/continue in the internal abrupt-completion subset", "harness/python_to_k_input.py: CPython AST Try without handlers or else lowers to #tryFinally, including finally bodies that issue break or continue"],
+          "test_coverage": ["tests/adapter/adapter-try-finally.py", "tests/adapter/adapter-try-finally-return.py", "tests/adapter/adapter-try-finally-break-continue.py", "tests/adapter/adapter-try-finally-finalbody-break-continue.py"],
+          "gaps": ["Need except and except* handlers, exception matching, try else, exception objects and groups, cleanup ordering with active exceptions, finalizer override of pending exception completion, and broader abrupt completion interactions."]
         },
         {
           "id": "compound.with",

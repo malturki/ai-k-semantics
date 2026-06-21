@@ -1194,6 +1194,13 @@
       "coverage": ["try-statement", "finally-clause", "break-through-finally", "continue-through-finally", "finally-return-overrides-pending-break", "finally-return-overrides-pending-continue", "ordinary-python-source-adapter"]
     },
     {
+      "id": "adapter-try-finally-finalbody-break-continue",
+      "source": "../adapter/adapter-try-finally-finalbody-break-continue.py",
+      "reference": "Python Language Reference 8.4 The try statement; 7.9 The break statement; 7.10 The continue statement",
+      "expected_result": "True ~> .K",
+      "coverage": ["try-statement", "finally-clause", "finally-break", "finally-continue", "finally-break-overrides-pending-continue", "finally-continue-overrides-pending-break", "ordinary-python-source-adapter"]
+    },
+    {
       "id": "adapter-range-for",
       "source": "../adapter/adapter-range-for.py",
       "reference": "Python Language Reference 8.3 The for statement; Standard Library range type",

@@ -403,19 +403,38 @@ def emit_except_handlers(node: ast.AST, handlers: list[ast.ExceptHandler]) -> st
         if len(handlers) != 1:
             raise unsupported(node, "bare except handlers must be last")
         return f"#exceptAny({emit_block(handler.body)})"
-    if not isinstance(handler.type, ast.Name):
-        raise unsupported(node, "only named except handlers are supported")
-    emitted_exception = emit_id(handler.type.id)
+    emitted_exception, is_tuple = emit_except_type(node, handler.type)
     emitted_alias = emit_id(handler.name) if handler.name is not None else None
     emitted_handler = emit_block(handler.body)
     if len(handlers) == 1:
+        if is_tuple and emitted_alias is not None:
+            return f"#exceptTupleAs({emitted_exception}, {emitted_alias}, {emitted_handler})"
+        if is_tuple:
+            return f"#exceptTuple({emitted_exception}, {emitted_handler})"
         if emitted_alias is not None:
             return f"#exceptAs({emitted_exception}, {emitted_alias}, {emitted_handler})"
         return f"#except({emitted_exception}, {emitted_handler})"
     emitted_rest = emit_except_handlers(node, handlers[1:])
+    if is_tuple and emitted_alias is not None:
+        return f"#exceptsTupleAs({emitted_exception}, {emitted_alias}, {emitted_handler}, {emitted_rest})"
+    if is_tuple:
+        return f"#exceptsTuple({emitted_exception}, {emitted_handler}, {emitted_rest})"
     if emitted_alias is not None:
         return f"#exceptsAs({emitted_exception}, {emitted_alias}, {emitted_handler}, {emitted_rest})"
     return f"#excepts({emitted_exception}, {emitted_handler}, {emitted_rest})"
+
+
+def emit_except_type(node: ast.AST, type_expr: ast.expr) -> tuple[str, bool]:
+    if isinstance(type_expr, ast.Name):
+        return emit_id(type_expr.id), False
+    if isinstance(type_expr, ast.Tuple) and type_expr.elts:
+        names = []
+        for elt in type_expr.elts:
+            if not isinstance(elt, ast.Name):
+                raise unsupported(node, "only named exception types in except tuples are supported")
+            names.append(elt.id)
+        return emit_id_items(names), True
+    raise unsupported(node, "only named except handlers and named exception tuples are supported")
 
 
 def ensure_non_async_comprehension(

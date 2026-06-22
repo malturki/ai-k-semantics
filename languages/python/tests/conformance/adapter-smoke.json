@@ -1467,6 +1467,13 @@
       "coverage": ["try-statement", "bare-except-clause", "multiple-except-clauses", "else-clause", "raise-statement", "exception-handler-matching", "ordinary-python-source-adapter"]
     },
     {
+      "id": "adapter-try-except-tuple",
+      "source": "../adapter/adapter-try-except-tuple.py",
+      "reference": "Python Language Reference 8.4 The try statement; 7.8 The raise statement",
+      "expected_result": "True ~> .K",
+      "coverage": ["try-statement", "except-type-tuple", "except-as-target", "else-clause", "raise-statement", "exception-handler-matching", "ordinary-python-source-adapter"]
+    },
+    {
       "id": "adapter-range-for",
       "source": "../adapter/adapter-range-for.py",
       "reference": "Python Language Reference 8.3 The for statement; Standard Library range type",

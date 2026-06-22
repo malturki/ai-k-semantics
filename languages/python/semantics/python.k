@@ -79,9 +79,13 @@ module PYTHON-SYNTAX
 
   syntax ExceptHandlers ::= "#except" "(" Id "," Block ")" [symbol(exceptHandlersLast)]
                           | "#exceptAs" "(" Id "," Id "," Block ")" [symbol(exceptHandlersAsLast)]
+                          | "#exceptTuple" "(" IdItems "," Block ")" [symbol(exceptHandlersTupleLast)]
+                          | "#exceptTupleAs" "(" IdItems "," Id "," Block ")" [symbol(exceptHandlersTupleAsLast)]
                           | "#exceptAny" "(" Block ")" [symbol(exceptHandlersAnyLast)]
                           | "#excepts" "(" Id "," Block "," ExceptHandlers ")" [symbol(exceptHandlersCons)]
                           | "#exceptsAs" "(" Id "," Id "," Block "," ExceptHandlers ")" [symbol(exceptHandlersAsCons)]
+                          | "#exceptsTuple" "(" IdItems "," Block "," ExceptHandlers ")" [symbol(exceptHandlersTupleCons)]
+                          | "#exceptsTupleAs" "(" IdItems "," Id "," Block "," ExceptHandlers ")" [symbol(exceptHandlersTupleAsCons)]
 
   syntax CmpOp ::= "#lt" [symbol(cmpLt)]
                  | "#le" [symbol(cmpLe)]
@@ -10230,6 +10234,30 @@ module PYTHON
            exceptionSignal(#exception(E))
       ... </k>
     requires Id2String(E) =/=String Id2String(F)
+  rule <k> handleException(#exception(E:Id), #exceptTuple(IDS:IdItems, block(SS:Stmts))) =>
+           SS ~> ifStmtDone
+      ... </k>
+    requires stringIdContains(Id2String(E), IDS)
+  rule <k> handleException(#exception(E:Id), #exceptTuple(IDS:IdItems, {})) => stmtNoResult ... </k>
+    requires stringIdContains(Id2String(E), IDS)
+  rule <k> handleException(#exception(E:Id), #exceptTuple(IDS:IdItems, _Handler:Block)) =>
+           exceptionSignal(#exception(E))
+      ... </k>
+    requires notBool stringIdContains(Id2String(E), IDS)
+  rule <k> handleException(#exception(E:Id), #exceptTupleAs(IDS:IdItems, Alias:Id, block(SS:Stmts))) =>
+           SS ~> exceptAsCleanup(Alias)
+      ... </k>
+       <env> Rho => Rho [ Alias <- #exception(E) ] </env>
+    requires stringIdContains(Id2String(E), IDS)
+  rule <k> handleException(#exception(E:Id), #exceptTupleAs(IDS:IdItems, Alias:Id, {})) =>
+           exceptAsCleanup(Alias)
+      ... </k>
+       <env> Rho => Rho [ Alias <- #exception(E) ] </env>
+    requires stringIdContains(Id2String(E), IDS)
+  rule <k> handleException(#exception(E:Id), #exceptTupleAs(IDS:IdItems, _Alias:Id, _Handler:Block)) =>
+           exceptionSignal(#exception(E))
+      ... </k>
+    requires notBool stringIdContains(Id2String(E), IDS)
   rule <k> handleException(_V:Val, #exceptAny(block(SS:Stmts))) =>
            SS ~> ifStmtDone
       ... </k>
@@ -10254,6 +10282,30 @@ module PYTHON
            handleException(#exception(E), Rest)
       ... </k>
     requires Id2String(E) =/=String Id2String(F)
+  rule <k> handleException(#exception(E:Id), #exceptsTuple(IDS:IdItems, block(SS:Stmts), _Rest:ExceptHandlers)) =>
+           SS ~> ifStmtDone
+      ... </k>
+    requires stringIdContains(Id2String(E), IDS)
+  rule <k> handleException(#exception(E:Id), #exceptsTuple(IDS:IdItems, {}, _Rest:ExceptHandlers)) => stmtNoResult ... </k>
+    requires stringIdContains(Id2String(E), IDS)
+  rule <k> handleException(#exception(E:Id), #exceptsTuple(IDS:IdItems, _Handler:Block, Rest:ExceptHandlers)) =>
+           handleException(#exception(E), Rest)
+      ... </k>
+    requires notBool stringIdContains(Id2String(E), IDS)
+  rule <k> handleException(#exception(E:Id), #exceptsTupleAs(IDS:IdItems, Alias:Id, block(SS:Stmts), _Rest:ExceptHandlers)) =>
+           SS ~> exceptAsCleanup(Alias)
+      ... </k>
+       <env> Rho => Rho [ Alias <- #exception(E) ] </env>
+    requires stringIdContains(Id2String(E), IDS)
+  rule <k> handleException(#exception(E:Id), #exceptsTupleAs(IDS:IdItems, Alias:Id, {}, _Rest:ExceptHandlers)) =>
+           exceptAsCleanup(Alias)
+      ... </k>
+       <env> Rho => Rho [ Alias <- #exception(E) ] </env>
+    requires stringIdContains(Id2String(E), IDS)
+  rule <k> handleException(#exception(E:Id), #exceptsTupleAs(IDS:IdItems, _Alias:Id, _Handler:Block, Rest:ExceptHandlers)) =>
+           handleException(#exception(E), Rest)
+      ... </k>
+    requires notBool stringIdContains(Id2String(E), IDS)
   rule <k> handleException(V:Val, _Cases:ExceptHandlers) => exceptionSignal(V) ... </k> [owise]
 
   rule <k> exceptAsCleanup(Alias:Id) => stmtNoResult ... </k>

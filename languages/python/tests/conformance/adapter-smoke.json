@@ -431,6 +431,13 @@
       "coverage": ["if-statement", "missing-else-empty-block", "truth-value-testing", "ordinary-python-source-adapter"]
     },
     {
+      "id": "adapter-match-basic",
+      "source": "../adapter/adapter-match-basic.py",
+      "reference": "Python Language Reference 8.6 The match statement; PEP 634 Structural Pattern Matching",
+      "expected_result": "True ~> .K",
+      "coverage": ["match-statement", "literal-pattern", "singleton-pattern", "wildcard-pattern", "ordered-case-selection", "subject-evaluated-once", "ordinary-python-source-adapter"]
+    },
+    {
       "id": "adapter-is-none",
       "source": "../adapter/adapter-is-none.py",
       "reference": "Python Language Reference 6.10.3 Identity comparisons",

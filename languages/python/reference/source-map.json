@@ -638,7 +638,7 @@
         {
           "id": "compound.match",
           "title": "Structural pattern matching",
-          "status": "not-started",
+          "status": "partial",
           "references": [
             {
               "title": "Compound statements",
@@ -646,9 +646,9 @@
               "section": "The match statement"
             }
           ],
-          "k_coverage": [],
-          "test_coverage": [],
-          "gaps": ["Need all pattern forms, binding rollback decisions, guards, and PEP 634 underspecification triage."]
+          "k_coverage": ["semantics/python.k: internal #match statement form evaluates the subject once, dispatches cases in source order, supports #matchValue over current expression values using valEq, supports #matchSingleton for True/False/None with singleton identity, supports #matchWildcard, and propagates abrupt completion from matched case bodies", "harness/python_to_k_input.py: CPython AST Match lowers to #match for value, singleton, and wildcard patterns without guards"],
+          "test_coverage": ["tests/adapter/adapter-match-basic.py"],
+          "gaps": ["Need capture patterns, OR patterns, AS patterns, sequence patterns, mapping patterns, class patterns, group patterns, guards, binding rollback decisions, broader value-pattern evaluation, irrefutability diagnostics, and PEP 634 underspecification triage."]
         },
         {
           "id": "compound.function-def",

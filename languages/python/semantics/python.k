@@ -77,6 +77,13 @@ module PYTHON-SYNTAX
   syntax MaybeCompClauses ::= "#noCompClauses" [symbol(noCompClauses)]
                             | "#compRest" "(" CompClauses ")" [symbol(compRest)]
 
+  syntax MatchPattern ::= "#matchValue" "(" Exp ")" [symbol(matchValuePattern)]
+                        | "#matchSingleton" "(" Val ")" [symbol(matchSingletonPattern)]
+                        | "#matchWildcard" [symbol(matchWildcardPattern)]
+
+  syntax MatchCases ::= "#matchCase" "(" MatchPattern "," Block ")" [symbol(matchCaseLast)]
+                      | "#matchCases" "(" MatchPattern "," Block "," MatchCases ")" [symbol(matchCasesCons)]
+
   syntax ExceptHandlers ::= "#except" "(" Id "," Block ")" [symbol(exceptHandlersLast)]
                           | "#exceptAs" "(" Id "," Id "," Block ")" [symbol(exceptHandlersAsLast)]
                           | "#exceptTuple" "(" IdItems "," Block ")" [symbol(exceptHandlersTupleLast)]
@@ -235,6 +242,7 @@ module PYTHON-SYNTAX
                 | "#forStarUnpack" "(" IdItems "," Id "," IdItems "," Exp "," Block ")" [symbol(forStarUnpackStmt)]
                 | "#forStarUnpackElse" "(" IdItems "," Id "," IdItems "," Exp "," Block "," Block ")" [symbol(forStarUnpackElseStmt)]
                 | "raise" Exp [symbol(raiseStmt), strict]
+                | "#match" "(" Exp "," MatchCases ")" [symbol(matchStmt)]
                 | "#tryExcept" "(" Block "," Id "," Block ")" [symbol(tryExceptStmt)]
                 | "#tryExceptElse" "(" Block "," Id "," Block "," Block ")" [symbol(tryExceptElseStmt)]
                 | "#tryExceptCases" "(" Block "," ExceptHandlers ")" [symbol(tryExceptCasesStmt)]
@@ -876,6 +884,10 @@ module PYTHON
                  | restoreEnv(Map) [symbol(restoreEnv)]
                  | ifStmtBranch(Block, Block) [symbol(ifStmtBranch)]
                  | "ifStmtDone" [symbol(ifStmtDone)]
+                 | matchSubject(MatchCases) [symbol(matchSubject)]
+                 | matchDispatch(Val, MatchCases) [symbol(matchDispatch)]
+                 | matchValueDispatch(Val, Block, MatchCases) [symbol(matchValueDispatch)]
+                 | "matchDone" [symbol(matchDone)]
                  | whileStmtBranch(Exp, Block) [symbol(whileStmtBranch)]
                  | whileStmtAgain(Exp, Block) [symbol(whileStmtAgain)]
                  | whileElseStmtBranch(Exp, Block, Block) [symbol(whileElseStmtBranch)]
@@ -970,6 +982,7 @@ module PYTHON
                 | isFloatLike(Val) [function, symbol(isFloatLike)]
                 | isComplexLike(Val) [function, symbol(isComplexLike)]
                 | valEq(Val, Val) [function, symbol(valEq)]
+                | singletonPatternEq(Val, Val) [function, symbol(singletonPatternEq)]
                 | valIs(Val, Val) [function, symbol(valIs)]
                 | cmpHolds(CmpOp, Val, Val) [function, symbol(cmpHolds)]
                 | singletonIdentity(Val) [function, symbol(singletonIdentity)]
@@ -2453,6 +2466,11 @@ module PYTHON
 
   rule boolValue(true) => True
   rule boolValue(false) => False
+
+  rule singletonPatternEq(True, True) => true
+  rule singletonPatternEq(False, False) => true
+  rule singletonPatternEq(None, None) => true
+  rule singletonPatternEq(_:Val, _:Val) => false [owise]
 
   rule valEq(I1:Int, I2:Int) => I1 ==Int I2
   rule valEq(F1:Float, F2:Float) => F1 ==Float F2
@@ -10350,6 +10368,68 @@ module PYTHON
     requires notBool truthy(V)
   rule <k> ifStmtDone => stmtNoResult ... </k>
 
+  rule <k> matchStmt(Subject:Exp, Cases:MatchCases) =>
+           Subject ~> matchSubject(Cases)
+      ... </k>
+  rule <k> V:Val ~> matchSubject(Cases:MatchCases) =>
+           matchDispatch(V, Cases)
+      ... </k>
+  rule <k> matchDispatch(_V:Val, #matchCase(#matchWildcard, block(SS:Stmts))) =>
+           SS ~> matchDone
+      ... </k>
+  rule <k> matchDispatch(_:Val, #matchCase(#matchWildcard, {})) =>
+           stmtNoResult
+      ... </k>
+  rule <k> matchDispatch(_V:Val, #matchCases(#matchWildcard, block(SS:Stmts), _Rest:MatchCases)) =>
+           SS ~> matchDone
+      ... </k>
+  rule <k> matchDispatch(_:Val, #matchCases(#matchWildcard, {}, _Rest:MatchCases)) =>
+           stmtNoResult
+      ... </k>
+  rule <k> matchDispatch(V:Val, #matchCase(#matchSingleton(P:Val), block(SS:Stmts))) =>
+           SS ~> matchDone
+      ... </k>
+    requires singletonPatternEq(V, P)
+  rule <k> matchDispatch(V:Val, #matchCase(#matchSingleton(P:Val), {})) =>
+           stmtNoResult
+      ... </k>
+    requires singletonPatternEq(V, P)
+  rule <k> matchDispatch(V:Val, #matchCase(#matchSingleton(P:Val), _Body:Block)) =>
+           stmtNoResult
+      ... </k>
+    requires notBool singletonPatternEq(V, P)
+  rule <k> matchDispatch(V:Val, #matchCases(#matchSingleton(P:Val), block(SS:Stmts), _Rest:MatchCases)) =>
+           SS ~> matchDone
+      ... </k>
+    requires singletonPatternEq(V, P)
+  rule <k> matchDispatch(V:Val, #matchCases(#matchSingleton(P:Val), {}, _Rest:MatchCases)) =>
+           stmtNoResult
+      ... </k>
+    requires singletonPatternEq(V, P)
+  rule <k> matchDispatch(V:Val, #matchCases(#matchSingleton(P:Val), _Body:Block, Rest:MatchCases)) =>
+           matchDispatch(V, Rest)
+      ... </k>
+    requires notBool singletonPatternEq(V, P)
+  rule <k> matchDispatch(V:Val, #matchCase(#matchValue(P:Exp), Body:Block)) =>
+           P ~> matchValueDispatch(V, Body, #matchCase(#matchWildcard, {}))
+      ... </k>
+  rule <k> matchDispatch(V:Val, #matchCases(#matchValue(P:Exp), Body:Block, Rest:MatchCases)) =>
+           P ~> matchValueDispatch(V, Body, Rest)
+      ... </k>
+  rule <k> P:Val ~> matchValueDispatch(V:Val, block(SS:Stmts), _Rest:MatchCases) =>
+           SS ~> matchDone
+      ... </k>
+    requires valEq(V, P)
+  rule <k> P:Val ~> matchValueDispatch(V:Val, {}, _Rest:MatchCases) =>
+           stmtNoResult
+      ... </k>
+    requires valEq(V, P)
+  rule <k> P:Val ~> matchValueDispatch(V:Val, _Body:Block, Rest:MatchCases) =>
+           matchDispatch(V, Rest)
+      ... </k>
+    requires notBool valEq(V, P)
+  rule <k> matchDone => stmtNoResult ... </k>
+
   rule <k> whileStmt(C:Exp, Body:Block) =>
            C ~> whileStmtBranch(C, Body)
        ... </k>
@@ -12046,6 +12126,10 @@ module PYTHON
   rule <k> continueSignal ~> ifStmtDone => continueSignal ... </k>
   rule <k> returnSignal(V:Val) ~> ifStmtDone => returnSignal(V) ... </k>
   rule <k> exceptionSignal(V:Val) ~> ifStmtDone => exceptionSignal(V) ... </k>
+  rule <k> breakSignal ~> matchDone => breakSignal ... </k>
+  rule <k> continueSignal ~> matchDone => continueSignal ... </k>
+  rule <k> returnSignal(V:Val) ~> matchDone => returnSignal(V) ... </k>
+  rule <k> exceptionSignal(V:Val) ~> matchDone => exceptionSignal(V) ... </k>
   rule <k> breakSignal ~> whileStmtAgain(_:Exp, _:Block) => stmtNoResult ... </k>
   rule <k> continueSignal ~> whileStmtAgain(C:Exp, Body:Block) =>
            whileStmt(C, Body)

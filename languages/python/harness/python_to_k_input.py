@@ -114,6 +114,8 @@ def emit_stmt(stmt: ast.stmt) -> str:
             return f"#whileElse({emit_exp(test)}, {emit_block(body)}, {emit_block(orelse)})"
         case ast.For(target=target, iter=iter_, body=body, orelse=orelse):
             return emit_for_stmt(stmt, target, iter_, body, orelse)
+        case ast.Match(subject=subject, cases=cases):
+            return f"#match({emit_exp(subject)}, {emit_match_cases(stmt, cases)})"
         case ast.Try(body=body, handlers=handlers, orelse=orelse, finalbody=finalbody) if handlers and finalbody:
             return f"#tryFinally({emit_stmt_block(emit_try_except(stmt, body, handlers, orelse))}, {emit_block(finalbody)})"
         case ast.Try(body=body, handlers=handlers, orelse=orelse, finalbody=[]) if handlers:
@@ -399,6 +401,35 @@ def emit_try_except(
     if orelse:
         return f"#tryExceptCasesElse({emitted_body}, {emitted_handlers}, {emit_block(orelse)})"
     return f"#tryExceptCases({emitted_body}, {emitted_handlers})"
+
+
+def emit_match_cases(node: ast.AST, cases: list[ast.match_case]) -> str:
+    if not cases:
+        raise unsupported(node, "match statements require at least one case")
+    case = cases[0]
+    if case.guard is not None:
+        raise unsupported(node, "match guards are not supported yet")
+    emitted_pattern = emit_match_pattern(node, case.pattern)
+    emitted_body = emit_block(case.body)
+    if len(cases) == 1:
+        return f"#matchCase({emitted_pattern}, {emitted_body})"
+    return f"#matchCases({emitted_pattern}, {emitted_body}, {emit_match_cases(node, cases[1:])})"
+
+
+def emit_match_pattern(node: ast.AST, pattern: ast.pattern) -> str:
+    match pattern:
+        case ast.MatchAs(name=None):
+            return "#matchWildcard"
+        case ast.MatchSingleton(value=True):
+            return "#matchSingleton(True)"
+        case ast.MatchSingleton(value=False):
+            return "#matchSingleton(False)"
+        case ast.MatchSingleton(value=None):
+            return "#matchSingleton(None)"
+        case ast.MatchValue(value=value):
+            return f"#matchValue({emit_exp(value)})"
+        case _:
+            raise unsupported(node, "only value, singleton, and wildcard match patterns are supported")
 
 
 def emit_except_handlers(node: ast.AST, handlers: list[ast.ExceptHandler]) -> str:

@@ -468,7 +468,9 @@ def emit_match_pattern(node: ast.AST, pattern: ast.pattern) -> str:
         case ast.MatchSequence(patterns=patterns):
             return emit_match_sequence_pattern(node, patterns, allow_star_capture=True, allow_element_capture=True)
         case ast.MatchMapping(keys=keys, patterns=patterns, rest=rest):
-            return emit_match_mapping_pattern(node, keys, patterns, rest, allow_rest_capture=True)
+            return emit_match_mapping_pattern(
+                node, keys, patterns, rest, allow_rest_capture=True, allow_value_capture=True
+            )
         case ast.MatchClass(cls=cls, patterns=[], kwd_attrs=[], kwd_patterns=[]):
             return emit_zero_arg_match_class(node, cls)
         case ast.MatchClass(cls=cls, patterns=[subpattern], kwd_attrs=[], kwd_patterns=[]):
@@ -505,7 +507,9 @@ def emit_match_nonbinding_pattern(node: ast.AST, pattern: ast.pattern) -> str:
         case ast.MatchSequence(patterns=patterns):
             return emit_match_sequence_pattern(node, patterns, allow_star_capture=False, allow_element_capture=False)
         case ast.MatchMapping(keys=keys, patterns=patterns, rest=rest):
-            return emit_match_mapping_pattern(node, keys, patterns, rest, allow_rest_capture=False)
+            return emit_match_mapping_pattern(
+                node, keys, patterns, rest, allow_rest_capture=False, allow_value_capture=False
+            )
         case ast.MatchClass(cls=cls, patterns=[], kwd_attrs=[], kwd_patterns=[]):
             return emit_zero_arg_match_class(node, cls)
         case ast.MatchClass(cls=cls, patterns=[subpattern], kwd_attrs=[], kwd_patterns=[]):
@@ -576,25 +580,39 @@ def emit_match_mapping_pattern(
     patterns: list[ast.pattern],
     rest: str | None,
     allow_rest_capture: bool,
+    allow_value_capture: bool,
 ) -> str:
     if rest is not None:
         if not allow_rest_capture:
             raise unsupported(node, "capture-bearing mapping **rest patterns require binding rollback in this position")
-        return f"#matchMappingRest({emit_match_mapping_patterns(node, keys, patterns)}, {emit_id(rest)})"
+        return f"#matchMappingRest({emit_match_mapping_patterns(node, keys, patterns, allow_capture=allow_value_capture)}, {emit_id(rest)})"
     if len(keys) != len(patterns):
         raise unsupported(node, "mapping match pattern key/value arity mismatch")
-    return f"#matchMapping({emit_match_mapping_patterns(node, keys, patterns)})"
+    return f"#matchMapping({emit_match_mapping_patterns(node, keys, patterns, allow_capture=allow_value_capture)})"
 
 
-def emit_match_mapping_patterns(node: ast.AST, keys: list[ast.expr], patterns: list[ast.pattern]) -> str:
+def emit_match_mapping_patterns(
+    node: ast.AST,
+    keys: list[ast.expr],
+    patterns: list[ast.pattern],
+    allow_capture: bool,
+) -> str:
     if not keys:
         return "#matchNoMapPatterns"
     key = keys[0]
     if not isinstance(key, ast.Constant):
         raise unsupported(node, "only constant mapping match pattern keys are supported")
-    value_pattern = emit_match_nonbinding_pattern(node, patterns[0])
-    rest = emit_match_mapping_patterns(node, keys[1:], patterns[1:])
+    value_pattern = emit_match_mapping_value_pattern(node, patterns[0], allow_capture=allow_capture)
+    rest = emit_match_mapping_patterns(node, keys[1:], patterns[1:], allow_capture=allow_capture)
     return f"#matchMapPattern({emit_exp(key)}, {value_pattern}, {rest})"
+
+
+def emit_match_mapping_value_pattern(node: ast.AST, pattern: ast.pattern, allow_capture: bool) -> str:
+    if allow_capture:
+        match pattern:
+            case ast.MatchAs(pattern=None, name=name) if name is not None:
+                return f"#matchCapture({emit_id(name)})"
+    return emit_match_nonbinding_pattern(node, pattern)
 
 
 def emit_except_handlers(node: ast.AST, handlers: list[ast.ExceptHandler]) -> str:

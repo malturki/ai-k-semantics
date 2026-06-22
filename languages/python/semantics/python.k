@@ -1319,6 +1319,8 @@ module PYTHON
   syntax Map ::= bindMatchPattern(Map, Val, MatchPattern) [function, symbol(bindMatchPattern)]
   syntax Map ::= bindMatchSequence(Map, Val, MatchPatterns) [function, symbol(bindMatchSequence)]
   syntax Map ::= bindMatchValItems(Map, ValItems, MatchPatterns) [function, symbol(bindMatchValItems)]
+  syntax Map ::= bindMatchMapping(Map, Val, MatchMapPatterns) [function, symbol(bindMatchMapping)]
+  syntax Map ::= bindMatchDictItems(Map, DictItems, MatchMapPatterns) [function, symbol(bindMatchDictItems)]
   syntax Map ::= bindMaybePrefixTargets(Map, MaybeTargets, ValItems) [function, symbol(bindMaybePrefixTargets)]
   syntax Map ::= bindMaybeSuffixTargets(Map, MaybeTargets, ValItems) [function, symbol(bindMaybeSuffixTargets)]
   syntax Map ::= delIds(Map, IdItems) [function, symbol(delIds)]
@@ -2597,6 +2599,8 @@ module PYTHON
     bindMatchPattern(Rho, V, P) [ Name <- V ]
   rule bindMatchPattern(Rho:Map, V:Val, #matchSequence(PS:MatchPatterns)) =>
     bindMatchSequence(Rho, V, PS)
+  rule bindMatchPattern(Rho:Map, V:Val, #matchMapping(MPS:MatchMapPatterns)) =>
+    bindMatchMapping(Rho, V, MPS)
   rule bindMatchPattern(Rho:Map, _V:Val, _P:MatchPattern) => Rho [owise]
 
   rule bindMatchSequence(Rho:Map, [], #matchNoPatterns) => Rho
@@ -2612,6 +2616,17 @@ module PYTHON
   rule bindMatchValItems(Rho:Map, valItemsCons(V:Val, VS:ValItems), #matchPattern(P:MatchPattern, PS:MatchPatterns)) =>
     bindMatchValItems(bindMatchPattern(Rho, V, P), VS, PS)
   rule bindMatchValItems(Rho:Map, _VS:ValItems, _PS:MatchPatterns) => Rho [owise]
+
+  rule bindMatchMapping(Rho:Map, {}, #matchNoMapPatterns) => Rho
+  rule bindMatchMapping(Rho:Map, dictVal(DS:DictItems), MPS:MatchMapPatterns) =>
+    bindMatchDictItems(Rho, DS, MPS)
+  rule bindMatchMapping(Rho:Map, _V:Val, _MPS:MatchMapPatterns) => Rho [owise]
+
+  rule bindMatchDictItems(Rho:Map, _DS:DictItems, #matchNoMapPatterns) => Rho
+  rule bindMatchDictItems(Rho:Map, DS:DictItems, #matchMapPattern(K:Val, P:MatchPattern, Rest:MatchMapPatterns)) =>
+    bindMatchDictItems(bindMatchPattern(Rho, dictGet(DS, K), P), DS, Rest)
+    requires containsKey(K, DS)
+  rule bindMatchDictItems(Rho:Map, _DS:DictItems, _MPS:MatchMapPatterns) => Rho [owise]
 
   rule matchFixedSequence([], #matchNoPatterns) => true
   rule matchFixedSequence([], #matchPattern(_:MatchPattern, _:MatchPatterns)) => false
@@ -10670,6 +10685,7 @@ module PYTHON
   rule <k> matchGuardPattern(V:Val, #matchMapping(MPS:MatchMapPatterns), Guard:Exp, Body:Block, Rest:MaybeMatchCases) =>
            Guard ~> matchGuardSelect(V, Body, Rest)
       ... </k>
+      <env> Rho => bindMatchMapping(Rho, V, MPS) </env>
     requires matchMapping(V, MPS)
   rule <k> matchGuardPattern(V:Val, #matchMapping(MPS:MatchMapPatterns), _Guard:Exp, _Body:Block, Rest:MaybeMatchCases) =>
            matchGuardNoMatch(V, Rest)
@@ -10678,7 +10694,7 @@ module PYTHON
   rule <k> matchGuardPattern(V:Val, #matchMappingRest(MPS:MatchMapPatterns, Name:Id), Guard:Exp, Body:Block, Rest:MaybeMatchCases) =>
            Guard ~> matchGuardSelect(V, Body, Rest)
       ... </k>
-      <env> Rho => Rho [ Name <- matchMappingRestVal(V, MPS) ] </env>
+      <env> Rho => bindMatchMapping(Rho, V, MPS) [ Name <- matchMappingRestVal(V, MPS) ] </env>
     requires matchMapping(V, MPS)
   rule <k> matchGuardPattern(V:Val, #matchMappingRest(MPS:MatchMapPatterns, _Name:Id), _Guard:Exp, _Body:Block, Rest:MaybeMatchCases) =>
            matchGuardNoMatch(V, Rest)
@@ -10903,10 +10919,12 @@ module PYTHON
   rule <k> matchDispatch(V:Val, #matchCase(#matchMapping(MPS:MatchMapPatterns), block(SS:Stmts))) =>
            SS ~> matchDone
       ... </k>
+      <env> Rho => bindMatchMapping(Rho, V, MPS) </env>
     requires matchMapping(V, MPS)
   rule <k> matchDispatch(V:Val, #matchCase(#matchMapping(MPS:MatchMapPatterns), {})) =>
            stmtNoResult
       ... </k>
+      <env> Rho => bindMatchMapping(Rho, V, MPS) </env>
     requires matchMapping(V, MPS)
   rule <k> matchDispatch(V:Val, #matchCase(#matchMapping(MPS:MatchMapPatterns), _Body:Block)) =>
            stmtNoResult
@@ -10915,10 +10933,12 @@ module PYTHON
   rule <k> matchDispatch(V:Val, #matchCases(#matchMapping(MPS:MatchMapPatterns), block(SS:Stmts), _Rest:MatchCases)) =>
            SS ~> matchDone
       ... </k>
+      <env> Rho => bindMatchMapping(Rho, V, MPS) </env>
     requires matchMapping(V, MPS)
   rule <k> matchDispatch(V:Val, #matchCases(#matchMapping(MPS:MatchMapPatterns), {}, _Rest:MatchCases)) =>
            stmtNoResult
       ... </k>
+      <env> Rho => bindMatchMapping(Rho, V, MPS) </env>
     requires matchMapping(V, MPS)
   rule <k> matchDispatch(V:Val, #matchCases(#matchMapping(MPS:MatchMapPatterns), _Body:Block, Rest:MatchCases)) =>
            matchDispatch(V, Rest)
@@ -10927,12 +10947,12 @@ module PYTHON
   rule <k> matchDispatch(V:Val, #matchCase(#matchMappingRest(MPS:MatchMapPatterns, Name:Id), block(SS:Stmts))) =>
            SS ~> matchDone
       ... </k>
-      <env> Rho => Rho [ Name <- matchMappingRestVal(V, MPS) ] </env>
+      <env> Rho => bindMatchMapping(Rho, V, MPS) [ Name <- matchMappingRestVal(V, MPS) ] </env>
     requires matchMapping(V, MPS)
   rule <k> matchDispatch(V:Val, #matchCase(#matchMappingRest(MPS:MatchMapPatterns, Name:Id), {})) =>
            stmtNoResult
       ... </k>
-      <env> Rho => Rho [ Name <- matchMappingRestVal(V, MPS) ] </env>
+      <env> Rho => bindMatchMapping(Rho, V, MPS) [ Name <- matchMappingRestVal(V, MPS) ] </env>
     requires matchMapping(V, MPS)
   rule <k> matchDispatch(V:Val, #matchCase(#matchMappingRest(MPS:MatchMapPatterns, _Name:Id), _Body:Block)) =>
            stmtNoResult
@@ -10941,12 +10961,12 @@ module PYTHON
   rule <k> matchDispatch(V:Val, #matchCases(#matchMappingRest(MPS:MatchMapPatterns, Name:Id), block(SS:Stmts), _Rest:MatchCases)) =>
            SS ~> matchDone
       ... </k>
-      <env> Rho => Rho [ Name <- matchMappingRestVal(V, MPS) ] </env>
+      <env> Rho => bindMatchMapping(Rho, V, MPS) [ Name <- matchMappingRestVal(V, MPS) ] </env>
     requires matchMapping(V, MPS)
   rule <k> matchDispatch(V:Val, #matchCases(#matchMappingRest(MPS:MatchMapPatterns, Name:Id), {}, _Rest:MatchCases)) =>
            stmtNoResult
       ... </k>
-      <env> Rho => Rho [ Name <- matchMappingRestVal(V, MPS) ] </env>
+      <env> Rho => bindMatchMapping(Rho, V, MPS) [ Name <- matchMappingRestVal(V, MPS) ] </env>
     requires matchMapping(V, MPS)
   rule <k> matchDispatch(V:Val, #matchCases(#matchMappingRest(MPS:MatchMapPatterns, _Name:Id), _Body:Block, Rest:MatchCases)) =>
            matchDispatch(V, Rest)

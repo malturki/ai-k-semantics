@@ -494,6 +494,13 @@
       "coverage": ["match-statement", "mapping-pattern", "constant-key-pattern", "literal-pattern", "or-pattern", "as-pattern", "ordinary-python-source-adapter"]
     },
     {
+      "id": "adapter-match-mapping-capture",
+      "source": "../adapter/adapter-match-mapping-capture.py",
+      "reference": "Python Language Reference 8.6 The match statement; PEP 634 Structural Pattern Matching",
+      "expected_result": "True ~> .K",
+      "coverage": ["match-statement", "mapping-pattern", "constant-key-pattern", "capture-pattern", "mapping-value-capture-binding", "failed-pattern-binding-rollback", "guard-binding-visibility", "mapping-rest-pattern", "ordinary-python-source-adapter"]
+    },
+    {
       "id": "adapter-match-mapping-rest",
       "source": "../adapter/adapter-match-mapping-rest.py",
       "reference": "Python Language Reference 8.6 The match statement; PEP 634 Structural Pattern Matching",

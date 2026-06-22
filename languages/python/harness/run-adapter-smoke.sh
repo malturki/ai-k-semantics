@@ -113,6 +113,7 @@ run_case "adapter-match-sequence-capture" "$ROOT/tests/adapter/adapter-match-seq
 run_case "adapter-match-sequence-star" "$ROOT/tests/adapter/adapter-match-sequence-star.py" "True ~> .K"
 run_case "adapter-match-sequence-star-capture" "$ROOT/tests/adapter/adapter-match-sequence-star-capture.py" "True ~> .K"
 run_case "adapter-match-mapping" "$ROOT/tests/adapter/adapter-match-mapping.py" "True ~> .K"
+run_case "adapter-match-mapping-capture" "$ROOT/tests/adapter/adapter-match-mapping-capture.py" "True ~> .K"
 run_case "adapter-match-mapping-rest" "$ROOT/tests/adapter/adapter-match-mapping-rest.py" "True ~> .K"
 run_case "adapter-match-guards" "$ROOT/tests/adapter/adapter-match-guards.py" "True ~> .K"
 run_case "adapter-match-class-builtins" "$ROOT/tests/adapter/adapter-match-class-builtins.py" "True ~> .K"

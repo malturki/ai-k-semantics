@@ -79,6 +79,7 @@ module PYTHON-SYNTAX
 
   syntax ExceptHandlers ::= "#except" "(" Id "," Block ")" [symbol(exceptHandlersLast)]
                           | "#exceptAs" "(" Id "," Id "," Block ")" [symbol(exceptHandlersAsLast)]
+                          | "#exceptAny" "(" Block ")" [symbol(exceptHandlersAnyLast)]
                           | "#excepts" "(" Id "," Block "," ExceptHandlers ")" [symbol(exceptHandlersCons)]
                           | "#exceptsAs" "(" Id "," Id "," Block "," ExceptHandlers ")" [symbol(exceptHandlersAsCons)]
 
@@ -10229,6 +10230,10 @@ module PYTHON
            exceptionSignal(#exception(E))
       ... </k>
     requires Id2String(E) =/=String Id2String(F)
+  rule <k> handleException(_V:Val, #exceptAny(block(SS:Stmts))) =>
+           SS ~> ifStmtDone
+      ... </k>
+  rule <k> handleException(_V:Val, #exceptAny({})) => stmtNoResult ... </k>
   rule <k> handleException(#exception(E:Id), #excepts(E, block(SS:Stmts), _Rest:ExceptHandlers)) =>
            SS ~> ifStmtDone
       ... </k>

@@ -379,10 +379,8 @@ def emit_try_except(
     handlers: list[ast.ExceptHandler],
     orelse: list[ast.stmt],
 ) -> str:
-    if len(handlers) == 1 and handlers[0].name is None:
+    if len(handlers) == 1 and handlers[0].name is None and isinstance(handlers[0].type, ast.Name):
         handler = handlers[0]
-        if not isinstance(handler.type, ast.Name):
-            raise unsupported(node, "only named except handlers are supported")
         emitted_body = emit_block(body)
         emitted_exception = emit_id(handler.type.id)
         emitted_handler = emit_block(handler.body)
@@ -399,6 +397,12 @@ def emit_try_except(
 
 def emit_except_handlers(node: ast.AST, handlers: list[ast.ExceptHandler]) -> str:
     handler = handlers[0]
+    if handler.type is None:
+        if handler.name is not None:
+            raise unsupported(node, "bare except handlers cannot bind a target")
+        if len(handlers) != 1:
+            raise unsupported(node, "bare except handlers must be last")
+        return f"#exceptAny({emit_block(handler.body)})"
     if not isinstance(handler.type, ast.Name):
         raise unsupported(node, "only named except handlers are supported")
     emitted_exception = emit_id(handler.type.id)

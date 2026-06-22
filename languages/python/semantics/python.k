@@ -84,6 +84,8 @@ module PYTHON-SYNTAX
                         | "#matchAs" "(" MatchPattern "," Id ")" [symbol(matchAsPattern)]
                         | "#matchClass" "(" Id ")" [symbol(matchClassPattern)]
                         | "#matchClassArg" "(" Id "," MatchPattern ")" [symbol(matchClassArgPattern)]
+                        | "#matchClassKw" "(" Id "," MatchAttrPatterns ")" [symbol(matchClassKwPattern)]
+                        | "#matchClassArgKw" "(" Id "," MatchPattern "," MatchAttrPatterns ")" [symbol(matchClassArgKwPattern)]
                         | "#matchSequence" "(" MatchPatterns ")" [symbol(matchSequencePattern)]
                         | "#matchSequenceStar" "(" MatchPatterns "," MatchPatterns ")" [symbol(matchSequenceStarPattern)]
                         | "#matchSequenceStarCapture" "(" MatchPatterns "," Id "," MatchPatterns ")" [symbol(matchSequenceStarCapturePattern)]
@@ -96,6 +98,9 @@ module PYTHON-SYNTAX
 
   syntax MatchMapPatterns ::= "#matchNoMapPatterns" [symbol(matchNoMapPatterns)]
                             | "#matchMapPattern" "(" Val "," MatchPattern "," MatchMapPatterns ")" [symbol(matchMapPatternCons)]
+
+  syntax MatchAttrPatterns ::= "#matchNoAttrPatterns" [symbol(matchNoAttrPatterns)]
+                             | "#matchAttrPattern" "(" Id "," MatchPattern "," MatchAttrPatterns ")" [symbol(matchAttrPatternCons)]
 
   syntax MatchCases ::= "#matchCase" "(" MatchPattern "," Block ")" [symbol(matchCaseLast)]
                       | "#matchCases" "(" MatchPattern "," Block "," MatchCases ")" [symbol(matchCasesCons)]
@@ -1011,6 +1016,10 @@ module PYTHON
                 | matchBuiltinClass(Val, Id) [function, symbol(matchBuiltinClass)]
                 | builtinClassWholeArg(Id) [function, symbol(builtinClassWholeArg)]
                 | matchBuiltinClassArg(Val, Id, MatchPattern) [function, symbol(matchBuiltinClassArg)]
+                | matchBuiltinClassKw(Val, Id, MatchAttrPatterns) [function, symbol(matchBuiltinClassKw)]
+                | matchBuiltinClassArgKw(Val, Id, MatchPattern, MatchAttrPatterns) [function, symbol(matchBuiltinClassArgKw)]
+                | matchClassAttrs(Val, MatchAttrPatterns) [function, symbol(matchClassAttrs)]
+                | classHasMatchAttr(Val, Id) [function, symbol(classHasMatchAttr)]
                 | matchSimplePattern(Val, MatchPattern) [function, symbol(matchSimplePattern)]
                 | matchFixedSequence(Val, MatchPatterns) [function, symbol(matchFixedSequence)]
                 | matchStarSequence(Val, MatchPatterns, MatchPatterns) [function, symbol(matchStarSequence)]
@@ -1324,6 +1333,7 @@ module PYTHON
   syntax Map ::= bindMatchValItems(Map, ValItems, MatchPatterns) [function, symbol(bindMatchValItems)]
   syntax Map ::= bindMatchMapping(Map, Val, MatchMapPatterns) [function, symbol(bindMatchMapping)]
   syntax Map ::= bindMatchDictItems(Map, DictItems, MatchMapPatterns) [function, symbol(bindMatchDictItems)]
+  syntax Map ::= bindMatchClassAttrs(Map, Val, MatchAttrPatterns) [function, symbol(bindMatchClassAttrs)]
   syntax Map ::= bindMaybePrefixTargets(Map, MaybeTargets, ValItems) [function, symbol(bindMaybePrefixTargets)]
   syntax Map ::= bindMaybeSuffixTargets(Map, MaybeTargets, ValItems) [function, symbol(bindMaybeSuffixTargets)]
   syntax Map ::= delIds(Map, IdItems) [function, symbol(delIds)]
@@ -1350,6 +1360,7 @@ module PYTHON
   syntax Val ::= complexCtorMergeKw(Val, KwArgVals) [function, symbol(complexCtorMergeKw)]
   syntax Val ::= complexCtorRealArg(KwArgVals) [function, symbol(complexCtorRealArg)]
                | complexCtorImagArg(KwArgVals) [function, symbol(complexCtorImagArg)]
+               | matchClassAttrVal(Val, Id) [function, symbol(matchClassAttrVal)]
                | matchStarMiddle(Val, MatchPatterns, MatchPatterns) [function, symbol(matchStarMiddle)]
                | matchMappingRestVal(Val, MatchMapPatterns) [function, symbol(matchMappingRestVal)]
   syntax Val ::= listSlice(ValItems, Int, Int) [function, symbol(listSlice)]
@@ -2583,12 +2594,72 @@ module PYTHON
   rule matchBuiltinClassArg(_:Val, C:Id, _:MatchPattern) => false
     requires notBool builtinClassWholeArg(C)
 
+  rule matchBuiltinClassKw(V:Val, C:Id, APS:MatchAttrPatterns) =>
+    matchBuiltinClass(V, C) andBool matchClassAttrs(V, APS)
+
+  rule matchBuiltinClassArgKw(V:Val, C:Id, P:MatchPattern, APS:MatchAttrPatterns) =>
+    matchBuiltinClassArg(V, C, P) andBool matchClassAttrs(V, APS)
+
+  rule matchClassAttrs(_:Val, #matchNoAttrPatterns) => true
+  rule matchClassAttrs(V:Val, #matchAttrPattern(A:Id, P:MatchPattern, Rest:MatchAttrPatterns)) =>
+    matchSimplePattern(matchClassAttrVal(V, A), P) andBool matchClassAttrs(V, Rest)
+    requires classHasMatchAttr(V, A)
+  rule matchClassAttrs(V:Val, #matchAttrPattern(A:Id, _P:MatchPattern, _Rest:MatchAttrPatterns)) => false
+    requires notBool classHasMatchAttr(V, A)
+
+  rule classHasMatchAttr(rangeVal(_:Int, _:Int), A:Id) => true
+    requires Id2String(A) ==String "start" orBool Id2String(A) ==String "stop" orBool Id2String(A) ==String "step"
+  rule classHasMatchAttr(rangeVal(_:Int, _:Int, _:Int), A:Id) => true
+    requires Id2String(A) ==String "start" orBool Id2String(A) ==String "stop" orBool Id2String(A) ==String "step"
+  rule classHasMatchAttr(sliceVal(_:Val, _:Val, _:Val), A:Id) => true
+    requires Id2String(A) ==String "start" orBool Id2String(A) ==String "stop" orBool Id2String(A) ==String "step"
+  rule classHasMatchAttr(#complex(_:Float, _:Float), A:Id) => true
+    requires Id2String(A) ==String "real" orBool Id2String(A) ==String "imag"
+  rule classHasMatchAttr(_:Float, A:Id) => true
+    requires Id2String(A) ==String "real" orBool Id2String(A) ==String "imag"
+  rule classHasMatchAttr(V:Val, A:Id) => true
+    requires isIntLike(V) andBool (Id2String(A) ==String "real" orBool Id2String(A) ==String "imag")
+  rule classHasMatchAttr(_:Val, _:Id) => false [owise]
+
+  rule matchClassAttrVal(rangeVal(Start:Int, _:Int), Attr:Id) => Start
+    requires Id2String(Attr) ==String "start"
+  rule matchClassAttrVal(rangeVal(_:Int, Stop:Int), Attr:Id) => Stop
+    requires Id2String(Attr) ==String "stop"
+  rule matchClassAttrVal(rangeVal(_:Int, _:Int), Attr:Id) => 1
+    requires Id2String(Attr) ==String "step"
+  rule matchClassAttrVal(rangeVal(Start:Int, _:Int, _:Int), Attr:Id) => Start
+    requires Id2String(Attr) ==String "start"
+  rule matchClassAttrVal(rangeVal(_:Int, Stop:Int, _:Int), Attr:Id) => Stop
+    requires Id2String(Attr) ==String "stop"
+  rule matchClassAttrVal(rangeVal(_:Int, _:Int, Step:Int), Attr:Id) => Step
+    requires Id2String(Attr) ==String "step"
+  rule matchClassAttrVal(sliceVal(Start:Val, _:Val, _:Val), Attr:Id) => Start
+    requires Id2String(Attr) ==String "start"
+  rule matchClassAttrVal(sliceVal(_:Val, Stop:Val, _:Val), Attr:Id) => Stop
+    requires Id2String(Attr) ==String "stop"
+  rule matchClassAttrVal(sliceVal(_:Val, _:Val, Step:Val), Attr:Id) => Step
+    requires Id2String(Attr) ==String "step"
+  rule matchClassAttrVal(#complex(R:Float, _:Float), Attr:Id) => R
+    requires Id2String(Attr) ==String "real"
+  rule matchClassAttrVal(#complex(_:Float, I:Float), Attr:Id) => I
+    requires Id2String(Attr) ==String "imag"
+  rule matchClassAttrVal(F:Float, Attr:Id) => F
+    requires Id2String(Attr) ==String "real"
+  rule matchClassAttrVal(_:Float, Attr:Id) => 0.0
+    requires Id2String(Attr) ==String "imag"
+  rule matchClassAttrVal(V:Val, Attr:Id) => intValue(V)
+    requires isIntLike(V) andBool Id2String(Attr) ==String "real"
+  rule matchClassAttrVal(V:Val, Attr:Id) => 0
+    requires isIntLike(V) andBool Id2String(Attr) ==String "imag"
+
   rule matchSimplePattern(_:Val, #matchWildcard) => true
   rule matchSimplePattern(_:Val, #matchCapture(_Name:Id)) => true
   rule matchSimplePattern(V:Val, #matchValue(P:Val)) => valEq(V, P)
   rule matchSimplePattern(V:Val, #matchSingleton(P:Val)) => singletonPatternEq(V, P)
   rule matchSimplePattern(V:Val, #matchClass(C:Id)) => matchBuiltinClass(V, C)
   rule matchSimplePattern(V:Val, #matchClassArg(C:Id, P:MatchPattern)) => matchBuiltinClassArg(V, C, P)
+  rule matchSimplePattern(V:Val, #matchClassKw(C:Id, APS:MatchAttrPatterns)) => matchBuiltinClassKw(V, C, APS)
+  rule matchSimplePattern(V:Val, #matchClassArgKw(C:Id, P:MatchPattern, APS:MatchAttrPatterns)) => matchBuiltinClassArgKw(V, C, P, APS)
   rule matchSimplePattern(V:Val, #matchOr(P1:MatchPattern, P2:MatchPattern)) =>
     matchSimplePattern(V, P1) orBool matchSimplePattern(V, P2)
   rule matchSimplePattern(V:Val, #matchAs(P:MatchPattern, _Name:Id)) => matchSimplePattern(V, P)
@@ -2615,6 +2686,10 @@ module PYTHON
     bindMatchMapping(Rho, V, MPS) [ Name <- matchMappingRestVal(V, MPS) ]
   rule bindMatchPattern(Rho:Map, V:Val, #matchClassArg(_C:Id, P:MatchPattern)) =>
     bindMatchPattern(Rho, V, P)
+  rule bindMatchPattern(Rho:Map, V:Val, #matchClassKw(_C:Id, APS:MatchAttrPatterns)) =>
+    bindMatchClassAttrs(Rho, V, APS)
+  rule bindMatchPattern(Rho:Map, V:Val, #matchClassArgKw(_C:Id, P:MatchPattern, APS:MatchAttrPatterns)) =>
+    bindMatchClassAttrs(bindMatchPattern(Rho, V, P), V, APS)
   rule bindMatchPattern(Rho:Map, V:Val, #matchOr(P1:MatchPattern, _P2:MatchPattern)) =>
     bindMatchPattern(Rho, V, P1)
     requires matchSimplePattern(V, P1)
@@ -2667,6 +2742,12 @@ module PYTHON
     bindMatchDictItems(bindMatchPattern(Rho, dictGet(DS, K), P), DS, Rest)
     requires containsKey(K, DS)
   rule bindMatchDictItems(Rho:Map, _DS:DictItems, _MPS:MatchMapPatterns) => Rho [owise]
+
+  rule bindMatchClassAttrs(Rho:Map, _V:Val, #matchNoAttrPatterns) => Rho
+  rule bindMatchClassAttrs(Rho:Map, V:Val, #matchAttrPattern(A:Id, P:MatchPattern, Rest:MatchAttrPatterns)) =>
+    bindMatchClassAttrs(bindMatchPattern(Rho, matchClassAttrVal(V, A), P), V, Rest)
+    requires classHasMatchAttr(V, A)
+  rule bindMatchClassAttrs(Rho:Map, _V:Val, _APS:MatchAttrPatterns) => Rho [owise]
 
   rule matchFixedSequence([], #matchNoPatterns) => true
   rule matchFixedSequence([], #matchPattern(_:MatchPattern, _:MatchPatterns)) => false
@@ -10767,6 +10848,24 @@ module PYTHON
            matchGuardNoMatch(V, Rest)
       ... </k>
     requires notBool matchBuiltinClassArg(V, C, P)
+  rule <k> matchGuardPattern(V:Val, #matchClassKw(C:Id, APS:MatchAttrPatterns), Guard:Exp, Body:Block, Rest:MaybeMatchCases) =>
+           Guard ~> matchGuardSelect(V, Body, Rest)
+      ... </k>
+      <env> Rho => bindMatchPattern(Rho, V, #matchClassKw(C, APS)) </env>
+    requires matchBuiltinClassKw(V, C, APS)
+  rule <k> matchGuardPattern(V:Val, #matchClassKw(C:Id, APS:MatchAttrPatterns), _Guard:Exp, _Body:Block, Rest:MaybeMatchCases) =>
+           matchGuardNoMatch(V, Rest)
+      ... </k>
+    requires notBool matchBuiltinClassKw(V, C, APS)
+  rule <k> matchGuardPattern(V:Val, #matchClassArgKw(C:Id, P:MatchPattern, APS:MatchAttrPatterns), Guard:Exp, Body:Block, Rest:MaybeMatchCases) =>
+           Guard ~> matchGuardSelect(V, Body, Rest)
+      ... </k>
+      <env> Rho => bindMatchPattern(Rho, V, #matchClassArgKw(C, P, APS)) </env>
+    requires matchBuiltinClassArgKw(V, C, P, APS)
+  rule <k> matchGuardPattern(V:Val, #matchClassArgKw(C:Id, P:MatchPattern, APS:MatchAttrPatterns), _Guard:Exp, _Body:Block, Rest:MaybeMatchCases) =>
+           matchGuardNoMatch(V, Rest)
+      ... </k>
+    requires notBool matchBuiltinClassArgKw(V, C, P, APS)
   rule <k> matchGuardPattern(V:Val, #matchValue(P:Exp), Guard:Exp, Body:Block, Rest:MaybeMatchCases) =>
            P ~> matchValueGuardDispatch(V, Guard, Body, Rest)
       ... </k>
@@ -11075,6 +11174,62 @@ module PYTHON
            matchDispatch(V, Rest)
       ... </k>
     requires notBool matchBuiltinClassArg(V, C, P)
+  rule <k> matchDispatch(V:Val, #matchCase(#matchClassKw(C:Id, APS:MatchAttrPatterns), block(SS:Stmts))) =>
+           SS ~> matchDone
+      ... </k>
+      <env> Rho => bindMatchPattern(Rho, V, #matchClassKw(C, APS)) </env>
+    requires matchBuiltinClassKw(V, C, APS)
+  rule <k> matchDispatch(V:Val, #matchCase(#matchClassKw(C:Id, APS:MatchAttrPatterns), {})) =>
+           stmtNoResult
+      ... </k>
+      <env> Rho => bindMatchPattern(Rho, V, #matchClassKw(C, APS)) </env>
+    requires matchBuiltinClassKw(V, C, APS)
+  rule <k> matchDispatch(V:Val, #matchCase(#matchClassKw(C:Id, APS:MatchAttrPatterns), _Body:Block)) =>
+           stmtNoResult
+      ... </k>
+    requires notBool matchBuiltinClassKw(V, C, APS)
+  rule <k> matchDispatch(V:Val, #matchCases(#matchClassKw(C:Id, APS:MatchAttrPatterns), block(SS:Stmts), _Rest:MatchCases)) =>
+           SS ~> matchDone
+      ... </k>
+      <env> Rho => bindMatchPattern(Rho, V, #matchClassKw(C, APS)) </env>
+    requires matchBuiltinClassKw(V, C, APS)
+  rule <k> matchDispatch(V:Val, #matchCases(#matchClassKw(C:Id, APS:MatchAttrPatterns), {}, _Rest:MatchCases)) =>
+           stmtNoResult
+      ... </k>
+      <env> Rho => bindMatchPattern(Rho, V, #matchClassKw(C, APS)) </env>
+    requires matchBuiltinClassKw(V, C, APS)
+  rule <k> matchDispatch(V:Val, #matchCases(#matchClassKw(C:Id, APS:MatchAttrPatterns), _Body:Block, Rest:MatchCases)) =>
+           matchDispatch(V, Rest)
+      ... </k>
+    requires notBool matchBuiltinClassKw(V, C, APS)
+  rule <k> matchDispatch(V:Val, #matchCase(#matchClassArgKw(C:Id, P:MatchPattern, APS:MatchAttrPatterns), block(SS:Stmts))) =>
+           SS ~> matchDone
+      ... </k>
+      <env> Rho => bindMatchPattern(Rho, V, #matchClassArgKw(C, P, APS)) </env>
+    requires matchBuiltinClassArgKw(V, C, P, APS)
+  rule <k> matchDispatch(V:Val, #matchCase(#matchClassArgKw(C:Id, P:MatchPattern, APS:MatchAttrPatterns), {})) =>
+           stmtNoResult
+      ... </k>
+      <env> Rho => bindMatchPattern(Rho, V, #matchClassArgKw(C, P, APS)) </env>
+    requires matchBuiltinClassArgKw(V, C, P, APS)
+  rule <k> matchDispatch(V:Val, #matchCase(#matchClassArgKw(C:Id, P:MatchPattern, APS:MatchAttrPatterns), _Body:Block)) =>
+           stmtNoResult
+      ... </k>
+    requires notBool matchBuiltinClassArgKw(V, C, P, APS)
+  rule <k> matchDispatch(V:Val, #matchCases(#matchClassArgKw(C:Id, P:MatchPattern, APS:MatchAttrPatterns), block(SS:Stmts), _Rest:MatchCases)) =>
+           SS ~> matchDone
+      ... </k>
+      <env> Rho => bindMatchPattern(Rho, V, #matchClassArgKw(C, P, APS)) </env>
+    requires matchBuiltinClassArgKw(V, C, P, APS)
+  rule <k> matchDispatch(V:Val, #matchCases(#matchClassArgKw(C:Id, P:MatchPattern, APS:MatchAttrPatterns), {}, _Rest:MatchCases)) =>
+           stmtNoResult
+      ... </k>
+      <env> Rho => bindMatchPattern(Rho, V, #matchClassArgKw(C, P, APS)) </env>
+    requires matchBuiltinClassArgKw(V, C, P, APS)
+  rule <k> matchDispatch(V:Val, #matchCases(#matchClassArgKw(C:Id, P:MatchPattern, APS:MatchAttrPatterns), _Body:Block, Rest:MatchCases)) =>
+           matchDispatch(V, Rest)
+      ... </k>
+    requires notBool matchBuiltinClassArgKw(V, C, P, APS)
   rule <k> matchDispatch(V:Val, #matchCase(#matchSingleton(P:Val), block(SS:Stmts))) =>
            SS ~> matchDone
       ... </k>

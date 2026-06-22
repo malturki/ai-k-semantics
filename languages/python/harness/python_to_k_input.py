@@ -471,6 +471,12 @@ def emit_match_pattern(node: ast.AST, pattern: ast.pattern) -> str:
             return emit_match_mapping_pattern(
                 node, keys, patterns, rest, allow_rest_capture=True, allow_value_capture=True
             )
+        case ast.MatchClass(cls=cls, patterns=[], kwd_attrs=kwd_attrs, kwd_patterns=kwd_patterns) if kwd_attrs:
+            return emit_match_class_kw_pattern(node, cls, kwd_attrs, kwd_patterns, allow_capture=True)
+        case ast.MatchClass(cls=cls, patterns=[subpattern], kwd_attrs=kwd_attrs, kwd_patterns=kwd_patterns) if kwd_attrs:
+            return emit_single_arg_match_class_kw_pattern(
+                node, cls, subpattern, kwd_attrs, kwd_patterns, allow_capture=True
+            )
         case ast.MatchClass(cls=cls, patterns=[], kwd_attrs=[], kwd_patterns=[]):
             return emit_zero_arg_match_class(node, cls)
         case ast.MatchClass(cls=cls, patterns=[subpattern], kwd_attrs=[], kwd_patterns=[]):
@@ -522,6 +528,12 @@ def emit_match_binding_pattern(node: ast.AST, pattern: ast.pattern) -> str:
             return emit_match_mapping_pattern(
                 node, keys, patterns, rest, allow_rest_capture=True, allow_value_capture=True
             )
+        case ast.MatchClass(cls=cls, patterns=[], kwd_attrs=kwd_attrs, kwd_patterns=kwd_patterns) if kwd_attrs:
+            return emit_match_class_kw_pattern(node, cls, kwd_attrs, kwd_patterns, allow_capture=True)
+        case ast.MatchClass(cls=cls, patterns=[subpattern], kwd_attrs=kwd_attrs, kwd_patterns=kwd_patterns) if kwd_attrs:
+            return emit_single_arg_match_class_kw_pattern(
+                node, cls, subpattern, kwd_attrs, kwd_patterns, allow_capture=True
+            )
         case ast.MatchClass(cls=cls, patterns=[], kwd_attrs=[], kwd_patterns=[]):
             return emit_zero_arg_match_class(node, cls)
         case ast.MatchClass(cls=cls, patterns=[subpattern], kwd_attrs=[], kwd_patterns=[]):
@@ -549,6 +561,12 @@ def emit_match_nonbinding_pattern(node: ast.AST, pattern: ast.pattern) -> str:
         case ast.MatchMapping(keys=keys, patterns=patterns, rest=rest):
             return emit_match_mapping_pattern(
                 node, keys, patterns, rest, allow_rest_capture=False, allow_value_capture=False
+            )
+        case ast.MatchClass(cls=cls, patterns=[], kwd_attrs=kwd_attrs, kwd_patterns=kwd_patterns) if kwd_attrs:
+            return emit_match_class_kw_pattern(node, cls, kwd_attrs, kwd_patterns, allow_capture=False)
+        case ast.MatchClass(cls=cls, patterns=[subpattern], kwd_attrs=kwd_attrs, kwd_patterns=kwd_patterns) if kwd_attrs:
+            return emit_single_arg_match_class_kw_pattern(
+                node, cls, subpattern, kwd_attrs, kwd_patterns, allow_capture=False
             )
         case ast.MatchClass(cls=cls, patterns=[], kwd_attrs=[], kwd_patterns=[]):
             return emit_zero_arg_match_class(node, cls)
@@ -579,6 +597,60 @@ def emit_single_arg_match_class(
     emitted_class = emit_id(CLASS_PATTERN_ID_ALIASES.get(cls.id, cls.id))
     emitted_pattern = emit_match_class_arg_pattern(node, subpattern, allow_capture=allow_capture)
     return f"#matchClassArg({emitted_class}, {emitted_pattern})"
+
+
+def emit_match_class_kw_pattern(
+    node: ast.AST,
+    cls: ast.expr,
+    kwd_attrs: list[str],
+    kwd_patterns: list[ast.pattern],
+    allow_capture: bool,
+) -> str:
+    if not isinstance(cls, ast.Name):
+        raise unsupported(node, "only simple-name keyword class match patterns are supported")
+    if cls.id not in SUPPORTED_ZERO_ARG_CLASS_PATTERNS:
+        raise unsupported(node, "only keyword class match patterns for current builtin value types are supported")
+    emitted_class = emit_id(CLASS_PATTERN_ID_ALIASES.get(cls.id, cls.id))
+    emitted_attrs = emit_match_class_attr_patterns(
+        node, kwd_attrs, kwd_patterns, allow_capture=allow_capture
+    )
+    return f"#matchClassKw({emitted_class}, {emitted_attrs})"
+
+
+def emit_single_arg_match_class_kw_pattern(
+    node: ast.AST,
+    cls: ast.expr,
+    subpattern: ast.pattern,
+    kwd_attrs: list[str],
+    kwd_patterns: list[ast.pattern],
+    allow_capture: bool,
+) -> str:
+    if not isinstance(cls, ast.Name):
+        raise unsupported(node, "only simple-name positional-plus-keyword class match patterns are supported")
+    if cls.id not in SUPPORTED_SINGLE_ARG_CLASS_PATTERNS:
+        raise unsupported(node, "only positional-plus-keyword class match patterns for builtin whole-object matching types are supported")
+    emitted_class = emit_id(CLASS_PATTERN_ID_ALIASES.get(cls.id, cls.id))
+    emitted_pattern = emit_match_class_arg_pattern(node, subpattern, allow_capture=allow_capture)
+    emitted_attrs = emit_match_class_attr_patterns(node, kwd_attrs, kwd_patterns, allow_capture=allow_capture)
+    return f"#matchClassArgKw({emitted_class}, {emitted_pattern}, {emitted_attrs})"
+
+
+def emit_match_class_attr_patterns(
+    node: ast.AST,
+    kwd_attrs: list[str],
+    kwd_patterns: list[ast.pattern],
+    allow_capture: bool,
+) -> str:
+    if len(kwd_attrs) != len(kwd_patterns):
+        raise unsupported(node, "keyword class match pattern attribute/value arity mismatch")
+    if not kwd_attrs:
+        return "#matchNoAttrPatterns"
+    if allow_capture:
+        pattern = emit_match_binding_pattern(node, kwd_patterns[0])
+    else:
+        pattern = emit_match_nonbinding_pattern(node, kwd_patterns[0])
+    rest = emit_match_class_attr_patterns(node, kwd_attrs[1:], kwd_patterns[1:], allow_capture=allow_capture)
+    return f"#matchAttrPattern({emit_id(kwd_attrs[0])}, {pattern}, {rest})"
 
 
 def emit_match_class_arg_pattern(node: ast.AST, pattern: ast.pattern, allow_capture: bool) -> str:

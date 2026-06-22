@@ -464,7 +464,7 @@ def emit_match_pattern(node: ast.AST, pattern: ast.pattern) -> str:
         case ast.MatchValue(value=value):
             return f"#matchValue({emit_exp(value)})"
         case ast.MatchOr(patterns=patterns):
-            return emit_match_or_patterns(node, patterns)
+            return emit_match_or_patterns(node, patterns, allow_capture=True)
         case ast.MatchSequence(patterns=patterns):
             return emit_match_sequence_pattern(node, patterns, allow_star_capture=True, allow_element_capture=True)
         case ast.MatchMapping(keys=keys, patterns=patterns, rest=rest):
@@ -479,15 +479,31 @@ def emit_match_pattern(node: ast.AST, pattern: ast.pattern) -> str:
             raise unsupported(node, "only value, singleton, wildcard, capture, non-binding OR, non-binding AS, non-binding sequence, non-binding mapping, zero-argument builtin class, and non-binding single-positional builtin class match patterns are supported")
 
 
-def emit_match_or_patterns(node: ast.AST, patterns: list[ast.pattern]) -> str:
+def emit_match_or_patterns(node: ast.AST, patterns: list[ast.pattern], allow_capture: bool) -> str:
     if len(patterns) < 2:
         raise unsupported(node, "OR match patterns require at least two alternatives")
-    left = emit_match_nonbinding_pattern(node, patterns[0])
+    left = emit_match_or_alternative_pattern(node, patterns[0], allow_capture=allow_capture)
     if len(patterns) == 2:
-        right = emit_match_nonbinding_pattern(node, patterns[1])
+        right = emit_match_or_alternative_pattern(node, patterns[1], allow_capture=allow_capture)
     else:
-        right = emit_match_or_patterns(node, patterns[1:])
+        right = emit_match_or_patterns(node, patterns[1:], allow_capture=allow_capture)
     return f"#matchOr({left}, {right})"
+
+
+def emit_match_or_alternative_pattern(node: ast.AST, pattern: ast.pattern, allow_capture: bool) -> str:
+    if allow_capture:
+        match pattern:
+            case ast.MatchSequence(patterns=patterns):
+                return emit_match_sequence_pattern(
+                    node, patterns, allow_star_capture=False, allow_element_capture=True
+                )
+            case ast.MatchMapping(keys=keys, patterns=patterns, rest=rest):
+                return emit_match_mapping_pattern(
+                    node, keys, patterns, rest, allow_rest_capture=False, allow_value_capture=True
+                )
+            case ast.MatchClass(cls=cls, patterns=[subpattern], kwd_attrs=[], kwd_patterns=[]):
+                return emit_single_arg_match_class(node, cls, subpattern, allow_capture=True)
+    return emit_match_nonbinding_pattern(node, pattern)
 
 
 def emit_match_as_subpattern(node: ast.AST, pattern: ast.pattern) -> str:
@@ -519,7 +535,7 @@ def emit_match_nonbinding_pattern(node: ast.AST, pattern: ast.pattern) -> str:
         case ast.MatchValue(value=value) if isinstance(value, ast.Constant):
             return f"#matchValue({emit_exp(value)})"
         case ast.MatchOr(patterns=patterns):
-            return emit_match_or_patterns(node, patterns)
+            return emit_match_or_patterns(node, patterns, allow_capture=False)
         case ast.MatchSequence(patterns=patterns):
             return emit_match_sequence_pattern(node, patterns, allow_star_capture=False, allow_element_capture=False)
         case ast.MatchMapping(keys=keys, patterns=patterns, rest=rest):

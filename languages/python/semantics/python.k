@@ -2603,6 +2603,12 @@ module PYTHON
     bindMatchMapping(Rho, V, MPS)
   rule bindMatchPattern(Rho:Map, V:Val, #matchClassArg(_C:Id, P:MatchPattern)) =>
     bindMatchPattern(Rho, V, P)
+  rule bindMatchPattern(Rho:Map, V:Val, #matchOr(P1:MatchPattern, _P2:MatchPattern)) =>
+    bindMatchPattern(Rho, V, P1)
+    requires matchSimplePattern(V, P1)
+  rule bindMatchPattern(Rho:Map, V:Val, #matchOr(P1:MatchPattern, P2:MatchPattern)) =>
+    bindMatchPattern(Rho, V, P2)
+    requires notBool matchSimplePattern(V, P1) andBool matchSimplePattern(V, P2)
   rule bindMatchPattern(Rho:Map, _V:Val, _P:MatchPattern) => Rho [owise]
 
   rule bindMatchSequence(Rho:Map, [], #matchNoPatterns) => Rho
@@ -10644,6 +10650,7 @@ module PYTHON
   rule <k> matchGuardPattern(V:Val, #matchOr(P1:MatchPattern, P2:MatchPattern), Guard:Exp, Body:Block, Rest:MaybeMatchCases) =>
            Guard ~> matchGuardSelect(V, Body, Rest)
       ... </k>
+      <env> Rho => bindMatchPattern(Rho, V, #matchOr(P1, P2)) </env>
     requires matchSimplePattern(V, #matchOr(P1, P2))
   rule <k> matchGuardPattern(V:Val, #matchOr(P1:MatchPattern, P2:MatchPattern), _Guard:Exp, _Body:Block, Rest:MaybeMatchCases) =>
            matchGuardNoMatch(V, Rest)
@@ -10790,10 +10797,12 @@ module PYTHON
   rule <k> matchDispatch(V:Val, #matchCase(#matchOr(P1:MatchPattern, P2:MatchPattern), block(SS:Stmts))) =>
            SS ~> matchDone
       ... </k>
+      <env> Rho => bindMatchPattern(Rho, V, #matchOr(P1, P2)) </env>
     requires matchSimplePattern(V, #matchOr(P1, P2))
   rule <k> matchDispatch(V:Val, #matchCase(#matchOr(P1:MatchPattern, P2:MatchPattern), {})) =>
            stmtNoResult
       ... </k>
+      <env> Rho => bindMatchPattern(Rho, V, #matchOr(P1, P2)) </env>
     requires matchSimplePattern(V, #matchOr(P1, P2))
   rule <k> matchDispatch(V:Val, #matchCase(#matchOr(P1:MatchPattern, P2:MatchPattern), _Body:Block)) =>
            stmtNoResult
@@ -10802,10 +10811,12 @@ module PYTHON
   rule <k> matchDispatch(V:Val, #matchCases(#matchOr(P1:MatchPattern, P2:MatchPattern), block(SS:Stmts), _Rest:MatchCases)) =>
            SS ~> matchDone
       ... </k>
+      <env> Rho => bindMatchPattern(Rho, V, #matchOr(P1, P2)) </env>
     requires matchSimplePattern(V, #matchOr(P1, P2))
   rule <k> matchDispatch(V:Val, #matchCases(#matchOr(P1:MatchPattern, P2:MatchPattern), {}, _Rest:MatchCases)) =>
            stmtNoResult
       ... </k>
+      <env> Rho => bindMatchPattern(Rho, V, #matchOr(P1, P2)) </env>
     requires matchSimplePattern(V, #matchOr(P1, P2))
   rule <k> matchDispatch(V:Val, #matchCases(#matchOr(P1:MatchPattern, P2:MatchPattern), _Body:Block, Rest:MatchCases)) =>
            matchDispatch(V, Rest)

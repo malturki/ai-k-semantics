@@ -452,6 +452,13 @@
       "coverage": ["match-statement", "or-pattern", "literal-pattern", "singleton-pattern", "ordered-case-selection", "fallback-case-selection", "ordinary-python-source-adapter"]
     },
     {
+      "id": "adapter-match-or-capture",
+      "source": "../adapter/adapter-match-or-capture.py",
+      "reference": "Python Language Reference 8.6 The match statement; PEP 634 Structural Pattern Matching",
+      "expected_result": "True ~> .K",
+      "coverage": ["match-statement", "or-pattern", "capture-pattern", "sequence-pattern", "mapping-pattern", "class-pattern", "selected-alternative-binding", "failed-pattern-binding-rollback", "guard-binding-visibility", "ordinary-python-source-adapter"]
+    },
+    {
       "id": "adapter-match-as",
       "source": "../adapter/adapter-match-as.py",
       "reference": "Python Language Reference 8.6 The match statement; PEP 634 Structural Pattern Matching",

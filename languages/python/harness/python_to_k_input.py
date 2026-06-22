@@ -436,8 +436,10 @@ def emit_match_pattern(node: ast.AST, pattern: ast.pattern) -> str:
             return emit_match_or_patterns(node, patterns)
         case ast.MatchSequence(patterns=patterns):
             return emit_match_sequence_pattern(node, patterns, allow_star_capture=True)
+        case ast.MatchMapping(keys=keys, patterns=patterns, rest=rest):
+            return emit_match_mapping_pattern(node, keys, patterns, rest)
         case _:
-            raise unsupported(node, "only value, singleton, wildcard, capture, non-binding OR, non-binding AS, and non-binding sequence match patterns are supported")
+            raise unsupported(node, "only value, singleton, wildcard, capture, non-binding OR, non-binding AS, non-binding sequence, and non-binding mapping match patterns are supported")
 
 
 def emit_match_or_patterns(node: ast.AST, patterns: list[ast.pattern]) -> str:
@@ -467,8 +469,10 @@ def emit_match_nonbinding_pattern(node: ast.AST, pattern: ast.pattern) -> str:
             return emit_match_or_patterns(node, patterns)
         case ast.MatchSequence(patterns=patterns):
             return emit_match_sequence_pattern(node, patterns, allow_star_capture=False)
+        case ast.MatchMapping(keys=keys, patterns=patterns, rest=rest):
+            return emit_match_mapping_pattern(node, keys, patterns, rest)
         case _:
-            raise unsupported(node, "only non-binding wildcard, literal, singleton, OR, and sequence pattern alternatives are supported")
+            raise unsupported(node, "only non-binding wildcard, literal, singleton, OR, sequence, and mapping pattern alternatives are supported")
 
 
 def emit_match_sequence_patterns(node: ast.AST, patterns: list[ast.pattern]) -> str:
@@ -495,6 +499,30 @@ def emit_match_sequence_pattern(node: ast.AST, patterns: list[ast.pattern], allo
             raise unsupported(node, "capture-bearing starred sequence patterns require binding rollback in this position")
         return f"#matchSequenceStarCapture({prefix}, {emit_id(star_pattern.name)}, {suffix})"
     return f"#matchSequenceStar({prefix}, {suffix})"
+
+
+def emit_match_mapping_pattern(
+    node: ast.AST,
+    keys: list[ast.expr],
+    patterns: list[ast.pattern],
+    rest: str | None,
+) -> str:
+    if rest is not None:
+        raise unsupported(node, "mapping **rest match patterns are not supported yet")
+    if len(keys) != len(patterns):
+        raise unsupported(node, "mapping match pattern key/value arity mismatch")
+    return f"#matchMapping({emit_match_mapping_patterns(node, keys, patterns)})"
+
+
+def emit_match_mapping_patterns(node: ast.AST, keys: list[ast.expr], patterns: list[ast.pattern]) -> str:
+    if not keys:
+        return "#matchNoMapPatterns"
+    key = keys[0]
+    if not isinstance(key, ast.Constant):
+        raise unsupported(node, "only constant mapping match pattern keys are supported")
+    value_pattern = emit_match_nonbinding_pattern(node, patterns[0])
+    rest = emit_match_mapping_patterns(node, keys[1:], patterns[1:])
+    return f"#matchMapPattern({emit_exp(key)}, {value_pattern}, {rest})"
 
 
 def emit_except_handlers(node: ast.AST, handlers: list[ast.ExceptHandler]) -> str:

@@ -480,6 +480,13 @@
       "coverage": ["match-statement", "sequence-pattern", "starred-sequence-pattern", "star-capture-binding", "literal-pattern", "singleton-pattern", "ordinary-python-source-adapter"]
     },
     {
+      "id": "adapter-match-mapping",
+      "source": "../adapter/adapter-match-mapping.py",
+      "reference": "Python Language Reference 8.6 The match statement; PEP 634 Structural Pattern Matching",
+      "expected_result": "True ~> .K",
+      "coverage": ["match-statement", "mapping-pattern", "constant-key-pattern", "literal-pattern", "or-pattern", "as-pattern", "ordinary-python-source-adapter"]
+    },
+    {
       "id": "adapter-is-none",
       "source": "../adapter/adapter-is-none.py",
       "reference": "Python Language Reference 6.10.3 Identity comparisons",

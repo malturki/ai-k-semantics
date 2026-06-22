@@ -85,10 +85,14 @@ module PYTHON-SYNTAX
                         | "#matchSequence" "(" MatchPatterns ")" [symbol(matchSequencePattern)]
                         | "#matchSequenceStar" "(" MatchPatterns "," MatchPatterns ")" [symbol(matchSequenceStarPattern)]
                         | "#matchSequenceStarCapture" "(" MatchPatterns "," Id "," MatchPatterns ")" [symbol(matchSequenceStarCapturePattern)]
+                        | "#matchMapping" "(" MatchMapPatterns ")" [symbol(matchMappingPattern)]
                         | "#matchWildcard" [symbol(matchWildcardPattern)]
 
   syntax MatchPatterns ::= "#matchNoPatterns" [symbol(matchNoPatterns)]
                          | "#matchPattern" "(" MatchPattern "," MatchPatterns ")" [symbol(matchPatternCons)]
+
+  syntax MatchMapPatterns ::= "#matchNoMapPatterns" [symbol(matchNoMapPatterns)]
+                            | "#matchMapPattern" "(" Val "," MatchPattern "," MatchMapPatterns ")" [symbol(matchMapPatternCons)]
 
   syntax MatchCases ::= "#matchCase" "(" MatchPattern "," Block ")" [symbol(matchCaseLast)]
                       | "#matchCases" "(" MatchPattern "," Block "," MatchCases ")" [symbol(matchCasesCons)]
@@ -995,6 +999,8 @@ module PYTHON
                 | matchSimplePattern(Val, MatchPattern) [function, symbol(matchSimplePattern)]
                 | matchFixedSequence(Val, MatchPatterns) [function, symbol(matchFixedSequence)]
                 | matchStarSequence(Val, MatchPatterns, MatchPatterns) [function, symbol(matchStarSequence)]
+                | matchMapping(Val, MatchMapPatterns) [function, symbol(matchMapping)]
+                | matchDictItems(DictItems, MatchMapPatterns) [function, symbol(matchDictItems)]
                 | matchValItemsPatterns(ValItems, MatchPatterns) [function, symbol(matchValItemsPatterns)]
                 | matchValItemsPrefix(ValItems, MatchPatterns) [function, symbol(matchValItemsPrefix)]
                 | matchValItemsSuffix(ValItems, MatchPatterns) [function, symbol(matchValItemsSuffix)]
@@ -2501,6 +2507,7 @@ module PYTHON
   rule matchSimplePattern(V:Val, #matchSequence(PS:MatchPatterns)) => matchFixedSequence(V, PS)
   rule matchSimplePattern(V:Val, #matchSequenceStar(Prefix:MatchPatterns, Suffix:MatchPatterns)) =>
     matchStarSequence(V, Prefix, Suffix)
+  rule matchSimplePattern(V:Val, #matchMapping(MPS:MatchMapPatterns)) => matchMapping(V, MPS)
 
   rule matchFixedSequence([], #matchNoPatterns) => true
   rule matchFixedSequence([], #matchPattern(_:MatchPattern, _:MatchPatterns)) => false
@@ -2555,6 +2562,18 @@ module PYTHON
   rule matchStarMiddle(tupleVal(VS:ValItems), Prefix:MatchPatterns, Suffix:MatchPatterns) =>
     listSlice(VS, matchPatternsLen(Prefix), valItemsLen(VS) -Int matchPatternsLen(Suffix))
     requires matchPatternsLen(Prefix) +Int matchPatternsLen(Suffix) <=Int valItemsLen(VS)
+
+  rule matchMapping({}, #matchNoMapPatterns) => true
+  rule matchMapping({}, #matchMapPattern(_:Val, _:MatchPattern, _:MatchMapPatterns)) => false
+  rule matchMapping(dictVal(DS:DictItems), MPS:MatchMapPatterns) => matchDictItems(DS, MPS)
+  rule matchMapping(_:Val, _:MatchMapPatterns) => false [owise]
+
+  rule matchDictItems(_:DictItems, #matchNoMapPatterns) => true
+  rule matchDictItems(DS:DictItems, #matchMapPattern(K:Val, P:MatchPattern, Rest:MatchMapPatterns)) =>
+    matchSimplePattern(dictGet(DS, K), P) andBool matchDictItems(DS, Rest)
+    requires containsKey(K, DS)
+  rule matchDictItems(DS:DictItems, #matchMapPattern(K:Val, _P:MatchPattern, _Rest:MatchMapPatterns)) => false
+    requires notBool containsKey(K, DS)
 
   rule valEq(I1:Int, I2:Int) => I1 ==Int I2
   rule valEq(F1:Float, F2:Float) => F1 ==Float F2
@@ -10614,6 +10633,30 @@ module PYTHON
            matchDispatch(V, Rest)
       ... </k>
     requires notBool matchStarSequence(V, Prefix, Suffix)
+  rule <k> matchDispatch(V:Val, #matchCase(#matchMapping(MPS:MatchMapPatterns), block(SS:Stmts))) =>
+           SS ~> matchDone
+      ... </k>
+    requires matchMapping(V, MPS)
+  rule <k> matchDispatch(V:Val, #matchCase(#matchMapping(MPS:MatchMapPatterns), {})) =>
+           stmtNoResult
+      ... </k>
+    requires matchMapping(V, MPS)
+  rule <k> matchDispatch(V:Val, #matchCase(#matchMapping(MPS:MatchMapPatterns), _Body:Block)) =>
+           stmtNoResult
+      ... </k>
+    requires notBool matchMapping(V, MPS)
+  rule <k> matchDispatch(V:Val, #matchCases(#matchMapping(MPS:MatchMapPatterns), block(SS:Stmts), _Rest:MatchCases)) =>
+           SS ~> matchDone
+      ... </k>
+    requires matchMapping(V, MPS)
+  rule <k> matchDispatch(V:Val, #matchCases(#matchMapping(MPS:MatchMapPatterns), {}, _Rest:MatchCases)) =>
+           stmtNoResult
+      ... </k>
+    requires matchMapping(V, MPS)
+  rule <k> matchDispatch(V:Val, #matchCases(#matchMapping(MPS:MatchMapPatterns), _Body:Block, Rest:MatchCases)) =>
+           matchDispatch(V, Rest)
+      ... </k>
+    requires notBool matchMapping(V, MPS)
   rule <k> matchDispatch(V:Val, #matchCase(#matchSingleton(P:Val), block(SS:Stmts))) =>
            SS ~> matchDone
       ... </k>

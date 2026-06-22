@@ -226,6 +226,7 @@ module PYTHON-SYNTAX
                 | "#forStarUnpackElse" "(" IdItems "," Id "," IdItems "," Exp "," Block "," Block ")" [symbol(forStarUnpackElseStmt)]
                 | "raise" Exp [symbol(raiseStmt), strict]
                 | "#tryExcept" "(" Block "," Id "," Block ")" [symbol(tryExceptStmt)]
+                | "#tryExceptElse" "(" Block "," Id "," Block "," Block ")" [symbol(tryExceptElseStmt)]
                 | "#tryFinally" "(" Block "," Block ")" [symbol(tryFinallyStmt)]
 
   syntax Exp ::= Val
@@ -903,6 +904,7 @@ module PYTHON
                  | "tryFinallyBreak" [symbol(tryFinallyBreak)]
                  | "tryFinallyContinue" [symbol(tryFinallyContinue)]
                  | tryExceptDone(Id, Block) [symbol(tryExceptDone)]
+                 | tryExceptElseDone(Id, Block, Block) [symbol(tryExceptElseDone)]
                  | "forDone" [symbol(forDone)]
                  | "breakSignal" [symbol(breakSignal)]
                  | "continueSignal" [symbol(continueSignal)]
@@ -10147,11 +10149,29 @@ module PYTHON
            SS ~> tryExceptDone(E, Handler)
       ... </k>
   rule <k> tryExceptStmt({}, _E:Id, _Handler:Block) => stmtNoResult ... </k>
+  rule <k> tryExceptDone(_E:Id, _Handler:Block) => stmtNoResult ... </k>
   rule <k> exceptionSignal(#exception(E:Id)) ~> tryExceptDone(E, block(SS:Stmts)) =>
            SS ~> ifStmtDone
       ... </k>
   rule <k> exceptionSignal(#exception(E:Id)) ~> tryExceptDone(E, {}) => stmtNoResult ... </k>
   rule <k> exceptionSignal(V:Val) ~> tryExceptDone(_E:Id, _Handler:Block) => exceptionSignal(V) ... </k> [owise]
+
+  rule <k> tryExceptElseStmt(block(SS:Stmts), E:Id, Handler:Block, Else:Block) =>
+           SS ~> tryExceptElseDone(E, Handler, Else)
+      ... </k>
+  rule <k> tryExceptElseStmt({}, _E:Id, _Handler:Block, block(SS:Stmts)) =>
+           SS ~> ifStmtDone
+      ... </k>
+  rule <k> tryExceptElseStmt({}, _E:Id, _Handler:Block, {}) => stmtNoResult ... </k>
+  rule <k> tryExceptElseDone(_E:Id, _Handler:Block, block(SS:Stmts)) =>
+           SS ~> ifStmtDone
+      ... </k>
+  rule <k> tryExceptElseDone(_E:Id, _Handler:Block, {}) => stmtNoResult ... </k>
+  rule <k> exceptionSignal(#exception(E:Id)) ~> tryExceptElseDone(E, block(SS:Stmts), _Else:Block) =>
+           SS ~> ifStmtDone
+      ... </k>
+  rule <k> exceptionSignal(#exception(E:Id)) ~> tryExceptElseDone(E, {}, _Else:Block) => stmtNoResult ... </k>
+  rule <k> exceptionSignal(V:Val) ~> tryExceptElseDone(_E:Id, _Handler:Block, _Else:Block) => exceptionSignal(V) ... </k> [owise]
 
   rule <k> ifStmt(C:Exp, Then:Block, Else:Block) =>
            C ~> ifStmtBranch(Then, Else)

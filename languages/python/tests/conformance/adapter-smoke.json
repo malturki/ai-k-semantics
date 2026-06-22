@@ -1418,6 +1418,27 @@
       "coverage": ["try-statement", "except-clause", "raise-statement", "exception-propagation", "exception-handler-matching", "ordinary-python-source-adapter"]
     },
     {
+      "id": "adapter-try-except-no-exception",
+      "source": "../adapter/adapter-try-except-no-exception.py",
+      "reference": "Python Language Reference 8.4 The try statement",
+      "expected_result": "True ~> .K",
+      "coverage": ["try-statement", "except-clause", "try-normal-completion", "ordinary-python-source-adapter"]
+    },
+    {
+      "id": "adapter-try-except-else",
+      "source": "../adapter/adapter-try-except-else.py",
+      "reference": "Python Language Reference 8.4 The try statement; 7.8 The raise statement",
+      "expected_result": "True ~> .K",
+      "coverage": ["try-statement", "except-clause", "else-clause", "raise-statement", "exception-handler-matching", "ordinary-python-source-adapter"]
+    },
+    {
+      "id": "adapter-try-except-nested-mismatch",
+      "source": "../adapter/adapter-try-except-nested-mismatch.py",
+      "reference": "Python Language Reference 8.4 The try statement; 7.8 The raise statement",
+      "expected_result": "True ~> .K",
+      "coverage": ["try-statement", "except-clause", "raise-statement", "exception-propagation", "exception-handler-mismatch", "nested-try", "ordinary-python-source-adapter"]
+    },
+    {
       "id": "adapter-range-for",
       "source": "../adapter/adapter-range-for.py",
       "reference": "Python Language Reference 8.3 The for statement; Standard Library range type",

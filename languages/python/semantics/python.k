@@ -913,6 +913,7 @@ module PYTHON
                  | runLoopElse(Block) [symbol(runLoopElse)]
                  | tryFinallyDone(Block) [symbol(tryFinallyDone)]
                  | tryFinallyReturn(Val) [symbol(tryFinallyReturn)]
+                 | tryFinallyException(Val) [symbol(tryFinallyException)]
                  | "tryFinallyBreak" [symbol(tryFinallyBreak)]
                  | "tryFinallyContinue" [symbol(tryFinallyContinue)]
                  | tryExceptDone(Id, Block) [symbol(tryExceptDone)]
@@ -10145,9 +10146,18 @@ module PYTHON
   rule <k> breakSignal ~> tryFinallyReturn(_:Val) => breakSignal ... </k>
   rule <k> continueSignal ~> tryFinallyReturn(_:Val) => continueSignal ... </k>
   rule <k> tryFinallyReturn(V:Val) => returnSignal(V) ... </k>
+  rule <k> exceptionSignal(V:Val) ~> tryFinallyDone(block(SS:Stmts)) =>
+           SS ~> tryFinallyException(V)
+      ... </k>
+  rule <k> exceptionSignal(V:Val) ~> tryFinallyDone({}) => exceptionSignal(V) ... </k>
+  rule <k> returnSignal(V:Val) ~> tryFinallyException(_:Val) => returnSignal(V) ... </k>
+  rule <k> breakSignal ~> tryFinallyException(_:Val) => breakSignal ... </k>
+  rule <k> continueSignal ~> tryFinallyException(_:Val) => continueSignal ... </k>
+  rule <k> exceptionSignal(V:Val) ~> tryFinallyException(_:Val) => exceptionSignal(V) ... </k>
+  rule <k> tryFinallyException(V:Val) => exceptionSignal(V) ... </k>
   rule <k> breakSignal ~> tryFinallyDone(block(SS:Stmts)) =>
            SS ~> tryFinallyBreak
-       ... </k>
+      ... </k>
   rule <k> breakSignal ~> tryFinallyDone({}) => breakSignal ... </k>
   rule <k> continueSignal ~> tryFinallyDone(block(SS:Stmts)) =>
            SS ~> tryFinallyContinue

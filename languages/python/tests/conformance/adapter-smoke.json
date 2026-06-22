@@ -1411,6 +1411,13 @@
       "coverage": ["try-statement", "finally-clause", "finally-break", "finally-continue", "finally-break-overrides-pending-continue", "finally-continue-overrides-pending-break", "ordinary-python-source-adapter"]
     },
     {
+      "id": "adapter-try-finally-exception",
+      "source": "../adapter/adapter-try-finally-exception.py",
+      "reference": "Python Language Reference 8.4 The try statement; 7.8 The raise statement; 7.9 The break statement; 7.10 The continue statement; 7.6 The return statement",
+      "expected_result": "True ~> .K",
+      "coverage": ["try-statement", "finally-clause", "raise-statement", "finally-runs-during-exception-propagation", "finally-return-overrides-pending-exception", "finally-raise-overrides-pending-exception", "finally-break-overrides-pending-exception", "finally-continue-overrides-pending-exception", "ordinary-python-source-adapter"]
+    },
+    {
       "id": "adapter-try-except-basic",
       "source": "../adapter/adapter-try-except-basic.py",
       "reference": "Python Language Reference 8.4 The try statement; 7.8 The raise statement",

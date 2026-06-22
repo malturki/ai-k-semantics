@@ -51,6 +51,10 @@ def emit_block(stmts: list[ast.stmt]) -> str:
     return "{\n" + emit_stmt_list(stmts) + "\n}"
 
 
+def emit_stmt_block(stmt: str) -> str:
+    return "{\n" + stmt + ";\n}"
+
+
 def emit_stmt(stmt: ast.stmt) -> str:
     match stmt:
         case ast.Expr(value=value):
@@ -110,6 +114,8 @@ def emit_stmt(stmt: ast.stmt) -> str:
             return f"#whileElse({emit_exp(test)}, {emit_block(body)}, {emit_block(orelse)})"
         case ast.For(target=target, iter=iter_, body=body, orelse=orelse):
             return emit_for_stmt(stmt, target, iter_, body, orelse)
+        case ast.Try(body=body, handlers=handlers, orelse=orelse, finalbody=finalbody) if handlers and finalbody:
+            return f"#tryFinally({emit_stmt_block(emit_try_except(stmt, body, handlers, orelse))}, {emit_block(finalbody)})"
         case ast.Try(body=body, handlers=handlers, orelse=orelse, finalbody=[]) if handlers:
             return emit_try_except(stmt, body, handlers, orelse)
         case ast.Try(body=body, handlers=[], orelse=[], finalbody=finalbody):
@@ -117,7 +123,7 @@ def emit_stmt(stmt: ast.stmt) -> str:
         case ast.Try():
             raise unsupported(
                 stmt,
-                "only try/finally without except or else, or one named except handler without else/finally, is supported",
+                "only supported try/except/finally sentinel subsets are accepted",
             )
         case _:
             raise unsupported(stmt, "statement is not supported by the current K subset")

@@ -248,6 +248,8 @@ run_case "adapter-try-except-basic" "$ROOT/tests/adapter/adapter-try-except-basi
 run_case "adapter-try-except-no-exception" "$ROOT/tests/adapter/adapter-try-except-no-exception.py" "True ~> .K"
 run_case "adapter-try-except-else" "$ROOT/tests/adapter/adapter-try-except-else.py" "True ~> .K"
 run_case "adapter-try-except-nested-mismatch" "$ROOT/tests/adapter/adapter-try-except-nested-mismatch.py" "True ~> .K"
+run_case "adapter-try-except-multiple" "$ROOT/tests/adapter/adapter-try-except-multiple.py" "True ~> .K"
+run_case "adapter-try-except-multiple-else" "$ROOT/tests/adapter/adapter-try-except-multiple-else.py" "True ~> .K"
 run_case "adapter-range-for" "$ROOT/tests/adapter/adapter-range-for.py" "True ~> .K"
 run_case "adapter-range-start-stop" "$ROOT/tests/adapter/adapter-range-start-stop.py" "True ~> .K"
 run_case "adapter-range-break-continue" "$ROOT/tests/adapter/adapter-range-break-continue.py" "True ~> .K"

@@ -110,8 +110,8 @@ def emit_stmt(stmt: ast.stmt) -> str:
             return f"#whileElse({emit_exp(test)}, {emit_block(body)}, {emit_block(orelse)})"
         case ast.For(target=target, iter=iter_, body=body, orelse=orelse):
             return emit_for_stmt(stmt, target, iter_, body, orelse)
-        case ast.Try(body=body, handlers=[handler], orelse=orelse, finalbody=[]):
-            return emit_try_except(stmt, body, handler, orelse)
+        case ast.Try(body=body, handlers=handlers, orelse=orelse, finalbody=[]) if handlers:
+            return emit_try_except(stmt, body, handlers, orelse)
         case ast.Try(body=body, handlers=[], orelse=[], finalbody=finalbody):
             return f"#tryFinally({emit_block(body)}, {emit_block(finalbody)})"
         case ast.Try():
@@ -376,19 +376,40 @@ def emit_maybe_comp_filters(filters: list[ast.expr]) -> str:
 def emit_try_except(
     node: ast.AST,
     body: list[ast.stmt],
-    handler: ast.ExceptHandler,
+    handlers: list[ast.ExceptHandler],
     orelse: list[ast.stmt],
 ) -> str:
+    if len(handlers) == 1:
+        handler = handlers[0]
+        if handler.name is not None:
+            raise unsupported(node, "except-as targets need exception binding cleanup support")
+        if not isinstance(handler.type, ast.Name):
+            raise unsupported(node, "only named except handlers are supported")
+        emitted_body = emit_block(body)
+        emitted_exception = emit_id(handler.type.id)
+        emitted_handler = emit_block(handler.body)
+        if orelse:
+            return f"#tryExceptElse({emitted_body}, {emitted_exception}, {emitted_handler}, {emit_block(orelse)})"
+        return f"#tryExcept({emitted_body}, {emitted_exception}, {emitted_handler})"
+
+    emitted_body = emit_block(body)
+    emitted_handlers = emit_except_handlers(node, handlers)
+    if orelse:
+        return f"#tryExceptCasesElse({emitted_body}, {emitted_handlers}, {emit_block(orelse)})"
+    return f"#tryExceptCases({emitted_body}, {emitted_handlers})"
+
+
+def emit_except_handlers(node: ast.AST, handlers: list[ast.ExceptHandler]) -> str:
+    handler = handlers[0]
     if handler.name is not None:
         raise unsupported(node, "except-as targets need exception binding cleanup support")
     if not isinstance(handler.type, ast.Name):
-        raise unsupported(node, "only a single named except handler is supported")
-    emitted_body = emit_block(body)
+        raise unsupported(node, "only named except handlers are supported")
     emitted_exception = emit_id(handler.type.id)
     emitted_handler = emit_block(handler.body)
-    if orelse:
-        return f"#tryExceptElse({emitted_body}, {emitted_exception}, {emitted_handler}, {emit_block(orelse)})"
-    return f"#tryExcept({emitted_body}, {emitted_exception}, {emitted_handler})"
+    if len(handlers) == 1:
+        return f"#except({emitted_exception}, {emitted_handler})"
+    return f"#excepts({emitted_exception}, {emitted_handler}, {emit_except_handlers(node, handlers[1:])})"
 
 
 def ensure_non_async_comprehension(

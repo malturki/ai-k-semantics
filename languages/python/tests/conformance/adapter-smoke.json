@@ -1439,6 +1439,20 @@
       "coverage": ["try-statement", "except-clause", "raise-statement", "exception-propagation", "exception-handler-mismatch", "nested-try", "ordinary-python-source-adapter"]
     },
     {
+      "id": "adapter-try-except-multiple",
+      "source": "../adapter/adapter-try-except-multiple.py",
+      "reference": "Python Language Reference 8.4 The try statement; 7.8 The raise statement",
+      "expected_result": "True ~> .K",
+      "coverage": ["try-statement", "multiple-except-clauses", "first-matching-except-clause", "raise-statement", "exception-propagation", "exception-handler-mismatch", "ordinary-python-source-adapter"]
+    },
+    {
+      "id": "adapter-try-except-multiple-else",
+      "source": "../adapter/adapter-try-except-multiple-else.py",
+      "reference": "Python Language Reference 8.4 The try statement; 7.8 The raise statement",
+      "expected_result": "True ~> .K",
+      "coverage": ["try-statement", "multiple-except-clauses", "else-clause", "raise-statement", "exception-handler-matching", "ordinary-python-source-adapter"]
+    },
+    {
       "id": "adapter-range-for",
       "source": "../adapter/adapter-range-for.py",
       "reference": "Python Language Reference 8.3 The for statement; Standard Library range type",

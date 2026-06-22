@@ -77,6 +77,9 @@ module PYTHON-SYNTAX
   syntax MaybeCompClauses ::= "#noCompClauses" [symbol(noCompClauses)]
                             | "#compRest" "(" CompClauses ")" [symbol(compRest)]
 
+  syntax ExceptHandlers ::= "#except" "(" Id "," Block ")" [symbol(exceptHandlersLast)]
+                          | "#excepts" "(" Id "," Block "," ExceptHandlers ")" [symbol(exceptHandlersCons)]
+
   syntax CmpOp ::= "#lt" [symbol(cmpLt)]
                  | "#le" [symbol(cmpLe)]
                  | "#gt" [symbol(cmpGt)]
@@ -227,6 +230,8 @@ module PYTHON-SYNTAX
                 | "raise" Exp [symbol(raiseStmt), strict]
                 | "#tryExcept" "(" Block "," Id "," Block ")" [symbol(tryExceptStmt)]
                 | "#tryExceptElse" "(" Block "," Id "," Block "," Block ")" [symbol(tryExceptElseStmt)]
+                | "#tryExceptCases" "(" Block "," ExceptHandlers ")" [symbol(tryExceptCasesStmt)]
+                | "#tryExceptCasesElse" "(" Block "," ExceptHandlers "," Block ")" [symbol(tryExceptCasesElseStmt)]
                 | "#tryFinally" "(" Block "," Block ")" [symbol(tryFinallyStmt)]
 
   syntax Exp ::= Val
@@ -905,6 +910,9 @@ module PYTHON
                  | "tryFinallyContinue" [symbol(tryFinallyContinue)]
                  | tryExceptDone(Id, Block) [symbol(tryExceptDone)]
                  | tryExceptElseDone(Id, Block, Block) [symbol(tryExceptElseDone)]
+                 | tryExceptCasesDone(ExceptHandlers) [symbol(tryExceptCasesDone)]
+                 | tryExceptCasesElseDone(ExceptHandlers, Block) [symbol(tryExceptCasesElseDone)]
+                 | handleException(Val, ExceptHandlers) [symbol(handleException)]
                  | "forDone" [symbol(forDone)]
                  | "breakSignal" [symbol(breakSignal)]
                  | "continueSignal" [symbol(continueSignal)]
@@ -10172,6 +10180,48 @@ module PYTHON
       ... </k>
   rule <k> exceptionSignal(#exception(E:Id)) ~> tryExceptElseDone(E, {}, _Else:Block) => stmtNoResult ... </k>
   rule <k> exceptionSignal(V:Val) ~> tryExceptElseDone(_E:Id, _Handler:Block, _Else:Block) => exceptionSignal(V) ... </k> [owise]
+
+  rule <k> tryExceptCasesStmt(block(SS:Stmts), Cases:ExceptHandlers) =>
+           SS ~> tryExceptCasesDone(Cases)
+      ... </k>
+  rule <k> tryExceptCasesStmt({}, _Cases:ExceptHandlers) => stmtNoResult ... </k>
+  rule <k> tryExceptCasesDone(_Cases:ExceptHandlers) => stmtNoResult ... </k>
+  rule <k> exceptionSignal(V:Val) ~> tryExceptCasesDone(Cases:ExceptHandlers) =>
+           handleException(V, Cases)
+      ... </k>
+
+  rule <k> tryExceptCasesElseStmt(block(SS:Stmts), Cases:ExceptHandlers, Else:Block) =>
+           SS ~> tryExceptCasesElseDone(Cases, Else)
+      ... </k>
+  rule <k> tryExceptCasesElseStmt({}, _Cases:ExceptHandlers, block(SS:Stmts)) =>
+           SS ~> ifStmtDone
+      ... </k>
+  rule <k> tryExceptCasesElseStmt({}, _Cases:ExceptHandlers, {}) => stmtNoResult ... </k>
+  rule <k> tryExceptCasesElseDone(_Cases:ExceptHandlers, block(SS:Stmts)) =>
+           SS ~> ifStmtDone
+      ... </k>
+  rule <k> tryExceptCasesElseDone(_Cases:ExceptHandlers, {}) => stmtNoResult ... </k>
+  rule <k> exceptionSignal(V:Val) ~> tryExceptCasesElseDone(Cases:ExceptHandlers, _Else:Block) =>
+           handleException(V, Cases)
+      ... </k>
+
+  rule <k> handleException(#exception(E:Id), #except(E, block(SS:Stmts))) =>
+           SS ~> ifStmtDone
+      ... </k>
+  rule <k> handleException(#exception(E:Id), #except(E, {})) => stmtNoResult ... </k>
+  rule <k> handleException(#exception(E:Id), #except(F:Id, _Handler:Block)) =>
+           exceptionSignal(#exception(E))
+      ... </k>
+    requires Id2String(E) =/=String Id2String(F)
+  rule <k> handleException(#exception(E:Id), #excepts(E, block(SS:Stmts), _Rest:ExceptHandlers)) =>
+           SS ~> ifStmtDone
+      ... </k>
+  rule <k> handleException(#exception(E:Id), #excepts(E, {}, _Rest:ExceptHandlers)) => stmtNoResult ... </k>
+  rule <k> handleException(#exception(E:Id), #excepts(F:Id, _Handler:Block, Rest:ExceptHandlers)) =>
+           handleException(#exception(E), Rest)
+      ... </k>
+    requires Id2String(E) =/=String Id2String(F)
+  rule <k> handleException(V:Val, _Cases:ExceptHandlers) => exceptionSignal(V) ... </k> [owise]
 
   rule <k> ifStmt(C:Exp, Then:Block, Else:Block) =>
            C ~> ifStmtBranch(Then, Else)

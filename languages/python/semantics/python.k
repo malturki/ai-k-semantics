@@ -1084,6 +1084,7 @@ module PYTHON
                 | floatSpecialStringOk(String) [function, symbol(floatSpecialStringOk)]
                 | floatStringOk(String) [function, symbol(floatStringOk)]
                 | complexImagStringOk(String) [function, symbol(complexImagStringOk)]
+                | complexPairStringOk(String) [function, symbol(complexPairStringOk)]
                 | asciiSpace(String) [function, symbol(asciiSpace)]
                 | containsVal(Val, ValItems) [function, symbol(containsVal)]
                 | bytesContains(ValItems, ValItems) [function, symbol(bytesContains)]
@@ -1118,6 +1119,8 @@ module PYTHON
                | floatDecimalPow10(Int) [function, symbol(floatDecimalPow10)]
                | floatExponentIndex(String) [function, symbol(floatExponentIndex)]
                | floatExponentIndexFrom(String, Int) [function, symbol(floatExponentIndexFrom)]
+               | complexSplitIndex(String) [function, symbol(complexSplitIndex)]
+               | complexSplitIndexFrom(String, Int) [function, symbol(complexSplitIndexFrom)]
                | pyFloorDiv(Int, Int) [function, symbol(pyFloorDiv)]
                | pyModulo(Int, Int) [function, symbol(pyModulo)]
                | pyLen(Val) [function, symbol(pyLen)]
@@ -1916,6 +1919,29 @@ module PYTHON
       andBool substrString(S, 0, lengthString(S) -Int 1) =/=String ""
       andBool substrString(S, 0, lengthString(S) -Int 1) =/=String "+"
       andBool substrString(S, 0, lengthString(S) -Int 1) =/=String "-"
+
+  rule complexSplitIndex(S:String) => complexSplitIndexFrom(S, 1)
+
+  rule complexSplitIndexFrom(S:String, I:Int) => -1
+    requires I >=Int lengthString(S) -Int 1
+  rule complexSplitIndexFrom(S:String, I:Int) => I
+    requires I <Int lengthString(S) -Int 1
+      andBool (substrString(S, I, I +Int 1) ==String "+"
+        orBool substrString(S, I, I +Int 1) ==String "-")
+      andBool substrString(S, I -Int 1, I) =/=String "e"
+      andBool substrString(S, I -Int 1, I) =/=String "E"
+  rule complexSplitIndexFrom(S:String, I:Int) => complexSplitIndexFrom(S, I +Int 1)
+    requires I <Int lengthString(S) -Int 1
+      andBool notBool ((substrString(S, I, I +Int 1) ==String "+"
+        orBool substrString(S, I, I +Int 1) ==String "-")
+        andBool substrString(S, I -Int 1, I) =/=String "e"
+        andBool substrString(S, I -Int 1, I) =/=String "E")
+
+  rule complexPairStringOk(S:String) =>
+    floatStringOk(substrString(S, 0, complexSplitIndex(S)))
+    andBool complexImagStringOk(substrString(S, complexSplitIndex(S), lengthString(S)))
+    requires complexSplitIndex(S) >Int 0
+  rule complexPairStringOk(_:String) => false [owise]
 
   rule floatScale10(F:Float, 0) => F
   rule floatScale10(F:Float, N:Int) => floatScale10(F *Float 10.0, N -Int 1)
@@ -9371,6 +9397,11 @@ module PYTHON
     requires floatStringOk(S)
   rule #complexCtor(S:String) => #complex(0.0, complexImagStringValue(S))
     requires complexImagStringOk(S)
+  rule #complexCtor(S:String) =>
+    #complex(
+      floatStringValue(substrString(S, 0, complexSplitIndex(S))),
+      complexImagStringValue(substrString(S, complexSplitIndex(S), lengthString(S))))
+    requires complexPairStringOk(S)
   rule #complexCtor(V:Val) => #complex(complexReal(V), complexImag(V))
     requires isComplexLike(V)
   rule #complexCtor(V1:Val, V2:Val) =>

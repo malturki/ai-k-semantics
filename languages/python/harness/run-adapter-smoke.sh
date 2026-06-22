@@ -59,6 +59,7 @@ run_case "adapter-complex-string-parenthesized-constructor" "$ROOT/tests/adapter
 run_case "adapter-complex-string-underscores" "$ROOT/tests/adapter/adapter-complex-string-underscores.py" "True ~> .K"
 run_case "adapter-complex-string-specials" "$ROOT/tests/adapter/adapter-complex-string-specials.py" "True ~> .K"
 run_case "adapter-complex-string-nan" "$ROOT/tests/adapter/adapter-complex-string-nan.py" "True ~> .K"
+run_case "adapter-complex-string-unicode-whitespace" "$ROOT/tests/adapter/adapter-complex-string-unicode-whitespace.py" "True ~> .K"
 run_case "adapter-numeric-real-imag-attributes" "$ROOT/tests/adapter/adapter-numeric-real-imag-attributes.py" "True ~> .K"
 run_case "adapter-numeric-conjugate" "$ROOT/tests/adapter/adapter-numeric-conjugate.py" "True ~> .K"
 run_case "adapter-complex-power" "$ROOT/tests/adapter/adapter-complex-power.py" "True ~> .K"

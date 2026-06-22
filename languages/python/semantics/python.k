@@ -1088,6 +1088,7 @@ module PYTHON
                 | complexParenStringOk(String) [function, symbol(complexParenStringOk)]
                 | complexStringOk(String) [function, symbol(complexStringOk)]
                 | asciiSpace(String) [function, symbol(asciiSpace)]
+                | pythonStringSpace(String) [function, symbol(pythonStringSpace)]
                 | containsVal(Val, ValItems) [function, symbol(containsVal)]
                 | bytesContains(ValItems, ValItems) [function, symbol(bytesContains)]
                 | bytesPrefix(ValItems, ValItems) [function, symbol(bytesPrefix)]
@@ -1107,6 +1108,8 @@ module PYTHON
                | digitValue(String) [function, symbol(digitValue)]
                | intStringValue(String, Int) [function, symbol(intStringValue)]
                | intStringAccum(String, Int, Int, Int) [function, symbol(intStringAccum)]
+               | pythonStringSpacePrefixLen(String) [function, symbol(pythonStringSpacePrefixLen)]
+               | pythonStringSpaceSuffixLen(String) [function, symbol(pythonStringSpaceSuffixLen)]
                | intSignStart(String) [function, symbol(intSignStart)]
                | intPrefixedBodyStart(String, Int) [function, symbol(intPrefixedBodyStart)]
                | intPrefixedStringValue(String, Int) [function, symbol(intPrefixedStringValue)]
@@ -1166,9 +1169,14 @@ module PYTHON
   syntax String ::= repeatString(String, Int) [function, symbol(repeatString)]
                   | sliceString(String, Int, Int) [function, symbol(sliceString)]
                   | sliceStepString(String, Int, Int, Int) [function, symbol(sliceStepString)]
+                  | utf8ByteString(Int, Int) [function, symbol(utf8ByteString2)]
+                  | utf8ByteString(Int, Int, Int) [function, symbol(utf8ByteString3)]
                   | stripAsciiSpace(String) [function, symbol(stripAsciiSpace)]
                   | lstripAsciiSpace(String) [function, symbol(lstripAsciiSpace)]
                   | rstripAsciiSpace(String) [function, symbol(rstripAsciiSpace)]
+                  | stripPythonStringSpace(String) [function, symbol(stripPythonStringSpace)]
+                  | lstripPythonStringSpace(String) [function, symbol(lstripPythonStringSpace)]
+                  | rstripPythonStringSpace(String) [function, symbol(rstripPythonStringSpace)]
                   | bytesAsciiString(ValItems) [function, symbol(bytesAsciiString)]
   syntax ArgVals ::= "#noArgVals" [symbol(noArgVals)]
                    | argValsCons(Val, ArgVals) [symbol(argValsCons)]
@@ -1946,7 +1954,7 @@ module PYTHON
   rule complexPairStringOk(_:String) => false [owise]
 
   rule complexParenStringOk(S:String) =>
-    complexStringOk(stripAsciiSpace(substrString(S, 1, lengthString(S) -Int 1)))
+    complexStringOk(stripPythonStringSpace(substrString(S, 1, lengthString(S) -Int 1)))
     requires lengthString(S) >=Int 2
       andBool substrString(S, 0, 1) ==String "("
       andBool substrString(S, lengthString(S) -Int 1, lengthString(S)) ==String ")"
@@ -1972,6 +1980,92 @@ module PYTHON
   rule asciiSpace("\u000b") => true
   rule asciiSpace(_:String) => false [owise]
 
+  rule pythonStringSpace(C:String) => true
+    requires asciiSpace(C)
+  rule pythonStringSpace("\u001c") => true
+  rule pythonStringSpace("\u001d") => true
+  rule pythonStringSpace("\u001e") => true
+  rule pythonStringSpace("\u001f") => true
+  rule pythonStringSpace("\u0085") => true
+  rule pythonStringSpace("\u00a0") => true
+  rule pythonStringSpace("\u1680") => true
+  rule pythonStringSpace("\u2000") => true
+  rule pythonStringSpace("\u2001") => true
+  rule pythonStringSpace("\u2002") => true
+  rule pythonStringSpace("\u2003") => true
+  rule pythonStringSpace("\u2004") => true
+  rule pythonStringSpace("\u2005") => true
+  rule pythonStringSpace("\u2006") => true
+  rule pythonStringSpace("\u2007") => true
+  rule pythonStringSpace("\u2008") => true
+  rule pythonStringSpace("\u2009") => true
+  rule pythonStringSpace("\u200a") => true
+  rule pythonStringSpace("\u2028") => true
+  rule pythonStringSpace("\u2029") => true
+  rule pythonStringSpace("\u202f") => true
+  rule pythonStringSpace("\u205f") => true
+  rule pythonStringSpace("\u3000") => true
+  rule pythonStringSpace(_:String) => false [owise]
+
+  rule utf8ByteString(A:Int, B:Int) => chrChar(A) +String chrChar(B)
+  rule utf8ByteString(A:Int, B:Int, C:Int) => chrChar(A) +String chrChar(B) +String chrChar(C)
+
+  rule pythonStringSpacePrefixLen(S:String) => 1
+    requires lengthString(S) >=Int 1
+      andBool asciiSpace(substrString(S, 0, 1))
+  rule pythonStringSpacePrefixLen(S:String) => 2
+    requires lengthString(S) >=Int 2
+      andBool (substrString(S, 0, 2) ==String utf8ByteString(194, 133)
+        orBool substrString(S, 0, 2) ==String utf8ByteString(194, 160))
+  rule pythonStringSpacePrefixLen(S:String) => 3
+    requires lengthString(S) >=Int 3
+      andBool (substrString(S, 0, 3) ==String utf8ByteString(225, 154, 128)
+        orBool substrString(S, 0, 3) ==String utf8ByteString(226, 128, 128)
+        orBool substrString(S, 0, 3) ==String utf8ByteString(226, 128, 129)
+        orBool substrString(S, 0, 3) ==String utf8ByteString(226, 128, 130)
+        orBool substrString(S, 0, 3) ==String utf8ByteString(226, 128, 131)
+        orBool substrString(S, 0, 3) ==String utf8ByteString(226, 128, 132)
+        orBool substrString(S, 0, 3) ==String utf8ByteString(226, 128, 133)
+        orBool substrString(S, 0, 3) ==String utf8ByteString(226, 128, 134)
+        orBool substrString(S, 0, 3) ==String utf8ByteString(226, 128, 135)
+        orBool substrString(S, 0, 3) ==String utf8ByteString(226, 128, 136)
+        orBool substrString(S, 0, 3) ==String utf8ByteString(226, 128, 137)
+        orBool substrString(S, 0, 3) ==String utf8ByteString(226, 128, 138)
+        orBool substrString(S, 0, 3) ==String utf8ByteString(226, 128, 168)
+        orBool substrString(S, 0, 3) ==String utf8ByteString(226, 128, 169)
+        orBool substrString(S, 0, 3) ==String utf8ByteString(226, 128, 175)
+        orBool substrString(S, 0, 3) ==String utf8ByteString(226, 129, 159)
+        orBool substrString(S, 0, 3) ==String utf8ByteString(227, 128, 128))
+  rule pythonStringSpacePrefixLen(_:String) => 0 [owise]
+
+  rule pythonStringSpaceSuffixLen(S:String) => 1
+    requires lengthString(S) >=Int 1
+      andBool asciiSpace(substrString(S, lengthString(S) -Int 1, lengthString(S)))
+  rule pythonStringSpaceSuffixLen(S:String) => 2
+    requires lengthString(S) >=Int 2
+      andBool (substrString(S, lengthString(S) -Int 2, lengthString(S)) ==String utf8ByteString(194, 133)
+        orBool substrString(S, lengthString(S) -Int 2, lengthString(S)) ==String utf8ByteString(194, 160))
+  rule pythonStringSpaceSuffixLen(S:String) => 3
+    requires lengthString(S) >=Int 3
+      andBool (substrString(S, lengthString(S) -Int 3, lengthString(S)) ==String utf8ByteString(225, 154, 128)
+        orBool substrString(S, lengthString(S) -Int 3, lengthString(S)) ==String utf8ByteString(226, 128, 128)
+        orBool substrString(S, lengthString(S) -Int 3, lengthString(S)) ==String utf8ByteString(226, 128, 129)
+        orBool substrString(S, lengthString(S) -Int 3, lengthString(S)) ==String utf8ByteString(226, 128, 130)
+        orBool substrString(S, lengthString(S) -Int 3, lengthString(S)) ==String utf8ByteString(226, 128, 131)
+        orBool substrString(S, lengthString(S) -Int 3, lengthString(S)) ==String utf8ByteString(226, 128, 132)
+        orBool substrString(S, lengthString(S) -Int 3, lengthString(S)) ==String utf8ByteString(226, 128, 133)
+        orBool substrString(S, lengthString(S) -Int 3, lengthString(S)) ==String utf8ByteString(226, 128, 134)
+        orBool substrString(S, lengthString(S) -Int 3, lengthString(S)) ==String utf8ByteString(226, 128, 135)
+        orBool substrString(S, lengthString(S) -Int 3, lengthString(S)) ==String utf8ByteString(226, 128, 136)
+        orBool substrString(S, lengthString(S) -Int 3, lengthString(S)) ==String utf8ByteString(226, 128, 137)
+        orBool substrString(S, lengthString(S) -Int 3, lengthString(S)) ==String utf8ByteString(226, 128, 138)
+        orBool substrString(S, lengthString(S) -Int 3, lengthString(S)) ==String utf8ByteString(226, 128, 168)
+        orBool substrString(S, lengthString(S) -Int 3, lengthString(S)) ==String utf8ByteString(226, 128, 169)
+        orBool substrString(S, lengthString(S) -Int 3, lengthString(S)) ==String utf8ByteString(226, 128, 175)
+        orBool substrString(S, lengthString(S) -Int 3, lengthString(S)) ==String utf8ByteString(226, 129, 159)
+        orBool substrString(S, lengthString(S) -Int 3, lengthString(S)) ==String utf8ByteString(227, 128, 128))
+  rule pythonStringSpaceSuffixLen(_:String) => 0 [owise]
+
   rule stripAsciiSpace(S:String) => rstripAsciiSpace(lstripAsciiSpace(S))
 
   rule lstripAsciiSpace(S:String) => lstripAsciiSpace(substrString(S, 1, lengthString(S)))
@@ -1991,6 +2085,20 @@ module PYTHON
   rule rstripAsciiSpace(S:String) => S
     requires lengthString(S) >Int 0
       andBool notBool asciiSpace(substrString(S, lengthString(S) -Int 1, lengthString(S)))
+
+  rule stripPythonStringSpace(S:String) => rstripPythonStringSpace(lstripPythonStringSpace(S))
+
+  rule lstripPythonStringSpace(S:String) =>
+    lstripPythonStringSpace(substrString(S, pythonStringSpacePrefixLen(S), lengthString(S)))
+    requires pythonStringSpacePrefixLen(S) >Int 0
+  rule lstripPythonStringSpace(S:String) => S
+    requires pythonStringSpacePrefixLen(S) ==Int 0
+
+  rule rstripPythonStringSpace(S:String) =>
+    rstripPythonStringSpace(substrString(S, 0, lengthString(S) -Int pythonStringSpaceSuffixLen(S)))
+    requires pythonStringSpaceSuffixLen(S) >Int 0
+  rule rstripPythonStringSpace(S:String) => S
+    requires pythonStringSpaceSuffixLen(S) ==Int 0
 
   rule isComplexLike(#complex(_:Float, _:Float)) => true
   rule isComplexLike(_:Float) => true
@@ -9405,10 +9513,10 @@ module PYTHON
   rule #floatCtor(S:String) => floatSpecialStringValue(S)
     requires floatSpecialStringOk(S)
   rule #complexCtor() => #complex(0.0, 0.0)
-  rule #complexCtor(S:String) => #complexCtor(stripAsciiSpace(S))
-    requires stripAsciiSpace(S) =/=String S
-      andBool complexStringOk(stripAsciiSpace(S))
-  rule #complexCtor(S:String) => #complexCtor(stripAsciiSpace(substrString(S, 1, lengthString(S) -Int 1)))
+  rule #complexCtor(S:String) => #complexCtor(stripPythonStringSpace(S))
+    requires stripPythonStringSpace(S) =/=String S
+      andBool complexStringOk(stripPythonStringSpace(S))
+  rule #complexCtor(S:String) => #complexCtor(stripPythonStringSpace(substrString(S, 1, lengthString(S) -Int 1)))
     requires complexParenStringOk(S)
   rule #complexCtor(S:String) => #complex(floatStringValue(S), 0.0)
     requires floatStringOk(S)

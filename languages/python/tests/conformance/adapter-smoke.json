@@ -529,6 +529,13 @@
       "coverage": ["match-statement", "mapping-pattern", "mapping-rest-pattern", "rest-capture-binding", "constant-key-pattern", "ordinary-python-source-adapter"]
     },
     {
+      "id": "adapter-match-nested-capture",
+      "source": "../adapter/adapter-match-nested-capture.py",
+      "reference": "Python Language Reference 8.6 The match statement; PEP 634 Structural Pattern Matching",
+      "expected_result": "True ~> .K",
+      "coverage": ["match-statement", "nested-pattern", "capture-pattern", "sequence-pattern", "starred-sequence-pattern", "mapping-pattern", "mapping-rest-pattern", "class-pattern", "or-pattern", "as-pattern", "failed-pattern-binding-rollback", "guard-binding-visibility", "ordinary-python-source-adapter"]
+    },
+    {
       "id": "adapter-match-guards",
       "source": "../adapter/adapter-match-guards.py",
       "reference": "Python Language Reference 8.6 The match statement, Guards; PEP 634 Structural Pattern Matching",

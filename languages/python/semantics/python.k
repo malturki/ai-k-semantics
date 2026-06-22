@@ -2595,7 +2595,10 @@ module PYTHON
   rule matchSimplePattern(V:Val, #matchSequence(PS:MatchPatterns)) => matchFixedSequence(V, PS)
   rule matchSimplePattern(V:Val, #matchSequenceStar(Prefix:MatchPatterns, Suffix:MatchPatterns)) =>
     matchStarSequence(V, Prefix, Suffix)
+  rule matchSimplePattern(V:Val, #matchSequenceStarCapture(Prefix:MatchPatterns, _Name:Id, Suffix:MatchPatterns)) =>
+    matchStarSequence(V, Prefix, Suffix)
   rule matchSimplePattern(V:Val, #matchMapping(MPS:MatchMapPatterns)) => matchMapping(V, MPS)
+  rule matchSimplePattern(V:Val, #matchMappingRest(MPS:MatchMapPatterns, _Name:Id)) => matchMapping(V, MPS)
 
   rule bindMatchPattern(Rho:Map, V:Val, #matchCapture(Name:Id)) => Rho [ Name <- V ]
   rule bindMatchPattern(Rho:Map, V:Val, #matchAs(P:MatchPattern, Name:Id)) =>
@@ -2604,8 +2607,12 @@ module PYTHON
     bindMatchSequence(Rho, V, PS)
   rule bindMatchPattern(Rho:Map, V:Val, #matchSequenceStar(Prefix:MatchPatterns, Suffix:MatchPatterns)) =>
     bindMatchStarSequence(Rho, V, Prefix, Suffix)
+  rule bindMatchPattern(Rho:Map, V:Val, #matchSequenceStarCapture(Prefix:MatchPatterns, Name:Id, Suffix:MatchPatterns)) =>
+    bindMatchStarSequence(Rho, V, Prefix, Suffix) [ Name <- matchStarMiddle(V, Prefix, Suffix) ]
   rule bindMatchPattern(Rho:Map, V:Val, #matchMapping(MPS:MatchMapPatterns)) =>
     bindMatchMapping(Rho, V, MPS)
+  rule bindMatchPattern(Rho:Map, V:Val, #matchMappingRest(MPS:MatchMapPatterns, Name:Id)) =>
+    bindMatchMapping(Rho, V, MPS) [ Name <- matchMappingRestVal(V, MPS) ]
   rule bindMatchPattern(Rho:Map, V:Val, #matchClassArg(_C:Id, P:MatchPattern)) =>
     bindMatchPattern(Rho, V, P)
   rule bindMatchPattern(Rho:Map, V:Val, #matchOr(P1:MatchPattern, _P2:MatchPattern)) =>

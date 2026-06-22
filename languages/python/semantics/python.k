@@ -1085,6 +1085,8 @@ module PYTHON
                 | floatStringOk(String) [function, symbol(floatStringOk)]
                 | complexImagStringOk(String) [function, symbol(complexImagStringOk)]
                 | complexPairStringOk(String) [function, symbol(complexPairStringOk)]
+                | complexParenStringOk(String) [function, symbol(complexParenStringOk)]
+                | complexStringOk(String) [function, symbol(complexStringOk)]
                 | asciiSpace(String) [function, symbol(asciiSpace)]
                 | containsVal(Val, ValItems) [function, symbol(containsVal)]
                 | bytesContains(ValItems, ValItems) [function, symbol(bytesContains)]
@@ -1942,6 +1944,19 @@ module PYTHON
     andBool complexImagStringOk(substrString(S, complexSplitIndex(S), lengthString(S)))
     requires complexSplitIndex(S) >Int 0
   rule complexPairStringOk(_:String) => false [owise]
+
+  rule complexParenStringOk(S:String) =>
+    complexStringOk(stripAsciiSpace(substrString(S, 1, lengthString(S) -Int 1)))
+    requires lengthString(S) >=Int 2
+      andBool substrString(S, 0, 1) ==String "("
+      andBool substrString(S, lengthString(S) -Int 1, lengthString(S)) ==String ")"
+  rule complexParenStringOk(_:String) => false [owise]
+
+  rule complexStringOk(S:String) =>
+    floatStringOk(S)
+    orBool complexImagStringOk(S)
+    orBool complexPairStringOk(S)
+    orBool complexParenStringOk(S)
 
   rule floatScale10(F:Float, 0) => F
   rule floatScale10(F:Float, N:Int) => floatScale10(F *Float 10.0, N -Int 1)
@@ -9392,7 +9407,9 @@ module PYTHON
   rule #complexCtor() => #complex(0.0, 0.0)
   rule #complexCtor(S:String) => #complexCtor(stripAsciiSpace(S))
     requires stripAsciiSpace(S) =/=String S
-      andBool (floatStringOk(stripAsciiSpace(S)) orBool complexImagStringOk(stripAsciiSpace(S)))
+      andBool complexStringOk(stripAsciiSpace(S))
+  rule #complexCtor(S:String) => #complexCtor(stripAsciiSpace(substrString(S, 1, lengthString(S) -Int 1)))
+    requires complexParenStringOk(S)
   rule #complexCtor(S:String) => #complex(floatStringValue(S), 0.0)
     requires floatStringOk(S)
   rule #complexCtor(S:String) => #complex(0.0, complexImagStringValue(S))

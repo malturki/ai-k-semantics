@@ -78,7 +78,9 @@ module PYTHON-SYNTAX
                             | "#compRest" "(" CompClauses ")" [symbol(compRest)]
 
   syntax ExceptHandlers ::= "#except" "(" Id "," Block ")" [symbol(exceptHandlersLast)]
+                          | "#exceptAs" "(" Id "," Id "," Block ")" [symbol(exceptHandlersAsLast)]
                           | "#excepts" "(" Id "," Block "," ExceptHandlers ")" [symbol(exceptHandlersCons)]
+                          | "#exceptsAs" "(" Id "," Id "," Block "," ExceptHandlers ")" [symbol(exceptHandlersAsCons)]
 
   syntax CmpOp ::= "#lt" [symbol(cmpLt)]
                  | "#le" [symbol(cmpLe)]
@@ -913,6 +915,7 @@ module PYTHON
                  | tryExceptCasesDone(ExceptHandlers) [symbol(tryExceptCasesDone)]
                  | tryExceptCasesElseDone(ExceptHandlers, Block) [symbol(tryExceptCasesElseDone)]
                  | handleException(Val, ExceptHandlers) [symbol(handleException)]
+                 | exceptAsCleanup(Id) [symbol(exceptAsCleanup)]
                  | "forDone" [symbol(forDone)]
                  | "breakSignal" [symbol(breakSignal)]
                  | "continueSignal" [symbol(continueSignal)]
@@ -2586,6 +2589,7 @@ module PYTHON
   rule valEq(False, False) => true
   rule valEq(None, None) => true
   rule valEq(Ellipsis, Ellipsis) => true
+  rule valEq(#exception(E1:Id), #exception(E2:Id)) => Id2String(E1) ==String Id2String(E2)
   rule valEq(None, _:Int) => false
   rule valEq(_:Int, None) => false
   rule valEq(None, True) => false
@@ -10213,6 +10217,18 @@ module PYTHON
            exceptionSignal(#exception(E))
       ... </k>
     requires Id2String(E) =/=String Id2String(F)
+  rule <k> handleException(#exception(E:Id), #exceptAs(E, Alias:Id, block(SS:Stmts))) =>
+           SS ~> exceptAsCleanup(Alias)
+      ... </k>
+       <env> Rho => Rho [ Alias <- #exception(E) ] </env>
+  rule <k> handleException(#exception(E:Id), #exceptAs(E, Alias:Id, {})) =>
+           exceptAsCleanup(Alias)
+      ... </k>
+       <env> Rho => Rho [ Alias <- #exception(E) ] </env>
+  rule <k> handleException(#exception(E:Id), #exceptAs(F:Id, _Alias:Id, _Handler:Block)) =>
+           exceptionSignal(#exception(E))
+      ... </k>
+    requires Id2String(E) =/=String Id2String(F)
   rule <k> handleException(#exception(E:Id), #excepts(E, block(SS:Stmts), _Rest:ExceptHandlers)) =>
            SS ~> ifStmtDone
       ... </k>
@@ -10221,7 +10237,30 @@ module PYTHON
            handleException(#exception(E), Rest)
       ... </k>
     requires Id2String(E) =/=String Id2String(F)
+  rule <k> handleException(#exception(E:Id), #exceptsAs(E, Alias:Id, block(SS:Stmts), _Rest:ExceptHandlers)) =>
+           SS ~> exceptAsCleanup(Alias)
+      ... </k>
+       <env> Rho => Rho [ Alias <- #exception(E) ] </env>
+  rule <k> handleException(#exception(E:Id), #exceptsAs(E, Alias:Id, {}, _Rest:ExceptHandlers)) =>
+           exceptAsCleanup(Alias)
+      ... </k>
+       <env> Rho => Rho [ Alias <- #exception(E) ] </env>
+  rule <k> handleException(#exception(E:Id), #exceptsAs(F:Id, _Alias:Id, _Handler:Block, Rest:ExceptHandlers)) =>
+           handleException(#exception(E), Rest)
+      ... </k>
+    requires Id2String(E) =/=String Id2String(F)
   rule <k> handleException(V:Val, _Cases:ExceptHandlers) => exceptionSignal(V) ... </k> [owise]
+
+  rule <k> exceptAsCleanup(Alias:Id) => stmtNoResult ... </k>
+       <env> Rho => Rho [ Alias <- undef ] </env>
+  rule <k> breakSignal ~> exceptAsCleanup(Alias:Id) => breakSignal ... </k>
+       <env> Rho => Rho [ Alias <- undef ] </env>
+  rule <k> continueSignal ~> exceptAsCleanup(Alias:Id) => continueSignal ... </k>
+       <env> Rho => Rho [ Alias <- undef ] </env>
+  rule <k> returnSignal(V:Val) ~> exceptAsCleanup(Alias:Id) => returnSignal(V) ... </k>
+       <env> Rho => Rho [ Alias <- undef ] </env>
+  rule <k> exceptionSignal(V:Val) ~> exceptAsCleanup(Alias:Id) => exceptionSignal(V) ... </k>
+       <env> Rho => Rho [ Alias <- undef ] </env>
 
   rule <k> ifStmt(C:Exp, Then:Block, Else:Block) =>
            C ~> ifStmtBranch(Then, Else)

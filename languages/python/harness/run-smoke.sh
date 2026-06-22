@@ -18,6 +18,7 @@ run_case() {
   local source="$2"
   local expected="$3"
   local output="$WORK/$name.out"
+  shift 3
 
   krun "$source" --definition "$KOMPILED" > "$output"
 
@@ -32,6 +33,23 @@ run_case() {
     cat "$output" >&2
     exit 1
   fi
+
+  for extra_expected in "$@"; do
+    if [[ "$extra_expected" == !* ]]; then
+      local forbidden="${extra_expected:1}"
+      if grep -q -- "$forbidden" "$output"; then
+        echo "FAIL $name: forbidden output fragment $forbidden" >&2
+        cat "$output" >&2
+        exit 1
+      fi
+      continue
+    fi
+    if ! grep -q -- "$extra_expected" "$output"; then
+      echo "FAIL $name: expected output fragment $extra_expected" >&2
+      cat "$output" >&2
+      exit 1
+    fi
+  done
 
   echo "PASS $name"
 }
@@ -54,3 +72,4 @@ run_case "smoke-lambda-call" "$ROOT/tests/examples/smoke-lambda-call.py" "6 ~> .
 run_case "smoke-assert-global" "$ROOT/tests/examples/smoke-assert-global.py" "2 ~> .K"
 run_case "smoke-return-bare" "$ROOT/tests/examples/smoke-return-bare.py" "None ~> .K"
 run_case "smoke-function-decorator" "$ROOT/tests/examples/smoke-function-decorator.py" "True ~> .K"
+run_case "smoke-except-as-cleanup" "$ROOT/tests/examples/smoke-except-as-cleanup.py" "True ~> .K" "!err |->"

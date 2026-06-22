@@ -113,6 +113,13 @@
       "reference": "Python Language Reference 8.7 Function definitions",
       "expected_result": "True ~> .K",
       "coverage": ["function-decorator", "decorator-application-order", "function-name-bound-to-decorator-result", "decorated-function-default"]
+    },
+    {
+      "id": "smoke-except-as-cleanup",
+      "source": "../examples/smoke-except-as-cleanup.py",
+      "reference": "Python Language Reference 8.4 The try statement",
+      "expected_result": "True ~> .K",
+      "coverage": ["try-statement", "except-as-target", "exception-handler-binding", "exception-handler-cleanup", "internal-k-source"]
     }
   ]
 }

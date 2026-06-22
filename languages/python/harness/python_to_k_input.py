@@ -379,10 +379,8 @@ def emit_try_except(
     handlers: list[ast.ExceptHandler],
     orelse: list[ast.stmt],
 ) -> str:
-    if len(handlers) == 1:
+    if len(handlers) == 1 and handlers[0].name is None:
         handler = handlers[0]
-        if handler.name is not None:
-            raise unsupported(node, "except-as targets need exception binding cleanup support")
         if not isinstance(handler.type, ast.Name):
             raise unsupported(node, "only named except handlers are supported")
         emitted_body = emit_block(body)
@@ -401,15 +399,19 @@ def emit_try_except(
 
 def emit_except_handlers(node: ast.AST, handlers: list[ast.ExceptHandler]) -> str:
     handler = handlers[0]
-    if handler.name is not None:
-        raise unsupported(node, "except-as targets need exception binding cleanup support")
     if not isinstance(handler.type, ast.Name):
         raise unsupported(node, "only named except handlers are supported")
     emitted_exception = emit_id(handler.type.id)
+    emitted_alias = emit_id(handler.name) if handler.name is not None else None
     emitted_handler = emit_block(handler.body)
     if len(handlers) == 1:
+        if emitted_alias is not None:
+            return f"#exceptAs({emitted_exception}, {emitted_alias}, {emitted_handler})"
         return f"#except({emitted_exception}, {emitted_handler})"
-    return f"#excepts({emitted_exception}, {emitted_handler}, {emit_except_handlers(node, handlers[1:])})"
+    emitted_rest = emit_except_handlers(node, handlers[1:])
+    if emitted_alias is not None:
+        return f"#exceptsAs({emitted_exception}, {emitted_alias}, {emitted_handler}, {emitted_rest})"
+    return f"#excepts({emitted_exception}, {emitted_handler}, {emitted_rest})"
 
 
 def ensure_non_async_comprehension(

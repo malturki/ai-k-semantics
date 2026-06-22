@@ -34,6 +34,17 @@ SUPPORTED_ZERO_ARG_CLASS_PATTERNS = {
     "str",
     "tuple",
 }
+SUPPORTED_SINGLE_ARG_CLASS_PATTERNS = {
+    "bool",
+    "bytes",
+    "dict",
+    "float",
+    "int",
+    "list",
+    "set",
+    "str",
+    "tuple",
+}
 CLASS_PATTERN_ID_ALIASES = {
     "set": "kSetClassName",
 }
@@ -460,8 +471,10 @@ def emit_match_pattern(node: ast.AST, pattern: ast.pattern) -> str:
             return emit_match_mapping_pattern(node, keys, patterns, rest, allow_rest_capture=True)
         case ast.MatchClass(cls=cls, patterns=[], kwd_attrs=[], kwd_patterns=[]):
             return emit_zero_arg_match_class(node, cls)
+        case ast.MatchClass(cls=cls, patterns=[subpattern], kwd_attrs=[], kwd_patterns=[]):
+            return emit_single_arg_match_class(node, cls, subpattern)
         case _:
-            raise unsupported(node, "only value, singleton, wildcard, capture, non-binding OR, non-binding AS, non-binding sequence, non-binding mapping, and zero-argument builtin class match patterns are supported")
+            raise unsupported(node, "only value, singleton, wildcard, capture, non-binding OR, non-binding AS, non-binding sequence, non-binding mapping, zero-argument builtin class, and non-binding single-positional builtin class match patterns are supported")
 
 
 def emit_match_or_patterns(node: ast.AST, patterns: list[ast.pattern]) -> str:
@@ -495,8 +508,10 @@ def emit_match_nonbinding_pattern(node: ast.AST, pattern: ast.pattern) -> str:
             return emit_match_mapping_pattern(node, keys, patterns, rest, allow_rest_capture=False)
         case ast.MatchClass(cls=cls, patterns=[], kwd_attrs=[], kwd_patterns=[]):
             return emit_zero_arg_match_class(node, cls)
+        case ast.MatchClass(cls=cls, patterns=[subpattern], kwd_attrs=[], kwd_patterns=[]):
+            return emit_single_arg_match_class(node, cls, subpattern)
         case _:
-            raise unsupported(node, "only non-binding wildcard, literal, singleton, OR, sequence, mapping, and zero-argument builtin class pattern alternatives are supported")
+            raise unsupported(node, "only non-binding wildcard, literal, singleton, OR, sequence, mapping, zero-argument builtin class, and single-positional builtin class pattern alternatives are supported")
 
 
 def emit_zero_arg_match_class(node: ast.AST, cls: ast.expr) -> str:
@@ -505,6 +520,15 @@ def emit_zero_arg_match_class(node: ast.AST, cls: ast.expr) -> str:
     if cls.id not in SUPPORTED_ZERO_ARG_CLASS_PATTERNS:
         raise unsupported(node, "only zero-argument class match patterns for current builtin value types are supported")
     return f"#matchClass({emit_id(CLASS_PATTERN_ID_ALIASES.get(cls.id, cls.id))})"
+
+
+def emit_single_arg_match_class(node: ast.AST, cls: ast.expr, subpattern: ast.pattern) -> str:
+    if not isinstance(cls, ast.Name):
+        raise unsupported(node, "only simple-name single-positional class match patterns are supported")
+    if cls.id not in SUPPORTED_SINGLE_ARG_CLASS_PATTERNS:
+        raise unsupported(node, "only single-positional class match patterns for builtin whole-object matching types are supported")
+    emitted_class = emit_id(CLASS_PATTERN_ID_ALIASES.get(cls.id, cls.id))
+    return f"#matchClassArg({emitted_class}, {emit_match_nonbinding_pattern(node, subpattern)})"
 
 
 def emit_match_sequence_patterns(node: ast.AST, patterns: list[ast.pattern]) -> str:

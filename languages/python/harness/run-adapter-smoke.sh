@@ -124,6 +124,7 @@ run_case "adapter-match-class-builtins" "$ROOT/tests/adapter/adapter-match-class
 run_case "adapter-match-class-capture" "$ROOT/tests/adapter/adapter-match-class-capture.py" "True ~> .K"
 run_case "adapter-match-class-positional" "$ROOT/tests/adapter/adapter-match-class-positional.py" "True ~> .K"
 run_case "adapter-match-class-keywords" "$ROOT/tests/adapter/adapter-match-class-keywords.py" "True ~> .K"
+run_case "adapter-match-class-int-ratio-attrs" "$ROOT/tests/adapter/adapter-match-class-int-ratio-attrs.py" "True ~> .K"
 run_case "adapter-is-none" "$ROOT/tests/adapter/adapter-is-none.py" "True ~> .K"
 run_case "adapter-is-bool" "$ROOT/tests/adapter/adapter-is-bool.py" "True ~> .K"
 run_case "adapter-bool-constructor" "$ROOT/tests/adapter/adapter-bool-constructor.py" "True ~> .K"

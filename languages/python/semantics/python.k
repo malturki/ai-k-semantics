@@ -2618,7 +2618,11 @@ module PYTHON
   rule classHasMatchAttr(_:Float, A:Id) => true
     requires Id2String(A) ==String "real" orBool Id2String(A) ==String "imag"
   rule classHasMatchAttr(V:Val, A:Id) => true
-    requires isIntLike(V) andBool (Id2String(A) ==String "real" orBool Id2String(A) ==String "imag")
+    requires isIntLike(V)
+      andBool (Id2String(A) ==String "real"
+        orBool Id2String(A) ==String "imag"
+        orBool Id2String(A) ==String "numerator"
+        orBool Id2String(A) ==String "denominator")
   rule classHasMatchAttr(_:Val, _:Id) => false [owise]
 
   rule matchClassAttrVal(rangeVal(Start:Int, _:Int), Attr:Id) => Start
@@ -2651,6 +2655,10 @@ module PYTHON
     requires isIntLike(V) andBool Id2String(Attr) ==String "real"
   rule matchClassAttrVal(V:Val, Attr:Id) => 0
     requires isIntLike(V) andBool Id2String(Attr) ==String "imag"
+  rule matchClassAttrVal(V:Val, Attr:Id) => intValue(V)
+    requires isIntLike(V) andBool Id2String(Attr) ==String "numerator"
+  rule matchClassAttrVal(V:Val, Attr:Id) => 1
+    requires isIntLike(V) andBool Id2String(Attr) ==String "denominator"
 
   rule matchSimplePattern(_:Val, #matchWildcard) => true
   rule matchSimplePattern(_:Val, #matchCapture(_Name:Id)) => true
@@ -5079,6 +5087,10 @@ module PYTHON
     requires isIntLike(V) andBool Id2String(Attr) ==String "real"
   rule attrExp(V:Val, Attr:Id) => 0
     requires isIntLike(V) andBool Id2String(Attr) ==String "imag"
+  rule attrExp(V:Val, Attr:Id) => intValue(V)
+    requires isIntLike(V) andBool Id2String(Attr) ==String "numerator"
+  rule attrExp(V:Val, Attr:Id) => 1
+    requires isIntLike(V) andBool Id2String(Attr) ==String "denominator"
 
   rule V1:Val < V2:Val => boolValue(intValue(V1) <Int intValue(V2))
     requires isIntLike(V1) andBool isIntLike(V2)

@@ -437,7 +437,7 @@ def emit_match_pattern(node: ast.AST, pattern: ast.pattern) -> str:
         case ast.MatchSequence(patterns=patterns):
             return emit_match_sequence_pattern(node, patterns, allow_star_capture=True)
         case ast.MatchMapping(keys=keys, patterns=patterns, rest=rest):
-            return emit_match_mapping_pattern(node, keys, patterns, rest)
+            return emit_match_mapping_pattern(node, keys, patterns, rest, allow_rest_capture=True)
         case _:
             raise unsupported(node, "only value, singleton, wildcard, capture, non-binding OR, non-binding AS, non-binding sequence, and non-binding mapping match patterns are supported")
 
@@ -470,7 +470,7 @@ def emit_match_nonbinding_pattern(node: ast.AST, pattern: ast.pattern) -> str:
         case ast.MatchSequence(patterns=patterns):
             return emit_match_sequence_pattern(node, patterns, allow_star_capture=False)
         case ast.MatchMapping(keys=keys, patterns=patterns, rest=rest):
-            return emit_match_mapping_pattern(node, keys, patterns, rest)
+            return emit_match_mapping_pattern(node, keys, patterns, rest, allow_rest_capture=False)
         case _:
             raise unsupported(node, "only non-binding wildcard, literal, singleton, OR, sequence, and mapping pattern alternatives are supported")
 
@@ -506,9 +506,12 @@ def emit_match_mapping_pattern(
     keys: list[ast.expr],
     patterns: list[ast.pattern],
     rest: str | None,
+    allow_rest_capture: bool,
 ) -> str:
     if rest is not None:
-        raise unsupported(node, "mapping **rest match patterns are not supported yet")
+        if not allow_rest_capture:
+            raise unsupported(node, "capture-bearing mapping **rest patterns require binding rollback in this position")
+        return f"#matchMappingRest({emit_match_mapping_patterns(node, keys, patterns)}, {emit_id(rest)})"
     if len(keys) != len(patterns):
         raise unsupported(node, "mapping match pattern key/value arity mismatch")
     return f"#matchMapping({emit_match_mapping_patterns(node, keys, patterns)})"

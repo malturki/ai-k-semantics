@@ -86,6 +86,7 @@ module PYTHON-SYNTAX
                         | "#matchSequenceStar" "(" MatchPatterns "," MatchPatterns ")" [symbol(matchSequenceStarPattern)]
                         | "#matchSequenceStarCapture" "(" MatchPatterns "," Id "," MatchPatterns ")" [symbol(matchSequenceStarCapturePattern)]
                         | "#matchMapping" "(" MatchMapPatterns ")" [symbol(matchMappingPattern)]
+                        | "#matchMappingRest" "(" MatchMapPatterns "," Id ")" [symbol(matchMappingRestPattern)]
                         | "#matchWildcard" [symbol(matchWildcardPattern)]
 
   syntax MatchPatterns ::= "#matchNoPatterns" [symbol(matchNoPatterns)]
@@ -1001,6 +1002,7 @@ module PYTHON
                 | matchStarSequence(Val, MatchPatterns, MatchPatterns) [function, symbol(matchStarSequence)]
                 | matchMapping(Val, MatchMapPatterns) [function, symbol(matchMapping)]
                 | matchDictItems(DictItems, MatchMapPatterns) [function, symbol(matchDictItems)]
+                | matchKeyInPatterns(Val, MatchMapPatterns) [function, symbol(matchKeyInPatterns)]
                 | matchValItemsPatterns(ValItems, MatchPatterns) [function, symbol(matchValItemsPatterns)]
                 | matchValItemsPrefix(ValItems, MatchPatterns) [function, symbol(matchValItemsPrefix)]
                 | matchValItemsSuffix(ValItems, MatchPatterns) [function, symbol(matchValItemsSuffix)]
@@ -1278,6 +1280,7 @@ module PYTHON
                     | appendDictUnpack(DictVals, Val) [function, symbol(appendDictUnpack)]
                     | appendDictItems(DictVals, DictItems) [function, symbol(appendDictItems)]
                     | appendDictPairVal(DictVals, Val) [function, symbol(appendDictPairVal)]
+                    | matchMappingRestVals(DictItems, MatchMapPatterns) [function, symbol(matchMappingRestVals)]
                     | dictCtorPairs(ValItems, DictVals) [function, symbol(dictCtorPairs)]
                     | appendKwDictVals(DictVals, KwArgVals) [function, symbol(appendKwDictVals)]
                     | kwExtrasDictVals(KwArgVals, IdItems) [function, symbol(kwExtrasDictVals)]
@@ -1326,6 +1329,7 @@ module PYTHON
   syntax Val ::= complexCtorRealArg(KwArgVals) [function, symbol(complexCtorRealArg)]
                | complexCtorImagArg(KwArgVals) [function, symbol(complexCtorImagArg)]
                | matchStarMiddle(Val, MatchPatterns, MatchPatterns) [function, symbol(matchStarMiddle)]
+               | matchMappingRestVal(Val, MatchMapPatterns) [function, symbol(matchMappingRestVal)]
   syntax Val ::= listSlice(ValItems, Int, Int) [function, symbol(listSlice)]
                | tupleSlice(ValItems, Int, Int) [function, symbol(tupleSlice)]
                | bytesSlice(ValItems, Int, Int) [function, symbol(bytesSlice)]
@@ -2574,6 +2578,29 @@ module PYTHON
     requires containsKey(K, DS)
   rule matchDictItems(DS:DictItems, #matchMapPattern(K:Val, _P:MatchPattern, _Rest:MatchMapPatterns)) => false
     requires notBool containsKey(K, DS)
+
+  rule matchKeyInPatterns(_:Val, #matchNoMapPatterns) => false
+  rule matchKeyInPatterns(K:Val, #matchMapPattern(K0:Val, _P:MatchPattern, _Rest:MatchMapPatterns)) => true
+    requires valEq(K, K0)
+  rule matchKeyInPatterns(K:Val, #matchMapPattern(K0:Val, _P:MatchPattern, Rest:MatchMapPatterns)) =>
+    matchKeyInPatterns(K, Rest)
+    requires notBool valEq(K, K0)
+
+  rule matchMappingRestVal({}, #matchNoMapPatterns) => {}
+  rule matchMappingRestVal(dictVal(DS:DictItems), MPS:MatchMapPatterns) =>
+    dictFromDictVals(matchMappingRestVals(DS, MPS))
+
+  rule matchMappingRestVals(dictItemsLast(K:Val, _V:Val), MPS:MatchMapPatterns) => #noDictVals
+    requires matchKeyInPatterns(K, MPS)
+  rule matchMappingRestVals(dictItemsLast(K:Val, V:Val), MPS:MatchMapPatterns) =>
+    dictValsCons(K, V, #noDictVals)
+    requires notBool matchKeyInPatterns(K, MPS)
+  rule matchMappingRestVals(dictItemsCons(K:Val, _V:Val, DS:DictItems), MPS:MatchMapPatterns) =>
+    matchMappingRestVals(DS, MPS)
+    requires matchKeyInPatterns(K, MPS)
+  rule matchMappingRestVals(dictItemsCons(K:Val, V:Val, DS:DictItems), MPS:MatchMapPatterns) =>
+    dictValsCons(K, V, matchMappingRestVals(DS, MPS))
+    requires notBool matchKeyInPatterns(K, MPS)
 
   rule valEq(I1:Int, I2:Int) => I1 ==Int I2
   rule valEq(F1:Float, F2:Float) => F1 ==Float F2
@@ -10654,6 +10681,34 @@ module PYTHON
       ... </k>
     requires matchMapping(V, MPS)
   rule <k> matchDispatch(V:Val, #matchCases(#matchMapping(MPS:MatchMapPatterns), _Body:Block, Rest:MatchCases)) =>
+           matchDispatch(V, Rest)
+      ... </k>
+    requires notBool matchMapping(V, MPS)
+  rule <k> matchDispatch(V:Val, #matchCase(#matchMappingRest(MPS:MatchMapPatterns, Name:Id), block(SS:Stmts))) =>
+           SS ~> matchDone
+      ... </k>
+      <env> Rho => Rho [ Name <- matchMappingRestVal(V, MPS) ] </env>
+    requires matchMapping(V, MPS)
+  rule <k> matchDispatch(V:Val, #matchCase(#matchMappingRest(MPS:MatchMapPatterns, Name:Id), {})) =>
+           stmtNoResult
+      ... </k>
+      <env> Rho => Rho [ Name <- matchMappingRestVal(V, MPS) ] </env>
+    requires matchMapping(V, MPS)
+  rule <k> matchDispatch(V:Val, #matchCase(#matchMappingRest(MPS:MatchMapPatterns, _Name:Id), _Body:Block)) =>
+           stmtNoResult
+      ... </k>
+    requires notBool matchMapping(V, MPS)
+  rule <k> matchDispatch(V:Val, #matchCases(#matchMappingRest(MPS:MatchMapPatterns, Name:Id), block(SS:Stmts), _Rest:MatchCases)) =>
+           SS ~> matchDone
+      ... </k>
+      <env> Rho => Rho [ Name <- matchMappingRestVal(V, MPS) ] </env>
+    requires matchMapping(V, MPS)
+  rule <k> matchDispatch(V:Val, #matchCases(#matchMappingRest(MPS:MatchMapPatterns, Name:Id), {}, _Rest:MatchCases)) =>
+           stmtNoResult
+      ... </k>
+      <env> Rho => Rho [ Name <- matchMappingRestVal(V, MPS) ] </env>
+    requires matchMapping(V, MPS)
+  rule <k> matchDispatch(V:Val, #matchCases(#matchMappingRest(MPS:MatchMapPatterns, _Name:Id), _Body:Block, Rest:MatchCases)) =>
            matchDispatch(V, Rest)
       ... </k>
     requires notBool matchMapping(V, MPS)

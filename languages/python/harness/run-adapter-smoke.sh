@@ -112,6 +112,7 @@ run_case "adapter-match-sequence" "$ROOT/tests/adapter/adapter-match-sequence.py
 run_case "adapter-match-sequence-star" "$ROOT/tests/adapter/adapter-match-sequence-star.py" "True ~> .K"
 run_case "adapter-match-sequence-star-capture" "$ROOT/tests/adapter/adapter-match-sequence-star-capture.py" "True ~> .K"
 run_case "adapter-match-mapping" "$ROOT/tests/adapter/adapter-match-mapping.py" "True ~> .K"
+run_case "adapter-match-mapping-rest" "$ROOT/tests/adapter/adapter-match-mapping-rest.py" "True ~> .K"
 run_case "adapter-is-none" "$ROOT/tests/adapter/adapter-is-none.py" "True ~> .K"
 run_case "adapter-is-bool" "$ROOT/tests/adapter/adapter-is-bool.py" "True ~> .K"
 run_case "adapter-bool-constructor" "$ROOT/tests/adapter/adapter-bool-constructor.py" "True ~> .K"

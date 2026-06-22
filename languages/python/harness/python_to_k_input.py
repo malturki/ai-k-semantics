@@ -430,8 +430,37 @@ def emit_match_pattern(node: ast.AST, pattern: ast.pattern) -> str:
             return "#matchSingleton(None)"
         case ast.MatchValue(value=value):
             return f"#matchValue({emit_exp(value)})"
+        case ast.MatchOr(patterns=patterns):
+            return emit_match_or_patterns(node, patterns)
         case _:
-            raise unsupported(node, "only value, singleton, and wildcard match patterns are supported")
+            raise unsupported(node, "only value, singleton, wildcard, capture, and non-binding OR match patterns are supported")
+
+
+def emit_match_or_patterns(node: ast.AST, patterns: list[ast.pattern]) -> str:
+    if len(patterns) < 2:
+        raise unsupported(node, "OR match patterns require at least two alternatives")
+    left = emit_match_or_pattern(node, patterns[0])
+    if len(patterns) == 2:
+        right = emit_match_or_pattern(node, patterns[1])
+    else:
+        right = emit_match_or_patterns(node, patterns[1:])
+    return f"#matchOr({left}, {right})"
+
+
+def emit_match_or_pattern(node: ast.AST, pattern: ast.pattern) -> str:
+    match pattern:
+        case ast.MatchSingleton(value=True):
+            return "#matchSingleton(True)"
+        case ast.MatchSingleton(value=False):
+            return "#matchSingleton(False)"
+        case ast.MatchSingleton(value=None):
+            return "#matchSingleton(None)"
+        case ast.MatchValue(value=value) if isinstance(value, ast.Constant):
+            return f"#matchValue({emit_exp(value)})"
+        case ast.MatchOr(patterns=patterns):
+            return emit_match_or_patterns(node, patterns)
+        case _:
+            raise unsupported(node, "only non-binding literal and singleton OR pattern alternatives are supported")
 
 
 def emit_except_handlers(node: ast.AST, handlers: list[ast.ExceptHandler]) -> str:

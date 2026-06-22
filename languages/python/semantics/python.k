@@ -80,6 +80,7 @@ module PYTHON-SYNTAX
   syntax MatchPattern ::= "#matchValue" "(" Exp ")" [symbol(matchValuePattern)]
                         | "#matchSingleton" "(" Val ")" [symbol(matchSingletonPattern)]
                         | "#matchCapture" "(" Id ")" [symbol(matchCapturePattern)]
+                        | "#matchOr" "(" MatchPattern "," MatchPattern ")" [symbol(matchOrPattern)]
                         | "#matchWildcard" [symbol(matchWildcardPattern)]
 
   syntax MatchCases ::= "#matchCase" "(" MatchPattern "," Block ")" [symbol(matchCaseLast)]
@@ -984,6 +985,7 @@ module PYTHON
                 | isComplexLike(Val) [function, symbol(isComplexLike)]
                 | valEq(Val, Val) [function, symbol(valEq)]
                 | singletonPatternEq(Val, Val) [function, symbol(singletonPatternEq)]
+                | matchSimplePattern(Val, MatchPattern) [function, symbol(matchSimplePattern)]
                 | valIs(Val, Val) [function, symbol(valIs)]
                 | cmpHolds(CmpOp, Val, Val) [function, symbol(cmpHolds)]
                 | singletonIdentity(Val) [function, symbol(singletonIdentity)]
@@ -2472,6 +2474,11 @@ module PYTHON
   rule singletonPatternEq(False, False) => true
   rule singletonPatternEq(None, None) => true
   rule singletonPatternEq(_:Val, _:Val) => false [owise]
+
+  rule matchSimplePattern(V:Val, #matchValue(P:Val)) => valEq(V, P)
+  rule matchSimplePattern(V:Val, #matchSingleton(P:Val)) => singletonPatternEq(V, P)
+  rule matchSimplePattern(V:Val, #matchOr(P1:MatchPattern, P2:MatchPattern)) =>
+    matchSimplePattern(V, P1) orBool matchSimplePattern(V, P2)
 
   rule valEq(I1:Int, I2:Int) => I1 ==Int I2
   rule valEq(F1:Float, F2:Float) => F1 ==Float F2
@@ -10403,6 +10410,30 @@ module PYTHON
            stmtNoResult
       ... </k>
       <env> Rho => Rho [ Name <- V ] </env>
+  rule <k> matchDispatch(V:Val, #matchCase(#matchOr(P1:MatchPattern, P2:MatchPattern), block(SS:Stmts))) =>
+           SS ~> matchDone
+      ... </k>
+    requires matchSimplePattern(V, #matchOr(P1, P2))
+  rule <k> matchDispatch(V:Val, #matchCase(#matchOr(P1:MatchPattern, P2:MatchPattern), {})) =>
+           stmtNoResult
+      ... </k>
+    requires matchSimplePattern(V, #matchOr(P1, P2))
+  rule <k> matchDispatch(V:Val, #matchCase(#matchOr(P1:MatchPattern, P2:MatchPattern), _Body:Block)) =>
+           stmtNoResult
+      ... </k>
+    requires notBool matchSimplePattern(V, #matchOr(P1, P2))
+  rule <k> matchDispatch(V:Val, #matchCases(#matchOr(P1:MatchPattern, P2:MatchPattern), block(SS:Stmts), _Rest:MatchCases)) =>
+           SS ~> matchDone
+      ... </k>
+    requires matchSimplePattern(V, #matchOr(P1, P2))
+  rule <k> matchDispatch(V:Val, #matchCases(#matchOr(P1:MatchPattern, P2:MatchPattern), {}, _Rest:MatchCases)) =>
+           stmtNoResult
+      ... </k>
+    requires matchSimplePattern(V, #matchOr(P1, P2))
+  rule <k> matchDispatch(V:Val, #matchCases(#matchOr(P1:MatchPattern, P2:MatchPattern), _Body:Block, Rest:MatchCases)) =>
+           matchDispatch(V, Rest)
+      ... </k>
+    requires notBool matchSimplePattern(V, #matchOr(P1, P2))
   rule <k> matchDispatch(V:Val, #matchCase(#matchSingleton(P:Val), block(SS:Stmts))) =>
            SS ~> matchDone
       ... </k>

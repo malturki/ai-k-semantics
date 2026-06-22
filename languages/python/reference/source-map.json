@@ -646,9 +646,9 @@
               "section": "The match statement"
             }
           ],
-          "k_coverage": ["semantics/python.k: internal #match statement form evaluates the subject once, dispatches cases in source order, supports #matchValue over current expression values using valEq, supports #matchSingleton for True/False/None with singleton identity, supports #matchWildcard, supports #matchCapture by binding the subject value into the current environment, and propagates abrupt completion from matched case bodies", "harness/python_to_k_input.py: CPython AST Match lowers to #match for value, singleton, wildcard, and simple capture patterns without guards"],
-          "test_coverage": ["tests/adapter/adapter-match-basic.py", "tests/adapter/adapter-match-capture.py"],
-          "gaps": ["Need OR patterns, AS patterns, sequence patterns, mapping patterns, class patterns, group patterns, guards, binding rollback decisions for refutable compound patterns and failed guards, broader value-pattern evaluation, irrefutability diagnostics, and PEP 634 underspecification triage."]
+          "k_coverage": ["semantics/python.k: internal #match statement form evaluates the subject once, dispatches cases in source order, supports #matchValue over current expression values using valEq, supports #matchSingleton for True/False/None with singleton identity, supports #matchWildcard, supports #matchCapture by binding the subject value into the current environment, supports #matchOr over the current non-binding value/singleton subpattern subset, and propagates abrupt completion from matched case bodies", "harness/python_to_k_input.py: CPython AST Match lowers to #match for value, singleton, wildcard, simple capture, and non-binding literal/singleton OR patterns without guards"],
+          "test_coverage": ["tests/adapter/adapter-match-basic.py", "tests/adapter/adapter-match-capture.py", "tests/adapter/adapter-match-or.py"],
+          "gaps": ["Need OR patterns with captures and binding rollback, AS patterns, sequence patterns, mapping patterns, class patterns, group patterns, guards, binding rollback decisions for refutable compound patterns and failed guards, broader value-pattern evaluation, irrefutability diagnostics, and PEP 634 underspecification triage."]
         },
         {
           "id": "compound.function-def",

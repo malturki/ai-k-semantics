@@ -445,6 +445,13 @@
       "coverage": ["match-statement", "capture-pattern", "name-binding", "ordered-case-selection", "binding-persists-after-match", "ordinary-python-source-adapter"]
     },
     {
+      "id": "adapter-match-or",
+      "source": "../adapter/adapter-match-or.py",
+      "reference": "Python Language Reference 8.6 The match statement; PEP 634 Structural Pattern Matching",
+      "expected_result": "True ~> .K",
+      "coverage": ["match-statement", "or-pattern", "literal-pattern", "singleton-pattern", "ordered-case-selection", "fallback-case-selection", "ordinary-python-source-adapter"]
+    },
+    {
       "id": "adapter-is-none",
       "source": "../adapter/adapter-is-none.py",
       "reference": "Python Language Reference 6.10.3 Identity comparisons",

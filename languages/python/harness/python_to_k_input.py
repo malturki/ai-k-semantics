@@ -407,12 +407,15 @@ def emit_match_cases(node: ast.AST, cases: list[ast.match_case]) -> str:
     if not cases:
         raise unsupported(node, "match statements require at least one case")
     case = cases[0]
-    if case.guard is not None:
-        raise unsupported(node, "match guards are not supported yet")
     emitted_pattern = emit_match_pattern(node, case.pattern)
+    emitted_guard = emit_exp(case.guard) if case.guard is not None else None
     emitted_body = emit_block(case.body)
     if len(cases) == 1:
+        if emitted_guard is not None:
+            return f"#matchCaseGuard({emitted_pattern}, {emitted_guard}, {emitted_body})"
         return f"#matchCase({emitted_pattern}, {emitted_body})"
+    if emitted_guard is not None:
+        return f"#matchCasesGuard({emitted_pattern}, {emitted_guard}, {emitted_body}, {emit_match_cases(node, cases[1:])})"
     return f"#matchCases({emitted_pattern}, {emitted_body}, {emit_match_cases(node, cases[1:])})"
 
 

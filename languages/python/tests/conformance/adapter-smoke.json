@@ -494,6 +494,13 @@
       "coverage": ["match-statement", "mapping-pattern", "mapping-rest-pattern", "rest-capture-binding", "constant-key-pattern", "ordinary-python-source-adapter"]
     },
     {
+      "id": "adapter-match-guards",
+      "source": "../adapter/adapter-match-guards.py",
+      "reference": "Python Language Reference 8.6 The match statement, Guards; PEP 634 Structural Pattern Matching",
+      "expected_result": "True ~> .K",
+      "coverage": ["match-statement", "guard", "capture-pattern", "value-pattern", "guard-binding-visibility", "guard-fallthrough", "guard-exception-propagation", "ordinary-python-source-adapter"]
+    },
+    {
       "id": "adapter-is-none",
       "source": "../adapter/adapter-is-none.py",
       "reference": "Python Language Reference 6.10.3 Identity comparisons",

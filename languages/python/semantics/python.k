@@ -97,6 +97,11 @@ module PYTHON-SYNTAX
 
   syntax MatchCases ::= "#matchCase" "(" MatchPattern "," Block ")" [symbol(matchCaseLast)]
                       | "#matchCases" "(" MatchPattern "," Block "," MatchCases ")" [symbol(matchCasesCons)]
+                      | "#matchCaseGuard" "(" MatchPattern "," Exp "," Block ")" [symbol(matchCaseGuardLast)]
+                      | "#matchCasesGuard" "(" MatchPattern "," Exp "," Block "," MatchCases ")" [symbol(matchCasesGuardCons)]
+
+  syntax MaybeMatchCases ::= "#noMatchCases" [symbol(noMatchCases)]
+                           | "#someMatchCases" "(" MatchCases ")" [symbol(someMatchCases)]
 
   syntax ExceptHandlers ::= "#except" "(" Id "," Block ")" [symbol(exceptHandlersLast)]
                           | "#exceptAs" "(" Id "," Id "," Block ")" [symbol(exceptHandlersAsLast)]
@@ -901,6 +906,10 @@ module PYTHON
                  | matchSubject(MatchCases) [symbol(matchSubject)]
                  | matchDispatch(Val, MatchCases) [symbol(matchDispatch)]
                  | matchValueDispatch(Val, Block, MatchCases) [symbol(matchValueDispatch)]
+                 | matchGuardPattern(Val, MatchPattern, Exp, Block, MaybeMatchCases) [symbol(matchGuardPattern)]
+                 | matchGuardSelect(Val, Block, MaybeMatchCases) [symbol(matchGuardSelect)]
+                 | matchGuardNoMatch(Val, MaybeMatchCases) [symbol(matchGuardNoMatch)]
+                 | matchValueGuardDispatch(Val, Exp, Block, MaybeMatchCases) [symbol(matchValueGuardDispatch)]
                  | "matchDone" [symbol(matchDone)]
                  | whileStmtBranch(Exp, Block) [symbol(whileStmtBranch)]
                  | whileStmtAgain(Exp, Block) [symbol(whileStmtAgain)]
@@ -5613,6 +5622,8 @@ module PYTHON
        <env> Rho => (bindArgs(bindArgs(Rho, Pos, completeDefaultArgs(Pos, argValsCons(A, #noArgVals), PosDefaults)), KwOnly, buildKwDefaultArgs(KwOnly, #noKwArgVals, KwDefaults))) [ Kw <- ({}):Val ] </env>
     requires posKwOnlyArgsDefaultsCallArityOk(Pos, KwOnly, argValsCons(A, #noArgVals), PosDefaults, KwDefaults)
   rule <k> V:Val ~> restoreEnv(Rho:Map) => V ... </k>
+       <env> _ => Rho </env>
+  rule <k> exceptionSignal(V:Val) ~> restoreEnv(Rho:Map) => exceptionSignal(V) ... </k>
        <env> _ => Rho </env>
 
   rule <k> callArgsExp(F:Exp, Args:ArgExps) => F ~> callArgs(Args) ... </k>
@@ -10504,6 +10515,123 @@ module PYTHON
   rule <k> V:Val ~> matchSubject(Cases:MatchCases) =>
            matchDispatch(V, Cases)
       ... </k>
+  rule <k> matchDispatch(V:Val, #matchCaseGuard(P:MatchPattern, Guard:Exp, Body:Block)) =>
+           matchGuardPattern(V, P, Guard, Body, #noMatchCases)
+      ... </k>
+  rule <k> matchDispatch(V:Val, #matchCasesGuard(P:MatchPattern, Guard:Exp, Body:Block, Rest:MatchCases)) =>
+           matchGuardPattern(V, P, Guard, Body, #someMatchCases(Rest))
+      ... </k>
+  rule <k> matchGuardNoMatch(_V:Val, #noMatchCases) => stmtNoResult ... </k>
+  rule <k> matchGuardNoMatch(V:Val, #someMatchCases(Rest:MatchCases)) =>
+           matchDispatch(V, Rest)
+      ... </k>
+
+  rule <k> matchGuardPattern(V:Val, #matchWildcard, Guard:Exp, Body:Block, Rest:MaybeMatchCases) =>
+           Guard ~> matchGuardSelect(V, Body, Rest)
+      ... </k>
+  rule <k> matchGuardPattern(V:Val, #matchCapture(Name:Id), Guard:Exp, Body:Block, Rest:MaybeMatchCases) =>
+           Guard ~> matchGuardSelect(V, Body, Rest)
+      ... </k>
+      <env> Rho => Rho [ Name <- V ] </env>
+  rule <k> matchGuardPattern(V:Val, #matchOr(P1:MatchPattern, P2:MatchPattern), Guard:Exp, Body:Block, Rest:MaybeMatchCases) =>
+           Guard ~> matchGuardSelect(V, Body, Rest)
+      ... </k>
+    requires matchSimplePattern(V, #matchOr(P1, P2))
+  rule <k> matchGuardPattern(V:Val, #matchOr(P1:MatchPattern, P2:MatchPattern), _Guard:Exp, _Body:Block, Rest:MaybeMatchCases) =>
+           matchGuardNoMatch(V, Rest)
+      ... </k>
+    requires notBool matchSimplePattern(V, #matchOr(P1, P2))
+  rule <k> matchGuardPattern(V:Val, #matchAs(P:MatchPattern, Name:Id), Guard:Exp, Body:Block, Rest:MaybeMatchCases) =>
+           Guard ~> matchGuardSelect(V, Body, Rest)
+      ... </k>
+      <env> Rho => Rho [ Name <- V ] </env>
+    requires matchSimplePattern(V, P)
+  rule <k> matchGuardPattern(V:Val, #matchAs(P:MatchPattern, _Name:Id), _Guard:Exp, _Body:Block, Rest:MaybeMatchCases) =>
+           matchGuardNoMatch(V, Rest)
+      ... </k>
+    requires notBool matchSimplePattern(V, P)
+  rule <k> matchGuardPattern(V:Val, #matchSequence(PS:MatchPatterns), Guard:Exp, Body:Block, Rest:MaybeMatchCases) =>
+           Guard ~> matchGuardSelect(V, Body, Rest)
+      ... </k>
+    requires matchFixedSequence(V, PS)
+  rule <k> matchGuardPattern(V:Val, #matchSequence(PS:MatchPatterns), _Guard:Exp, _Body:Block, Rest:MaybeMatchCases) =>
+           matchGuardNoMatch(V, Rest)
+      ... </k>
+    requires notBool matchFixedSequence(V, PS)
+  rule <k> matchGuardPattern(V:Val, #matchSequenceStar(Prefix:MatchPatterns, Suffix:MatchPatterns), Guard:Exp, Body:Block, Rest:MaybeMatchCases) =>
+           Guard ~> matchGuardSelect(V, Body, Rest)
+      ... </k>
+    requires matchStarSequence(V, Prefix, Suffix)
+  rule <k> matchGuardPattern(V:Val, #matchSequenceStar(Prefix:MatchPatterns, Suffix:MatchPatterns), _Guard:Exp, _Body:Block, Rest:MaybeMatchCases) =>
+           matchGuardNoMatch(V, Rest)
+      ... </k>
+    requires notBool matchStarSequence(V, Prefix, Suffix)
+  rule <k> matchGuardPattern(V:Val, #matchSequenceStarCapture(Prefix:MatchPatterns, Name:Id, Suffix:MatchPatterns), Guard:Exp, Body:Block, Rest:MaybeMatchCases) =>
+           Guard ~> matchGuardSelect(V, Body, Rest)
+      ... </k>
+      <env> Rho => Rho [ Name <- matchStarMiddle(V, Prefix, Suffix) ] </env>
+    requires matchStarSequence(V, Prefix, Suffix)
+  rule <k> matchGuardPattern(V:Val, #matchSequenceStarCapture(Prefix:MatchPatterns, _Name:Id, Suffix:MatchPatterns), _Guard:Exp, _Body:Block, Rest:MaybeMatchCases) =>
+           matchGuardNoMatch(V, Rest)
+      ... </k>
+    requires notBool matchStarSequence(V, Prefix, Suffix)
+  rule <k> matchGuardPattern(V:Val, #matchMapping(MPS:MatchMapPatterns), Guard:Exp, Body:Block, Rest:MaybeMatchCases) =>
+           Guard ~> matchGuardSelect(V, Body, Rest)
+      ... </k>
+    requires matchMapping(V, MPS)
+  rule <k> matchGuardPattern(V:Val, #matchMapping(MPS:MatchMapPatterns), _Guard:Exp, _Body:Block, Rest:MaybeMatchCases) =>
+           matchGuardNoMatch(V, Rest)
+      ... </k>
+    requires notBool matchMapping(V, MPS)
+  rule <k> matchGuardPattern(V:Val, #matchMappingRest(MPS:MatchMapPatterns, Name:Id), Guard:Exp, Body:Block, Rest:MaybeMatchCases) =>
+           Guard ~> matchGuardSelect(V, Body, Rest)
+      ... </k>
+      <env> Rho => Rho [ Name <- matchMappingRestVal(V, MPS) ] </env>
+    requires matchMapping(V, MPS)
+  rule <k> matchGuardPattern(V:Val, #matchMappingRest(MPS:MatchMapPatterns, _Name:Id), _Guard:Exp, _Body:Block, Rest:MaybeMatchCases) =>
+           matchGuardNoMatch(V, Rest)
+      ... </k>
+    requires notBool matchMapping(V, MPS)
+  rule <k> matchGuardPattern(V:Val, #matchSingleton(P:Val), Guard:Exp, Body:Block, Rest:MaybeMatchCases) =>
+           Guard ~> matchGuardSelect(V, Body, Rest)
+      ... </k>
+    requires singletonPatternEq(V, P)
+  rule <k> matchGuardPattern(V:Val, #matchSingleton(P:Val), _Guard:Exp, _Body:Block, Rest:MaybeMatchCases) =>
+           matchGuardNoMatch(V, Rest)
+      ... </k>
+    requires notBool singletonPatternEq(V, P)
+  rule <k> matchGuardPattern(V:Val, #matchValue(P:Exp), Guard:Exp, Body:Block, Rest:MaybeMatchCases) =>
+           P ~> matchValueGuardDispatch(V, Guard, Body, Rest)
+      ... </k>
+
+  rule <k> GuardValue:Val ~> matchGuardSelect(_V:Val, block(SS:Stmts), _Rest:MaybeMatchCases) =>
+           SS ~> matchDone
+      ... </k>
+    requires truthy(GuardValue)
+  rule <k> GuardValue:Val ~> matchGuardSelect(_V:Val, {}, _Rest:MaybeMatchCases) =>
+           stmtNoResult
+      ... </k>
+    requires truthy(GuardValue)
+  rule <k> GuardValue:Val ~> matchGuardSelect(V:Val, _Body:Block, Rest:MaybeMatchCases) =>
+           matchGuardNoMatch(V, Rest)
+      ... </k>
+    requires notBool truthy(GuardValue)
+  rule <k> exceptionSignal(E:Val) ~> matchGuardSelect(_V:Val, _Body:Block, _Rest:MaybeMatchCases) =>
+           exceptionSignal(E)
+      ... </k>
+
+  rule <k> PatternValue:Val ~> matchValueGuardDispatch(V:Val, Guard:Exp, Body:Block, Rest:MaybeMatchCases) =>
+           Guard ~> matchGuardSelect(V, Body, Rest)
+      ... </k>
+    requires valEq(V, PatternValue)
+  rule <k> PatternValue:Val ~> matchValueGuardDispatch(V:Val, _Guard:Exp, _Body:Block, Rest:MaybeMatchCases) =>
+           matchGuardNoMatch(V, Rest)
+      ... </k>
+    requires notBool valEq(V, PatternValue)
+  rule <k> exceptionSignal(E:Val) ~> matchValueGuardDispatch(_V:Val, _Guard:Exp, _Body:Block, _Rest:MaybeMatchCases) =>
+           exceptionSignal(E)
+      ... </k>
+
   rule <k> matchDispatch(_V:Val, #matchCase(#matchWildcard, block(SS:Stmts))) =>
            SS ~> matchDone
       ... </k>
@@ -12546,6 +12674,7 @@ module PYTHON
        ... </k>
   rule <k> returnSignal(V:Val) ~> forElseRangeStepAgain(_:Id, _:Int, _:Int, _:Int, _:Block, _:Block) => returnSignal(V) ... </k>
   rule <k> returnSignal(V:Val) ~> functionDone(Rho:Map) => V ~> restoreEnv(Rho) ... </k>
+  rule <k> exceptionSignal(V:Val) ~> functionDone(Rho:Map) => exceptionSignal(V) ~> restoreEnv(Rho) ... </k>
   rule <k> functionDone(Rho:Map) => None ~> restoreEnv(Rho) ... </k>
 
   rule <k> delNameStmt(X:Id) => stmtNoResult ... </k>

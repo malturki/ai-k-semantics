@@ -82,7 +82,11 @@ module PYTHON-SYNTAX
                         | "#matchCapture" "(" Id ")" [symbol(matchCapturePattern)]
                         | "#matchOr" "(" MatchPattern "," MatchPattern ")" [symbol(matchOrPattern)]
                         | "#matchAs" "(" MatchPattern "," Id ")" [symbol(matchAsPattern)]
+                        | "#matchSequence" "(" MatchPatterns ")" [symbol(matchSequencePattern)]
                         | "#matchWildcard" [symbol(matchWildcardPattern)]
+
+  syntax MatchPatterns ::= "#matchNoPatterns" [symbol(matchNoPatterns)]
+                         | "#matchPattern" "(" MatchPattern "," MatchPatterns ")" [symbol(matchPatternCons)]
 
   syntax MatchCases ::= "#matchCase" "(" MatchPattern "," Block ")" [symbol(matchCaseLast)]
                       | "#matchCases" "(" MatchPattern "," Block "," MatchCases ")" [symbol(matchCasesCons)]
@@ -987,6 +991,8 @@ module PYTHON
                 | valEq(Val, Val) [function, symbol(valEq)]
                 | singletonPatternEq(Val, Val) [function, symbol(singletonPatternEq)]
                 | matchSimplePattern(Val, MatchPattern) [function, symbol(matchSimplePattern)]
+                | matchFixedSequence(Val, MatchPatterns) [function, symbol(matchFixedSequence)]
+                | matchValItemsPatterns(ValItems, MatchPatterns) [function, symbol(matchValItemsPatterns)]
                 | valIs(Val, Val) [function, symbol(valIs)]
                 | cmpHolds(CmpOp, Val, Val) [function, symbol(cmpHolds)]
                 | singletonIdentity(Val) [function, symbol(singletonIdentity)]
@@ -2482,6 +2488,23 @@ module PYTHON
   rule matchSimplePattern(V:Val, #matchOr(P1:MatchPattern, P2:MatchPattern)) =>
     matchSimplePattern(V, P1) orBool matchSimplePattern(V, P2)
   rule matchSimplePattern(V:Val, #matchAs(P:MatchPattern, _Name:Id)) => matchSimplePattern(V, P)
+  rule matchSimplePattern(V:Val, #matchSequence(PS:MatchPatterns)) => matchFixedSequence(V, PS)
+
+  rule matchFixedSequence([], #matchNoPatterns) => true
+  rule matchFixedSequence([], #matchPattern(_:MatchPattern, _:MatchPatterns)) => false
+  rule matchFixedSequence((), #matchNoPatterns) => true
+  rule matchFixedSequence((), #matchPattern(_:MatchPattern, _:MatchPatterns)) => false
+  rule matchFixedSequence(listVal(VS:ValItems), PS:MatchPatterns) => matchValItemsPatterns(VS, PS)
+  rule matchFixedSequence(tupleVal(VS:ValItems), PS:MatchPatterns) => matchValItemsPatterns(VS, PS)
+  rule matchFixedSequence(_:Val, _:MatchPatterns) => false [owise]
+
+  rule matchValItemsPatterns(valItemsLast(_:Val), #matchNoPatterns) => false
+  rule matchValItemsPatterns(valItemsCons(_:Val, _:ValItems), #matchNoPatterns) => false
+  rule matchValItemsPatterns(valItemsLast(V:Val), #matchPattern(P:MatchPattern, #matchNoPatterns)) =>
+    matchSimplePattern(V, P)
+  rule matchValItemsPatterns(valItemsLast(_:Val), #matchPattern(_:MatchPattern, #matchPattern(_:MatchPattern, _:MatchPatterns))) => false
+  rule matchValItemsPatterns(valItemsCons(V:Val, VS:ValItems), #matchPattern(P:MatchPattern, PS:MatchPatterns)) =>
+    matchSimplePattern(V, P) andBool matchValItemsPatterns(VS, PS)
 
   rule valEq(I1:Int, I2:Int) => I1 ==Int I2
   rule valEq(F1:Float, F2:Float) => F1 ==Float F2
@@ -10465,6 +10488,30 @@ module PYTHON
            matchDispatch(V, Rest)
       ... </k>
     requires notBool matchSimplePattern(V, P)
+  rule <k> matchDispatch(V:Val, #matchCase(#matchSequence(PS:MatchPatterns), block(SS:Stmts))) =>
+           SS ~> matchDone
+      ... </k>
+    requires matchFixedSequence(V, PS)
+  rule <k> matchDispatch(V:Val, #matchCase(#matchSequence(PS:MatchPatterns), {})) =>
+           stmtNoResult
+      ... </k>
+    requires matchFixedSequence(V, PS)
+  rule <k> matchDispatch(V:Val, #matchCase(#matchSequence(PS:MatchPatterns), _Body:Block)) =>
+           stmtNoResult
+      ... </k>
+    requires notBool matchFixedSequence(V, PS)
+  rule <k> matchDispatch(V:Val, #matchCases(#matchSequence(PS:MatchPatterns), block(SS:Stmts), _Rest:MatchCases)) =>
+           SS ~> matchDone
+      ... </k>
+    requires matchFixedSequence(V, PS)
+  rule <k> matchDispatch(V:Val, #matchCases(#matchSequence(PS:MatchPatterns), {}, _Rest:MatchCases)) =>
+           stmtNoResult
+      ... </k>
+    requires matchFixedSequence(V, PS)
+  rule <k> matchDispatch(V:Val, #matchCases(#matchSequence(PS:MatchPatterns), _Body:Block, Rest:MatchCases)) =>
+           matchDispatch(V, Rest)
+      ... </k>
+    requires notBool matchFixedSequence(V, PS)
   rule <k> matchDispatch(V:Val, #matchCase(#matchSingleton(P:Val), block(SS:Stmts))) =>
            SS ~> matchDone
       ... </k>

@@ -434,8 +434,10 @@ def emit_match_pattern(node: ast.AST, pattern: ast.pattern) -> str:
             return f"#matchValue({emit_exp(value)})"
         case ast.MatchOr(patterns=patterns):
             return emit_match_or_patterns(node, patterns)
+        case ast.MatchSequence(patterns=patterns):
+            return f"#matchSequence({emit_match_sequence_patterns(node, patterns)})"
         case _:
-            raise unsupported(node, "only value, singleton, wildcard, capture, non-binding OR, and non-binding AS match patterns are supported")
+            raise unsupported(node, "only value, singleton, wildcard, capture, non-binding OR, non-binding AS, and non-binding sequence match patterns are supported")
 
 
 def emit_match_or_patterns(node: ast.AST, patterns: list[ast.pattern]) -> str:
@@ -463,8 +465,17 @@ def emit_match_nonbinding_pattern(node: ast.AST, pattern: ast.pattern) -> str:
             return f"#matchValue({emit_exp(value)})"
         case ast.MatchOr(patterns=patterns):
             return emit_match_or_patterns(node, patterns)
+        case ast.MatchSequence(patterns=patterns):
+            return f"#matchSequence({emit_match_sequence_patterns(node, patterns)})"
         case _:
-            raise unsupported(node, "only non-binding wildcard, literal, singleton, and OR pattern alternatives are supported")
+            raise unsupported(node, "only non-binding wildcard, literal, singleton, OR, and sequence pattern alternatives are supported")
+
+
+def emit_match_sequence_patterns(node: ast.AST, patterns: list[ast.pattern]) -> str:
+    if not patterns:
+        return "#matchNoPatterns"
+    head = emit_match_nonbinding_pattern(node, patterns[0])
+    return f"#matchPattern({head}, {emit_match_sequence_patterns(node, patterns[1:])})"
 
 
 def emit_except_handlers(node: ast.AST, handlers: list[ast.ExceptHandler]) -> str:

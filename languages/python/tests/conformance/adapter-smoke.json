@@ -102,6 +102,13 @@
       "coverage": ["complex-constructor", "complex-string-conversion", "numeric-string-underscores", "complex-values", "ordinary-python-source-adapter"]
     },
     {
+      "id": "adapter-complex-string-specials",
+      "source": "../adapter/adapter-complex-string-specials.py",
+      "reference": "Python Standard Library Built-in Types complex; Python Standard Library float special strings; CPython Lib/test/test_complex.py test_constructor_from_string/test_repr",
+      "expected_result": "True ~> .K",
+      "coverage": ["complex-constructor", "complex-string-conversion", "float-special-strings", "infinity-values", "complex-values", "ordinary-python-source-adapter"]
+    },
+    {
       "id": "adapter-numeric-real-imag-attributes",
       "source": "../adapter/adapter-numeric-real-imag-attributes.py",
       "reference": "Python Language Reference data model numbers; Python Standard Library Built-in Types numeric types; CPython numeric real/imag attributes",

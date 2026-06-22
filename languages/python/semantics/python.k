@@ -83,6 +83,7 @@ module PYTHON-SYNTAX
                         | "#matchOr" "(" MatchPattern "," MatchPattern ")" [symbol(matchOrPattern)]
                         | "#matchAs" "(" MatchPattern "," Id ")" [symbol(matchAsPattern)]
                         | "#matchSequence" "(" MatchPatterns ")" [symbol(matchSequencePattern)]
+                        | "#matchSequenceStar" "(" MatchPatterns "," MatchPatterns ")" [symbol(matchSequenceStarPattern)]
                         | "#matchWildcard" [symbol(matchWildcardPattern)]
 
   syntax MatchPatterns ::= "#matchNoPatterns" [symbol(matchNoPatterns)]
@@ -992,7 +993,10 @@ module PYTHON
                 | singletonPatternEq(Val, Val) [function, symbol(singletonPatternEq)]
                 | matchSimplePattern(Val, MatchPattern) [function, symbol(matchSimplePattern)]
                 | matchFixedSequence(Val, MatchPatterns) [function, symbol(matchFixedSequence)]
+                | matchStarSequence(Val, MatchPatterns, MatchPatterns) [function, symbol(matchStarSequence)]
                 | matchValItemsPatterns(ValItems, MatchPatterns) [function, symbol(matchValItemsPatterns)]
+                | matchValItemsPrefix(ValItems, MatchPatterns) [function, symbol(matchValItemsPrefix)]
+                | matchValItemsSuffix(ValItems, MatchPatterns) [function, symbol(matchValItemsSuffix)]
                 | valIs(Val, Val) [function, symbol(valIs)]
                 | cmpHolds(CmpOp, Val, Val) [function, symbol(cmpHolds)]
                 | singletonIdentity(Val) [function, symbol(singletonIdentity)]
@@ -1184,6 +1188,7 @@ module PYTHON
                | pySliceUpperNeg(Val, Int) [function, symbol(pySliceUpperNeg)]
                | pySliceIndexNeg(Int, Int) [function, symbol(pySliceIndexNeg)]
                | valItemsLen(ValItems) [function, symbol(valItemsLen)]
+               | matchPatternsLen(MatchPatterns) [function, symbol(matchPatternsLen)]
                | idItemsLen(IdItems) [function, symbol(idItemsLen)]
                | targetsLen(Targets) [function, symbol(targetsLen)]
                | maybeTargetsLen(MaybeTargets) [function, symbol(maybeTargetsLen)]
@@ -2414,6 +2419,9 @@ module PYTHON
   rule maybeTargetsLen(#noTargets) => 0
   rule maybeTargetsLen(#targets(TS:Targets)) => targetsLen(TS)
 
+  rule matchPatternsLen(#matchNoPatterns) => 0
+  rule matchPatternsLen(#matchPattern(_:MatchPattern, PS:MatchPatterns)) => 1 +Int matchPatternsLen(PS)
+
   rule concatIdItems(#noIds, IDS:IdItems) => IDS
   rule concatIdItems(IDS:IdItems, #noIds) => IDS
   rule concatIdItems(idItemsLast(X:Id), IDS:IdItems) => idItemsCons(X, IDS)
@@ -2489,6 +2497,8 @@ module PYTHON
     matchSimplePattern(V, P1) orBool matchSimplePattern(V, P2)
   rule matchSimplePattern(V:Val, #matchAs(P:MatchPattern, _Name:Id)) => matchSimplePattern(V, P)
   rule matchSimplePattern(V:Val, #matchSequence(PS:MatchPatterns)) => matchFixedSequence(V, PS)
+  rule matchSimplePattern(V:Val, #matchSequenceStar(Prefix:MatchPatterns, Suffix:MatchPatterns)) =>
+    matchStarSequence(V, Prefix, Suffix)
 
   rule matchFixedSequence([], #matchNoPatterns) => true
   rule matchFixedSequence([], #matchPattern(_:MatchPattern, _:MatchPatterns)) => false
@@ -2505,6 +2515,35 @@ module PYTHON
   rule matchValItemsPatterns(valItemsLast(_:Val), #matchPattern(_:MatchPattern, #matchPattern(_:MatchPattern, _:MatchPatterns))) => false
   rule matchValItemsPatterns(valItemsCons(V:Val, VS:ValItems), #matchPattern(P:MatchPattern, PS:MatchPatterns)) =>
     matchSimplePattern(V, P) andBool matchValItemsPatterns(VS, PS)
+
+  rule matchStarSequence([], Prefix:MatchPatterns, Suffix:MatchPatterns) => true
+    requires matchPatternsLen(Prefix) +Int matchPatternsLen(Suffix) ==Int 0
+  rule matchStarSequence([], Prefix:MatchPatterns, Suffix:MatchPatterns) => false
+    requires matchPatternsLen(Prefix) +Int matchPatternsLen(Suffix) >Int 0
+  rule matchStarSequence((), Prefix:MatchPatterns, Suffix:MatchPatterns) => true
+    requires matchPatternsLen(Prefix) +Int matchPatternsLen(Suffix) ==Int 0
+  rule matchStarSequence((), Prefix:MatchPatterns, Suffix:MatchPatterns) => false
+    requires matchPatternsLen(Prefix) +Int matchPatternsLen(Suffix) >Int 0
+  rule matchStarSequence(listVal(VS:ValItems), Prefix:MatchPatterns, Suffix:MatchPatterns) =>
+    matchValItemsPrefix(VS, Prefix) andBool matchValItemsSuffix(VS, Suffix)
+    requires matchPatternsLen(Prefix) +Int matchPatternsLen(Suffix) <=Int valItemsLen(VS)
+  rule matchStarSequence(listVal(VS:ValItems), Prefix:MatchPatterns, Suffix:MatchPatterns) => false
+    requires matchPatternsLen(Prefix) +Int matchPatternsLen(Suffix) >Int valItemsLen(VS)
+  rule matchStarSequence(tupleVal(VS:ValItems), Prefix:MatchPatterns, Suffix:MatchPatterns) =>
+    matchValItemsPrefix(VS, Prefix) andBool matchValItemsSuffix(VS, Suffix)
+    requires matchPatternsLen(Prefix) +Int matchPatternsLen(Suffix) <=Int valItemsLen(VS)
+  rule matchStarSequence(tupleVal(VS:ValItems), Prefix:MatchPatterns, Suffix:MatchPatterns) => false
+    requires matchPatternsLen(Prefix) +Int matchPatternsLen(Suffix) >Int valItemsLen(VS)
+  rule matchStarSequence(_:Val, _:MatchPatterns, _:MatchPatterns) => false [owise]
+
+  rule matchValItemsPrefix(_:ValItems, #matchNoPatterns) => true
+  rule matchValItemsPrefix(VS:ValItems, Prefix:MatchPatterns) =>
+    matchValItemsPatterns(sliceValItems(VS, 0, matchPatternsLen(Prefix)), Prefix)
+    requires matchPatternsLen(Prefix) >Int 0
+  rule matchValItemsSuffix(_:ValItems, #matchNoPatterns) => true
+  rule matchValItemsSuffix(VS:ValItems, Suffix:MatchPatterns) =>
+    matchValItemsPatterns(dropValItems(VS, valItemsLen(VS) -Int matchPatternsLen(Suffix)), Suffix)
+    requires matchPatternsLen(Suffix) >Int 0
 
   rule valEq(I1:Int, I2:Int) => I1 ==Int I2
   rule valEq(F1:Float, F2:Float) => F1 ==Float F2
@@ -10512,6 +10551,30 @@ module PYTHON
            matchDispatch(V, Rest)
       ... </k>
     requires notBool matchFixedSequence(V, PS)
+  rule <k> matchDispatch(V:Val, #matchCase(#matchSequenceStar(Prefix:MatchPatterns, Suffix:MatchPatterns), block(SS:Stmts))) =>
+           SS ~> matchDone
+      ... </k>
+    requires matchStarSequence(V, Prefix, Suffix)
+  rule <k> matchDispatch(V:Val, #matchCase(#matchSequenceStar(Prefix:MatchPatterns, Suffix:MatchPatterns), {})) =>
+           stmtNoResult
+      ... </k>
+    requires matchStarSequence(V, Prefix, Suffix)
+  rule <k> matchDispatch(V:Val, #matchCase(#matchSequenceStar(Prefix:MatchPatterns, Suffix:MatchPatterns), _Body:Block)) =>
+           stmtNoResult
+      ... </k>
+    requires notBool matchStarSequence(V, Prefix, Suffix)
+  rule <k> matchDispatch(V:Val, #matchCases(#matchSequenceStar(Prefix:MatchPatterns, Suffix:MatchPatterns), block(SS:Stmts), _Rest:MatchCases)) =>
+           SS ~> matchDone
+      ... </k>
+    requires matchStarSequence(V, Prefix, Suffix)
+  rule <k> matchDispatch(V:Val, #matchCases(#matchSequenceStar(Prefix:MatchPatterns, Suffix:MatchPatterns), {}, _Rest:MatchCases)) =>
+           stmtNoResult
+      ... </k>
+    requires matchStarSequence(V, Prefix, Suffix)
+  rule <k> matchDispatch(V:Val, #matchCases(#matchSequenceStar(Prefix:MatchPatterns, Suffix:MatchPatterns), _Body:Block, Rest:MatchCases)) =>
+           matchDispatch(V, Rest)
+      ... </k>
+    requires notBool matchStarSequence(V, Prefix, Suffix)
   rule <k> matchDispatch(V:Val, #matchCase(#matchSingleton(P:Val), block(SS:Stmts))) =>
            SS ~> matchDone
       ... </k>

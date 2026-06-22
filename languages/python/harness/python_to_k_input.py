@@ -435,7 +435,7 @@ def emit_match_pattern(node: ast.AST, pattern: ast.pattern) -> str:
         case ast.MatchOr(patterns=patterns):
             return emit_match_or_patterns(node, patterns)
         case ast.MatchSequence(patterns=patterns):
-            return f"#matchSequence({emit_match_sequence_patterns(node, patterns)})"
+            return emit_match_sequence_pattern(node, patterns)
         case _:
             raise unsupported(node, "only value, singleton, wildcard, capture, non-binding OR, non-binding AS, and non-binding sequence match patterns are supported")
 
@@ -466,7 +466,7 @@ def emit_match_nonbinding_pattern(node: ast.AST, pattern: ast.pattern) -> str:
         case ast.MatchOr(patterns=patterns):
             return emit_match_or_patterns(node, patterns)
         case ast.MatchSequence(patterns=patterns):
-            return f"#matchSequence({emit_match_sequence_patterns(node, patterns)})"
+            return emit_match_sequence_pattern(node, patterns)
         case _:
             raise unsupported(node, "only non-binding wildcard, literal, singleton, OR, and sequence pattern alternatives are supported")
 
@@ -476,6 +476,21 @@ def emit_match_sequence_patterns(node: ast.AST, patterns: list[ast.pattern]) -> 
         return "#matchNoPatterns"
     head = emit_match_nonbinding_pattern(node, patterns[0])
     return f"#matchPattern({head}, {emit_match_sequence_patterns(node, patterns[1:])})"
+
+
+def emit_match_sequence_pattern(node: ast.AST, patterns: list[ast.pattern]) -> str:
+    star_indices = [index for index, pattern in enumerate(patterns) if isinstance(pattern, ast.MatchStar)]
+    if not star_indices:
+        return f"#matchSequence({emit_match_sequence_patterns(node, patterns)})"
+    if len(star_indices) != 1:
+        raise unsupported(node, "sequence match patterns support at most one star pattern")
+    star_index = star_indices[0]
+    star_pattern = patterns[star_index]
+    if not isinstance(star_pattern, ast.MatchStar) or star_pattern.name is not None:
+        raise unsupported(node, "only non-binding *_ sequence match patterns are supported")
+    prefix = emit_match_sequence_patterns(node, patterns[:star_index])
+    suffix = emit_match_sequence_patterns(node, patterns[star_index + 1 :])
+    return f"#matchSequenceStar({prefix}, {suffix})"
 
 
 def emit_except_handlers(node: ast.AST, handlers: list[ast.ExceptHandler]) -> str:

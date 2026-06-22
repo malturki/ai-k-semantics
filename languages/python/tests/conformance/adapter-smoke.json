@@ -95,6 +95,13 @@
       "coverage": ["complex-constructor", "complex-string-conversion", "complex-parenthesized-string-parsing", "numeric-string-parsing", "complex-values", "ordinary-python-source-adapter"]
     },
     {
+      "id": "adapter-complex-string-underscores",
+      "source": "../adapter/adapter-complex-string-underscores.py",
+      "reference": "CPython Lib/test/test_complex.py test_underscores; Python Standard Library Built-in Types complex",
+      "expected_result": "True ~> .K",
+      "coverage": ["complex-constructor", "complex-string-conversion", "numeric-string-underscores", "complex-values", "ordinary-python-source-adapter"]
+    },
+    {
       "id": "adapter-numeric-real-imag-attributes",
       "source": "../adapter/adapter-numeric-real-imag-attributes.py",
       "reference": "Python Language Reference data model numbers; Python Standard Library Built-in Types numeric types; CPython numeric real/imag attributes",

@@ -454,7 +454,7 @@ def emit_match_pattern(node: ast.AST, pattern: ast.pattern) -> str:
         case ast.MatchAs(pattern=None, name=name) if name is not None:
             return f"#matchCapture({emit_id(name)})"
         case ast.MatchAs(pattern=as_pattern, name=name) if name is not None:
-            return f"#matchAs({emit_match_nonbinding_pattern(node, as_pattern)}, {emit_id(name)})"
+            return f"#matchAs({emit_match_as_subpattern(node, as_pattern)}, {emit_id(name)})"
         case ast.MatchSingleton(value=True):
             return "#matchSingleton(True)"
         case ast.MatchSingleton(value=False):
@@ -488,6 +488,22 @@ def emit_match_or_patterns(node: ast.AST, patterns: list[ast.pattern]) -> str:
     else:
         right = emit_match_or_patterns(node, patterns[1:])
     return f"#matchOr({left}, {right})"
+
+
+def emit_match_as_subpattern(node: ast.AST, pattern: ast.pattern) -> str:
+    match pattern:
+        case ast.MatchSequence(patterns=patterns):
+            return emit_match_sequence_pattern(
+                node, patterns, allow_star_capture=False, allow_element_capture=True
+            )
+        case ast.MatchMapping(keys=keys, patterns=patterns, rest=rest):
+            return emit_match_mapping_pattern(
+                node, keys, patterns, rest, allow_rest_capture=False, allow_value_capture=True
+            )
+        case ast.MatchClass(cls=cls, patterns=[subpattern], kwd_attrs=[], kwd_patterns=[]):
+            return emit_single_arg_match_class(node, cls, subpattern, allow_capture=True)
+        case _:
+            return emit_match_nonbinding_pattern(node, pattern)
 
 
 def emit_match_nonbinding_pattern(node: ast.AST, pattern: ast.pattern) -> str:

@@ -10652,7 +10652,7 @@ module PYTHON
   rule <k> matchGuardPattern(V:Val, #matchAs(P:MatchPattern, Name:Id), Guard:Exp, Body:Block, Rest:MaybeMatchCases) =>
            Guard ~> matchGuardSelect(V, Body, Rest)
       ... </k>
-      <env> Rho => Rho [ Name <- V ] </env>
+      <env> Rho => bindMatchPattern(Rho, V, #matchAs(P, Name)) </env>
     requires matchSimplePattern(V, P)
   rule <k> matchGuardPattern(V:Val, #matchAs(P:MatchPattern, _Name:Id), _Guard:Exp, _Body:Block, Rest:MaybeMatchCases) =>
            matchGuardNoMatch(V, Rest)
@@ -10814,12 +10814,12 @@ module PYTHON
   rule <k> matchDispatch(V:Val, #matchCase(#matchAs(P:MatchPattern, Name:Id), block(SS:Stmts))) =>
            SS ~> matchDone
       ... </k>
-      <env> Rho => Rho [ Name <- V ] </env>
+      <env> Rho => bindMatchPattern(Rho, V, #matchAs(P, Name)) </env>
     requires matchSimplePattern(V, P)
   rule <k> matchDispatch(V:Val, #matchCase(#matchAs(P:MatchPattern, Name:Id), {})) =>
            stmtNoResult
       ... </k>
-      <env> Rho => Rho [ Name <- V ] </env>
+      <env> Rho => bindMatchPattern(Rho, V, #matchAs(P, Name)) </env>
     requires matchSimplePattern(V, P)
   rule <k> matchDispatch(V:Val, #matchCase(#matchAs(P:MatchPattern, _Name:Id), _Body:Block)) =>
            stmtNoResult
@@ -10828,12 +10828,12 @@ module PYTHON
   rule <k> matchDispatch(V:Val, #matchCases(#matchAs(P:MatchPattern, Name:Id), block(SS:Stmts), _Rest:MatchCases)) =>
            SS ~> matchDone
       ... </k>
-      <env> Rho => Rho [ Name <- V ] </env>
+      <env> Rho => bindMatchPattern(Rho, V, #matchAs(P, Name)) </env>
     requires matchSimplePattern(V, P)
   rule <k> matchDispatch(V:Val, #matchCases(#matchAs(P:MatchPattern, Name:Id), {}, _Rest:MatchCases)) =>
            stmtNoResult
       ... </k>
-      <env> Rho => Rho [ Name <- V ] </env>
+      <env> Rho => bindMatchPattern(Rho, V, #matchAs(P, Name)) </env>
     requires matchSimplePattern(V, P)
   rule <k> matchDispatch(V:Val, #matchCases(#matchAs(P:MatchPattern, _Name:Id), _Body:Block, Rest:MatchCases)) =>
            matchDispatch(V, Rest)

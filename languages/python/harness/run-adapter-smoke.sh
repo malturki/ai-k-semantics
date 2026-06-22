@@ -108,6 +108,7 @@ run_case "adapter-match-basic" "$ROOT/tests/adapter/adapter-match-basic.py" "Tru
 run_case "adapter-match-capture" "$ROOT/tests/adapter/adapter-match-capture.py" "True ~> .K"
 run_case "adapter-match-or" "$ROOT/tests/adapter/adapter-match-or.py" "True ~> .K"
 run_case "adapter-match-as" "$ROOT/tests/adapter/adapter-match-as.py" "True ~> .K"
+run_case "adapter-match-as-capture" "$ROOT/tests/adapter/adapter-match-as-capture.py" "True ~> .K"
 run_case "adapter-match-sequence" "$ROOT/tests/adapter/adapter-match-sequence.py" "True ~> .K"
 run_case "adapter-match-sequence-capture" "$ROOT/tests/adapter/adapter-match-sequence-capture.py" "True ~> .K"
 run_case "adapter-match-sequence-star" "$ROOT/tests/adapter/adapter-match-sequence-star.py" "True ~> .K"

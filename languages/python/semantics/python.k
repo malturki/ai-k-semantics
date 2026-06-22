@@ -81,6 +81,7 @@ module PYTHON-SYNTAX
                         | "#matchSingleton" "(" Val ")" [symbol(matchSingletonPattern)]
                         | "#matchCapture" "(" Id ")" [symbol(matchCapturePattern)]
                         | "#matchOr" "(" MatchPattern "," MatchPattern ")" [symbol(matchOrPattern)]
+                        | "#matchAs" "(" MatchPattern "," Id ")" [symbol(matchAsPattern)]
                         | "#matchWildcard" [symbol(matchWildcardPattern)]
 
   syntax MatchCases ::= "#matchCase" "(" MatchPattern "," Block ")" [symbol(matchCaseLast)]
@@ -2475,10 +2476,12 @@ module PYTHON
   rule singletonPatternEq(None, None) => true
   rule singletonPatternEq(_:Val, _:Val) => false [owise]
 
+  rule matchSimplePattern(_:Val, #matchWildcard) => true
   rule matchSimplePattern(V:Val, #matchValue(P:Val)) => valEq(V, P)
   rule matchSimplePattern(V:Val, #matchSingleton(P:Val)) => singletonPatternEq(V, P)
   rule matchSimplePattern(V:Val, #matchOr(P1:MatchPattern, P2:MatchPattern)) =>
     matchSimplePattern(V, P1) orBool matchSimplePattern(V, P2)
+  rule matchSimplePattern(V:Val, #matchAs(P:MatchPattern, _Name:Id)) => matchSimplePattern(V, P)
 
   rule valEq(I1:Int, I2:Int) => I1 ==Int I2
   rule valEq(F1:Float, F2:Float) => F1 ==Float F2
@@ -10434,6 +10437,34 @@ module PYTHON
            matchDispatch(V, Rest)
       ... </k>
     requires notBool matchSimplePattern(V, #matchOr(P1, P2))
+  rule <k> matchDispatch(V:Val, #matchCase(#matchAs(P:MatchPattern, Name:Id), block(SS:Stmts))) =>
+           SS ~> matchDone
+      ... </k>
+      <env> Rho => Rho [ Name <- V ] </env>
+    requires matchSimplePattern(V, P)
+  rule <k> matchDispatch(V:Val, #matchCase(#matchAs(P:MatchPattern, Name:Id), {})) =>
+           stmtNoResult
+      ... </k>
+      <env> Rho => Rho [ Name <- V ] </env>
+    requires matchSimplePattern(V, P)
+  rule <k> matchDispatch(V:Val, #matchCase(#matchAs(P:MatchPattern, _Name:Id), _Body:Block)) =>
+           stmtNoResult
+      ... </k>
+    requires notBool matchSimplePattern(V, P)
+  rule <k> matchDispatch(V:Val, #matchCases(#matchAs(P:MatchPattern, Name:Id), block(SS:Stmts), _Rest:MatchCases)) =>
+           SS ~> matchDone
+      ... </k>
+      <env> Rho => Rho [ Name <- V ] </env>
+    requires matchSimplePattern(V, P)
+  rule <k> matchDispatch(V:Val, #matchCases(#matchAs(P:MatchPattern, Name:Id), {}, _Rest:MatchCases)) =>
+           stmtNoResult
+      ... </k>
+      <env> Rho => Rho [ Name <- V ] </env>
+    requires matchSimplePattern(V, P)
+  rule <k> matchDispatch(V:Val, #matchCases(#matchAs(P:MatchPattern, _Name:Id), _Body:Block, Rest:MatchCases)) =>
+           matchDispatch(V, Rest)
+      ... </k>
+    requires notBool matchSimplePattern(V, P)
   rule <k> matchDispatch(V:Val, #matchCase(#matchSingleton(P:Val), block(SS:Stmts))) =>
            SS ~> matchDone
       ... </k>

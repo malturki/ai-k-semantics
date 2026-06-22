@@ -418,10 +418,12 @@ def emit_match_cases(node: ast.AST, cases: list[ast.match_case]) -> str:
 
 def emit_match_pattern(node: ast.AST, pattern: ast.pattern) -> str:
     match pattern:
-        case ast.MatchAs(name=None):
+        case ast.MatchAs(pattern=None, name=None):
             return "#matchWildcard"
-        case ast.MatchAs(name=name):
+        case ast.MatchAs(pattern=None, name=name) if name is not None:
             return f"#matchCapture({emit_id(name)})"
+        case ast.MatchAs(pattern=as_pattern, name=name) if name is not None:
+            return f"#matchAs({emit_match_nonbinding_pattern(node, as_pattern)}, {emit_id(name)})"
         case ast.MatchSingleton(value=True):
             return "#matchSingleton(True)"
         case ast.MatchSingleton(value=False):
@@ -433,22 +435,24 @@ def emit_match_pattern(node: ast.AST, pattern: ast.pattern) -> str:
         case ast.MatchOr(patterns=patterns):
             return emit_match_or_patterns(node, patterns)
         case _:
-            raise unsupported(node, "only value, singleton, wildcard, capture, and non-binding OR match patterns are supported")
+            raise unsupported(node, "only value, singleton, wildcard, capture, non-binding OR, and non-binding AS match patterns are supported")
 
 
 def emit_match_or_patterns(node: ast.AST, patterns: list[ast.pattern]) -> str:
     if len(patterns) < 2:
         raise unsupported(node, "OR match patterns require at least two alternatives")
-    left = emit_match_or_pattern(node, patterns[0])
+    left = emit_match_nonbinding_pattern(node, patterns[0])
     if len(patterns) == 2:
-        right = emit_match_or_pattern(node, patterns[1])
+        right = emit_match_nonbinding_pattern(node, patterns[1])
     else:
         right = emit_match_or_patterns(node, patterns[1:])
     return f"#matchOr({left}, {right})"
 
 
-def emit_match_or_pattern(node: ast.AST, pattern: ast.pattern) -> str:
+def emit_match_nonbinding_pattern(node: ast.AST, pattern: ast.pattern) -> str:
     match pattern:
+        case ast.MatchAs(pattern=None, name=None):
+            return "#matchWildcard"
         case ast.MatchSingleton(value=True):
             return "#matchSingleton(True)"
         case ast.MatchSingleton(value=False):
@@ -460,7 +464,7 @@ def emit_match_or_pattern(node: ast.AST, pattern: ast.pattern) -> str:
         case ast.MatchOr(patterns=patterns):
             return emit_match_or_patterns(node, patterns)
         case _:
-            raise unsupported(node, "only non-binding literal and singleton OR pattern alternatives are supported")
+            raise unsupported(node, "only non-binding wildcard, literal, singleton, and OR pattern alternatives are supported")
 
 
 def emit_except_handlers(node: ast.AST, handlers: list[ast.ExceptHandler]) -> str:

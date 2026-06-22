@@ -25,6 +25,7 @@ module PYTHON-SYNTAX
                | "set" "(" ")" [symbol(emptySetVal)]
                | "{" ValItems "}" [symbol(setVal)]
                | "#kwDefaultMissing" [symbol(kwDefaultMissing)]
+               | "#exception" "(" Id ")" [symbol(exceptionVal)]
 
   syntax ValItems ::= Val "," [symbol(valItemsLast)]
                     | Val "," ValItems [symbol(valItemsCons)]
@@ -223,6 +224,8 @@ module PYTHON-SYNTAX
                 | "#forTargetElse" "(" Target "," Exp "," Block "," Block ")" [symbol(forTargetElseStmt)]
                 | "#forStarUnpack" "(" IdItems "," Id "," IdItems "," Exp "," Block ")" [symbol(forStarUnpackStmt)]
                 | "#forStarUnpackElse" "(" IdItems "," Id "," IdItems "," Exp "," Block "," Block ")" [symbol(forStarUnpackElseStmt)]
+                | "raise" Exp [symbol(raiseStmt), strict]
+                | "#tryExcept" "(" Block "," Id "," Block ")" [symbol(tryExceptStmt)]
                 | "#tryFinally" "(" Block "," Block ")" [symbol(tryFinallyStmt)]
 
   syntax Exp ::= Val
@@ -899,10 +902,12 @@ module PYTHON
                  | tryFinallyReturn(Val) [symbol(tryFinallyReturn)]
                  | "tryFinallyBreak" [symbol(tryFinallyBreak)]
                  | "tryFinallyContinue" [symbol(tryFinallyContinue)]
+                 | tryExceptDone(Id, Block) [symbol(tryExceptDone)]
                  | "forDone" [symbol(forDone)]
                  | "breakSignal" [symbol(breakSignal)]
                  | "continueSignal" [symbol(continueSignal)]
                  | returnSignal(Val) [symbol(returnSignal)]
+                 | exceptionSignal(Val) [symbol(exceptionSignal)]
                  | functionDone(Map) [symbol(functionDone)]
                  | bindDecoratedFunction(Id, Val) [symbol(bindDecoratedFunction)]
                  | bindDecoratedFunctionDefaults(Id, IdItems, ArgExps, Block) [symbol(bindDecoratedFunctionDefaults)]
@@ -10138,6 +10143,16 @@ module PYTHON
   rule <k> continueSignal ~> tryFinallyContinue => continueSignal ... </k>
   rule <k> tryFinallyContinue => continueSignal ... </k>
 
+  rule <k> tryExceptStmt(block(SS:Stmts), E:Id, Handler:Block) =>
+           SS ~> tryExceptDone(E, Handler)
+      ... </k>
+  rule <k> tryExceptStmt({}, _E:Id, _Handler:Block) => stmtNoResult ... </k>
+  rule <k> exceptionSignal(#exception(E:Id)) ~> tryExceptDone(E, block(SS:Stmts)) =>
+           SS ~> ifStmtDone
+      ... </k>
+  rule <k> exceptionSignal(#exception(E:Id)) ~> tryExceptDone(E, {}) => stmtNoResult ... </k>
+  rule <k> exceptionSignal(V:Val) ~> tryExceptDone(_E:Id, _Handler:Block) => exceptionSignal(V) ... </k> [owise]
+
   rule <k> ifStmt(C:Exp, Then:Block, Else:Block) =>
            C ~> ifStmtBranch(Then, Else)
        ... </k>
@@ -11841,16 +11856,20 @@ module PYTHON
   rule <k> continue => continueSignal ... </k>
   rule <k> return => returnSignal(None) ... </k>
   rule <k> returnStmt(V:Val) => returnSignal(V) ... </k>
+  rule <k> raiseStmt(V:Val) => exceptionSignal(V) ... </k>
 
   rule <k> breakSignal ~> stmtNext(_:Stmts) => breakSignal ... </k>
   rule <k> continueSignal ~> stmtNext(_:Stmts) => continueSignal ... </k>
   rule <k> returnSignal(V:Val) ~> stmtNext(_:Stmts) => returnSignal(V) ... </k>
+  rule <k> exceptionSignal(V:Val) ~> stmtNext(_:Stmts) => exceptionSignal(V) ... </k>
   rule <k> breakSignal ~> stmtEnd => breakSignal ... </k>
   rule <k> continueSignal ~> stmtEnd => continueSignal ... </k>
   rule <k> returnSignal(V:Val) ~> stmtEnd => returnSignal(V) ... </k>
+  rule <k> exceptionSignal(V:Val) ~> stmtEnd => exceptionSignal(V) ... </k>
   rule <k> breakSignal ~> ifStmtDone => breakSignal ... </k>
   rule <k> continueSignal ~> ifStmtDone => continueSignal ... </k>
   rule <k> returnSignal(V:Val) ~> ifStmtDone => returnSignal(V) ... </k>
+  rule <k> exceptionSignal(V:Val) ~> ifStmtDone => exceptionSignal(V) ... </k>
   rule <k> breakSignal ~> whileStmtAgain(_:Exp, _:Block) => stmtNoResult ... </k>
   rule <k> continueSignal ~> whileStmtAgain(C:Exp, Body:Block) =>
            whileStmt(C, Body)

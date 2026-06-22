@@ -1411,6 +1411,13 @@
       "coverage": ["try-statement", "finally-clause", "finally-break", "finally-continue", "finally-break-overrides-pending-continue", "finally-continue-overrides-pending-break", "ordinary-python-source-adapter"]
     },
     {
+      "id": "adapter-try-except-basic",
+      "source": "../adapter/adapter-try-except-basic.py",
+      "reference": "Python Language Reference 8.4 The try statement; 7.8 The raise statement",
+      "expected_result": "True ~> .K",
+      "coverage": ["try-statement", "except-clause", "raise-statement", "exception-propagation", "exception-handler-matching", "ordinary-python-source-adapter"]
+    },
+    {
       "id": "adapter-range-for",
       "source": "../adapter/adapter-range-for.py",
       "reference": "Python Language Reference 8.3 The for statement; Standard Library range type",

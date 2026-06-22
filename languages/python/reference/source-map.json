@@ -226,7 +226,7 @@
         {
           "id": "execution.exceptions",
           "title": "Exceptions, propagation, and handlers",
-          "status": "not-started",
+          "status": "partial",
           "references": [
             {
               "title": "Execution model",
@@ -234,9 +234,9 @@
               "section": "Exceptions"
             }
           ],
-          "k_coverage": [],
-          "test_coverage": [],
-          "gaps": ["Need exception objects, traceback shape, propagation, matching, chaining, groups, and finalization."]
+          "k_coverage": ["semantics/python.k: internal #exception(Name) sentinel values, raise statements over current sentinel values, exceptionSignal propagation through straight-line statement sequencing, and a single #tryExcept named handler for matching sentinels", "harness/python_to_k_input.py: CPython AST Raise of a named exception or zero-argument named exception call lowers to the current internal exception sentinel; a Try with one named except handler and no else/finally lowers to #tryExcept"],
+          "test_coverage": ["tests/adapter/adapter-try-except-basic.py"],
+          "gaps": ["Need real exception objects and hierarchy, traceback shape, propagation through all continuations, matching semantics beyond the sentinel subset, chaining, groups, finalization, except-as cleanup, bare and multiple handlers, try else, and finally over active exceptions."]
         },
         {
           "id": "execution.annotation-scopes",
@@ -533,9 +533,9 @@
               "section": "The return statement"
             }
           ],
-          "k_coverage": ["semantics/python.k: pass statement and simple-name/multi-target simple-name del", "semantics/python.k: break/continue abrupt-completion signals resolved by the nearest supported while loop", "semantics/python.k: returnSignal resolved by the supported function-call marker, including bare return as None"],
-          "test_coverage": ["tests/examples/smoke-pass.py", "tests/examples/smoke-del-name.py", "tests/examples/smoke-return-bare.py", "tests/adapter/adapter-del-many.py", "tests/adapter/adapter-break.py", "tests/adapter/adapter-continue.py", "tests/adapter/adapter-function-return.py", "tests/adapter/adapter-function-bare-return.py", "tests/adapter/adapter-function-recursion.py"],
-          "gaps": ["Need full del targets beyond simple names, NameError behavior, SyntaxError diagnostics for break/continue/return outside valid contexts, return in generators, yield, raise, and function/generator/exception integration."]
+          "k_coverage": ["semantics/python.k: pass statement and simple-name/multi-target simple-name del", "semantics/python.k: break/continue abrupt-completion signals resolved by the nearest supported while loop", "semantics/python.k: returnSignal resolved by the supported function-call marker, including bare return as None", "semantics/python.k: raise statements over the current internal exception-sentinel subset produce exceptionSignal"],
+          "test_coverage": ["tests/examples/smoke-pass.py", "tests/examples/smoke-del-name.py", "tests/examples/smoke-return-bare.py", "tests/adapter/adapter-del-many.py", "tests/adapter/adapter-break.py", "tests/adapter/adapter-continue.py", "tests/adapter/adapter-function-return.py", "tests/adapter/adapter-function-bare-return.py", "tests/adapter/adapter-function-recursion.py", "tests/adapter/adapter-try-except-basic.py"],
+          "gaps": ["Need full del targets beyond simple names, NameError behavior, SyntaxError diagnostics for break/continue/return outside valid contexts, return in generators, yield, full raise forms, and function/generator/exception integration."]
         },
         {
           "id": "stmt.import",
@@ -616,9 +616,9 @@
               "section": "The try statement"
             }
           ],
-          "k_coverage": ["semantics/python.k: internal #tryFinally statement form runs the finally block after normal completion of the try block and when return, break, or continue leaves the try block, for explicit Block syntax and no exception profile", "semantics/python.k: a return, break, or continue from the finally block overrides pending return/break/continue in the internal abrupt-completion subset", "harness/python_to_k_input.py: CPython AST Try without handlers or else lowers to #tryFinally, including finally bodies that issue break or continue"],
-          "test_coverage": ["tests/adapter/adapter-try-finally.py", "tests/adapter/adapter-try-finally-return.py", "tests/adapter/adapter-try-finally-break-continue.py", "tests/adapter/adapter-try-finally-finalbody-break-continue.py"],
-          "gaps": ["Need except and except* handlers, exception matching, try else, exception objects and groups, cleanup ordering with active exceptions, finalizer override of pending exception completion, and broader abrupt completion interactions."]
+          "k_coverage": ["semantics/python.k: internal #tryFinally statement form runs the finally block after normal completion of the try block and when return, break, or continue leaves the try block, for explicit Block syntax and no exception profile", "semantics/python.k: a return, break, or continue from the finally block overrides pending return/break/continue in the internal abrupt-completion subset", "semantics/python.k: internal #tryExcept statement form catches a matching named internal exception sentinel in a single except handler and continues after the handler", "harness/python_to_k_input.py: CPython AST Try without handlers or else lowers to #tryFinally, including finally bodies that issue break or continue; a Try with one named except handler and no else/finally lowers to #tryExcept"],
+          "test_coverage": ["tests/adapter/adapter-try-finally.py", "tests/adapter/adapter-try-finally-return.py", "tests/adapter/adapter-try-finally-break-continue.py", "tests/adapter/adapter-try-finally-finalbody-break-continue.py", "tests/adapter/adapter-try-except-basic.py"],
+          "gaps": ["Need real exception objects and groups, except-as cleanup, bare and multiple handlers, except* handlers, full exception matching, try else, cleanup ordering with active exceptions, finalizer override of pending exception completion, and broader abrupt completion interactions."]
         },
         {
           "id": "compound.with",

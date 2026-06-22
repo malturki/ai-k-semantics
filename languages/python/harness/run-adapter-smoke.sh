@@ -244,6 +244,7 @@ run_case "adapter-try-finally" "$ROOT/tests/adapter/adapter-try-finally.py" "Tru
 run_case "adapter-try-finally-return" "$ROOT/tests/adapter/adapter-try-finally-return.py" "True ~> .K"
 run_case "adapter-try-finally-break-continue" "$ROOT/tests/adapter/adapter-try-finally-break-continue.py" "True ~> .K"
 run_case "adapter-try-finally-finalbody-break-continue" "$ROOT/tests/adapter/adapter-try-finally-finalbody-break-continue.py" "True ~> .K"
+run_case "adapter-try-except-basic" "$ROOT/tests/adapter/adapter-try-except-basic.py" "True ~> .K"
 run_case "adapter-range-for" "$ROOT/tests/adapter/adapter-range-for.py" "True ~> .K"
 run_case "adapter-range-start-stop" "$ROOT/tests/adapter/adapter-range-start-stop.py" "True ~> .K"
 run_case "adapter-range-break-continue" "$ROOT/tests/adapter/adapter-range-break-continue.py" "True ~> .K"

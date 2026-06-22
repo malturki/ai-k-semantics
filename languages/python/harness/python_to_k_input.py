@@ -609,8 +609,8 @@ def emit_match_sequence_pattern(
         raise unsupported(node, "sequence match patterns support at most one star pattern")
     star_index = star_indices[0]
     star_pattern = patterns[star_index]
-    prefix = emit_match_sequence_patterns(node, patterns[:star_index], allow_capture=False)
-    suffix = emit_match_sequence_patterns(node, patterns[star_index + 1 :], allow_capture=False)
+    prefix = emit_match_sequence_patterns(node, patterns[:star_index], allow_capture=allow_element_capture)
+    suffix = emit_match_sequence_patterns(node, patterns[star_index + 1 :], allow_capture=allow_element_capture)
     if not isinstance(star_pattern, ast.MatchStar):
         raise unsupported(node, "sequence star pattern shape is unsupported")
     if star_pattern.name is not None:

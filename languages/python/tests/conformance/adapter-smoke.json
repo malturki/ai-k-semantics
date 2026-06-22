@@ -501,6 +501,13 @@
       "coverage": ["match-statement", "sequence-pattern", "starred-sequence-pattern", "star-capture-binding", "literal-pattern", "singleton-pattern", "ordinary-python-source-adapter"]
     },
     {
+      "id": "adapter-match-sequence-star-edge-capture",
+      "source": "../adapter/adapter-match-sequence-star-edge-capture.py",
+      "reference": "Python Language Reference 8.6 The match statement; PEP 634 Structural Pattern Matching",
+      "expected_result": "True ~> .K",
+      "coverage": ["match-statement", "sequence-pattern", "starred-sequence-pattern", "capture-pattern", "prefix-capture-binding", "suffix-capture-binding", "star-capture-binding", "failed-pattern-binding-rollback", "guard-binding-visibility", "ordinary-python-source-adapter"]
+    },
+    {
       "id": "adapter-match-mapping",
       "source": "../adapter/adapter-match-mapping.py",
       "reference": "Python Language Reference 8.6 The match statement; PEP 634 Structural Pattern Matching",

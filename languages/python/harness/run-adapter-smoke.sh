@@ -114,6 +114,7 @@ run_case "adapter-match-sequence" "$ROOT/tests/adapter/adapter-match-sequence.py
 run_case "adapter-match-sequence-capture" "$ROOT/tests/adapter/adapter-match-sequence-capture.py" "True ~> .K"
 run_case "adapter-match-sequence-star" "$ROOT/tests/adapter/adapter-match-sequence-star.py" "True ~> .K"
 run_case "adapter-match-sequence-star-capture" "$ROOT/tests/adapter/adapter-match-sequence-star-capture.py" "True ~> .K"
+run_case "adapter-match-sequence-star-edge-capture" "$ROOT/tests/adapter/adapter-match-sequence-star-edge-capture.py" "True ~> .K"
 run_case "adapter-match-mapping" "$ROOT/tests/adapter/adapter-match-mapping.py" "True ~> .K"
 run_case "adapter-match-mapping-capture" "$ROOT/tests/adapter/adapter-match-mapping-capture.py" "True ~> .K"
 run_case "adapter-match-mapping-rest" "$ROOT/tests/adapter/adapter-match-mapping-rest.py" "True ~> .K"

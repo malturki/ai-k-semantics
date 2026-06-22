@@ -1318,6 +1318,9 @@ module PYTHON
   syntax Map ::= bindTargetStarSeq(Map, MaybeTargets, Id, MaybeTargets, ValItems) [function, symbol(bindTargetStarSeq)]
   syntax Map ::= bindMatchPattern(Map, Val, MatchPattern) [function, symbol(bindMatchPattern)]
   syntax Map ::= bindMatchSequence(Map, Val, MatchPatterns) [function, symbol(bindMatchSequence)]
+  syntax Map ::= bindMatchStarSequence(Map, Val, MatchPatterns, MatchPatterns) [function, symbol(bindMatchStarSequence)]
+  syntax Map ::= bindMatchStarPrefix(Map, ValItems, MatchPatterns) [function, symbol(bindMatchStarPrefix)]
+  syntax Map ::= bindMatchStarSuffix(Map, ValItems, MatchPatterns) [function, symbol(bindMatchStarSuffix)]
   syntax Map ::= bindMatchValItems(Map, ValItems, MatchPatterns) [function, symbol(bindMatchValItems)]
   syntax Map ::= bindMatchMapping(Map, Val, MatchMapPatterns) [function, symbol(bindMatchMapping)]
   syntax Map ::= bindMatchDictItems(Map, DictItems, MatchMapPatterns) [function, symbol(bindMatchDictItems)]
@@ -2599,6 +2602,8 @@ module PYTHON
     bindMatchPattern(Rho, V, P) [ Name <- V ]
   rule bindMatchPattern(Rho:Map, V:Val, #matchSequence(PS:MatchPatterns)) =>
     bindMatchSequence(Rho, V, PS)
+  rule bindMatchPattern(Rho:Map, V:Val, #matchSequenceStar(Prefix:MatchPatterns, Suffix:MatchPatterns)) =>
+    bindMatchStarSequence(Rho, V, Prefix, Suffix)
   rule bindMatchPattern(Rho:Map, V:Val, #matchMapping(MPS:MatchMapPatterns)) =>
     bindMatchMapping(Rho, V, MPS)
   rule bindMatchPattern(Rho:Map, V:Val, #matchClassArg(_C:Id, P:MatchPattern)) =>
@@ -2618,6 +2623,26 @@ module PYTHON
   rule bindMatchSequence(Rho:Map, tupleVal(VS:ValItems), PS:MatchPatterns) =>
     bindMatchValItems(Rho, VS, PS)
   rule bindMatchSequence(Rho:Map, _V:Val, _PS:MatchPatterns) => Rho [owise]
+
+  rule bindMatchStarSequence(Rho:Map, [], #matchNoPatterns, #matchNoPatterns) => Rho
+  rule bindMatchStarSequence(Rho:Map, (), #matchNoPatterns, #matchNoPatterns) => Rho
+  rule bindMatchStarSequence(Rho:Map, listVal(VS:ValItems), Prefix:MatchPatterns, Suffix:MatchPatterns) =>
+    bindMatchStarSuffix(bindMatchStarPrefix(Rho, VS, Prefix), VS, Suffix)
+    requires matchPatternsLen(Prefix) +Int matchPatternsLen(Suffix) <=Int valItemsLen(VS)
+  rule bindMatchStarSequence(Rho:Map, tupleVal(VS:ValItems), Prefix:MatchPatterns, Suffix:MatchPatterns) =>
+    bindMatchStarSuffix(bindMatchStarPrefix(Rho, VS, Prefix), VS, Suffix)
+    requires matchPatternsLen(Prefix) +Int matchPatternsLen(Suffix) <=Int valItemsLen(VS)
+  rule bindMatchStarSequence(Rho:Map, _V:Val, _Prefix:MatchPatterns, _Suffix:MatchPatterns) => Rho [owise]
+
+  rule bindMatchStarPrefix(Rho:Map, _VS:ValItems, #matchNoPatterns) => Rho
+  rule bindMatchStarPrefix(Rho:Map, VS:ValItems, Prefix:MatchPatterns) =>
+    bindMatchValItems(Rho, sliceValItems(VS, 0, matchPatternsLen(Prefix)), Prefix)
+    requires matchPatternsLen(Prefix) >Int 0
+
+  rule bindMatchStarSuffix(Rho:Map, _VS:ValItems, #matchNoPatterns) => Rho
+  rule bindMatchStarSuffix(Rho:Map, VS:ValItems, Suffix:MatchPatterns) =>
+    bindMatchValItems(Rho, dropValItems(VS, valItemsLen(VS) -Int matchPatternsLen(Suffix)), Suffix)
+    requires matchPatternsLen(Suffix) >Int 0
 
   rule bindMatchValItems(Rho:Map, valItemsLast(V:Val), #matchPattern(P:MatchPattern, #matchNoPatterns)) =>
     bindMatchPattern(Rho, V, P)
@@ -10677,6 +10702,7 @@ module PYTHON
   rule <k> matchGuardPattern(V:Val, #matchSequenceStar(Prefix:MatchPatterns, Suffix:MatchPatterns), Guard:Exp, Body:Block, Rest:MaybeMatchCases) =>
            Guard ~> matchGuardSelect(V, Body, Rest)
       ... </k>
+      <env> Rho => bindMatchStarSequence(Rho, V, Prefix, Suffix) </env>
     requires matchStarSequence(V, Prefix, Suffix)
   rule <k> matchGuardPattern(V:Val, #matchSequenceStar(Prefix:MatchPatterns, Suffix:MatchPatterns), _Guard:Exp, _Body:Block, Rest:MaybeMatchCases) =>
            matchGuardNoMatch(V, Rest)
@@ -10685,7 +10711,7 @@ module PYTHON
   rule <k> matchGuardPattern(V:Val, #matchSequenceStarCapture(Prefix:MatchPatterns, Name:Id, Suffix:MatchPatterns), Guard:Exp, Body:Block, Rest:MaybeMatchCases) =>
            Guard ~> matchGuardSelect(V, Body, Rest)
       ... </k>
-      <env> Rho => Rho [ Name <- matchStarMiddle(V, Prefix, Suffix) ] </env>
+      <env> Rho => bindMatchStarSequence(Rho, V, Prefix, Suffix) [ Name <- matchStarMiddle(V, Prefix, Suffix) ] </env>
     requires matchStarSequence(V, Prefix, Suffix)
   rule <k> matchGuardPattern(V:Val, #matchSequenceStarCapture(Prefix:MatchPatterns, _Name:Id, Suffix:MatchPatterns), _Guard:Exp, _Body:Block, Rest:MaybeMatchCases) =>
            matchGuardNoMatch(V, Rest)
@@ -10881,10 +10907,12 @@ module PYTHON
   rule <k> matchDispatch(V:Val, #matchCase(#matchSequenceStar(Prefix:MatchPatterns, Suffix:MatchPatterns), block(SS:Stmts))) =>
            SS ~> matchDone
       ... </k>
+      <env> Rho => bindMatchStarSequence(Rho, V, Prefix, Suffix) </env>
     requires matchStarSequence(V, Prefix, Suffix)
   rule <k> matchDispatch(V:Val, #matchCase(#matchSequenceStar(Prefix:MatchPatterns, Suffix:MatchPatterns), {})) =>
            stmtNoResult
       ... </k>
+      <env> Rho => bindMatchStarSequence(Rho, V, Prefix, Suffix) </env>
     requires matchStarSequence(V, Prefix, Suffix)
   rule <k> matchDispatch(V:Val, #matchCase(#matchSequenceStar(Prefix:MatchPatterns, Suffix:MatchPatterns), _Body:Block)) =>
            stmtNoResult
@@ -10893,10 +10921,12 @@ module PYTHON
   rule <k> matchDispatch(V:Val, #matchCases(#matchSequenceStar(Prefix:MatchPatterns, Suffix:MatchPatterns), block(SS:Stmts), _Rest:MatchCases)) =>
            SS ~> matchDone
       ... </k>
+      <env> Rho => bindMatchStarSequence(Rho, V, Prefix, Suffix) </env>
     requires matchStarSequence(V, Prefix, Suffix)
   rule <k> matchDispatch(V:Val, #matchCases(#matchSequenceStar(Prefix:MatchPatterns, Suffix:MatchPatterns), {}, _Rest:MatchCases)) =>
            stmtNoResult
       ... </k>
+      <env> Rho => bindMatchStarSequence(Rho, V, Prefix, Suffix) </env>
     requires matchStarSequence(V, Prefix, Suffix)
   rule <k> matchDispatch(V:Val, #matchCases(#matchSequenceStar(Prefix:MatchPatterns, Suffix:MatchPatterns), _Body:Block, Rest:MatchCases)) =>
            matchDispatch(V, Rest)
@@ -10905,12 +10935,12 @@ module PYTHON
   rule <k> matchDispatch(V:Val, #matchCase(#matchSequenceStarCapture(Prefix:MatchPatterns, Name:Id, Suffix:MatchPatterns), block(SS:Stmts))) =>
            SS ~> matchDone
       ... </k>
-      <env> Rho => Rho [ Name <- matchStarMiddle(V, Prefix, Suffix) ] </env>
+      <env> Rho => bindMatchStarSequence(Rho, V, Prefix, Suffix) [ Name <- matchStarMiddle(V, Prefix, Suffix) ] </env>
     requires matchStarSequence(V, Prefix, Suffix)
   rule <k> matchDispatch(V:Val, #matchCase(#matchSequenceStarCapture(Prefix:MatchPatterns, Name:Id, Suffix:MatchPatterns), {})) =>
            stmtNoResult
       ... </k>
-      <env> Rho => Rho [ Name <- matchStarMiddle(V, Prefix, Suffix) ] </env>
+      <env> Rho => bindMatchStarSequence(Rho, V, Prefix, Suffix) [ Name <- matchStarMiddle(V, Prefix, Suffix) ] </env>
     requires matchStarSequence(V, Prefix, Suffix)
   rule <k> matchDispatch(V:Val, #matchCase(#matchSequenceStarCapture(Prefix:MatchPatterns, _Name:Id, Suffix:MatchPatterns), _Body:Block)) =>
            stmtNoResult
@@ -10919,12 +10949,12 @@ module PYTHON
   rule <k> matchDispatch(V:Val, #matchCases(#matchSequenceStarCapture(Prefix:MatchPatterns, Name:Id, Suffix:MatchPatterns), block(SS:Stmts), _Rest:MatchCases)) =>
            SS ~> matchDone
       ... </k>
-      <env> Rho => Rho [ Name <- matchStarMiddle(V, Prefix, Suffix) ] </env>
+      <env> Rho => bindMatchStarSequence(Rho, V, Prefix, Suffix) [ Name <- matchStarMiddle(V, Prefix, Suffix) ] </env>
     requires matchStarSequence(V, Prefix, Suffix)
   rule <k> matchDispatch(V:Val, #matchCases(#matchSequenceStarCapture(Prefix:MatchPatterns, Name:Id, Suffix:MatchPatterns), {}, _Rest:MatchCases)) =>
            stmtNoResult
       ... </k>
-      <env> Rho => Rho [ Name <- matchStarMiddle(V, Prefix, Suffix) ] </env>
+      <env> Rho => bindMatchStarSequence(Rho, V, Prefix, Suffix) [ Name <- matchStarMiddle(V, Prefix, Suffix) ] </env>
     requires matchStarSequence(V, Prefix, Suffix)
   rule <k> matchDispatch(V:Val, #matchCases(#matchSequenceStarCapture(Prefix:MatchPatterns, _Name:Id, Suffix:MatchPatterns), _Body:Block, Rest:MatchCases)) =>
            matchDispatch(V, Rest)

@@ -52,6 +52,7 @@ run_case "adapter-complex-literals" "$ROOT/tests/adapter/adapter-complex-literal
 run_case "adapter-complex-arithmetic" "$ROOT/tests/adapter/adapter-complex-arithmetic.py" "True ~> .K"
 run_case "adapter-complex-constructor" "$ROOT/tests/adapter/adapter-complex-constructor.py" "True ~> .K"
 run_case "adapter-complex-constructor-keywords" "$ROOT/tests/adapter/adapter-complex-constructor-keywords.py" "True ~> .K"
+run_case "adapter-complex-constructor-kw-unpack" "$ROOT/tests/adapter/adapter-complex-constructor-kw-unpack.py" "True ~> .K"
 run_case "adapter-numeric-real-imag-attributes" "$ROOT/tests/adapter/adapter-numeric-real-imag-attributes.py" "True ~> .K"
 run_case "adapter-numeric-conjugate" "$ROOT/tests/adapter/adapter-numeric-conjugate.py" "True ~> .K"
 run_case "adapter-complex-power" "$ROOT/tests/adapter/adapter-complex-power.py" "True ~> .K"

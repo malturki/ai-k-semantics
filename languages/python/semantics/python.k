@@ -82,6 +82,7 @@ module PYTHON-SYNTAX
                         | "#matchCapture" "(" Id ")" [symbol(matchCapturePattern)]
                         | "#matchOr" "(" MatchPattern "," MatchPattern ")" [symbol(matchOrPattern)]
                         | "#matchAs" "(" MatchPattern "," Id ")" [symbol(matchAsPattern)]
+                        | "#matchClass" "(" Id ")" [symbol(matchClassPattern)]
                         | "#matchSequence" "(" MatchPatterns ")" [symbol(matchSequencePattern)]
                         | "#matchSequenceStar" "(" MatchPatterns "," MatchPatterns ")" [symbol(matchSequenceStarPattern)]
                         | "#matchSequenceStarCapture" "(" MatchPatterns "," Id "," MatchPatterns ")" [symbol(matchSequenceStarCapturePattern)]
@@ -1006,6 +1007,7 @@ module PYTHON
                 | isComplexLike(Val) [function, symbol(isComplexLike)]
                 | valEq(Val, Val) [function, symbol(valEq)]
                 | singletonPatternEq(Val, Val) [function, symbol(singletonPatternEq)]
+                | matchBuiltinClass(Val, Id) [function, symbol(matchBuiltinClass)]
                 | matchSimplePattern(Val, MatchPattern) [function, symbol(matchSimplePattern)]
                 | matchFixedSequence(Val, MatchPatterns) [function, symbol(matchFixedSequence)]
                 | matchStarSequence(Val, MatchPatterns, MatchPatterns) [function, symbol(matchStarSequence)]
@@ -2511,9 +2513,50 @@ module PYTHON
   rule singletonPatternEq(None, None) => true
   rule singletonPatternEq(_:Val, _:Val) => false [owise]
 
+  rule matchBuiltinClass(True, C:Id) => true
+    requires Id2String(C) ==String "bool" orBool Id2String(C) ==String "int"
+  rule matchBuiltinClass(False, C:Id) => true
+    requires Id2String(C) ==String "bool" orBool Id2String(C) ==String "int"
+  rule matchBuiltinClass(_I:Int, C:Id) => true
+    requires Id2String(C) ==String "int"
+  rule matchBuiltinClass(_F:Float, C:Id) => true
+    requires Id2String(C) ==String "float"
+  rule matchBuiltinClass(#complex(_:Float, _:Float), C:Id) => true
+    requires Id2String(C) ==String "complex"
+  rule matchBuiltinClass(_:String, C:Id) => true
+    requires Id2String(C) ==String "str"
+  rule matchBuiltinClass(#bytes(), C:Id) => true
+    requires Id2String(C) ==String "bytes"
+  rule matchBuiltinClass(bytesVal(_:ValItems), C:Id) => true
+    requires Id2String(C) ==String "bytes"
+  rule matchBuiltinClass([], C:Id) => true
+    requires Id2String(C) ==String "list"
+  rule matchBuiltinClass(listVal(_:ValItems), C:Id) => true
+    requires Id2String(C) ==String "list"
+  rule matchBuiltinClass((), C:Id) => true
+    requires Id2String(C) ==String "tuple"
+  rule matchBuiltinClass(tupleVal(_:ValItems), C:Id) => true
+    requires Id2String(C) ==String "tuple"
+  rule matchBuiltinClass({}, C:Id) => true
+    requires Id2String(C) ==String "dict"
+  rule matchBuiltinClass(dictVal(_:DictItems), C:Id) => true
+    requires Id2String(C) ==String "dict"
+  rule matchBuiltinClass(set(), C:Id) => true
+    requires Id2String(C) ==String "set" orBool Id2String(C) ==String "kSetClassName"
+  rule matchBuiltinClass(setVal(_:ValItems), C:Id) => true
+    requires Id2String(C) ==String "set" orBool Id2String(C) ==String "kSetClassName"
+  rule matchBuiltinClass(rangeVal(_:Int, _:Int), C:Id) => true
+    requires Id2String(C) ==String "range"
+  rule matchBuiltinClass(rangeVal(_:Int, _:Int, _:Int), C:Id) => true
+    requires Id2String(C) ==String "range"
+  rule matchBuiltinClass(sliceVal(_:Val, _:Val, _:Val), C:Id) => true
+    requires Id2String(C) ==String "slice"
+  rule matchBuiltinClass(_:Val, _:Id) => false [owise]
+
   rule matchSimplePattern(_:Val, #matchWildcard) => true
   rule matchSimplePattern(V:Val, #matchValue(P:Val)) => valEq(V, P)
   rule matchSimplePattern(V:Val, #matchSingleton(P:Val)) => singletonPatternEq(V, P)
+  rule matchSimplePattern(V:Val, #matchClass(C:Id)) => matchBuiltinClass(V, C)
   rule matchSimplePattern(V:Val, #matchOr(P1:MatchPattern, P2:MatchPattern)) =>
     matchSimplePattern(V, P1) orBool matchSimplePattern(V, P2)
   rule matchSimplePattern(V:Val, #matchAs(P:MatchPattern, _Name:Id)) => matchSimplePattern(V, P)
@@ -10600,6 +10643,14 @@ module PYTHON
            matchGuardNoMatch(V, Rest)
       ... </k>
     requires notBool singletonPatternEq(V, P)
+  rule <k> matchGuardPattern(V:Val, #matchClass(C:Id), Guard:Exp, Body:Block, Rest:MaybeMatchCases) =>
+           Guard ~> matchGuardSelect(V, Body, Rest)
+      ... </k>
+    requires matchBuiltinClass(V, C)
+  rule <k> matchGuardPattern(V:Val, #matchClass(C:Id), _Guard:Exp, _Body:Block, Rest:MaybeMatchCases) =>
+           matchGuardNoMatch(V, Rest)
+      ... </k>
+    requires notBool matchBuiltinClass(V, C)
   rule <k> matchGuardPattern(V:Val, #matchValue(P:Exp), Guard:Exp, Body:Block, Rest:MaybeMatchCases) =>
            P ~> matchValueGuardDispatch(V, Guard, Body, Rest)
       ... </k>
@@ -10840,6 +10891,30 @@ module PYTHON
            matchDispatch(V, Rest)
       ... </k>
     requires notBool matchMapping(V, MPS)
+  rule <k> matchDispatch(V:Val, #matchCase(#matchClass(C:Id), block(SS:Stmts))) =>
+           SS ~> matchDone
+      ... </k>
+    requires matchBuiltinClass(V, C)
+  rule <k> matchDispatch(V:Val, #matchCase(#matchClass(C:Id), {})) =>
+           stmtNoResult
+      ... </k>
+    requires matchBuiltinClass(V, C)
+  rule <k> matchDispatch(V:Val, #matchCase(#matchClass(C:Id), _Body:Block)) =>
+           stmtNoResult
+      ... </k>
+    requires notBool matchBuiltinClass(V, C)
+  rule <k> matchDispatch(V:Val, #matchCases(#matchClass(C:Id), block(SS:Stmts), _Rest:MatchCases)) =>
+           SS ~> matchDone
+      ... </k>
+    requires matchBuiltinClass(V, C)
+  rule <k> matchDispatch(V:Val, #matchCases(#matchClass(C:Id), {}, _Rest:MatchCases)) =>
+           stmtNoResult
+      ... </k>
+    requires matchBuiltinClass(V, C)
+  rule <k> matchDispatch(V:Val, #matchCases(#matchClass(C:Id), _Body:Block, Rest:MatchCases)) =>
+           matchDispatch(V, Rest)
+      ... </k>
+    requires notBool matchBuiltinClass(V, C)
   rule <k> matchDispatch(V:Val, #matchCase(#matchSingleton(P:Val), block(SS:Stmts))) =>
            SS ~> matchDone
       ... </k>

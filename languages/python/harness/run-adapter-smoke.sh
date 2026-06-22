@@ -117,6 +117,7 @@ run_case "adapter-match-mapping-capture" "$ROOT/tests/adapter/adapter-match-mapp
 run_case "adapter-match-mapping-rest" "$ROOT/tests/adapter/adapter-match-mapping-rest.py" "True ~> .K"
 run_case "adapter-match-guards" "$ROOT/tests/adapter/adapter-match-guards.py" "True ~> .K"
 run_case "adapter-match-class-builtins" "$ROOT/tests/adapter/adapter-match-class-builtins.py" "True ~> .K"
+run_case "adapter-match-class-capture" "$ROOT/tests/adapter/adapter-match-class-capture.py" "True ~> .K"
 run_case "adapter-match-class-positional" "$ROOT/tests/adapter/adapter-match-class-positional.py" "True ~> .K"
 run_case "adapter-is-none" "$ROOT/tests/adapter/adapter-is-none.py" "True ~> .K"
 run_case "adapter-is-bool" "$ROOT/tests/adapter/adapter-is-bool.py" "True ~> .K"

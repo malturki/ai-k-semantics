@@ -522,6 +522,13 @@
       "coverage": ["match-statement", "class-pattern", "builtin-class-pattern", "sequence-pattern", "or-pattern", "guard", "ordinary-python-source-adapter"]
     },
     {
+      "id": "adapter-match-class-capture",
+      "source": "../adapter/adapter-match-class-capture.py",
+      "reference": "Python Language Reference 8.6 The match statement, Class Patterns; PEP 634 Structural Pattern Matching",
+      "expected_result": "True ~> .K",
+      "coverage": ["match-statement", "class-pattern", "builtin-class-pattern", "positional-class-pattern", "whole-object-subpattern", "capture-pattern", "class-arg-capture-binding", "failed-pattern-binding-rollback", "guard-binding-visibility", "ordinary-python-source-adapter"]
+    },
+    {
       "id": "adapter-match-class-positional",
       "source": "../adapter/adapter-match-class-positional.py",
       "reference": "Python Language Reference 8.6 The match statement, Class Patterns; PEP 634 Structural Pattern Matching",

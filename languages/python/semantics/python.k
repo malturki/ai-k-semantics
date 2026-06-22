@@ -2601,6 +2601,8 @@ module PYTHON
     bindMatchSequence(Rho, V, PS)
   rule bindMatchPattern(Rho:Map, V:Val, #matchMapping(MPS:MatchMapPatterns)) =>
     bindMatchMapping(Rho, V, MPS)
+  rule bindMatchPattern(Rho:Map, V:Val, #matchClassArg(_C:Id, P:MatchPattern)) =>
+    bindMatchPattern(Rho, V, P)
   rule bindMatchPattern(Rho:Map, _V:Val, _P:MatchPattern) => Rho [owise]
 
   rule bindMatchSequence(Rho:Map, [], #matchNoPatterns) => Rho
@@ -10719,6 +10721,7 @@ module PYTHON
   rule <k> matchGuardPattern(V:Val, #matchClassArg(C:Id, P:MatchPattern), Guard:Exp, Body:Block, Rest:MaybeMatchCases) =>
            Guard ~> matchGuardSelect(V, Body, Rest)
       ... </k>
+      <env> Rho => bindMatchPattern(Rho, V, #matchClassArg(C, P)) </env>
     requires matchBuiltinClassArg(V, C, P)
   rule <k> matchGuardPattern(V:Val, #matchClassArg(C:Id, P:MatchPattern), _Guard:Exp, _Body:Block, Rest:MaybeMatchCases) =>
            matchGuardNoMatch(V, Rest)
@@ -10999,10 +11002,12 @@ module PYTHON
   rule <k> matchDispatch(V:Val, #matchCase(#matchClassArg(C:Id, P:MatchPattern), block(SS:Stmts))) =>
            SS ~> matchDone
       ... </k>
+      <env> Rho => bindMatchPattern(Rho, V, #matchClassArg(C, P)) </env>
     requires matchBuiltinClassArg(V, C, P)
   rule <k> matchDispatch(V:Val, #matchCase(#matchClassArg(C:Id, P:MatchPattern), {})) =>
            stmtNoResult
       ... </k>
+      <env> Rho => bindMatchPattern(Rho, V, #matchClassArg(C, P)) </env>
     requires matchBuiltinClassArg(V, C, P)
   rule <k> matchDispatch(V:Val, #matchCase(#matchClassArg(C:Id, P:MatchPattern), _Body:Block)) =>
            stmtNoResult
@@ -11011,10 +11016,12 @@ module PYTHON
   rule <k> matchDispatch(V:Val, #matchCases(#matchClassArg(C:Id, P:MatchPattern), block(SS:Stmts), _Rest:MatchCases)) =>
            SS ~> matchDone
       ... </k>
+      <env> Rho => bindMatchPattern(Rho, V, #matchClassArg(C, P)) </env>
     requires matchBuiltinClassArg(V, C, P)
   rule <k> matchDispatch(V:Val, #matchCases(#matchClassArg(C:Id, P:MatchPattern), {}, _Rest:MatchCases)) =>
            stmtNoResult
       ... </k>
+      <env> Rho => bindMatchPattern(Rho, V, #matchClassArg(C, P)) </env>
     requires matchBuiltinClassArg(V, C, P)
   rule <k> matchDispatch(V:Val, #matchCases(#matchClassArg(C:Id, P:MatchPattern), _Body:Block, Rest:MatchCases)) =>
            matchDispatch(V, Rest)

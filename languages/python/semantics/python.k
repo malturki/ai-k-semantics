@@ -1082,6 +1082,8 @@ module PYTHON
                 | stringCaselessEqFrom(String, String, Int) [function, symbol(stringCaselessEqFrom)]
                 | floatSpecialInfStringOk(String) [function, symbol(floatSpecialInfStringOk)]
                 | floatSpecialStringOk(String) [function, symbol(floatSpecialStringOk)]
+                | floatStringOk(String) [function, symbol(floatStringOk)]
+                | complexImagStringOk(String) [function, symbol(complexImagStringOk)]
                 | asciiSpace(String) [function, symbol(asciiSpace)]
                 | containsVal(Val, ValItems) [function, symbol(containsVal)]
                 | bytesContains(ValItems, ValItems) [function, symbol(bytesContains)]
@@ -1149,6 +1151,8 @@ module PYTHON
                  | floatDecimalMagnitude(String, Int) [function, symbol(floatDecimalMagnitude)]
                  | floatExponentStringValue(String) [function, symbol(floatExponentStringValue)]
                  | floatSpecialStringValue(String) [function, symbol(floatSpecialStringValue)]
+                 | floatStringValue(String) [function, symbol(floatStringValue)]
+                 | complexImagStringValue(String) [function, symbol(complexImagStringValue)]
                  | floatScale10(Float, Int) [function, symbol(floatScale10)]
                  | complexReal(Val) [function, symbol(complexReal)]
                  | complexImag(Val) [function, symbol(complexImag)]
@@ -1875,6 +1879,43 @@ module PYTHON
   rule floatSpecialStringValue(S:String) => NaN
     requires floatSpecialStringOk(S)
       andBool notBool floatSpecialInfStringOk(S)
+
+  rule floatStringOk(S:String) =>
+    intStringOk(S, 10)
+    orBool floatDecimalStringOk(S)
+    orBool floatExponentStringOk(S)
+    orBool floatSpecialStringOk(S)
+
+  rule floatStringValue(S:String) => Int2Float(intStringValue(S, 10), 53, 11)
+    requires intStringOk(S, 10)
+  rule floatStringValue(S:String) => floatDecimalStringValue(S)
+    requires floatDecimalStringOk(S)
+  rule floatStringValue(S:String) => floatExponentStringValue(S)
+    requires floatExponentStringOk(S)
+  rule floatStringValue(S:String) => floatSpecialStringValue(S)
+    requires floatSpecialStringOk(S)
+
+  rule complexImagStringOk(S:String) =>
+    substrString(S, 0, lengthString(S) -Int 1) ==String ""
+    orBool substrString(S, 0, lengthString(S) -Int 1) ==String "+"
+    orBool substrString(S, 0, lengthString(S) -Int 1) ==String "-"
+    orBool floatStringOk(substrString(S, 0, lengthString(S) -Int 1))
+    requires lengthString(S) >Int 0
+      andBool (substrString(S, lengthString(S) -Int 1, lengthString(S)) ==String "j"
+        orBool substrString(S, lengthString(S) -Int 1, lengthString(S)) ==String "J")
+  rule complexImagStringOk(_:String) => false [owise]
+
+  rule complexImagStringValue(S:String) => 1.0
+    requires substrString(S, 0, lengthString(S) -Int 1) ==String ""
+  rule complexImagStringValue(S:String) => 1.0
+    requires substrString(S, 0, lengthString(S) -Int 1) ==String "+"
+  rule complexImagStringValue(S:String) => 0.0 -Float 1.0
+    requires substrString(S, 0, lengthString(S) -Int 1) ==String "-"
+  rule complexImagStringValue(S:String) => floatStringValue(substrString(S, 0, lengthString(S) -Int 1))
+    requires complexImagStringOk(S)
+      andBool substrString(S, 0, lengthString(S) -Int 1) =/=String ""
+      andBool substrString(S, 0, lengthString(S) -Int 1) =/=String "+"
+      andBool substrString(S, 0, lengthString(S) -Int 1) =/=String "-"
 
   rule floatScale10(F:Float, 0) => F
   rule floatScale10(F:Float, N:Int) => floatScale10(F *Float 10.0, N -Int 1)
@@ -9323,6 +9364,13 @@ module PYTHON
   rule #floatCtor(S:String) => floatSpecialStringValue(S)
     requires floatSpecialStringOk(S)
   rule #complexCtor() => #complex(0.0, 0.0)
+  rule #complexCtor(S:String) => #complexCtor(stripAsciiSpace(S))
+    requires stripAsciiSpace(S) =/=String S
+      andBool (floatStringOk(stripAsciiSpace(S)) orBool complexImagStringOk(stripAsciiSpace(S)))
+  rule #complexCtor(S:String) => #complex(floatStringValue(S), 0.0)
+    requires floatStringOk(S)
+  rule #complexCtor(S:String) => #complex(0.0, complexImagStringValue(S))
+    requires complexImagStringOk(S)
   rule #complexCtor(V:Val) => #complex(complexReal(V), complexImag(V))
     requires isComplexLike(V)
   rule #complexCtor(V1:Val, V2:Val) =>

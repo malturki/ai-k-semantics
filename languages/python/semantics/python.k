@@ -1316,6 +1316,9 @@ module PYTHON
   syntax Map ::= bindTarget(Map, Target, Val) [function, symbol(bindTarget)]
   syntax Map ::= bindTargets(Map, Targets, ValItems) [function, symbol(bindTargets)]
   syntax Map ::= bindTargetStarSeq(Map, MaybeTargets, Id, MaybeTargets, ValItems) [function, symbol(bindTargetStarSeq)]
+  syntax Map ::= bindMatchPattern(Map, Val, MatchPattern) [function, symbol(bindMatchPattern)]
+  syntax Map ::= bindMatchSequence(Map, Val, MatchPatterns) [function, symbol(bindMatchSequence)]
+  syntax Map ::= bindMatchValItems(Map, ValItems, MatchPatterns) [function, symbol(bindMatchValItems)]
   syntax Map ::= bindMaybePrefixTargets(Map, MaybeTargets, ValItems) [function, symbol(bindMaybePrefixTargets)]
   syntax Map ::= bindMaybeSuffixTargets(Map, MaybeTargets, ValItems) [function, symbol(bindMaybeSuffixTargets)]
   syntax Map ::= delIds(Map, IdItems) [function, symbol(delIds)]
@@ -2576,6 +2579,7 @@ module PYTHON
     requires notBool builtinClassWholeArg(C)
 
   rule matchSimplePattern(_:Val, #matchWildcard) => true
+  rule matchSimplePattern(_:Val, #matchCapture(_Name:Id)) => true
   rule matchSimplePattern(V:Val, #matchValue(P:Val)) => valEq(V, P)
   rule matchSimplePattern(V:Val, #matchSingleton(P:Val)) => singletonPatternEq(V, P)
   rule matchSimplePattern(V:Val, #matchClass(C:Id)) => matchBuiltinClass(V, C)
@@ -2587,6 +2591,27 @@ module PYTHON
   rule matchSimplePattern(V:Val, #matchSequenceStar(Prefix:MatchPatterns, Suffix:MatchPatterns)) =>
     matchStarSequence(V, Prefix, Suffix)
   rule matchSimplePattern(V:Val, #matchMapping(MPS:MatchMapPatterns)) => matchMapping(V, MPS)
+
+  rule bindMatchPattern(Rho:Map, V:Val, #matchCapture(Name:Id)) => Rho [ Name <- V ]
+  rule bindMatchPattern(Rho:Map, V:Val, #matchAs(P:MatchPattern, Name:Id)) =>
+    bindMatchPattern(Rho, V, P) [ Name <- V ]
+  rule bindMatchPattern(Rho:Map, V:Val, #matchSequence(PS:MatchPatterns)) =>
+    bindMatchSequence(Rho, V, PS)
+  rule bindMatchPattern(Rho:Map, _V:Val, _P:MatchPattern) => Rho [owise]
+
+  rule bindMatchSequence(Rho:Map, [], #matchNoPatterns) => Rho
+  rule bindMatchSequence(Rho:Map, (), #matchNoPatterns) => Rho
+  rule bindMatchSequence(Rho:Map, listVal(VS:ValItems), PS:MatchPatterns) =>
+    bindMatchValItems(Rho, VS, PS)
+  rule bindMatchSequence(Rho:Map, tupleVal(VS:ValItems), PS:MatchPatterns) =>
+    bindMatchValItems(Rho, VS, PS)
+  rule bindMatchSequence(Rho:Map, _V:Val, _PS:MatchPatterns) => Rho [owise]
+
+  rule bindMatchValItems(Rho:Map, valItemsLast(V:Val), #matchPattern(P:MatchPattern, #matchNoPatterns)) =>
+    bindMatchPattern(Rho, V, P)
+  rule bindMatchValItems(Rho:Map, valItemsCons(V:Val, VS:ValItems), #matchPattern(P:MatchPattern, PS:MatchPatterns)) =>
+    bindMatchValItems(bindMatchPattern(Rho, V, P), VS, PS)
+  rule bindMatchValItems(Rho:Map, _VS:ValItems, _PS:MatchPatterns) => Rho [owise]
 
   rule matchFixedSequence([], #matchNoPatterns) => true
   rule matchFixedSequence([], #matchPattern(_:MatchPattern, _:MatchPatterns)) => false
@@ -10619,6 +10644,7 @@ module PYTHON
   rule <k> matchGuardPattern(V:Val, #matchSequence(PS:MatchPatterns), Guard:Exp, Body:Block, Rest:MaybeMatchCases) =>
            Guard ~> matchGuardSelect(V, Body, Rest)
       ... </k>
+      <env> Rho => bindMatchSequence(Rho, V, PS) </env>
     requires matchFixedSequence(V, PS)
   rule <k> matchGuardPattern(V:Val, #matchSequence(PS:MatchPatterns), _Guard:Exp, _Body:Block, Rest:MaybeMatchCases) =>
            matchGuardNoMatch(V, Rest)
@@ -10797,10 +10823,12 @@ module PYTHON
   rule <k> matchDispatch(V:Val, #matchCase(#matchSequence(PS:MatchPatterns), block(SS:Stmts))) =>
            SS ~> matchDone
       ... </k>
+      <env> Rho => bindMatchSequence(Rho, V, PS) </env>
     requires matchFixedSequence(V, PS)
   rule <k> matchDispatch(V:Val, #matchCase(#matchSequence(PS:MatchPatterns), {})) =>
            stmtNoResult
       ... </k>
+      <env> Rho => bindMatchSequence(Rho, V, PS) </env>
     requires matchFixedSequence(V, PS)
   rule <k> matchDispatch(V:Val, #matchCase(#matchSequence(PS:MatchPatterns), _Body:Block)) =>
            stmtNoResult
@@ -10809,10 +10837,12 @@ module PYTHON
   rule <k> matchDispatch(V:Val, #matchCases(#matchSequence(PS:MatchPatterns), block(SS:Stmts), _Rest:MatchCases)) =>
            SS ~> matchDone
       ... </k>
+      <env> Rho => bindMatchSequence(Rho, V, PS) </env>
     requires matchFixedSequence(V, PS)
   rule <k> matchDispatch(V:Val, #matchCases(#matchSequence(PS:MatchPatterns), {}, _Rest:MatchCases)) =>
            stmtNoResult
       ... </k>
+      <env> Rho => bindMatchSequence(Rho, V, PS) </env>
     requires matchFixedSequence(V, PS)
   rule <k> matchDispatch(V:Val, #matchCases(#matchSequence(PS:MatchPatterns), _Body:Block, Rest:MatchCases)) =>
            matchDispatch(V, Rest)

@@ -466,7 +466,7 @@ def emit_match_pattern(node: ast.AST, pattern: ast.pattern) -> str:
         case ast.MatchOr(patterns=patterns):
             return emit_match_or_patterns(node, patterns)
         case ast.MatchSequence(patterns=patterns):
-            return emit_match_sequence_pattern(node, patterns, allow_star_capture=True)
+            return emit_match_sequence_pattern(node, patterns, allow_star_capture=True, allow_element_capture=True)
         case ast.MatchMapping(keys=keys, patterns=patterns, rest=rest):
             return emit_match_mapping_pattern(node, keys, patterns, rest, allow_rest_capture=True)
         case ast.MatchClass(cls=cls, patterns=[], kwd_attrs=[], kwd_patterns=[]):
@@ -503,7 +503,7 @@ def emit_match_nonbinding_pattern(node: ast.AST, pattern: ast.pattern) -> str:
         case ast.MatchOr(patterns=patterns):
             return emit_match_or_patterns(node, patterns)
         case ast.MatchSequence(patterns=patterns):
-            return emit_match_sequence_pattern(node, patterns, allow_star_capture=False)
+            return emit_match_sequence_pattern(node, patterns, allow_star_capture=False, allow_element_capture=False)
         case ast.MatchMapping(keys=keys, patterns=patterns, rest=rest):
             return emit_match_mapping_pattern(node, keys, patterns, rest, allow_rest_capture=False)
         case ast.MatchClass(cls=cls, patterns=[], kwd_attrs=[], kwd_patterns=[]):
@@ -531,23 +531,36 @@ def emit_single_arg_match_class(node: ast.AST, cls: ast.expr, subpattern: ast.pa
     return f"#matchClassArg({emitted_class}, {emit_match_nonbinding_pattern(node, subpattern)})"
 
 
-def emit_match_sequence_patterns(node: ast.AST, patterns: list[ast.pattern]) -> str:
+def emit_match_sequence_patterns(node: ast.AST, patterns: list[ast.pattern], allow_capture: bool) -> str:
     if not patterns:
         return "#matchNoPatterns"
-    head = emit_match_nonbinding_pattern(node, patterns[0])
-    return f"#matchPattern({head}, {emit_match_sequence_patterns(node, patterns[1:])})"
+    head = emit_match_sequence_element_pattern(node, patterns[0], allow_capture=allow_capture)
+    return f"#matchPattern({head}, {emit_match_sequence_patterns(node, patterns[1:], allow_capture=allow_capture)})"
 
 
-def emit_match_sequence_pattern(node: ast.AST, patterns: list[ast.pattern], allow_star_capture: bool) -> str:
+def emit_match_sequence_element_pattern(node: ast.AST, pattern: ast.pattern, allow_capture: bool) -> str:
+    if allow_capture:
+        match pattern:
+            case ast.MatchAs(pattern=None, name=name) if name is not None:
+                return f"#matchCapture({emit_id(name)})"
+    return emit_match_nonbinding_pattern(node, pattern)
+
+
+def emit_match_sequence_pattern(
+    node: ast.AST,
+    patterns: list[ast.pattern],
+    allow_star_capture: bool,
+    allow_element_capture: bool,
+) -> str:
     star_indices = [index for index, pattern in enumerate(patterns) if isinstance(pattern, ast.MatchStar)]
     if not star_indices:
-        return f"#matchSequence({emit_match_sequence_patterns(node, patterns)})"
+        return f"#matchSequence({emit_match_sequence_patterns(node, patterns, allow_capture=allow_element_capture)})"
     if len(star_indices) != 1:
         raise unsupported(node, "sequence match patterns support at most one star pattern")
     star_index = star_indices[0]
     star_pattern = patterns[star_index]
-    prefix = emit_match_sequence_patterns(node, patterns[:star_index])
-    suffix = emit_match_sequence_patterns(node, patterns[star_index + 1 :])
+    prefix = emit_match_sequence_patterns(node, patterns[:star_index], allow_capture=False)
+    suffix = emit_match_sequence_patterns(node, patterns[star_index + 1 :], allow_capture=False)
     if not isinstance(star_pattern, ast.MatchStar):
         raise unsupported(node, "sequence star pattern shape is unsupported")
     if star_pattern.name is not None:

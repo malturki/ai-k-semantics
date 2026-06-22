@@ -466,6 +466,13 @@
       "coverage": ["match-statement", "sequence-pattern", "fixed-length-sequence", "literal-pattern", "singleton-pattern", "or-pattern", "as-pattern", "ordinary-python-source-adapter"]
     },
     {
+      "id": "adapter-match-sequence-capture",
+      "source": "../adapter/adapter-match-sequence-capture.py",
+      "reference": "Python Language Reference 8.6 The match statement; PEP 634 Structural Pattern Matching",
+      "expected_result": "True ~> .K",
+      "coverage": ["match-statement", "sequence-pattern", "fixed-length-sequence", "capture-pattern", "sequence-capture-binding", "failed-pattern-binding-rollback", "guard-binding-visibility", "ordinary-python-source-adapter"]
+    },
+    {
       "id": "adapter-match-sequence-star",
       "source": "../adapter/adapter-match-sequence-star.py",
       "reference": "Python Language Reference 8.6 The match statement; PEP 634 Structural Pattern Matching",

@@ -498,9 +498,9 @@
               "section": "The assert statement"
             }
           ],
-          "k_coverage": ["semantics/python.k: truthy assert succeeds, including adapter-backed optional assertion messages that are not evaluated on success", "semantics/python.k: internal #debug expression evaluates to True for the current non-optimized profile"],
-          "test_coverage": ["tests/examples/smoke-assert-global.py", "tests/adapter/adapter-assert-message.py", "tests/adapter/adapter-debug-constant.py"],
-          "gaps": ["Need AssertionError construction/raising, false-assert message evaluation/attachment, and optimization profile handling for assert elision and __debug__ under -O."]
+          "k_coverage": ["semantics/python.k: truthy assert succeeds, including adapter-backed optional assertion messages that are not evaluated on success; false assert raises the current internal AssertionError sentinel, and false assert with a message evaluates the message expression before raising the sentinel while leaving message payload attachment out of the current exception profile", "semantics/python.k: internal #debug expression evaluates to True for the current non-optimized profile"],
+          "test_coverage": ["tests/examples/smoke-assert-global.py", "tests/adapter/adapter-assert-message.py", "tests/adapter/adapter-assert-false.py", "tests/adapter/adapter-debug-constant.py"],
+          "gaps": ["Need real AssertionError object construction and message attachment, and optimization profile handling for assert elision and __debug__ under -O."]
         },
         {
           "id": "stmt.pass-del-return-yield-raise",

@@ -964,6 +964,7 @@ module PYTHON
                  | tryExceptCasesElseDone(ExceptHandlers, Block) [symbol(tryExceptCasesElseDone)]
                  | handleException(Val, ExceptHandlers) [symbol(handleException)]
                  | exceptAsCleanup(Id) [symbol(exceptAsCleanup)]
+                 | "assertMsgRaise" [symbol(assertMsgRaise)]
                  | "forDone" [symbol(forDone)]
                  | "breakSignal" [symbol(breakSignal)]
                  | "continueSignal" [symbol(continueSignal)]
@@ -13089,8 +13090,14 @@ module PYTHON
   rule <k> pass => stmtNoResult ... </k>
   rule <k> assertStmt(V:Val) => stmtNoResult ... </k>
     requires truthy(V)
+  rule <k> assertStmt(V:Val) => exceptionSignal(#exception(#token("AssertionError", "Id"))) ... </k>
+    requires notBool truthy(V)
   rule <k> assertMsgStmt(V:Val, _Msg:Exp) => stmtNoResult ... </k>
     requires truthy(V)
+  rule <k> assertMsgStmt(V:Val, Msg:Exp) => Msg ~> assertMsgRaise ... </k>
+    requires notBool truthy(V)
+  rule <k> _Msg:Val ~> assertMsgRaise => exceptionSignal(#exception(#token("AssertionError", "Id"))) ... </k>
+  rule <k> exceptionSignal(E:Val) ~> assertMsgRaise => exceptionSignal(E) ... </k>
   rule <k> globalStmt(_:Id) => stmtNoResult ... </k>
   rule <k> globalManyStmt(_:IdItems) => stmtNoResult ... </k>
 

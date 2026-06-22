@@ -84,6 +84,7 @@ module PYTHON-SYNTAX
                         | "#matchAs" "(" MatchPattern "," Id ")" [symbol(matchAsPattern)]
                         | "#matchSequence" "(" MatchPatterns ")" [symbol(matchSequencePattern)]
                         | "#matchSequenceStar" "(" MatchPatterns "," MatchPatterns ")" [symbol(matchSequenceStarPattern)]
+                        | "#matchSequenceStarCapture" "(" MatchPatterns "," Id "," MatchPatterns ")" [symbol(matchSequenceStarCapturePattern)]
                         | "#matchWildcard" [symbol(matchWildcardPattern)]
 
   syntax MatchPatterns ::= "#matchNoPatterns" [symbol(matchNoPatterns)]
@@ -1318,6 +1319,7 @@ module PYTHON
   syntax Val ::= complexCtorMergeKw(Val, KwArgVals) [function, symbol(complexCtorMergeKw)]
   syntax Val ::= complexCtorRealArg(KwArgVals) [function, symbol(complexCtorRealArg)]
                | complexCtorImagArg(KwArgVals) [function, symbol(complexCtorImagArg)]
+               | matchStarMiddle(Val, MatchPatterns, MatchPatterns) [function, symbol(matchStarMiddle)]
   syntax Val ::= listSlice(ValItems, Int, Int) [function, symbol(listSlice)]
                | tupleSlice(ValItems, Int, Int) [function, symbol(tupleSlice)]
                | bytesSlice(ValItems, Int, Int) [function, symbol(bytesSlice)]
@@ -2544,6 +2546,15 @@ module PYTHON
   rule matchValItemsSuffix(VS:ValItems, Suffix:MatchPatterns) =>
     matchValItemsPatterns(dropValItems(VS, valItemsLen(VS) -Int matchPatternsLen(Suffix)), Suffix)
     requires matchPatternsLen(Suffix) >Int 0
+
+  rule matchStarMiddle([], #matchNoPatterns, #matchNoPatterns) => []
+  rule matchStarMiddle((), #matchNoPatterns, #matchNoPatterns) => []
+  rule matchStarMiddle(listVal(VS:ValItems), Prefix:MatchPatterns, Suffix:MatchPatterns) =>
+    listSlice(VS, matchPatternsLen(Prefix), valItemsLen(VS) -Int matchPatternsLen(Suffix))
+    requires matchPatternsLen(Prefix) +Int matchPatternsLen(Suffix) <=Int valItemsLen(VS)
+  rule matchStarMiddle(tupleVal(VS:ValItems), Prefix:MatchPatterns, Suffix:MatchPatterns) =>
+    listSlice(VS, matchPatternsLen(Prefix), valItemsLen(VS) -Int matchPatternsLen(Suffix))
+    requires matchPatternsLen(Prefix) +Int matchPatternsLen(Suffix) <=Int valItemsLen(VS)
 
   rule valEq(I1:Int, I2:Int) => I1 ==Int I2
   rule valEq(F1:Float, F2:Float) => F1 ==Float F2
@@ -10572,6 +10583,34 @@ module PYTHON
       ... </k>
     requires matchStarSequence(V, Prefix, Suffix)
   rule <k> matchDispatch(V:Val, #matchCases(#matchSequenceStar(Prefix:MatchPatterns, Suffix:MatchPatterns), _Body:Block, Rest:MatchCases)) =>
+           matchDispatch(V, Rest)
+      ... </k>
+    requires notBool matchStarSequence(V, Prefix, Suffix)
+  rule <k> matchDispatch(V:Val, #matchCase(#matchSequenceStarCapture(Prefix:MatchPatterns, Name:Id, Suffix:MatchPatterns), block(SS:Stmts))) =>
+           SS ~> matchDone
+      ... </k>
+      <env> Rho => Rho [ Name <- matchStarMiddle(V, Prefix, Suffix) ] </env>
+    requires matchStarSequence(V, Prefix, Suffix)
+  rule <k> matchDispatch(V:Val, #matchCase(#matchSequenceStarCapture(Prefix:MatchPatterns, Name:Id, Suffix:MatchPatterns), {})) =>
+           stmtNoResult
+      ... </k>
+      <env> Rho => Rho [ Name <- matchStarMiddle(V, Prefix, Suffix) ] </env>
+    requires matchStarSequence(V, Prefix, Suffix)
+  rule <k> matchDispatch(V:Val, #matchCase(#matchSequenceStarCapture(Prefix:MatchPatterns, _Name:Id, Suffix:MatchPatterns), _Body:Block)) =>
+           stmtNoResult
+      ... </k>
+    requires notBool matchStarSequence(V, Prefix, Suffix)
+  rule <k> matchDispatch(V:Val, #matchCases(#matchSequenceStarCapture(Prefix:MatchPatterns, Name:Id, Suffix:MatchPatterns), block(SS:Stmts), _Rest:MatchCases)) =>
+           SS ~> matchDone
+      ... </k>
+      <env> Rho => Rho [ Name <- matchStarMiddle(V, Prefix, Suffix) ] </env>
+    requires matchStarSequence(V, Prefix, Suffix)
+  rule <k> matchDispatch(V:Val, #matchCases(#matchSequenceStarCapture(Prefix:MatchPatterns, Name:Id, Suffix:MatchPatterns), {}, _Rest:MatchCases)) =>
+           stmtNoResult
+      ... </k>
+      <env> Rho => Rho [ Name <- matchStarMiddle(V, Prefix, Suffix) ] </env>
+    requires matchStarSequence(V, Prefix, Suffix)
+  rule <k> matchDispatch(V:Val, #matchCases(#matchSequenceStarCapture(Prefix:MatchPatterns, _Name:Id, Suffix:MatchPatterns), _Body:Block, Rest:MatchCases)) =>
            matchDispatch(V, Rest)
       ... </k>
     requires notBool matchStarSequence(V, Prefix, Suffix)

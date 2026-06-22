@@ -435,7 +435,7 @@ def emit_match_pattern(node: ast.AST, pattern: ast.pattern) -> str:
         case ast.MatchOr(patterns=patterns):
             return emit_match_or_patterns(node, patterns)
         case ast.MatchSequence(patterns=patterns):
-            return emit_match_sequence_pattern(node, patterns)
+            return emit_match_sequence_pattern(node, patterns, allow_star_capture=True)
         case _:
             raise unsupported(node, "only value, singleton, wildcard, capture, non-binding OR, non-binding AS, and non-binding sequence match patterns are supported")
 
@@ -466,7 +466,7 @@ def emit_match_nonbinding_pattern(node: ast.AST, pattern: ast.pattern) -> str:
         case ast.MatchOr(patterns=patterns):
             return emit_match_or_patterns(node, patterns)
         case ast.MatchSequence(patterns=patterns):
-            return emit_match_sequence_pattern(node, patterns)
+            return emit_match_sequence_pattern(node, patterns, allow_star_capture=False)
         case _:
             raise unsupported(node, "only non-binding wildcard, literal, singleton, OR, and sequence pattern alternatives are supported")
 
@@ -478,7 +478,7 @@ def emit_match_sequence_patterns(node: ast.AST, patterns: list[ast.pattern]) -> 
     return f"#matchPattern({head}, {emit_match_sequence_patterns(node, patterns[1:])})"
 
 
-def emit_match_sequence_pattern(node: ast.AST, patterns: list[ast.pattern]) -> str:
+def emit_match_sequence_pattern(node: ast.AST, patterns: list[ast.pattern], allow_star_capture: bool) -> str:
     star_indices = [index for index, pattern in enumerate(patterns) if isinstance(pattern, ast.MatchStar)]
     if not star_indices:
         return f"#matchSequence({emit_match_sequence_patterns(node, patterns)})"
@@ -486,10 +486,14 @@ def emit_match_sequence_pattern(node: ast.AST, patterns: list[ast.pattern]) -> s
         raise unsupported(node, "sequence match patterns support at most one star pattern")
     star_index = star_indices[0]
     star_pattern = patterns[star_index]
-    if not isinstance(star_pattern, ast.MatchStar) or star_pattern.name is not None:
-        raise unsupported(node, "only non-binding *_ sequence match patterns are supported")
     prefix = emit_match_sequence_patterns(node, patterns[:star_index])
     suffix = emit_match_sequence_patterns(node, patterns[star_index + 1 :])
+    if not isinstance(star_pattern, ast.MatchStar):
+        raise unsupported(node, "sequence star pattern shape is unsupported")
+    if star_pattern.name is not None:
+        if not allow_star_capture:
+            raise unsupported(node, "capture-bearing starred sequence patterns require binding rollback in this position")
+        return f"#matchSequenceStarCapture({prefix}, {emit_id(star_pattern.name)}, {suffix})"
     return f"#matchSequenceStar({prefix}, {suffix})"
 
 

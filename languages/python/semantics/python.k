@@ -79,6 +79,7 @@ module PYTHON-SYNTAX
 
   syntax MatchPattern ::= "#matchValue" "(" Exp ")" [symbol(matchValuePattern)]
                         | "#matchSingleton" "(" Val ")" [symbol(matchSingletonPattern)]
+                        | "#matchCapture" "(" Id ")" [symbol(matchCapturePattern)]
                         | "#matchWildcard" [symbol(matchWildcardPattern)]
 
   syntax MatchCases ::= "#matchCase" "(" MatchPattern "," Block ")" [symbol(matchCaseLast)]
@@ -10386,6 +10387,22 @@ module PYTHON
   rule <k> matchDispatch(_:Val, #matchCases(#matchWildcard, {}, _Rest:MatchCases)) =>
            stmtNoResult
       ... </k>
+  rule <k> matchDispatch(V:Val, #matchCase(#matchCapture(Name:Id), block(SS:Stmts))) =>
+           SS ~> matchDone
+      ... </k>
+      <env> Rho => Rho [ Name <- V ] </env>
+  rule <k> matchDispatch(V:Val, #matchCase(#matchCapture(Name:Id), {})) =>
+           stmtNoResult
+      ... </k>
+      <env> Rho => Rho [ Name <- V ] </env>
+  rule <k> matchDispatch(V:Val, #matchCases(#matchCapture(Name:Id), block(SS:Stmts), _Rest:MatchCases)) =>
+           SS ~> matchDone
+      ... </k>
+      <env> Rho => Rho [ Name <- V ] </env>
+  rule <k> matchDispatch(V:Val, #matchCases(#matchCapture(Name:Id), {}, _Rest:MatchCases)) =>
+           stmtNoResult
+      ... </k>
+      <env> Rho => Rho [ Name <- V ] </env>
   rule <k> matchDispatch(V:Val, #matchCase(#matchSingleton(P:Val), block(SS:Stmts))) =>
            SS ~> matchDone
       ... </k>

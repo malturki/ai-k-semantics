@@ -420,6 +420,8 @@ def emit_match_pattern(node: ast.AST, pattern: ast.pattern) -> str:
     match pattern:
         case ast.MatchAs(name=None):
             return "#matchWildcard"
+        case ast.MatchAs(name=name):
+            return f"#matchCapture({emit_id(name)})"
         case ast.MatchSingleton(value=True):
             return "#matchSingleton(True)"
         case ast.MatchSingleton(value=False):

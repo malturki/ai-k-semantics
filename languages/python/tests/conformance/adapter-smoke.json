@@ -438,6 +438,13 @@
       "coverage": ["match-statement", "literal-pattern", "singleton-pattern", "wildcard-pattern", "ordered-case-selection", "subject-evaluated-once", "ordinary-python-source-adapter"]
     },
     {
+      "id": "adapter-match-capture",
+      "source": "../adapter/adapter-match-capture.py",
+      "reference": "Python Language Reference 8.6 The match statement; PEP 634 Structural Pattern Matching",
+      "expected_result": "True ~> .K",
+      "coverage": ["match-statement", "capture-pattern", "name-binding", "ordered-case-selection", "binding-persists-after-match", "ordinary-python-source-adapter"]
+    },
+    {
       "id": "adapter-is-none",
       "source": "../adapter/adapter-is-none.py",
       "reference": "Python Language Reference 6.10.3 Identity comparisons",

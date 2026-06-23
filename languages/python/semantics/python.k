@@ -268,6 +268,7 @@ module PYTHON-SYNTAX
                 | "#forStarUnpack" "(" IdItems "," Id "," IdItems "," Exp "," Block ")" [symbol(forStarUnpackStmt)]
                 | "#forStarUnpackElse" "(" IdItems "," Id "," IdItems "," Exp "," Block "," Block ")" [symbol(forStarUnpackElseStmt)]
                 | "raise" Exp [symbol(raiseStmt), strict]
+                | "#raiseFromNone" "(" Exp ")" [symbol(raiseFromNoneStmt), strict]
                 | "#match" "(" Exp "," MatchCases ")" [symbol(matchStmt)]
                 | "#tryExcept" "(" Block "," Id "," Block ")" [symbol(tryExceptStmt)]
                 | "#tryExceptElse" "(" Block "," Id "," Block "," Block ")" [symbol(tryExceptElseStmt)]
@@ -12970,6 +12971,7 @@ module PYTHON
   rule <k> return => returnSignal(None) ... </k>
   rule <k> returnStmt(V:Val) => returnSignal(V) ... </k>
   rule <k> raiseStmt(V:Val) => exceptionSignal(V) ... </k>
+  rule <k> raiseFromNoneStmt(V:Val) => exceptionSignal(V) ... </k>
 
   rule <k> breakSignal ~> stmtNext(_:Stmts) => breakSignal ... </k>
   rule <k> continueSignal ~> stmtNext(_:Stmts) => continueSignal ... </k>

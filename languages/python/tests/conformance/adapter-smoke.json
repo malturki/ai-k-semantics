@@ -1558,6 +1558,13 @@
       "coverage": ["try-statement", "except-clause", "else-clause", "finally-clause", "raise-statement", "exception-handler-matching", "exception-handler-mismatch", "exception-propagation", "finally-runs-after-handler", "finally-runs-after-else", "finally-runs-during-exception-propagation", "finally-return-overrides-pending-return", "finally-raise-overrides-handler-completion", "ordinary-python-source-adapter"]
     },
     {
+      "id": "adapter-raise-from-none",
+      "source": "../adapter/adapter-raise-from-none.py",
+      "reference": "Python Language Reference 7.8 The raise statement; 8.4 The try statement",
+      "expected_result": "True ~> .K",
+      "coverage": ["raise-statement", "raise-from-none", "exception-context-suppression-sentinel-profile", "exception-handler-matching", "exception-handler-mismatch", "finally-runs-during-exception-propagation", "ordinary-python-source-adapter"]
+    },
+    {
       "id": "adapter-try-except-basic",
       "source": "../adapter/adapter-try-except-basic.py",
       "reference": "Python Language Reference 8.4 The try statement; 7.8 The raise statement",

@@ -10971,11 +10971,11 @@ module PYTHON
            callExp(Key, V) ~> minKeyInit(V, VS, Key)
        ... </k>
   rule <k> K:Val ~> minKeySingle(Item:Val) => Item ... </k>
-    requires isIntLike(K)
+    requires numericComparableVal(K)
   rule <k> K:Val ~> minKeyInit(Item:Val, VS:ValItems, Key:Val) =>
            minKeyLoop(Item, K, VS, Key)
        ... </k>
-    requires isIntLike(K)
+    requires numericComparableVal(K)
   rule <k> minKeyLoop(BestItem:Val, BestKey:Val, valItemsLast(V:Val), Key:Val) =>
            callExp(Key, V) ~> minKeyCompareLast(V, BestItem, BestKey)
        ... </k>
@@ -10983,17 +10983,25 @@ module PYTHON
            callExp(Key, V) ~> minKeyCompare(V, BestItem, BestKey, VS, Key)
        ... </k>
   rule <k> K:Val ~> minKeyCompareLast(Item:Val, _BestItem:Val, BestKey:Val) => Item ... </k>
-    requires isIntLike(K) andBool isIntLike(BestKey) andBool intValue(K) <Int intValue(BestKey)
+    requires numericComparableVal(K)
+      andBool numericComparableVal(BestKey)
+      andBool cmpHolds(#lt, K, BestKey)
   rule <k> K:Val ~> minKeyCompareLast(_Item:Val, BestItem:Val, BestKey:Val) => BestItem ... </k>
-    requires isIntLike(K) andBool isIntLike(BestKey) andBool intValue(K) >=Int intValue(BestKey)
+    requires numericComparableVal(K)
+      andBool numericComparableVal(BestKey)
+      andBool cmpHolds(#ge, K, BestKey)
   rule <k> K:Val ~> minKeyCompare(Item:Val, _BestItem:Val, BestKey:Val, VS:ValItems, Key:Val) =>
            minKeyLoop(Item, K, VS, Key)
        ... </k>
-    requires isIntLike(K) andBool isIntLike(BestKey) andBool intValue(K) <Int intValue(BestKey)
+    requires numericComparableVal(K)
+      andBool numericComparableVal(BestKey)
+      andBool cmpHolds(#lt, K, BestKey)
   rule <k> K:Val ~> minKeyCompare(_Item:Val, BestItem:Val, BestKey:Val, VS:ValItems, Key:Val) =>
            minKeyLoop(BestItem, BestKey, VS, Key)
        ... </k>
-    requires isIntLike(K) andBool isIntLike(BestKey) andBool intValue(K) >=Int intValue(BestKey)
+    requires numericComparableVal(K)
+      andBool numericComparableVal(BestKey)
+      andBool cmpHolds(#ge, K, BestKey)
   rule <k> maxKeyExp(Iter:Exp, Key:Exp) => Iter ~> maxKeyEval(Key) ... </k>
   rule <k> V:Val ~> maxKeyEval(Key:Exp) => Key ~> maxKeyApply(V) ... </k>
   rule <k> None ~> maxKeyApply(V:Val) => #max(V) ... </k>
@@ -11027,11 +11035,11 @@ module PYTHON
            callExp(Key, V) ~> maxKeyInit(V, VS, Key)
        ... </k>
   rule <k> K:Val ~> maxKeySingle(Item:Val) => Item ... </k>
-    requires isIntLike(K)
+    requires numericComparableVal(K)
   rule <k> K:Val ~> maxKeyInit(Item:Val, VS:ValItems, Key:Val) =>
            maxKeyLoop(Item, K, VS, Key)
        ... </k>
-    requires isIntLike(K)
+    requires numericComparableVal(K)
   rule <k> maxKeyLoop(BestItem:Val, BestKey:Val, valItemsLast(V:Val), Key:Val) =>
            callExp(Key, V) ~> maxKeyCompareLast(V, BestItem, BestKey)
        ... </k>
@@ -11039,17 +11047,25 @@ module PYTHON
            callExp(Key, V) ~> maxKeyCompare(V, BestItem, BestKey, VS, Key)
        ... </k>
   rule <k> K:Val ~> maxKeyCompareLast(Item:Val, _BestItem:Val, BestKey:Val) => Item ... </k>
-    requires isIntLike(K) andBool isIntLike(BestKey) andBool intValue(K) >Int intValue(BestKey)
+    requires numericComparableVal(K)
+      andBool numericComparableVal(BestKey)
+      andBool cmpHolds(#gt, K, BestKey)
   rule <k> K:Val ~> maxKeyCompareLast(_Item:Val, BestItem:Val, BestKey:Val) => BestItem ... </k>
-    requires isIntLike(K) andBool isIntLike(BestKey) andBool intValue(K) <=Int intValue(BestKey)
+    requires numericComparableVal(K)
+      andBool numericComparableVal(BestKey)
+      andBool cmpHolds(#le, K, BestKey)
   rule <k> K:Val ~> maxKeyCompare(Item:Val, _BestItem:Val, BestKey:Val, VS:ValItems, Key:Val) =>
            maxKeyLoop(Item, K, VS, Key)
        ... </k>
-    requires isIntLike(K) andBool isIntLike(BestKey) andBool intValue(K) >Int intValue(BestKey)
+    requires numericComparableVal(K)
+      andBool numericComparableVal(BestKey)
+      andBool cmpHolds(#gt, K, BestKey)
   rule <k> K:Val ~> maxKeyCompare(_Item:Val, BestItem:Val, BestKey:Val, VS:ValItems, Key:Val) =>
            maxKeyLoop(BestItem, BestKey, VS, Key)
        ... </k>
-    requires isIntLike(K) andBool isIntLike(BestKey) andBool intValue(K) <=Int intValue(BestKey)
+    requires numericComparableVal(K)
+      andBool numericComparableVal(BestKey)
+      andBool cmpHolds(#le, K, BestKey)
   rule <k> minDefaultKeyExp(Iter:Exp, Default:Exp, Key:Exp) =>
            Iter ~> minDefaultKeyDefault(Default, Key)
        ... </k>

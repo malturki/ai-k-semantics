@@ -137,6 +137,7 @@ run_case "adapter-min-max-args" "$ROOT/tests/adapter/adapter-min-max-args.py" "T
 run_case "adapter-min-max-args-float" "$ROOT/tests/adapter/adapter-min-max-args-float.py" "True ~> .K"
 run_case "adapter-min-max-defaults" "$ROOT/tests/adapter/adapter-min-max-defaults.py" "True ~> .K"
 run_case "adapter-min-max-key" "$ROOT/tests/adapter/adapter-min-max-key.py" "True ~> .K"
+run_case "adapter-min-max-key-float" "$ROOT/tests/adapter/adapter-min-max-key-float.py" "True ~> .K"
 run_case "adapter-min-max-key-default" "$ROOT/tests/adapter/adapter-min-max-key-default.py" "True ~> .K"
 run_case "adapter-min-max-string" "$ROOT/tests/adapter/adapter-min-max-string.py" "True ~> .K"
 run_case "adapter-min-max-float" "$ROOT/tests/adapter/adapter-min-max-float.py" "True ~> .K"

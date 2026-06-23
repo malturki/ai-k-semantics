@@ -207,6 +207,7 @@ module PYTHON-SYNTAX
                 | "del" Id [symbol(delNameStmt)]
                 | "#delMany" "(" IdItems ")" [symbol(delManyStmt)]
                 | "#delSubscript" "(" Id "," Exp ")" [symbol(delSubscriptStmt)]
+                | "#delSlice" "(" Id "," Exp "," Exp ")" [symbol(delSliceStmt)]
                 | Id "=" Exp [symbol(assignStmt), strict(2)]
                 | "#assignName" "(" Id "," Exp ")" [symbol(assignNameStmt), strict(2)]
                 | Id "+=" Exp [symbol(augAddStmt)]
@@ -224,6 +225,7 @@ module PYTHON-SYNTAX
                 | "#assignMany" "(" IdItems ";" Exp ")" [symbol(assignManyStmt), strict(2)]
                 | "#subscriptAssign" "(" Id "," Exp "," Exp ")" [symbol(subscriptAssignStmt)]
                 | "#subscriptAug" "(" Id "," Exp "," AugOp "," Exp ")" [symbol(subscriptAugStmt)]
+                | "#sliceAssign" "(" Id "," Exp "," Exp "," Exp ")" [symbol(sliceAssignStmt)]
                 | "#unpackAssign" "(" IdItems ";" Exp ")" [symbol(unpackAssignStmt), strict(2)]
                 | "#unpackStarAssign" "(" IdItems ";" Id ";" IdItems ";" Exp ")" [symbol(unpackStarAssignStmt), strict(4)]
                 | "#unpackTargetAssign" "(" Targets ";" Exp ")" [symbol(unpackTargetAssignStmt), strict(2)]
@@ -1038,7 +1040,12 @@ module PYTHON
                  | subscriptAugOld(Id, AugOp, Exp) [symbol(subscriptAugOld)]
                  | subscriptAugApply(Id, Val, Val, AugOp) [symbol(subscriptAugApply)]
                  | subscriptAugStore(Id, Val) [symbol(subscriptAugStore)]
+                 | sliceAssignLower(Id, Exp, Exp) [symbol(sliceAssignLower)]
+                 | sliceAssignUpper(Id, Val, Exp) [symbol(sliceAssignUpper)]
+                 | sliceAssignApply(Id, Val, Val) [symbol(sliceAssignApply)]
                  | delSubscriptApply(Id) [symbol(delSubscriptApply)]
+                 | delSliceUpper(Id, Exp) [symbol(delSliceUpper)]
+                 | delSliceApply(Id, Val) [symbol(delSliceApply)]
 
   syntax Bool ::= truthy(Val) [function, symbol(truthy)]
                 | isIntLike(Val) [function, symbol(isIntLike)]
@@ -1391,6 +1398,9 @@ module PYTHON
   syntax DictItems ::= dictSet(DictItems, Val, Val) [function, symbol(dictSet)]
   syntax Val ::= listDel(ValItems, Int) [function, symbol(listDel)]
                | listPrepend(Val, Val) [function, symbol(listPrepend)]
+               | listSliceAssign(ValItems, Int, Int, ValItems) [function, symbol(listSliceAssign)]
+               | listSliceAssignEmpty(ValItems, Int, Int) [function, symbol(listSliceAssignEmpty)]
+               | listSliceDelete(ValItems, Int, Int) [function, symbol(listSliceDelete)]
                | dictDel(DictItems, Val) [function, symbol(dictDel)]
                | dictPrepend(Val, Val, Val) [function, symbol(dictPrepend)]
   syntax Val ::= dictFromDictVals(DictVals) [function, symbol(dictFromDictVals)]
@@ -4847,6 +4857,44 @@ module PYTHON
 
   rule listPrepend(V:Val, []) => listVal(valItemsLast(V))
   rule listPrepend(V:Val, listVal(VS:ValItems)) => listVal(valItemsCons(V, VS))
+
+  rule listSliceAssign(VS:ValItems, Start:Int, Stop:Int, RS:ValItems) =>
+    listVal(concatValItems(RS, VS))
+    requires Start >=Int Stop andBool Start ==Int 0
+  rule listSliceAssign(VS:ValItems, Start:Int, Stop:Int, RS:ValItems) =>
+    listVal(concatValItems(VS, RS))
+    requires Start >=Int Stop andBool Start >=Int valItemsLen(VS)
+  rule listSliceAssign(VS:ValItems, Start:Int, Stop:Int, RS:ValItems) =>
+    listVal(concatValItems(sliceValItems(VS, 0, Start), concatValItems(RS, dropValItems(VS, Start))))
+    requires Start >=Int Stop andBool Start >Int 0 andBool Start <Int valItemsLen(VS)
+  rule listSliceAssign(VS:ValItems, Start:Int, Stop:Int, RS:ValItems) =>
+    listVal(RS)
+    requires Start <Int Stop andBool Start ==Int 0 andBool Stop >=Int valItemsLen(VS)
+  rule listSliceAssign(VS:ValItems, Start:Int, Stop:Int, RS:ValItems) =>
+    listVal(concatValItems(RS, dropValItems(VS, Stop)))
+    requires Start <Int Stop andBool Start ==Int 0 andBool Stop <Int valItemsLen(VS)
+  rule listSliceAssign(VS:ValItems, Start:Int, Stop:Int, RS:ValItems) =>
+    listVal(concatValItems(sliceValItems(VS, 0, Start), RS))
+    requires Start <Int Stop andBool Start >Int 0 andBool Stop >=Int valItemsLen(VS)
+  rule listSliceAssign(VS:ValItems, Start:Int, Stop:Int, RS:ValItems) =>
+    listVal(concatValItems(sliceValItems(VS, 0, Start), concatValItems(RS, dropValItems(VS, Stop))))
+    requires Start <Int Stop andBool Start >Int 0 andBool Stop <Int valItemsLen(VS)
+
+  rule listSliceAssignEmpty(VS:ValItems, Start:Int, Stop:Int) => listVal(VS)
+    requires Start >=Int Stop
+  rule listSliceAssignEmpty(VS:ValItems, Start:Int, Stop:Int) => listSliceDelete(VS, Start, Stop)
+    requires Start <Int Stop
+
+  rule listSliceDelete(VS:ValItems, Start:Int, Stop:Int) => []
+    requires Start ==Int 0 andBool Stop >=Int valItemsLen(VS)
+  rule listSliceDelete(VS:ValItems, Start:Int, Stop:Int) => listVal(dropValItems(VS, Stop))
+    requires Start ==Int 0 andBool Stop <Int valItemsLen(VS)
+  rule listSliceDelete(VS:ValItems, Start:Int, Stop:Int) =>
+    listVal(sliceValItems(VS, 0, Start))
+    requires Start >Int 0 andBool Stop >=Int valItemsLen(VS)
+  rule listSliceDelete(VS:ValItems, Start:Int, Stop:Int) =>
+    listVal(concatValItems(sliceValItems(VS, 0, Start), dropValItems(VS, Stop)))
+    requires Start >Int 0 andBool Stop <Int valItemsLen(VS)
 
   rule dictGet(dictItemsLast(K1:Val, V:Val), K:Val) => V
     requires valEq(K, K1)
@@ -10199,6 +10247,40 @@ module PYTHON
            I ~> subscriptAssignApply(X, V)
        ... </k>
 
+  rule <k> sliceAssignStmt(X:Id, Lower:Exp, Upper:Exp, E:Exp) =>
+           E ~> sliceAssignLower(X, Lower, Upper)
+       ... </k>
+  rule <k> V:Val ~> sliceAssignLower(X:Id, Lower:Exp, Upper:Exp) =>
+           Lower ~> sliceAssignUpper(X, V, Upper)
+       ... </k>
+  rule <k> Lower:Val ~> sliceAssignUpper(X:Id, V:Val, Upper:Exp) =>
+           Upper ~> sliceAssignApply(X, V, Lower)
+       ... </k>
+  rule <k> Upper:Val ~> sliceAssignApply(X:Id, listVal(RS:ValItems), Lower:Val) => stmtNoResult ... </k>
+       <env> ... X |-> (listVal(VS:ValItems) => listSliceAssign(VS, pySliceLower(Lower, valItemsLen(VS)), pySliceUpper(Upper, valItemsLen(VS)), RS)) ... </env>
+       <result> _ => .K </result>
+  rule <k> Upper:Val ~> sliceAssignApply(X:Id, tupleVal(RS:ValItems), Lower:Val) => stmtNoResult ... </k>
+       <env> ... X |-> (listVal(VS:ValItems) => listSliceAssign(VS, pySliceLower(Lower, valItemsLen(VS)), pySliceUpper(Upper, valItemsLen(VS)), RS)) ... </env>
+       <result> _ => .K </result>
+  rule <k> Upper:Val ~> sliceAssignApply(X:Id, [], Lower:Val) => stmtNoResult ... </k>
+       <env> ... X |-> (listVal(VS:ValItems) => listSliceAssignEmpty(VS, pySliceLower(Lower, valItemsLen(VS)), pySliceUpper(Upper, valItemsLen(VS)))) ... </env>
+       <result> _ => .K </result>
+  rule <k> Upper:Val ~> sliceAssignApply(X:Id, (), Lower:Val) => stmtNoResult ... </k>
+       <env> ... X |-> (listVal(VS:ValItems) => listSliceAssignEmpty(VS, pySliceLower(Lower, valItemsLen(VS)), pySliceUpper(Upper, valItemsLen(VS)))) ... </env>
+       <result> _ => .K </result>
+  rule <k> _Upper:Val ~> sliceAssignApply(X:Id, listVal(RS:ValItems), _Lower:Val) => stmtNoResult ... </k>
+       <env> ... X |-> ([] => listVal(RS)) ... </env>
+       <result> _ => .K </result>
+  rule <k> _Upper:Val ~> sliceAssignApply(X:Id, tupleVal(RS:ValItems), _Lower:Val) => stmtNoResult ... </k>
+       <env> ... X |-> ([] => listVal(RS)) ... </env>
+       <result> _ => .K </result>
+  rule <k> _Upper:Val ~> sliceAssignApply(X:Id, [], _Lower:Val) => stmtNoResult ... </k>
+       <env> ... X |-> [] ... </env>
+       <result> _ => .K </result>
+  rule <k> _Upper:Val ~> sliceAssignApply(X:Id, (), _Lower:Val) => stmtNoResult ... </k>
+       <env> ... X |-> [] ... </env>
+       <result> _ => .K </result>
+
   rule <k> augAddStmt(X:Id, E:Exp) => assignStmt(X, X + E) ... </k>
   rule <k> augSubStmt(X:Id, E:Exp) => assignStmt(X, X - E) ... </k>
   rule <k> augMulStmt(X:Id, E:Exp) => assignStmt(X, X * E) ... </k>
@@ -13321,6 +13403,18 @@ module PYTHON
        <env> ... X |-> (dictVal(DS:DictItems) => dictDel(DS, K)) ... </env>
        <result> _ => .K </result>
     requires containsKey(K, DS)
+  rule <k> delSliceStmt(X:Id, Lower:Exp, Upper:Exp) =>
+           Lower ~> delSliceUpper(X, Upper)
+       ... </k>
+  rule <k> Lower:Val ~> delSliceUpper(X:Id, Upper:Exp) =>
+           Upper ~> delSliceApply(X, Lower)
+       ... </k>
+  rule <k> Upper:Val ~> delSliceApply(X:Id, Lower:Val) => stmtNoResult ... </k>
+       <env> ... X |-> (listVal(VS:ValItems) => listSliceAssignEmpty(VS, pySliceLower(Lower, valItemsLen(VS)), pySliceUpper(Upper, valItemsLen(VS)))) ... </env>
+       <result> _ => .K </result>
+  rule <k> _Upper:Val ~> delSliceApply(X:Id, _Lower:Val) => stmtNoResult ... </k>
+       <env> ... X |-> [] ... </env>
+       <result> _ => .K </result>
 
   rule <k> pass => stmtNoResult ... </k>
   rule <k> assertStmt(V:Val) => stmtNoResult ... </k>

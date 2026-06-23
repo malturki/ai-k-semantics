@@ -2083,6 +2083,13 @@
       "coverage": ["augmented-assignment", "subscript-target", "single-target-evaluation", "list-item-assignment", "dict-item-assignment", "negative-index", "bool-as-int-index", "ordinary-python-source-adapter"]
     },
     {
+      "id": "adapter-list-slice-assignment-deletion",
+      "source": "../adapter/adapter-list-slice-assignment-deletion.py",
+      "reference": "Python Language Reference 7.2 Assignment statements; 7.5 The del statement; 6.3.3 Slicings",
+      "expected_result": "True ~> .K",
+      "coverage": ["assignment-statement", "del-statement", "slice-target", "list-slice-assignment", "list-slice-deletion", "negative-slice-bound", "ordinary-python-source-adapter"]
+    },
+    {
       "id": "adapter-unpack-tuple",
       "source": "../adapter/adapter-unpack-tuple.py",
       "reference": "Python Language Reference 7.2 Assignment statements",

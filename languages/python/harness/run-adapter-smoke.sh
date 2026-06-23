@@ -292,6 +292,7 @@ run_case "adapter-range-membership" "$ROOT/tests/adapter/adapter-range-membershi
 run_case "adapter-range-float-membership" "$ROOT/tests/adapter/adapter-range-float-membership.py" "True ~> .K"
 run_case "adapter-range-equality" "$ROOT/tests/adapter/adapter-range-equality.py" "True ~> .K"
 run_case "adapter-range-index" "$ROOT/tests/adapter/adapter-range-index.py" "True ~> .K"
+run_case "adapter-subscript-errors" "$ROOT/tests/adapter/adapter-subscript-errors.py" "True ~> .K"
 run_case "adapter-range-slice" "$ROOT/tests/adapter/adapter-range-slice.py" "True ~> .K"
 run_case "adapter-range-slice-step" "$ROOT/tests/adapter/adapter-range-slice-step.py" "True ~> .K"
 run_case "adapter-range-attributes" "$ROOT/tests/adapter/adapter-range-attributes.py" "True ~> .K"

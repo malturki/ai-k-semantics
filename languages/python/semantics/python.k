@@ -1100,6 +1100,8 @@ module PYTHON
                 | concreteIterableExtraEmpty(Val) [function, symbol(concreteIterableExtraEmpty)]
                 | sliceStepAssignRhsSupported(Val) [function, symbol(sliceStepAssignRhsSupported)]
                 | unpackValueSupported(Val) [function, symbol(unpackValueSupported)]
+                | subscriptIndexInBounds(Val, Int) [function, symbol(subscriptIndexInBounds)]
+                | dictLookupKeySupported(Val) [function, symbol(dictLookupKeySupported)]
                 | subscriptLookupable(Val, Val) [function, symbol(subscriptLookupable)]
                 | subscriptSettable(Val, Val) [function, symbol(subscriptSettable)]
                 | subscriptDeletable(Val, Val) [function, symbol(subscriptDeletable)]
@@ -5070,6 +5072,25 @@ module PYTHON
     dictPrepend(K1, V1, dictDel(DS, K))
     requires notBool valEq(K, K1)
 
+  rule subscriptIndexInBounds(I:Val, Len:Int) =>
+    ((intValue(I) >=Int 0 andBool intValue(I) <Int Len)
+      orBool (intValue(I) <Int 0 andBool Len +Int intValue(I) >=Int 0))
+    requires isIntLike(I)
+  rule subscriptIndexInBounds(I:Val, _Len:Int) => false
+    requires notBool isIntLike(I)
+
+  rule dictLookupKeySupported(_:Int) => true
+  rule dictLookupKeySupported(_:Float) => true
+  rule dictLookupKeySupported(True) => true
+  rule dictLookupKeySupported(False) => true
+  rule dictLookupKeySupported(_:String) => true
+  rule dictLookupKeySupported(None) => true
+  rule dictLookupKeySupported(Ellipsis) => true
+  rule dictLookupKeySupported(#bytes()) => true
+  rule dictLookupKeySupported(bytesVal(_:ValItems)) => true
+  rule dictLookupKeySupported(#complex(_:Float, _:Float)) => true
+  rule dictLookupKeySupported(_:Val) => false [owise]
+
   rule subscriptLookupable(listVal(VS:ValItems), I:Val) =>
     intValue(I) <Int valItemsLen(VS)
     requires isIntLike(I) andBool intValue(I) >=Int 0
@@ -5581,12 +5602,26 @@ module PYTHON
     requires isIntLike(I)
      andBool intValue(I) <Int 0
      andBool lengthString(S) +Int intValue(I) >=Int 0
+  rule <k> subscriptExp(S:String, I:Val) =>
+           exceptionSignal(#exception(#token("IndexError", "Id")))
+       ... </k>
+    requires isIntLike(I)
+      andBool notBool subscriptIndexInBounds(I, lengthString(S))
+  rule <k> subscriptExp(#bytes(), I:Val) =>
+           exceptionSignal(#exception(#token("IndexError", "Id")))
+       ... </k>
+    requires isIntLike(I)
   rule subscriptExp(bytesVal(VS:ValItems), I:Val) => listGet(VS, intValue(I))
     requires isIntLike(I) andBool intValue(I) >=Int 0 andBool intValue(I) <Int valItemsLen(VS)
   rule subscriptExp(bytesVal(VS:ValItems), I:Val) => listGet(VS, valItemsLen(VS) +Int intValue(I))
     requires isIntLike(I)
      andBool intValue(I) <Int 0
      andBool valItemsLen(VS) +Int intValue(I) >=Int 0
+  rule <k> subscriptExp(bytesVal(VS:ValItems), I:Val) =>
+           exceptionSignal(#exception(#token("IndexError", "Id")))
+       ... </k>
+    requires isIntLike(I)
+      andBool notBool subscriptIndexInBounds(I, valItemsLen(VS))
   rule subscriptExp(rangeVal(Start:Int, Stop:Int), I:Val) =>
     rangeGet(Start, Stop, 1, intValue(I))
     requires isIntLike(I)
@@ -5597,6 +5632,11 @@ module PYTHON
     requires isIntLike(I)
      andBool intValue(I) <Int 0
      andBool pyRangeLen(Start, Stop, 1) +Int intValue(I) >=Int 0
+  rule <k> subscriptExp(rangeVal(Start:Int, Stop:Int), I:Val) =>
+           exceptionSignal(#exception(#token("IndexError", "Id")))
+       ... </k>
+    requires isIntLike(I)
+      andBool notBool subscriptIndexInBounds(I, pyRangeLen(Start, Stop, 1))
   rule subscriptExp(rangeVal(Start:Int, Stop:Int, Step:Int), I:Val) =>
     rangeGet(Start, Stop, Step, intValue(I))
     requires isIntLike(I)
@@ -5609,20 +5649,53 @@ module PYTHON
      andBool Step =/=Int 0
      andBool intValue(I) <Int 0
      andBool pyRangeLen(Start, Stop, Step) +Int intValue(I) >=Int 0
+  rule <k> subscriptExp(rangeVal(Start:Int, Stop:Int, Step:Int), I:Val) =>
+           exceptionSignal(#exception(#token("IndexError", "Id")))
+       ... </k>
+    requires isIntLike(I)
+      andBool Step =/=Int 0
+      andBool notBool subscriptIndexInBounds(I, pyRangeLen(Start, Stop, Step))
+  rule <k> subscriptExp([], I:Val) =>
+           exceptionSignal(#exception(#token("IndexError", "Id")))
+       ... </k>
+    requires isIntLike(I)
   rule subscriptExp(listVal(VS:ValItems), I:Val) => listGet(VS, intValue(I))
-    requires isIntLike(I) andBool intValue(I) >=Int 0
+    requires isIntLike(I) andBool intValue(I) >=Int 0 andBool intValue(I) <Int valItemsLen(VS)
   rule subscriptExp(listVal(VS:ValItems), I:Val) => listGet(VS, valItemsLen(VS) +Int intValue(I))
     requires isIntLike(I)
      andBool intValue(I) <Int 0
      andBool valItemsLen(VS) +Int intValue(I) >=Int 0
+  rule <k> subscriptExp(listVal(VS:ValItems), I:Val) =>
+           exceptionSignal(#exception(#token("IndexError", "Id")))
+       ... </k>
+    requires isIntLike(I)
+      andBool notBool subscriptIndexInBounds(I, valItemsLen(VS))
+  rule <k> subscriptExp((), I:Val) =>
+           exceptionSignal(#exception(#token("IndexError", "Id")))
+       ... </k>
+    requires isIntLike(I)
   rule subscriptExp(tupleVal(VS:ValItems), I:Val) => listGet(VS, intValue(I))
-    requires isIntLike(I) andBool intValue(I) >=Int 0
+    requires isIntLike(I) andBool intValue(I) >=Int 0 andBool intValue(I) <Int valItemsLen(VS)
   rule subscriptExp(tupleVal(VS:ValItems), I:Val) => listGet(VS, valItemsLen(VS) +Int intValue(I))
     requires isIntLike(I)
      andBool intValue(I) <Int 0
      andBool valItemsLen(VS) +Int intValue(I) >=Int 0
+  rule <k> subscriptExp(tupleVal(VS:ValItems), I:Val) =>
+           exceptionSignal(#exception(#token("IndexError", "Id")))
+       ... </k>
+    requires isIntLike(I)
+      andBool notBool subscriptIndexInBounds(I, valItemsLen(VS))
+  rule <k> subscriptExp(({}):Val, K:Val) =>
+           exceptionSignal(#exception(#token("KeyError", "Id")))
+       ... </k>
+    requires dictLookupKeySupported(K)
   rule subscriptExp(dictVal(DS:DictItems), K:Val) => dictGet(DS, K)
     requires containsKey(K, DS)
+  rule <k> subscriptExp(dictVal(DS:DictItems), K:Val) =>
+           exceptionSignal(#exception(#token("KeyError", "Id")))
+       ... </k>
+    requires dictLookupKeySupported(K)
+      andBool notBool containsKey(K, DS)
 
   rule not V:Val => boolValue(notBool truthy(V))
 

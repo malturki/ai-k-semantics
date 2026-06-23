@@ -1089,6 +1089,8 @@ module PYTHON
                 | isTupleSequence(Val) [function, symbol(isTupleSequence)]
                 | isBytesSequence(Val) [function, symbol(isBytesSequence)]
                 | seqOrderComparable(Val, Val) [function, symbol(seqOrderComparable)]
+                | concreteIterableExtraNonEmpty(Val) [function, symbol(concreteIterableExtraNonEmpty)]
+                | concreteIterableExtraEmpty(Val) [function, symbol(concreteIterableExtraEmpty)]
                 | seqLt(Val, Val) [function, symbol(seqLt)]
                 | dictsEq(DictItems, DictItems) [function, symbol(dictsEq)]
                 | dictItemsContained(DictItems, DictItems) [function, symbol(dictItemsContained)]
@@ -1395,6 +1397,7 @@ module PYTHON
   syntax Map ::= bindStarUnpack(Map, IdItems, Id, IdItems, ValItems) [function, symbol(bindStarUnpack)]
   syntax ValItems ::= argValsToValItems(ArgVals) [function, symbol(argValsToValItems)]
   syntax ValItems ::= argValsToSetItems(ArgVals) [function, symbol(argValsToSetItems)]
+  syntax ValItems ::= concreteIterableExtraItems(Val) [function, symbol(concreteIterableExtraItems)]
   syntax ValItems ::= stringToValItems(String, Int, Int) [function, symbol(stringToValItems)]
   syntax ValItems ::= dictKeysToValItems(DictItems) [function, symbol(dictKeysToValItems)]
   syntax ValItems ::= rangeToValItems(Int, Int, Int, Int, Int) [function, symbol(rangeToValItems)]
@@ -4355,6 +4358,44 @@ module PYTHON
     valItemsCons(V, argValsToSetItems(VS))
     requires notBool emptyArgVals(VS)
       andBool notBool containsVal(V, argValsToSetItems(VS))
+
+  rule concreteIterableExtraNonEmpty(S:String) => lengthString(S) >Int 0
+  rule concreteIterableExtraNonEmpty(#bytes()) => false
+  rule concreteIterableExtraNonEmpty(bytesVal(_:ValItems)) => true
+  rule concreteIterableExtraNonEmpty({}) => false
+  rule concreteIterableExtraNonEmpty(dictVal(_:DictItems)) => true
+  rule concreteIterableExtraNonEmpty(set()) => false
+  rule concreteIterableExtraNonEmpty(setVal(_:ValItems)) => true
+  rule concreteIterableExtraNonEmpty(rangeVal(Start:Int, Stop:Int)) => pyRangeLen(Start, Stop, 1) >Int 0
+  rule concreteIterableExtraNonEmpty(rangeVal(Start:Int, Stop:Int, Step:Int)) =>
+    pyRangeLen(Start, Stop, Step) >Int 0
+    requires Step =/=Int 0
+
+  rule concreteIterableExtraEmpty(S:String) => lengthString(S) ==Int 0
+  rule concreteIterableExtraEmpty(#bytes()) => true
+  rule concreteIterableExtraEmpty(bytesVal(_:ValItems)) => false
+  rule concreteIterableExtraEmpty({}) => true
+  rule concreteIterableExtraEmpty(dictVal(_:DictItems)) => false
+  rule concreteIterableExtraEmpty(set()) => true
+  rule concreteIterableExtraEmpty(setVal(_:ValItems)) => false
+  rule concreteIterableExtraEmpty(rangeVal(Start:Int, Stop:Int)) => pyRangeLen(Start, Stop, 1) ==Int 0
+  rule concreteIterableExtraEmpty(rangeVal(Start:Int, Stop:Int, Step:Int)) =>
+    pyRangeLen(Start, Stop, Step) ==Int 0
+    requires Step =/=Int 0
+  rule concreteIterableExtraNonEmpty(_:Val) => false [owise]
+  rule concreteIterableExtraEmpty(_:Val) => false [owise]
+
+  rule concreteIterableExtraItems(S:String) => stringToValItems(S, 0, lengthString(S))
+    requires lengthString(S) >Int 0
+  rule concreteIterableExtraItems(bytesVal(VS:ValItems)) => VS
+  rule concreteIterableExtraItems(dictVal(DS:DictItems)) => dictKeysToValItems(DS)
+  rule concreteIterableExtraItems(setVal(VS:ValItems)) => VS
+  rule concreteIterableExtraItems(rangeVal(Start:Int, Stop:Int)) =>
+    rangeToValItems(Start, Stop, 1, 0, pyRangeLen(Start, Stop, 1))
+    requires pyRangeLen(Start, Stop, 1) >Int 0
+  rule concreteIterableExtraItems(rangeVal(Start:Int, Stop:Int, Step:Int)) =>
+    rangeToValItems(Start, Stop, Step, 0, pyRangeLen(Start, Stop, Step))
+    requires Step =/=Int 0 andBool pyRangeLen(Start, Stop, Step) >Int 0
 
   rule stringToValItems(S:String, I:Int, Len:Int) =>
     valItemsLast(substrString(S, I, I +Int 1))
@@ -10321,6 +10362,22 @@ module PYTHON
   rule <k> _Upper:Val ~> sliceAssignApply(X:Id, (), _Lower:Val) => stmtNoResult ... </k>
        <env> ... X |-> [] ... </env>
        <result> _ => .K </result>
+  rule <k> Upper:Val ~> sliceAssignApply(X:Id, RHS:Val, Lower:Val) => stmtNoResult ... </k>
+       <env> ... X |-> (listVal(VS:ValItems) => listSliceAssign(VS, pySliceLower(Lower, valItemsLen(VS)), pySliceUpper(Upper, valItemsLen(VS)), concreteIterableExtraItems(RHS))) ... </env>
+       <result> _ => .K </result>
+    requires concreteIterableExtraNonEmpty(RHS)
+  rule <k> Upper:Val ~> sliceAssignApply(X:Id, RHS:Val, Lower:Val) => stmtNoResult ... </k>
+       <env> ... X |-> (listVal(VS:ValItems) => listSliceAssignEmpty(VS, pySliceLower(Lower, valItemsLen(VS)), pySliceUpper(Upper, valItemsLen(VS)))) ... </env>
+       <result> _ => .K </result>
+    requires concreteIterableExtraEmpty(RHS)
+  rule <k> _Upper:Val ~> sliceAssignApply(X:Id, RHS:Val, _Lower:Val) => stmtNoResult ... </k>
+       <env> ... X |-> ([] => listVal(concreteIterableExtraItems(RHS))) ... </env>
+       <result> _ => .K </result>
+    requires concreteIterableExtraNonEmpty(RHS)
+  rule <k> _Upper:Val ~> sliceAssignApply(X:Id, RHS:Val, _Lower:Val) => stmtNoResult ... </k>
+       <env> ... X |-> [] ... </env>
+       <result> _ => .K </result>
+    requires concreteIterableExtraEmpty(RHS)
 
   rule <k> sliceStepAssignStmt(X:Id, Lower:Exp, Upper:Exp, Step:Exp, E:Exp) =>
            E ~> sliceStepAssignLower(X, Lower, Upper, Step)
@@ -10398,6 +10455,46 @@ module PYTHON
     requires isIntLike(Step)
       andBool intValue(Step) <Int 0
       andBool sliceStepLen(pySliceLowerNeg(Lower, valItemsLen(VS)), pySliceUpperNeg(Upper, valItemsLen(VS)), intValue(Step)) ==Int 0
+  rule <k> Step:Val ~> sliceStepAssignApply(X:Id, RHS:Val, Lower:Val, Upper:Val) => stmtNoResult ... </k>
+       <env> ... X |-> (listVal(VS:ValItems) => listSliceAssign(VS, pySliceLower(Lower, valItemsLen(VS)), pySliceUpper(Upper, valItemsLen(VS)), concreteIterableExtraItems(RHS))) ... </env>
+       <result> _ => .K </result>
+    requires isIntLike(Step)
+      andBool intValue(Step) ==Int 1
+      andBool concreteIterableExtraNonEmpty(RHS)
+  rule <k> Step:Val ~> sliceStepAssignApply(X:Id, RHS:Val, Lower:Val, Upper:Val) => stmtNoResult ... </k>
+       <env> ... X |-> (listVal(VS:ValItems) => listSliceAssignEmpty(VS, pySliceLower(Lower, valItemsLen(VS)), pySliceUpper(Upper, valItemsLen(VS)))) ... </env>
+       <result> _ => .K </result>
+    requires isIntLike(Step)
+      andBool intValue(Step) ==Int 1
+      andBool concreteIterableExtraEmpty(RHS)
+  rule <k> Step:Val ~> sliceStepAssignApply(X:Id, RHS:Val, Lower:Val, Upper:Val) => stmtNoResult ... </k>
+       <env> ... X |-> (listVal(VS:ValItems) => listVal(listSliceStepSet(VS, pySliceLower(Lower, valItemsLen(VS)), pySliceUpper(Upper, valItemsLen(VS)), intValue(Step), concreteIterableExtraItems(RHS)))) ... </env>
+       <result> _ => .K </result>
+    requires isIntLike(Step)
+      andBool intValue(Step) >Int 1
+      andBool concreteIterableExtraNonEmpty(RHS)
+      andBool valItemsLen(concreteIterableExtraItems(RHS)) ==Int sliceStepLen(pySliceLower(Lower, valItemsLen(VS)), pySliceUpper(Upper, valItemsLen(VS)), intValue(Step))
+  rule <k> Step:Val ~> sliceStepAssignApply(X:Id, RHS:Val, Lower:Val, Upper:Val) => stmtNoResult ... </k>
+       <env> ... X |-> (listVal(VS:ValItems) => listVal(listSliceStepSet(VS, pySliceLowerNeg(Lower, valItemsLen(VS)), pySliceUpperNeg(Upper, valItemsLen(VS)), intValue(Step), concreteIterableExtraItems(RHS)))) ... </env>
+       <result> _ => .K </result>
+    requires isIntLike(Step)
+      andBool intValue(Step) <Int 0
+      andBool concreteIterableExtraNonEmpty(RHS)
+      andBool valItemsLen(concreteIterableExtraItems(RHS)) ==Int sliceStepLen(pySliceLowerNeg(Lower, valItemsLen(VS)), pySliceUpperNeg(Upper, valItemsLen(VS)), intValue(Step))
+  rule <k> Step:Val ~> sliceStepAssignApply(X:Id, RHS:Val, Lower:Val, Upper:Val) => stmtNoResult ... </k>
+       <env> ... X |-> listVal(VS:ValItems) ... </env>
+       <result> _ => .K </result>
+    requires isIntLike(Step)
+      andBool intValue(Step) >Int 1
+      andBool concreteIterableExtraEmpty(RHS)
+      andBool sliceStepLen(pySliceLower(Lower, valItemsLen(VS)), pySliceUpper(Upper, valItemsLen(VS)), intValue(Step)) ==Int 0
+  rule <k> Step:Val ~> sliceStepAssignApply(X:Id, RHS:Val, Lower:Val, Upper:Val) => stmtNoResult ... </k>
+       <env> ... X |-> listVal(VS:ValItems) ... </env>
+       <result> _ => .K </result>
+    requires isIntLike(Step)
+      andBool intValue(Step) <Int 0
+      andBool concreteIterableExtraEmpty(RHS)
+      andBool sliceStepLen(pySliceLowerNeg(Lower, valItemsLen(VS)), pySliceUpperNeg(Upper, valItemsLen(VS)), intValue(Step)) ==Int 0
   rule <k> Step:Val ~> sliceStepAssignApply(X:Id, listVal(RS:ValItems), _Lower:Val, _Upper:Val) => stmtNoResult ... </k>
        <env> ... X |-> ([] => listVal(RS)) ... </env>
        <result> _ => .K </result>
@@ -10414,6 +10511,18 @@ module PYTHON
        <env> ... X |-> [] ... </env>
        <result> _ => .K </result>
     requires isIntLike(Step) andBool intValue(Step) =/=Int 0
+  rule <k> Step:Val ~> sliceStepAssignApply(X:Id, RHS:Val, _Lower:Val, _Upper:Val) => stmtNoResult ... </k>
+       <env> ... X |-> ([] => listVal(concreteIterableExtraItems(RHS))) ... </env>
+       <result> _ => .K </result>
+    requires isIntLike(Step)
+      andBool intValue(Step) ==Int 1
+      andBool concreteIterableExtraNonEmpty(RHS)
+  rule <k> Step:Val ~> sliceStepAssignApply(X:Id, RHS:Val, _Lower:Val, _Upper:Val) => stmtNoResult ... </k>
+       <env> ... X |-> [] ... </env>
+       <result> _ => .K </result>
+    requires isIntLike(Step)
+      andBool intValue(Step) =/=Int 0
+      andBool concreteIterableExtraEmpty(RHS)
 
   rule <k> augAddStmt(X:Id, E:Exp) => assignStmt(X, X + E) ... </k>
   rule <k> augSubStmt(X:Id, E:Exp) => assignStmt(X, X - E) ... </k>

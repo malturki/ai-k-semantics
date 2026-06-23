@@ -2097,6 +2097,13 @@
       "coverage": ["assignment-statement", "del-statement", "extended-slice-target", "list-extended-slice-assignment", "list-extended-slice-deletion", "negative-slice-step", "ordinary-python-source-adapter"]
     },
     {
+      "id": "adapter-list-slice-assignment-iterables",
+      "source": "../adapter/adapter-list-slice-assignment-iterables.py",
+      "reference": "Python Language Reference 7.2 Assignment statements; 6.3.3 Slicings",
+      "expected_result": "True ~> .K",
+      "coverage": ["assignment-statement", "slice-target", "extended-slice-target", "list-slice-assignment", "iterable-rhs", "string-iteration", "bytes-iteration", "dict-key-iteration", "set-iteration-profile", "range-iteration", "ordinary-python-source-adapter"]
+    },
+    {
       "id": "adapter-unpack-tuple",
       "source": "../adapter/adapter-unpack-tuple.py",
       "reference": "Python Language Reference 7.2 Assignment statements",

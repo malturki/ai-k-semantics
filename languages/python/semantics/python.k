@@ -5388,6 +5388,36 @@ module PYTHON
     requires isIntLike(V) andBool F >=Float 0.0 andBool (F =/=Float 0.0 orBool intValue(V) >=Int 0)
   rule V:Val ** F:Float => floatValue(V) ^Float F
     requires isIntLike(V) andBool floatValue(V) >=Float 0.0 andBool (intValue(V) =/=Int 0 orBool F >=Float 0.0)
+  rule <k> V1:Val ** V2:Val =>
+           exceptionSignal(#exception(#token("ZeroDivisionError", "Id")))
+       ... </k>
+    requires isIntLike(V1)
+      andBool isIntLike(V2)
+      andBool intValue(V1) ==Int 0
+      andBool intValue(V2) <Int 0
+  rule <k> F1:Float ** F2:Float =>
+           exceptionSignal(#exception(#token("ZeroDivisionError", "Id")))
+       ... </k>
+    requires F1 ==Float 0.0
+      andBool F2 <Float 0.0
+  rule <k> F:Float ** V:Val =>
+           exceptionSignal(#exception(#token("ZeroDivisionError", "Id")))
+       ... </k>
+    requires isIntLike(V)
+      andBool F ==Float 0.0
+      andBool intValue(V) <Int 0
+  rule <k> V:Val ** F:Float =>
+           exceptionSignal(#exception(#token("ZeroDivisionError", "Id")))
+       ... </k>
+    requires isIntLike(V)
+      andBool intValue(V) ==Int 0
+      andBool F <Float 0.0
+  rule <k> #complex(R:Float, I:Float) ** V:Val =>
+           exceptionSignal(#exception(#token("ZeroDivisionError", "Id")))
+       ... </k>
+    requires isIntLike(V)
+      andBool intValue(V) <Int 0
+      andBool (R *Float R) +Float (I *Float I) ==Float 0.0
   rule floorDivExp(V1:Val, V2:Val) => pyFloorDiv(intValue(V1), intValue(V2))
     requires isIntLike(V1) andBool isIntLike(V2) andBool intValue(V2) =/=Int 0
   rule floorDivExp(F1:Float, F2:Float) => pyFloatFloorDiv(F1, F2)
@@ -10661,6 +10691,52 @@ module PYTHON
       andBool intValue(V2) <Int 0
       andBool intValue(V3) =/=Int 0
       andBool pyGcd(pyModulo(intValue(V1), intAbs(intValue(V3))), intAbs(intValue(V3))) ==Int 1
+  rule <k> #pow(V1:Val, V2:Val) =>
+           exceptionSignal(#exception(#token("ZeroDivisionError", "Id")))
+       ... </k>
+    requires isIntLike(V1)
+      andBool isIntLike(V2)
+      andBool intValue(V1) ==Int 0
+      andBool intValue(V2) <Int 0
+  rule <k> #pow(F1:Float, F2:Float) =>
+           exceptionSignal(#exception(#token("ZeroDivisionError", "Id")))
+       ... </k>
+    requires F1 ==Float 0.0
+      andBool F2 <Float 0.0
+  rule <k> #pow(F:Float, V:Val) =>
+           exceptionSignal(#exception(#token("ZeroDivisionError", "Id")))
+       ... </k>
+    requires isIntLike(V)
+      andBool F ==Float 0.0
+      andBool intValue(V) <Int 0
+  rule <k> #pow(V:Val, F:Float) =>
+           exceptionSignal(#exception(#token("ZeroDivisionError", "Id")))
+       ... </k>
+    requires isIntLike(V)
+      andBool intValue(V) ==Int 0
+      andBool F <Float 0.0
+  rule <k> #pow(#complex(R:Float, I:Float), V:Val) =>
+           exceptionSignal(#exception(#token("ZeroDivisionError", "Id")))
+       ... </k>
+    requires isIntLike(V)
+      andBool intValue(V) <Int 0
+      andBool (R *Float R) +Float (I *Float I) ==Float 0.0
+  rule <k> #pow(V1:Val, V2:Val, V3:Val) =>
+           exceptionSignal(#exception(#token("ValueError", "Id")))
+       ... </k>
+    requires isIntLike(V1)
+      andBool isIntLike(V2)
+      andBool isIntLike(V3)
+      andBool intValue(V3) ==Int 0
+  rule <k> #pow(V1:Val, V2:Val, V3:Val) =>
+           exceptionSignal(#exception(#token("ValueError", "Id")))
+       ... </k>
+    requires isIntLike(V1)
+      andBool isIntLike(V2)
+      andBool isIntLike(V3)
+      andBool intValue(V2) <Int 0
+      andBool intValue(V3) =/=Int 0
+      andBool pyGcd(pyModulo(intValue(V1), intAbs(intValue(V3))), intAbs(intValue(V3))) =/=Int 1
 
   rule range1Exp(N:Val) => rangeVal(0, intValue(N))
     requires isIntLike(N)

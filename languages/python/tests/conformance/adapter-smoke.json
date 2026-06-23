@@ -732,6 +732,13 @@
       "coverage": ["pow-builtin", "three-argument-form", "modular-exponentiation", "negative-integer-exponent", "modular-inverse", "negative-modulus", "bool-as-int-power", "ordinary-python-source-adapter"]
     },
     {
+      "id": "adapter-pow-error-diagnostics",
+      "source": "../adapter/adapter-pow-error-diagnostics.py",
+      "reference": "Python Language Reference 6.5 The power operator; Python Standard Library Built-in Functions pow",
+      "expected_result": "True ~> .K",
+      "coverage": ["pow-builtin", "power-operator", "zero-base-negative-exponent", "modular-exponentiation", "non-invertible-modular-power", "zero-modulus", "zero-division-error", "value-error", "bool-as-int-power", "complex-values", "ordinary-python-source-adapter"]
+    },
+    {
       "id": "adapter-int-string-constructor",
       "source": "../adapter/adapter-int-string-constructor.py",
       "reference": "Python Standard Library Built-in Types int; Python Standard Library Built-in Functions int",

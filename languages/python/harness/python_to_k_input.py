@@ -1716,7 +1716,12 @@ def emit_assign(node: ast.AST, targets: list[ast.expr], value: ast.expr) -> str:
             and isinstance(target.slice, ast.Slice)
         ):
             if target.slice.step is not None:
-                raise unsupported(target, "extended slice assignment targets are not supported")
+                return (
+                    f"#sliceStepAssign({emit_id(target.value.id)}, "
+                    f"{emit_slice_bound(target.slice.lower)}, "
+                    f"{emit_slice_bound(target.slice.upper)}, "
+                    f"{emit_exp(target.slice.step)}, {emit_exp(value)})"
+                )
             return (
                 f"#sliceAssign({emit_id(target.value.id)}, "
                 f"{emit_slice_bound(target.slice.lower)}, "
@@ -1762,7 +1767,11 @@ def emit_delete(node: ast.AST, targets: list[ast.expr]) -> str:
             and isinstance(target.slice, ast.Slice)
         ):
             if target.slice.step is not None:
-                raise unsupported(target, "extended slice delete targets are not supported")
+                return (
+                    f"#delSliceStep({emit_id(target.value.id)}, "
+                    f"{emit_slice_bound(target.slice.lower)}, "
+                    f"{emit_slice_bound(target.slice.upper)}, {emit_exp(target.slice.step)})"
+                )
             return (
                 f"#delSlice({emit_id(target.value.id)}, "
                 f"{emit_slice_bound(target.slice.lower)}, {emit_slice_bound(target.slice.upper)})"

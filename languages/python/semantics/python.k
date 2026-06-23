@@ -208,6 +208,7 @@ module PYTHON-SYNTAX
                 | "#delMany" "(" IdItems ")" [symbol(delManyStmt)]
                 | "#delSubscript" "(" Id "," Exp ")" [symbol(delSubscriptStmt)]
                 | "#delSlice" "(" Id "," Exp "," Exp ")" [symbol(delSliceStmt)]
+                | "#delSliceStep" "(" Id "," Exp "," Exp "," Exp ")" [symbol(delSliceStepStmt)]
                 | Id "=" Exp [symbol(assignStmt), strict(2)]
                 | "#assignName" "(" Id "," Exp ")" [symbol(assignNameStmt), strict(2)]
                 | Id "+=" Exp [symbol(augAddStmt)]
@@ -226,6 +227,7 @@ module PYTHON-SYNTAX
                 | "#subscriptAssign" "(" Id "," Exp "," Exp ")" [symbol(subscriptAssignStmt)]
                 | "#subscriptAug" "(" Id "," Exp "," AugOp "," Exp ")" [symbol(subscriptAugStmt)]
                 | "#sliceAssign" "(" Id "," Exp "," Exp "," Exp ")" [symbol(sliceAssignStmt)]
+                | "#sliceStepAssign" "(" Id "," Exp "," Exp "," Exp "," Exp ")" [symbol(sliceStepAssignStmt)]
                 | "#unpackAssign" "(" IdItems ";" Exp ")" [symbol(unpackAssignStmt), strict(2)]
                 | "#unpackStarAssign" "(" IdItems ";" Id ";" IdItems ";" Exp ")" [symbol(unpackStarAssignStmt), strict(4)]
                 | "#unpackTargetAssign" "(" Targets ";" Exp ")" [symbol(unpackTargetAssignStmt), strict(2)]
@@ -1043,9 +1045,16 @@ module PYTHON
                  | sliceAssignLower(Id, Exp, Exp) [symbol(sliceAssignLower)]
                  | sliceAssignUpper(Id, Val, Exp) [symbol(sliceAssignUpper)]
                  | sliceAssignApply(Id, Val, Val) [symbol(sliceAssignApply)]
+                 | sliceStepAssignLower(Id, Exp, Exp, Exp) [symbol(sliceStepAssignLower)]
+                 | sliceStepAssignUpper(Id, Val, Exp, Exp) [symbol(sliceStepAssignUpper)]
+                 | sliceStepAssignStep(Id, Val, Val, Exp) [symbol(sliceStepAssignStep)]
+                 | sliceStepAssignApply(Id, Val, Val, Val) [symbol(sliceStepAssignApply)]
                  | delSubscriptApply(Id) [symbol(delSubscriptApply)]
                  | delSliceUpper(Id, Exp) [symbol(delSliceUpper)]
                  | delSliceApply(Id, Val) [symbol(delSliceApply)]
+                 | delSliceStepUpper(Id, Exp, Exp) [symbol(delSliceStepUpper)]
+                 | delSliceStepStep(Id, Val, Exp) [symbol(delSliceStepStep)]
+                 | delSliceStepApply(Id, Val, Val) [symbol(delSliceStepApply)]
 
   syntax Bool ::= truthy(Val) [function, symbol(truthy)]
                 | isIntLike(Val) [function, symbol(isIntLike)]
@@ -1261,6 +1270,7 @@ module PYTHON
                | pySliceLowerNeg(Val, Int) [function, symbol(pySliceLowerNeg)]
                | pySliceUpperNeg(Val, Int) [function, symbol(pySliceUpperNeg)]
                | pySliceIndexNeg(Int, Int) [function, symbol(pySliceIndexNeg)]
+               | sliceStepLen(Int, Int, Int) [function, symbol(sliceStepLen)]
                | valItemsLen(ValItems) [function, symbol(valItemsLen)]
                | matchPatternsLen(MatchPatterns) [function, symbol(matchPatternsLen)]
                | idItemsLen(IdItems) [function, symbol(idItemsLen)]
@@ -1394,6 +1404,7 @@ module PYTHON
   syntax ValItems ::= sliceValItems(ValItems, Int, Int) [function, symbol(sliceValItems)]
   syntax ValItems ::= sliceStepValItems(ValItems, Int, Int, Int) [function, symbol(sliceStepValItems)]
   syntax ValItems ::= listSet(ValItems, Int, Val) [function, symbol(listSet)]
+                    | listSliceStepSet(ValItems, Int, Int, Int, ValItems) [function, symbol(listSliceStepSet)]
   syntax DictItems ::= dictValsToDictItems(DictVals) [function, symbol(dictValsToDictItems)]
   syntax DictItems ::= dictSet(DictItems, Val, Val) [function, symbol(dictSet)]
   syntax Val ::= listDel(ValItems, Int) [function, symbol(listDel)]
@@ -1401,6 +1412,8 @@ module PYTHON
                | listSliceAssign(ValItems, Int, Int, ValItems) [function, symbol(listSliceAssign)]
                | listSliceAssignEmpty(ValItems, Int, Int) [function, symbol(listSliceAssignEmpty)]
                | listSliceDelete(ValItems, Int, Int) [function, symbol(listSliceDelete)]
+               | listSliceStepDelete(ValItems, Int, Int, Int) [function, symbol(listSliceStepDelete)]
+               | listSliceStepDeleteN(Val, Int, Int, Int) [function, symbol(listSliceStepDeleteN)]
                | dictDel(DictItems, Val) [function, symbol(dictDel)]
                | dictPrepend(Val, Val, Val) [function, symbol(dictPrepend)]
   syntax Val ::= dictFromDictVals(DictVals) [function, symbol(dictFromDictVals)]
@@ -2501,6 +2514,15 @@ module PYTHON
     requires I >=Int Len
   rule pySliceIndexNeg(I:Int, Len:Int) => I
     requires I >=Int 0 andBool I <Int Len
+
+  rule sliceStepLen(Start:Int, Stop:Int, Step:Int) => 0
+    requires Step >Int 0 andBool Start >=Int Stop
+  rule sliceStepLen(Start:Int, Stop:Int, Step:Int) => 1 +Int sliceStepLen(Start +Int Step, Stop, Step)
+    requires Step >Int 0 andBool Start <Int Stop
+  rule sliceStepLen(Start:Int, Stop:Int, Step:Int) => 0
+    requires Step <Int 0 andBool Start <=Int Stop
+  rule sliceStepLen(Start:Int, Stop:Int, Step:Int) => 1 +Int sliceStepLen(Start +Int Step, Stop, Step)
+    requires Step <Int 0 andBool Start >Int Stop
 
   rule valItemsLen(valItemsLast(_:Val)) => 1
   rule valItemsLen(valItemsCons(_:Val, VS:ValItems)) => 1 +Int valItemsLen(VS)
@@ -4849,6 +4871,13 @@ module PYTHON
     valItemsCons(V0, listSet(VS, I -Int 1, V))
     requires I >Int 0
 
+  rule listSliceStepSet(VS:ValItems, Start:Int, Stop:Int, Step:Int, valItemsLast(R:Val)) =>
+    listSet(VS, Start, R)
+    requires sliceStepLen(Start, Stop, Step) ==Int 1
+  rule listSliceStepSet(VS:ValItems, Start:Int, Stop:Int, Step:Int, valItemsCons(R:Val, RS:ValItems)) =>
+    listSliceStepSet(listSet(VS, Start, R), Start +Int Step, Stop, Step, RS)
+    requires sliceStepLen(Start, Stop, Step) >Int 1
+
   rule listDel(valItemsLast(_:Val), 0) => []
   rule listDel(valItemsCons(_:Val, VS:ValItems), 0) => listVal(VS)
   rule listDel(valItemsCons(V0:Val, VS:ValItems), I:Int) =>
@@ -4895,6 +4924,18 @@ module PYTHON
   rule listSliceDelete(VS:ValItems, Start:Int, Stop:Int) =>
     listVal(concatValItems(sliceValItems(VS, 0, Start), dropValItems(VS, Stop)))
     requires Start >Int 0 andBool Stop <Int valItemsLen(VS)
+
+  rule listSliceStepDelete(VS:ValItems, Start:Int, Stop:Int, Step:Int) =>
+    listSliceStepDeleteN(listVal(VS), Start, Step -Int 1, sliceStepLen(Start, Stop, Step))
+    requires Step >Int 0
+  rule listSliceStepDelete(VS:ValItems, Start:Int, Stop:Int, Step:Int) =>
+    listSliceStepDeleteN(listVal(VS), Start, Step, sliceStepLen(Start, Stop, Step))
+    requires Step <Int 0
+
+  rule listSliceStepDeleteN(V:Val, _I:Int, _Delta:Int, 0) => V
+  rule listSliceStepDeleteN(listVal(VS:ValItems), I:Int, Delta:Int, N:Int) =>
+    listSliceStepDeleteN(listDel(VS, I), I +Int Delta, Delta, N -Int 1)
+    requires N >Int 0
 
   rule dictGet(dictItemsLast(K1:Val, V:Val), K:Val) => V
     requires valEq(K, K1)
@@ -10281,6 +10322,99 @@ module PYTHON
        <env> ... X |-> [] ... </env>
        <result> _ => .K </result>
 
+  rule <k> sliceStepAssignStmt(X:Id, Lower:Exp, Upper:Exp, Step:Exp, E:Exp) =>
+           E ~> sliceStepAssignLower(X, Lower, Upper, Step)
+       ... </k>
+  rule <k> V:Val ~> sliceStepAssignLower(X:Id, Lower:Exp, Upper:Exp, Step:Exp) =>
+           Lower ~> sliceStepAssignUpper(X, V, Upper, Step)
+       ... </k>
+  rule <k> Lower:Val ~> sliceStepAssignUpper(X:Id, V:Val, Upper:Exp, Step:Exp) =>
+           Upper ~> sliceStepAssignStep(X, V, Lower, Step)
+       ... </k>
+  rule <k> Upper:Val ~> sliceStepAssignStep(X:Id, V:Val, Lower:Val, Step:Exp) =>
+           Step ~> sliceStepAssignApply(X, V, Lower, Upper)
+       ... </k>
+  rule <k> Step:Val ~> sliceStepAssignApply(X:Id, listVal(RS:ValItems), Lower:Val, Upper:Val) => stmtNoResult ... </k>
+       <env> ... X |-> (listVal(VS:ValItems) => listSliceAssign(VS, pySliceLower(Lower, valItemsLen(VS)), pySliceUpper(Upper, valItemsLen(VS)), RS)) ... </env>
+       <result> _ => .K </result>
+    requires isIntLike(Step) andBool intValue(Step) ==Int 1
+  rule <k> Step:Val ~> sliceStepAssignApply(X:Id, tupleVal(RS:ValItems), Lower:Val, Upper:Val) => stmtNoResult ... </k>
+       <env> ... X |-> (listVal(VS:ValItems) => listSliceAssign(VS, pySliceLower(Lower, valItemsLen(VS)), pySliceUpper(Upper, valItemsLen(VS)), RS)) ... </env>
+       <result> _ => .K </result>
+    requires isIntLike(Step) andBool intValue(Step) ==Int 1
+  rule <k> Step:Val ~> sliceStepAssignApply(X:Id, [], Lower:Val, Upper:Val) => stmtNoResult ... </k>
+       <env> ... X |-> (listVal(VS:ValItems) => listSliceAssignEmpty(VS, pySliceLower(Lower, valItemsLen(VS)), pySliceUpper(Upper, valItemsLen(VS)))) ... </env>
+       <result> _ => .K </result>
+    requires isIntLike(Step) andBool intValue(Step) ==Int 1
+  rule <k> Step:Val ~> sliceStepAssignApply(X:Id, (), Lower:Val, Upper:Val) => stmtNoResult ... </k>
+       <env> ... X |-> (listVal(VS:ValItems) => listSliceAssignEmpty(VS, pySliceLower(Lower, valItemsLen(VS)), pySliceUpper(Upper, valItemsLen(VS)))) ... </env>
+       <result> _ => .K </result>
+    requires isIntLike(Step) andBool intValue(Step) ==Int 1
+  rule <k> Step:Val ~> sliceStepAssignApply(X:Id, listVal(RS:ValItems), Lower:Val, Upper:Val) => stmtNoResult ... </k>
+       <env> ... X |-> (listVal(VS:ValItems) => listVal(listSliceStepSet(VS, pySliceLower(Lower, valItemsLen(VS)), pySliceUpper(Upper, valItemsLen(VS)), intValue(Step), RS))) ... </env>
+       <result> _ => .K </result>
+    requires isIntLike(Step)
+      andBool intValue(Step) >Int 1
+      andBool valItemsLen(RS) ==Int sliceStepLen(pySliceLower(Lower, valItemsLen(VS)), pySliceUpper(Upper, valItemsLen(VS)), intValue(Step))
+  rule <k> Step:Val ~> sliceStepAssignApply(X:Id, tupleVal(RS:ValItems), Lower:Val, Upper:Val) => stmtNoResult ... </k>
+       <env> ... X |-> (listVal(VS:ValItems) => listVal(listSliceStepSet(VS, pySliceLower(Lower, valItemsLen(VS)), pySliceUpper(Upper, valItemsLen(VS)), intValue(Step), RS))) ... </env>
+       <result> _ => .K </result>
+    requires isIntLike(Step)
+      andBool intValue(Step) >Int 1
+      andBool valItemsLen(RS) ==Int sliceStepLen(pySliceLower(Lower, valItemsLen(VS)), pySliceUpper(Upper, valItemsLen(VS)), intValue(Step))
+  rule <k> Step:Val ~> sliceStepAssignApply(X:Id, listVal(RS:ValItems), Lower:Val, Upper:Val) => stmtNoResult ... </k>
+       <env> ... X |-> (listVal(VS:ValItems) => listVal(listSliceStepSet(VS, pySliceLowerNeg(Lower, valItemsLen(VS)), pySliceUpperNeg(Upper, valItemsLen(VS)), intValue(Step), RS))) ... </env>
+       <result> _ => .K </result>
+    requires isIntLike(Step)
+      andBool intValue(Step) <Int 0
+      andBool valItemsLen(RS) ==Int sliceStepLen(pySliceLowerNeg(Lower, valItemsLen(VS)), pySliceUpperNeg(Upper, valItemsLen(VS)), intValue(Step))
+  rule <k> Step:Val ~> sliceStepAssignApply(X:Id, tupleVal(RS:ValItems), Lower:Val, Upper:Val) => stmtNoResult ... </k>
+       <env> ... X |-> (listVal(VS:ValItems) => listVal(listSliceStepSet(VS, pySliceLowerNeg(Lower, valItemsLen(VS)), pySliceUpperNeg(Upper, valItemsLen(VS)), intValue(Step), RS))) ... </env>
+       <result> _ => .K </result>
+    requires isIntLike(Step)
+      andBool intValue(Step) <Int 0
+      andBool valItemsLen(RS) ==Int sliceStepLen(pySliceLowerNeg(Lower, valItemsLen(VS)), pySliceUpperNeg(Upper, valItemsLen(VS)), intValue(Step))
+  rule <k> Step:Val ~> sliceStepAssignApply(X:Id, [], Lower:Val, Upper:Val) => stmtNoResult ... </k>
+       <env> ... X |-> listVal(VS:ValItems) ... </env>
+       <result> _ => .K </result>
+    requires isIntLike(Step)
+      andBool intValue(Step) >Int 1
+      andBool sliceStepLen(pySliceLower(Lower, valItemsLen(VS)), pySliceUpper(Upper, valItemsLen(VS)), intValue(Step)) ==Int 0
+  rule <k> Step:Val ~> sliceStepAssignApply(X:Id, (), Lower:Val, Upper:Val) => stmtNoResult ... </k>
+       <env> ... X |-> listVal(VS:ValItems) ... </env>
+       <result> _ => .K </result>
+    requires isIntLike(Step)
+      andBool intValue(Step) >Int 1
+      andBool sliceStepLen(pySliceLower(Lower, valItemsLen(VS)), pySliceUpper(Upper, valItemsLen(VS)), intValue(Step)) ==Int 0
+  rule <k> Step:Val ~> sliceStepAssignApply(X:Id, [], Lower:Val, Upper:Val) => stmtNoResult ... </k>
+       <env> ... X |-> listVal(VS:ValItems) ... </env>
+       <result> _ => .K </result>
+    requires isIntLike(Step)
+      andBool intValue(Step) <Int 0
+      andBool sliceStepLen(pySliceLowerNeg(Lower, valItemsLen(VS)), pySliceUpperNeg(Upper, valItemsLen(VS)), intValue(Step)) ==Int 0
+  rule <k> Step:Val ~> sliceStepAssignApply(X:Id, (), Lower:Val, Upper:Val) => stmtNoResult ... </k>
+       <env> ... X |-> listVal(VS:ValItems) ... </env>
+       <result> _ => .K </result>
+    requires isIntLike(Step)
+      andBool intValue(Step) <Int 0
+      andBool sliceStepLen(pySliceLowerNeg(Lower, valItemsLen(VS)), pySliceUpperNeg(Upper, valItemsLen(VS)), intValue(Step)) ==Int 0
+  rule <k> Step:Val ~> sliceStepAssignApply(X:Id, listVal(RS:ValItems), _Lower:Val, _Upper:Val) => stmtNoResult ... </k>
+       <env> ... X |-> ([] => listVal(RS)) ... </env>
+       <result> _ => .K </result>
+    requires isIntLike(Step) andBool intValue(Step) ==Int 1
+  rule <k> Step:Val ~> sliceStepAssignApply(X:Id, tupleVal(RS:ValItems), _Lower:Val, _Upper:Val) => stmtNoResult ... </k>
+       <env> ... X |-> ([] => listVal(RS)) ... </env>
+       <result> _ => .K </result>
+    requires isIntLike(Step) andBool intValue(Step) ==Int 1
+  rule <k> Step:Val ~> sliceStepAssignApply(X:Id, [], _Lower:Val, _Upper:Val) => stmtNoResult ... </k>
+       <env> ... X |-> [] ... </env>
+       <result> _ => .K </result>
+    requires isIntLike(Step) andBool intValue(Step) =/=Int 0
+  rule <k> Step:Val ~> sliceStepAssignApply(X:Id, (), _Lower:Val, _Upper:Val) => stmtNoResult ... </k>
+       <env> ... X |-> [] ... </env>
+       <result> _ => .K </result>
+    requires isIntLike(Step) andBool intValue(Step) =/=Int 0
+
   rule <k> augAddStmt(X:Id, E:Exp) => assignStmt(X, X + E) ... </k>
   rule <k> augSubStmt(X:Id, E:Exp) => assignStmt(X, X - E) ... </k>
   rule <k> augMulStmt(X:Id, E:Exp) => assignStmt(X, X * E) ... </k>
@@ -13415,6 +13549,31 @@ module PYTHON
   rule <k> _Upper:Val ~> delSliceApply(X:Id, _Lower:Val) => stmtNoResult ... </k>
        <env> ... X |-> [] ... </env>
        <result> _ => .K </result>
+  rule <k> delSliceStepStmt(X:Id, Lower:Exp, Upper:Exp, Step:Exp) =>
+           Lower ~> delSliceStepUpper(X, Upper, Step)
+       ... </k>
+  rule <k> Lower:Val ~> delSliceStepUpper(X:Id, Upper:Exp, Step:Exp) =>
+           Upper ~> delSliceStepStep(X, Lower, Step)
+       ... </k>
+  rule <k> Upper:Val ~> delSliceStepStep(X:Id, Lower:Val, Step:Exp) =>
+           Step ~> delSliceStepApply(X, Lower, Upper)
+       ... </k>
+  rule <k> Step:Val ~> delSliceStepApply(X:Id, Lower:Val, Upper:Val) => stmtNoResult ... </k>
+       <env> ... X |-> (listVal(VS:ValItems) => listSliceAssignEmpty(VS, pySliceLower(Lower, valItemsLen(VS)), pySliceUpper(Upper, valItemsLen(VS)))) ... </env>
+       <result> _ => .K </result>
+    requires isIntLike(Step) andBool intValue(Step) ==Int 1
+  rule <k> Step:Val ~> delSliceStepApply(X:Id, Lower:Val, Upper:Val) => stmtNoResult ... </k>
+       <env> ... X |-> (listVal(VS:ValItems) => listSliceStepDelete(VS, pySliceLower(Lower, valItemsLen(VS)), pySliceUpper(Upper, valItemsLen(VS)), intValue(Step))) ... </env>
+       <result> _ => .K </result>
+    requires isIntLike(Step) andBool intValue(Step) >Int 1
+  rule <k> Step:Val ~> delSliceStepApply(X:Id, Lower:Val, Upper:Val) => stmtNoResult ... </k>
+       <env> ... X |-> (listVal(VS:ValItems) => listSliceStepDelete(VS, pySliceLowerNeg(Lower, valItemsLen(VS)), pySliceUpperNeg(Upper, valItemsLen(VS)), intValue(Step))) ... </env>
+       <result> _ => .K </result>
+    requires isIntLike(Step) andBool intValue(Step) <Int 0
+  rule <k> Step:Val ~> delSliceStepApply(X:Id, _Lower:Val, _Upper:Val) => stmtNoResult ... </k>
+       <env> ... X |-> [] ... </env>
+       <result> _ => .K </result>
+    requires isIntLike(Step) andBool intValue(Step) =/=Int 0
 
   rule <k> pass => stmtNoResult ... </k>
   rule <k> assertStmt(V:Val) => stmtNoResult ... </k>

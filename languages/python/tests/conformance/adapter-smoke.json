@@ -1719,6 +1719,13 @@
       "coverage": ["for-statement", "range-negative-step-subset", "loop-else-normal-completion", "ordinary-python-source-adapter"]
     },
     {
+      "id": "adapter-range-zero-step-errors",
+      "source": "../adapter/adapter-range-zero-step-errors.py",
+      "reference": "Python Standard Library Built-in Types range; Python Built-in Exceptions ValueError",
+      "expected_result": "True ~> .K",
+      "coverage": ["range-constructor", "zero-step-range-diagnostic", "value-error", "for-statement", "ordinary-python-source-adapter"]
+    },
+    {
       "id": "adapter-range-membership",
       "source": "../adapter/adapter-range-membership.py",
       "reference": "Python Language Reference 6.10.2 Membership test operations; Standard Library range type",

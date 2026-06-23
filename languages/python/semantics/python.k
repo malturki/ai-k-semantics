@@ -10781,6 +10781,13 @@ module PYTHON
     requires isIntLike(Start) andBool isIntLike(Stop)
   rule range3Exp(Start:Val, Stop:Val, Step:Val) => rangeVal(intValue(Start), intValue(Stop), intValue(Step))
     requires isIntLike(Start) andBool isIntLike(Stop) andBool isIntLike(Step) andBool intValue(Step) =/=Int 0
+  rule <k> range3Exp(Start:Val, Stop:Val, Step:Val) =>
+           exceptionSignal(#exception(#token("ValueError", "Id")))
+       ... </k>
+    requires isIntLike(Start)
+      andBool isIntLike(Stop)
+      andBool isIntLike(Step)
+      andBool intValue(Step) ==Int 0
 
   rule <k> assignStmt(X:Id, V:Val) => stmtNoResult ... </k>
        <env> Rho => Rho [ X <- V ] </env>
@@ -14219,16 +14226,25 @@ module PYTHON
   rule <k> continueSignal ~> matchDone => continueSignal ... </k>
   rule <k> returnSignal(V:Val) ~> matchDone => returnSignal(V) ... </k>
   rule <k> exceptionSignal(V:Val) ~> matchDone => exceptionSignal(V) ... </k>
+  rule <k> exceptionSignal(V:Val) ~> whileStmtBranch(_:Exp, _:Block) => exceptionSignal(V) ... </k>
+  rule <k> exceptionSignal(V:Val) ~> whileElseStmtBranch(_:Exp, _:Block, _:Block) => exceptionSignal(V) ... </k>
   rule <k> breakSignal ~> whileStmtAgain(_:Exp, _:Block) => stmtNoResult ... </k>
   rule <k> continueSignal ~> whileStmtAgain(C:Exp, Body:Block) =>
            whileStmt(C, Body)
        ... </k>
   rule <k> returnSignal(V:Val) ~> whileStmtAgain(_:Exp, _:Block) => returnSignal(V) ... </k>
+  rule <k> exceptionSignal(V:Val) ~> whileStmtAgain(_:Exp, _:Block) => exceptionSignal(V) ... </k>
   rule <k> breakSignal ~> whileElseStmtAgain(_:Exp, _:Block, _:Block) => stmtNoResult ... </k>
   rule <k> continueSignal ~> whileElseStmtAgain(C:Exp, Body:Block, Else:Block) =>
            whileElseStmt(C, Body, Else)
        ... </k>
   rule <k> returnSignal(V:Val) ~> whileElseStmtAgain(_:Exp, _:Block, _:Block) => returnSignal(V) ... </k>
+  rule <k> exceptionSignal(V:Val) ~> whileElseStmtAgain(_:Exp, _:Block, _:Block) => exceptionSignal(V) ... </k>
+  rule <k> exceptionSignal(V:Val) ~> forIter(_:Id, _:Block) => exceptionSignal(V) ... </k>
+  rule <k> exceptionSignal(V:Val) ~> forUnpackIter(_:IdItems, _:Block) => exceptionSignal(V) ... </k>
+  rule <k> exceptionSignal(V:Val) ~> forTargetUnpackIter(_:Targets, _:Block) => exceptionSignal(V) ... </k>
+  rule <k> exceptionSignal(V:Val) ~> forTargetIter(_:Target, _:Block) => exceptionSignal(V) ... </k>
+  rule <k> exceptionSignal(V:Val) ~> forStarUnpackIter(_:IdItems, _:Id, _:IdItems, _:Block) => exceptionSignal(V) ... </k>
   rule <k> breakSignal ~> forItems(_:Id, _:ValItems, _:Block) => stmtNoResult ... </k>
   rule <k> breakSignal ~> forDone => stmtNoResult ... </k>
   rule <k> continueSignal ~> forItems(X:Id, VS:ValItems, Body:Block) =>
@@ -14237,36 +14253,49 @@ module PYTHON
   rule <k> continueSignal ~> forDone => stmtNoResult ... </k>
   rule <k> returnSignal(V:Val) ~> forItems(_:Id, _:ValItems, _:Block) => returnSignal(V) ... </k>
   rule <k> returnSignal(V:Val) ~> forDone => returnSignal(V) ... </k>
+  rule <k> exceptionSignal(V:Val) ~> forItems(_:Id, _:ValItems, _:Block) => exceptionSignal(V) ... </k>
+  rule <k> exceptionSignal(V:Val) ~> forDone => exceptionSignal(V) ... </k>
   rule <k> breakSignal ~> forUnpackItems(_:IdItems, _:ValItems, _:Block) => stmtNoResult ... </k>
   rule <k> continueSignal ~> forUnpackItems(IDS:IdItems, VS:ValItems, Body:Block) =>
            forUnpackItems(IDS, VS, Body)
        ... </k>
   rule <k> returnSignal(V:Val) ~> forUnpackItems(_:IdItems, _:ValItems, _:Block) => returnSignal(V) ... </k>
+  rule <k> exceptionSignal(V:Val) ~> forUnpackItems(_:IdItems, _:ValItems, _:Block) => exceptionSignal(V) ... </k>
   rule <k> breakSignal ~> forTargetUnpackItems(_:Targets, _:ValItems, _:Block) => stmtNoResult ... </k>
   rule <k> continueSignal ~> forTargetUnpackItems(TS:Targets, VS:ValItems, Body:Block) =>
            forTargetUnpackItems(TS, VS, Body)
        ... </k>
   rule <k> returnSignal(V:Val) ~> forTargetUnpackItems(_:Targets, _:ValItems, _:Block) => returnSignal(V) ... </k>
+  rule <k> exceptionSignal(V:Val) ~> forTargetUnpackItems(_:Targets, _:ValItems, _:Block) => exceptionSignal(V) ... </k>
   rule <k> breakSignal ~> forTargetItems(_:Target, _:ValItems, _:Block) => stmtNoResult ... </k>
   rule <k> continueSignal ~> forTargetItems(T:Target, VS:ValItems, Body:Block) =>
            forTargetItems(T, VS, Body)
        ... </k>
   rule <k> returnSignal(V:Val) ~> forTargetItems(_:Target, _:ValItems, _:Block) => returnSignal(V) ... </k>
+  rule <k> exceptionSignal(V:Val) ~> forTargetItems(_:Target, _:ValItems, _:Block) => exceptionSignal(V) ... </k>
   rule <k> breakSignal ~> forStarUnpackItems(_:IdItems, _:Id, _:IdItems, _:ValItems, _:Block) => stmtNoResult ... </k>
   rule <k> continueSignal ~> forStarUnpackItems(Prefix:IdItems, Star:Id, Suffix:IdItems, VS:ValItems, Body:Block) =>
            forStarUnpackItems(Prefix, Star, Suffix, VS, Body)
        ... </k>
   rule <k> returnSignal(V:Val) ~> forStarUnpackItems(_:IdItems, _:Id, _:IdItems, _:ValItems, _:Block) => returnSignal(V) ... </k>
+  rule <k> exceptionSignal(V:Val) ~> forStarUnpackItems(_:IdItems, _:Id, _:IdItems, _:ValItems, _:Block) => exceptionSignal(V) ... </k>
   rule <k> breakSignal ~> forRangeAgain(_:Id, _:Int, _:Int, _:Block) => stmtNoResult ... </k>
   rule <k> continueSignal ~> forRangeAgain(X:Id, I:Int, Stop:Int, Body:Block) =>
            forRange(X, I, Stop, Body)
        ... </k>
   rule <k> returnSignal(V:Val) ~> forRangeAgain(_:Id, _:Int, _:Int, _:Block) => returnSignal(V) ... </k>
+  rule <k> exceptionSignal(V:Val) ~> forRangeAgain(_:Id, _:Int, _:Int, _:Block) => exceptionSignal(V) ... </k>
   rule <k> breakSignal ~> forRangeStepAgain(_:Id, _:Int, _:Int, _:Int, _:Block) => stmtNoResult ... </k>
   rule <k> continueSignal ~> forRangeStepAgain(X:Id, I:Int, Stop:Int, Step:Int, Body:Block) =>
            forRangeStep(X, I, Stop, Step, Body)
        ... </k>
   rule <k> returnSignal(V:Val) ~> forRangeStepAgain(_:Id, _:Int, _:Int, _:Int, _:Block) => returnSignal(V) ... </k>
+  rule <k> exceptionSignal(V:Val) ~> forRangeStepAgain(_:Id, _:Int, _:Int, _:Int, _:Block) => exceptionSignal(V) ... </k>
+  rule <k> exceptionSignal(V:Val) ~> forElseIter(_:Id, _:Block, _:Block) => exceptionSignal(V) ... </k>
+  rule <k> exceptionSignal(V:Val) ~> forUnpackElseIter(_:IdItems, _:Block, _:Block) => exceptionSignal(V) ... </k>
+  rule <k> exceptionSignal(V:Val) ~> forTargetUnpackElseIter(_:Targets, _:Block, _:Block) => exceptionSignal(V) ... </k>
+  rule <k> exceptionSignal(V:Val) ~> forTargetElseIter(_:Target, _:Block, _:Block) => exceptionSignal(V) ... </k>
+  rule <k> exceptionSignal(V:Val) ~> forStarUnpackElseIter(_:IdItems, _:Id, _:IdItems, _:Block, _:Block) => exceptionSignal(V) ... </k>
   rule <k> breakSignal ~> forElseItems(_:Id, _:ValItems, _:Block, _:Block) => stmtNoResult ... </k>
   rule <k> breakSignal ~> forElseDone(_:Block) => stmtNoResult ... </k>
   rule <k> continueSignal ~> forElseItems(X:Id, VS:ValItems, Body:Block, Else:Block) =>
@@ -14275,6 +14304,8 @@ module PYTHON
   rule <k> continueSignal ~> forElseDone(Else:Block) => runLoopElse(Else) ... </k>
   rule <k> returnSignal(V:Val) ~> forElseItems(_:Id, _:ValItems, _:Block, _:Block) => returnSignal(V) ... </k>
   rule <k> returnSignal(V:Val) ~> forElseDone(_:Block) => returnSignal(V) ... </k>
+  rule <k> exceptionSignal(V:Val) ~> forElseItems(_:Id, _:ValItems, _:Block, _:Block) => exceptionSignal(V) ... </k>
+  rule <k> exceptionSignal(V:Val) ~> forElseDone(_:Block) => exceptionSignal(V) ... </k>
   rule <k> breakSignal ~> forUnpackElseItems(_:IdItems, _:ValItems, _:Block, _:Block) => stmtNoResult ... </k>
   rule <k> breakSignal ~> forUnpackElseDone(_:Block) => stmtNoResult ... </k>
   rule <k> continueSignal ~> forUnpackElseItems(IDS:IdItems, VS:ValItems, Body:Block, Else:Block) =>
@@ -14283,31 +14314,38 @@ module PYTHON
   rule <k> continueSignal ~> forUnpackElseDone(Else:Block) => runLoopElse(Else) ... </k>
   rule <k> returnSignal(V:Val) ~> forUnpackElseItems(_:IdItems, _:ValItems, _:Block, _:Block) => returnSignal(V) ... </k>
   rule <k> returnSignal(V:Val) ~> forUnpackElseDone(_:Block) => returnSignal(V) ... </k>
+  rule <k> exceptionSignal(V:Val) ~> forUnpackElseItems(_:IdItems, _:ValItems, _:Block, _:Block) => exceptionSignal(V) ... </k>
+  rule <k> exceptionSignal(V:Val) ~> forUnpackElseDone(_:Block) => exceptionSignal(V) ... </k>
   rule <k> breakSignal ~> forTargetUnpackElseItems(_:Targets, _:ValItems, _:Block, _:Block) => stmtNoResult ... </k>
   rule <k> continueSignal ~> forTargetUnpackElseItems(TS:Targets, VS:ValItems, Body:Block, Else:Block) =>
            forTargetUnpackElseItems(TS, VS, Body, Else)
        ... </k>
   rule <k> returnSignal(V:Val) ~> forTargetUnpackElseItems(_:Targets, _:ValItems, _:Block, _:Block) => returnSignal(V) ... </k>
+  rule <k> exceptionSignal(V:Val) ~> forTargetUnpackElseItems(_:Targets, _:ValItems, _:Block, _:Block) => exceptionSignal(V) ... </k>
   rule <k> breakSignal ~> forTargetElseItems(_:Target, _:ValItems, _:Block, _:Block) => stmtNoResult ... </k>
   rule <k> continueSignal ~> forTargetElseItems(T:Target, VS:ValItems, Body:Block, Else:Block) =>
            forTargetElseItems(T, VS, Body, Else)
        ... </k>
   rule <k> returnSignal(V:Val) ~> forTargetElseItems(_:Target, _:ValItems, _:Block, _:Block) => returnSignal(V) ... </k>
+  rule <k> exceptionSignal(V:Val) ~> forTargetElseItems(_:Target, _:ValItems, _:Block, _:Block) => exceptionSignal(V) ... </k>
   rule <k> breakSignal ~> forStarUnpackElseItems(_:IdItems, _:Id, _:IdItems, _:ValItems, _:Block, _:Block) => stmtNoResult ... </k>
   rule <k> continueSignal ~> forStarUnpackElseItems(Prefix:IdItems, Star:Id, Suffix:IdItems, VS:ValItems, Body:Block, Else:Block) =>
            forStarUnpackElseItems(Prefix, Star, Suffix, VS, Body, Else)
        ... </k>
   rule <k> returnSignal(V:Val) ~> forStarUnpackElseItems(_:IdItems, _:Id, _:IdItems, _:ValItems, _:Block, _:Block) => returnSignal(V) ... </k>
+  rule <k> exceptionSignal(V:Val) ~> forStarUnpackElseItems(_:IdItems, _:Id, _:IdItems, _:ValItems, _:Block, _:Block) => exceptionSignal(V) ... </k>
   rule <k> breakSignal ~> forElseRangeAgain(_:Id, _:Int, _:Int, _:Block, _:Block) => stmtNoResult ... </k>
   rule <k> continueSignal ~> forElseRangeAgain(X:Id, I:Int, Stop:Int, Body:Block, Else:Block) =>
            forElseRange(X, I, Stop, Body, Else)
        ... </k>
   rule <k> returnSignal(V:Val) ~> forElseRangeAgain(_:Id, _:Int, _:Int, _:Block, _:Block) => returnSignal(V) ... </k>
+  rule <k> exceptionSignal(V:Val) ~> forElseRangeAgain(_:Id, _:Int, _:Int, _:Block, _:Block) => exceptionSignal(V) ... </k>
   rule <k> breakSignal ~> forElseRangeStepAgain(_:Id, _:Int, _:Int, _:Int, _:Block, _:Block) => stmtNoResult ... </k>
   rule <k> continueSignal ~> forElseRangeStepAgain(X:Id, I:Int, Stop:Int, Step:Int, Body:Block, Else:Block) =>
            forElseRangeStep(X, I, Stop, Step, Body, Else)
        ... </k>
   rule <k> returnSignal(V:Val) ~> forElseRangeStepAgain(_:Id, _:Int, _:Int, _:Int, _:Block, _:Block) => returnSignal(V) ... </k>
+  rule <k> exceptionSignal(V:Val) ~> forElseRangeStepAgain(_:Id, _:Int, _:Int, _:Int, _:Block, _:Block) => exceptionSignal(V) ... </k>
   rule <k> returnSignal(V:Val) ~> functionDone(Rho:Map) => V ~> restoreEnv(Rho) ... </k>
   rule <k> exceptionSignal(V:Val) ~> functionDone(Rho:Map) => exceptionSignal(V) ~> restoreEnv(Rho) ... </k>
   rule <k> functionDone(Rho:Map) => None ~> restoreEnv(Rho) ... </k>

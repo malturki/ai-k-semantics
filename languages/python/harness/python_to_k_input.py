@@ -83,6 +83,15 @@ def emit_stmt_block(stmt: str) -> str:
     return "{\n" + stmt + ";\n}"
 
 
+def emit_exception_sentinel(exp: ast.expr) -> str:
+    match exp:
+        case ast.Name(id=name):
+            return f"#exception({emit_id(name)})"
+        case ast.Call(func=ast.Name(id=name), args=[], keywords=[]):
+            return f"#exception({emit_id(name)})"
+    raise unsupported(exp, "only named exception sentinels are supported")
+
+
 def emit_stmt(stmt: ast.stmt) -> str:
     match stmt:
         case ast.Expr(value=value):
@@ -119,19 +128,14 @@ def emit_stmt(stmt: ast.stmt) -> str:
             return "return"
         case ast.Return(value=value):
             return f"return {emit_exp(value)}"
-        case ast.Raise(exc=ast.Name(id=name), cause=ast.Constant(value=None)):
-            return f"#raiseFromNone(#exception({emit_id(name)}))"
-        case ast.Raise(
-            exc=ast.Call(func=ast.Name(id=name), args=[], keywords=[]),
-            cause=ast.Constant(value=None),
-        ):
-            return f"#raiseFromNone(#exception({emit_id(name)}))"
-        case ast.Raise(exc=ast.Name(id=name), cause=None):
-            return f"raise #exception({emit_id(name)})"
-        case ast.Raise(exc=ast.Call(func=ast.Name(id=name), args=[], keywords=[]), cause=None):
-            return f"raise #exception({emit_id(name)})"
+        case ast.Raise(exc=exc, cause=ast.Constant(value=None)) if exc is not None:
+            return f"#raiseFromNone({emit_exception_sentinel(exc)})"
+        case ast.Raise(exc=exc, cause=cause) if exc is not None and cause is not None:
+            return f"#raiseFrom({emit_exception_sentinel(exc)}, {emit_exception_sentinel(cause)})"
+        case ast.Raise(exc=exc, cause=None) if exc is not None:
+            return f"raise {emit_exception_sentinel(exc)}"
         case ast.Raise():
-            raise unsupported(stmt, "only raising a named exception sentinel, optionally from None, is supported")
+            raise unsupported(stmt, "only raising a named exception sentinel, optionally from None or another named sentinel, is supported")
         case ast.FunctionDef(
             name=name,
             args=args,

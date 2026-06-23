@@ -269,6 +269,7 @@ run_case "adapter-try-finally-finalbody-break-continue" "$ROOT/tests/adapter/ada
 run_case "adapter-try-finally-exception" "$ROOT/tests/adapter/adapter-try-finally-exception.py" "True ~> .K"
 run_case "adapter-try-except-finally" "$ROOT/tests/adapter/adapter-try-except-finally.py" "True ~> .K"
 run_case "adapter-raise-from-none" "$ROOT/tests/adapter/adapter-raise-from-none.py" "True ~> .K"
+run_case "adapter-raise-from-cause" "$ROOT/tests/adapter/adapter-raise-from-cause.py" "True ~> .K"
 run_case "adapter-try-except-basic" "$ROOT/tests/adapter/adapter-try-except-basic.py" "True ~> .K"
 run_case "adapter-try-except-no-exception" "$ROOT/tests/adapter/adapter-try-except-no-exception.py" "True ~> .K"
 run_case "adapter-try-except-else" "$ROOT/tests/adapter/adapter-try-except-else.py" "True ~> .K"

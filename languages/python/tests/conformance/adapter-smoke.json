@@ -1565,6 +1565,13 @@
       "coverage": ["raise-statement", "raise-from-none", "exception-context-suppression-sentinel-profile", "exception-handler-matching", "exception-handler-mismatch", "finally-runs-during-exception-propagation", "ordinary-python-source-adapter"]
     },
     {
+      "id": "adapter-raise-from-cause",
+      "source": "../adapter/adapter-raise-from-cause.py",
+      "reference": "Python Language Reference 7.8 The raise statement; 8.4 The try statement",
+      "expected_result": "True ~> .K",
+      "coverage": ["raise-statement", "raise-from-cause", "exception-chaining-sentinel-profile", "exception-handler-matching", "exception-handler-mismatch", "finally-runs-during-exception-propagation", "ordinary-python-source-adapter"]
+    },
+    {
       "id": "adapter-try-except-basic",
       "source": "../adapter/adapter-try-except-basic.py",
       "reference": "Python Language Reference 8.4 The try statement; 7.8 The raise statement",

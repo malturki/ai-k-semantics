@@ -208,6 +208,7 @@ module PYTHON-SYNTAX
                 | Id "|=" Exp [symbol(augBitOrStmt)]
                 | "#floorDivAssign" "(" Id "," Exp ")" [symbol(augFloorDivStmt)]
                 | "#assignMany" "(" IdItems ";" Exp ")" [symbol(assignManyStmt), strict(2)]
+                | "#subscriptAssign" "(" Id "," Exp "," Exp ")" [symbol(subscriptAssignStmt)]
                 | "#unpackAssign" "(" IdItems ";" Exp ")" [symbol(unpackAssignStmt), strict(2)]
                 | "#unpackStarAssign" "(" IdItems ";" Id ";" IdItems ";" Exp ")" [symbol(unpackStarAssignStmt), strict(4)]
                 | "#unpackTargetAssign" "(" Targets ";" Exp ")" [symbol(unpackTargetAssignStmt), strict(2)]
@@ -1017,6 +1018,8 @@ module PYTHON
                  | bindFunctionPosKwDefaultsKwArgs(Id, IdItems, ArgExps, IdItems, Id, Block) [symbol(bindFunctionPosKwDefaultsKwArgs)]
                  | bindFunctionPosKwDefaultValsKwArgs(Id, IdItems, ArgVals, IdItems, Id, Block) [symbol(bindFunctionPosKwDefaultValsKwArgs)]
                  | assignMany(IdItems, Val) [symbol(assignMany)]
+                 | subscriptAssignIndex(Id, Exp) [symbol(subscriptAssignIndex)]
+                 | subscriptAssignApply(Id, Val) [symbol(subscriptAssignApply)]
 
   syntax Bool ::= truthy(Val) [function, symbol(truthy)]
                 | isIntLike(Val) [function, symbol(isIntLike)]
@@ -1364,7 +1367,9 @@ module PYTHON
   syntax ValItems ::= repeatValItems(ValItems, Int) [function, symbol(repeatValItems)]
   syntax ValItems ::= sliceValItems(ValItems, Int, Int) [function, symbol(sliceValItems)]
   syntax ValItems ::= sliceStepValItems(ValItems, Int, Int, Int) [function, symbol(sliceStepValItems)]
+  syntax ValItems ::= listSet(ValItems, Int, Val) [function, symbol(listSet)]
   syntax DictItems ::= dictValsToDictItems(DictVals) [function, symbol(dictValsToDictItems)]
+  syntax DictItems ::= dictSet(DictItems, Val, Val) [function, symbol(dictSet)]
   syntax Val ::= dictFromDictVals(DictVals) [function, symbol(dictFromDictVals)]
   syntax Val ::= dictCtorFromPairs(ValItems) [function, symbol(dictCtorFromPairs)]
   syntax Val ::= dictCtorFromKwArgs(KwArgVals) [function, symbol(dictCtorFromKwArgs)]
@@ -4805,11 +4810,29 @@ module PYTHON
   rule listGet(valItemsCons(_:Val, VS:ValItems), I:Int) => listGet(VS, I -Int 1)
     requires I >Int 0
 
+  rule listSet(valItemsLast(_:Val), 0, V:Val) => valItemsLast(V)
+  rule listSet(valItemsCons(_:Val, VS:ValItems), 0, V:Val) => valItemsCons(V, VS)
+  rule listSet(valItemsCons(V0:Val, VS:ValItems), I:Int, V:Val) =>
+    valItemsCons(V0, listSet(VS, I -Int 1, V))
+    requires I >Int 0
+
   rule dictGet(dictItemsLast(K1:Val, V:Val), K:Val) => V
     requires valEq(K, K1)
   rule dictGet(dictItemsCons(K1:Val, V:Val, _:DictItems), K:Val) => V
     requires valEq(K, K1)
   rule dictGet(dictItemsCons(K1:Val, _:Val, DS:DictItems), K:Val) => dictGet(DS, K)
+    requires notBool valEq(K, K1)
+
+  rule dictSet(dictItemsLast(K1:Val, _:Val), K:Val, V:Val) => dictItemsLast(K1, V)
+    requires valEq(K, K1)
+  rule dictSet(dictItemsLast(K1:Val, V1:Val), K:Val, V:Val) =>
+    dictItemsCons(K1, V1, dictItemsLast(K, V))
+    requires notBool valEq(K, K1)
+  rule dictSet(dictItemsCons(K1:Val, _:Val, DS:DictItems), K:Val, V:Val) =>
+    dictItemsCons(K1, V, DS)
+    requires valEq(K, K1)
+  rule dictSet(dictItemsCons(K1:Val, V1:Val, DS:DictItems), K:Val, V:Val) =>
+    dictItemsCons(K1, V1, dictSet(DS, K, V))
     requires notBool valEq(K, K1)
 
   configuration
@@ -10048,6 +10071,29 @@ module PYTHON
 
   rule <k> assignNameStmt(X:Id, V:Val) => stmtNoResult ... </k>
        <env> Rho => Rho [ X <- V ] </env>
+       <result> _ => .K </result>
+
+  rule <k> subscriptAssignStmt(X:Id, I:Exp, E:Exp) =>
+           E ~> subscriptAssignIndex(X, I)
+       ... </k>
+  rule <k> V:Val ~> subscriptAssignIndex(X:Id, I:Exp) =>
+           I ~> subscriptAssignApply(X, V)
+       ... </k>
+  rule <k> I:Val ~> subscriptAssignApply(X:Id, V:Val) => stmtNoResult ... </k>
+       <env> ... X |-> (listVal(VS:ValItems) => listVal(listSet(VS, intValue(I), V))) ... </env>
+       <result> _ => .K </result>
+    requires isIntLike(I) andBool intValue(I) >=Int 0 andBool intValue(I) <Int valItemsLen(VS)
+  rule <k> I:Val ~> subscriptAssignApply(X:Id, V:Val) => stmtNoResult ... </k>
+       <env> ... X |-> (listVal(VS:ValItems) => listVal(listSet(VS, valItemsLen(VS) +Int intValue(I), V))) ... </env>
+       <result> _ => .K </result>
+    requires isIntLike(I)
+      andBool intValue(I) <Int 0
+      andBool valItemsLen(VS) +Int intValue(I) >=Int 0
+  rule <k> K:Val ~> subscriptAssignApply(X:Id, V:Val) => stmtNoResult ... </k>
+       <env> ... X |-> (({}):Val => dictVal(dictItemsLast(K, V))) ... </env>
+       <result> _ => .K </result>
+  rule <k> K:Val ~> subscriptAssignApply(X:Id, V:Val) => stmtNoResult ... </k>
+       <env> ... X |-> (dictVal(DS:DictItems) => dictVal(dictSet(DS, K, V))) ... </env>
        <result> _ => .K </result>
 
   rule <k> augAddStmt(X:Id, E:Exp) => assignStmt(X, X + E) ... </k>

@@ -2062,6 +2062,13 @@
       "coverage": ["multi-target-assignment", "simple-name-targets", "single-rhs-evaluation", "ordinary-python-source-adapter"]
     },
     {
+      "id": "adapter-subscript-assignment",
+      "source": "../adapter/adapter-subscript-assignment.py",
+      "reference": "Python Language Reference 7.2 Assignment statements; 6.3.2 Subscriptions",
+      "expected_result": "True ~> .K",
+      "coverage": ["assignment-statement", "subscript-target", "list-item-assignment", "dict-item-assignment", "negative-index", "bool-as-int-index", "ordinary-python-source-adapter"]
+    },
+    {
       "id": "adapter-unpack-tuple",
       "source": "../adapter/adapter-unpack-tuple.py",
       "reference": "Python Language Reference 7.2 Assignment statements",

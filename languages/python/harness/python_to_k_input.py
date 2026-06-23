@@ -1701,9 +1701,18 @@ def emit_assign(node: ast.AST, targets: list[ast.expr], value: ast.expr) -> str:
             if target.id == "Ellipsis":
                 return f"#assignName({ELLIPSIS_NAME_ID}, {emit_exp(value)})"
             return f"{emit_id(target.id)} = {emit_exp(value)}"
+        if (
+            isinstance(target, ast.Subscript)
+            and isinstance(target.value, ast.Name)
+            and not isinstance(target.slice, ast.Slice)
+        ):
+            return (
+                f"#subscriptAssign({emit_id(target.value.id)}, "
+                f"{emit_exp(target.slice)}, {emit_exp(value)})"
+            )
         if isinstance(target, ast.Tuple | ast.List):
             return emit_sequence_assign(target, value)
-        raise unsupported(target, "only simple-name and flat/starred sequence assignment targets are supported")
+        raise unsupported(target, "only simple-name, simple-name subscript, and flat/starred sequence assignment targets are supported")
 
     names: list[str] = []
     for target in targets:

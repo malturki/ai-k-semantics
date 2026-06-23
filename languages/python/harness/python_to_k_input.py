@@ -68,10 +68,36 @@ def unsupported(node: ast.AST, message: str) -> UnsupportedPythonSubset:
 def emit_min_max_keyword_call(
     node: ast.AST, builtin_name: str, args: list[ast.expr], keywords: list[ast.keyword]
 ) -> str:
+    if len(keywords) == 2:
+        first, second = keywords
+        if first.arg == "default" and second.arg == "key":
+            if len(args) == 1:
+                return (
+                    f"#{builtin_name}DefaultKey("
+                    f"{emit_exp(args[0])}, {emit_exp(first.value)}, {emit_exp(second.value)})"
+                )
+            return (
+                f"#{builtin_name}ArgsDefaultKey("
+                f"{emit_arg_exps(args)}, {emit_exp(first.value)}, {emit_exp(second.value)})"
+            )
+        if first.arg == "key" and second.arg == "default":
+            if len(args) == 1:
+                return (
+                    f"#{builtin_name}KeyDefault("
+                    f"{emit_exp(args[0])}, {emit_exp(first.value)}, {emit_exp(second.value)})"
+                )
+            return (
+                f"#{builtin_name}ArgsKeyDefault("
+                f"{emit_arg_exps(args)}, {emit_exp(first.value)}, {emit_exp(second.value)})"
+            )
+        raise unsupported(
+            node,
+            f"{builtin_name} currently supports combined default= and key= keywords only",
+        )
     if len(keywords) != 1:
         raise unsupported(
             node,
-            f"{builtin_name} currently supports only one of default= or key=, not combined keywords",
+            f"{builtin_name} currently supports at most default= and key= keyword pairs",
         )
     keyword = keywords[0]
     if keyword.arg == "default":

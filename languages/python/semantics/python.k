@@ -380,12 +380,20 @@ module PYTHON-SYNTAX
                | "#maxDefault" "(" Exp "," Exp ")" [symbol(maxDefaultExp)]
                | "#minKey" "(" Exp "," Exp ")" [symbol(minKeyExp)]
                | "#maxKey" "(" Exp "," Exp ")" [symbol(maxKeyExp)]
+               | "#minDefaultKey" "(" Exp "," Exp "," Exp ")" [symbol(minDefaultKeyExp)]
+               | "#maxDefaultKey" "(" Exp "," Exp "," Exp ")" [symbol(maxDefaultKeyExp)]
+               | "#minKeyDefault" "(" Exp "," Exp "," Exp ")" [symbol(minKeyDefaultExp)]
+               | "#maxKeyDefault" "(" Exp "," Exp "," Exp ")" [symbol(maxKeyDefaultExp)]
                | "#minArgs" "(" ArgExps ")" [symbol(minArgsExp)]
                | "#maxArgs" "(" ArgExps ")" [symbol(maxArgsExp)]
                | "#minArgsDefault" "(" ArgExps "," Exp ")" [symbol(minArgsDefaultExp)]
                | "#maxArgsDefault" "(" ArgExps "," Exp ")" [symbol(maxArgsDefaultExp)]
                | "#minArgsKey" "(" ArgExps "," Exp ")" [symbol(minArgsKeyExp)]
                | "#maxArgsKey" "(" ArgExps "," Exp ")" [symbol(maxArgsKeyExp)]
+               | "#minArgsDefaultKey" "(" ArgExps "," Exp "," Exp ")" [symbol(minArgsDefaultKeyExp)]
+               | "#maxArgsDefaultKey" "(" ArgExps "," Exp "," Exp ")" [symbol(maxArgsDefaultKeyExp)]
+               | "#minArgsKeyDefault" "(" ArgExps "," Exp "," Exp ")" [symbol(minArgsKeyDefaultExp)]
+               | "#maxArgsKeyDefault" "(" ArgExps "," Exp "," Exp ")" [symbol(maxArgsKeyDefaultExp)]
                | "#sliceCtor" "(" Exp ")" [symbol(sliceCtor1Exp), strict]
                | "#sliceCtor" "(" Exp "," Exp ")" [symbol(sliceCtor2Exp), strict]
                | "#sliceCtor" "(" Exp "," Exp "," Exp ")" [symbol(sliceCtor3Exp), strict]
@@ -845,6 +853,18 @@ module PYTHON
                  | maxKeyCompare(Val, Val, Val, ValItems, Val) [symbol(maxKeyCompare)]
                  | minKeyCompareLast(Val, Val, Val) [symbol(minKeyCompareLast)]
                  | maxKeyCompareLast(Val, Val, Val) [symbol(maxKeyCompareLast)]
+                 | minDefaultKeyDefault(Exp, Exp) [symbol(minDefaultKeyDefault)]
+                 | maxDefaultKeyDefault(Exp, Exp) [symbol(maxDefaultKeyDefault)]
+                 | minDefaultKeyKey(Val, Exp) [symbol(minDefaultKeyKey)]
+                 | maxDefaultKeyKey(Val, Exp) [symbol(maxDefaultKeyKey)]
+                 | minDefaultKeyApply(Val, Val) [symbol(minDefaultKeyApply)]
+                 | maxDefaultKeyApply(Val, Val) [symbol(maxDefaultKeyApply)]
+                 | minKeyDefaultKey(Exp, Exp) [symbol(minKeyDefaultKey)]
+                 | maxKeyDefaultKey(Exp, Exp) [symbol(maxKeyDefaultKey)]
+                 | minKeyDefaultDefault(Val, Exp) [symbol(minKeyDefaultDefault)]
+                 | maxKeyDefaultDefault(Val, Exp) [symbol(maxKeyDefaultDefault)]
+                 | minKeyDefaultApply(Val, Val) [symbol(minKeyDefaultApply)]
+                 | maxKeyDefaultApply(Val, Val) [symbol(maxKeyDefaultApply)]
                  | minArgsDefaultResult(Exp) [symbol(minArgsDefaultResult)]
                  | maxArgsDefaultResult(Exp) [symbol(maxArgsDefaultResult)]
                  | minArgsDefaultReject(ArgVals) [symbol(minArgsDefaultReject)]
@@ -853,6 +873,18 @@ module PYTHON
                  | maxArgsKeyEval(Exp) [symbol(maxArgsKeyEval)]
                  | minArgsKeyApply(ArgVals) [symbol(minArgsKeyApply)]
                  | maxArgsKeyApply(ArgVals) [symbol(maxArgsKeyApply)]
+                 | minArgsDefaultKeyEval(Exp, Exp) [symbol(minArgsDefaultKeyEval)]
+                 | maxArgsDefaultKeyEval(Exp, Exp) [symbol(maxArgsDefaultKeyEval)]
+                 | minArgsDefaultKeyKey(ArgVals, Exp) [symbol(minArgsDefaultKeyKey)]
+                 | maxArgsDefaultKeyKey(ArgVals, Exp) [symbol(maxArgsDefaultKeyKey)]
+                 | minArgsDefaultKeyReject(ArgVals, Val) [symbol(minArgsDefaultKeyReject)]
+                 | maxArgsDefaultKeyReject(ArgVals, Val) [symbol(maxArgsDefaultKeyReject)]
+                 | minArgsKeyDefaultEval(Exp, Exp) [symbol(minArgsKeyDefaultEval)]
+                 | maxArgsKeyDefaultEval(Exp, Exp) [symbol(maxArgsKeyDefaultEval)]
+                 | minArgsKeyDefaultDefault(ArgVals, Exp) [symbol(minArgsKeyDefaultDefault)]
+                 | maxArgsKeyDefaultDefault(ArgVals, Exp) [symbol(maxArgsKeyDefaultDefault)]
+                 | minArgsKeyDefaultReject(ArgVals, Val) [symbol(minArgsKeyDefaultReject)]
+                 | maxArgsKeyDefaultReject(ArgVals, Val) [symbol(maxArgsKeyDefaultReject)]
                  | evalDict(DictExps, DictVals) [symbol(evalDict)]
                  | evalDictValue(Exp, DictExps, DictVals) [symbol(evalDictValue)]
                  | evalDictNext(DictExps, DictVals, Val) [symbol(evalDictNext)]
@@ -10949,6 +10981,114 @@ module PYTHON
            maxKeyLoop(BestItem, BestKey, VS, Key)
        ... </k>
     requires isIntLike(K) andBool isIntLike(BestKey) andBool intValue(K) <=Int intValue(BestKey)
+  rule <k> minDefaultKeyExp(Iter:Exp, Default:Exp, Key:Exp) =>
+           Iter ~> minDefaultKeyDefault(Default, Key)
+       ... </k>
+  rule <k> V:Val ~> minDefaultKeyDefault(Default:Exp, Key:Exp) =>
+           Default ~> minDefaultKeyKey(V, Key)
+       ... </k>
+  rule <k> Default:Val ~> minDefaultKeyKey(Iter:Val, Key:Exp) =>
+           Key ~> minDefaultKeyApply(Iter, Default)
+       ... </k>
+  rule <k> _Key:Val ~> minDefaultKeyApply([], Default:Val) => Default ... </k>
+  rule <k> _Key:Val ~> minDefaultKeyApply((), Default:Val) => Default ... </k>
+  rule <k> _Key:Val ~> minDefaultKeyApply("", Default:Val) => Default ... </k>
+  rule <k> _Key:Val ~> minDefaultKeyApply(#bytes(), Default:Val) => Default ... </k>
+  rule <k> _Key:Val ~> minDefaultKeyApply(({}):Val, Default:Val) => Default ... </k>
+  rule <k> _Key:Val ~> minDefaultKeyApply(set(), Default:Val) => Default ... </k>
+  rule <k> _Key:Val ~> minDefaultKeyApply(rangeVal(Start:Int, Stop:Int), Default:Val) => Default ... </k>
+    requires pyRangeLen(Start, Stop, 1) ==Int 0
+  rule <k> _Key:Val ~> minDefaultKeyApply(rangeVal(Start:Int, Stop:Int, Step:Int), Default:Val) => Default ... </k>
+    requires Step =/=Int 0 andBool pyRangeLen(Start, Stop, Step) ==Int 0
+  rule <k> Key:Val ~> minDefaultKeyApply(listVal(VS:ValItems), _Default:Val) =>
+           Key ~> minKeyApply(listVal(VS))
+       ... </k>
+  rule <k> Key:Val ~> minDefaultKeyApply(tupleVal(VS:ValItems), _Default:Val) =>
+           Key ~> minKeyApply(tupleVal(VS))
+       ... </k>
+  rule <k> Key:Val ~> minDefaultKeyApply(bytesVal(VS:ValItems), _Default:Val) =>
+           Key ~> minKeyApply(bytesVal(VS))
+       ... </k>
+  rule <k> Key:Val ~> minDefaultKeyApply(dictVal(DS:DictItems), _Default:Val) =>
+           Key ~> minKeyApply(dictVal(DS))
+       ... </k>
+  rule <k> Key:Val ~> minDefaultKeyApply(setVal(VS:ValItems), _Default:Val) =>
+           Key ~> minKeyApply(setVal(VS))
+       ... </k>
+  rule <k> Key:Val ~> minDefaultKeyApply(rangeVal(Start:Int, Stop:Int), _Default:Val) =>
+           Key ~> minKeyApply(rangeVal(Start, Stop))
+       ... </k>
+    requires pyRangeLen(Start, Stop, 1) >Int 0
+  rule <k> Key:Val ~> minDefaultKeyApply(rangeVal(Start:Int, Stop:Int, Step:Int), _Default:Val) =>
+           Key ~> minKeyApply(rangeVal(Start, Stop, Step))
+       ... </k>
+    requires Step =/=Int 0 andBool pyRangeLen(Start, Stop, Step) >Int 0
+  rule <k> minKeyDefaultExp(Iter:Exp, Key:Exp, Default:Exp) =>
+           Iter ~> minKeyDefaultKey(Key, Default)
+       ... </k>
+  rule <k> V:Val ~> minKeyDefaultKey(Key:Exp, Default:Exp) =>
+           Key ~> minKeyDefaultDefault(V, Default)
+       ... </k>
+  rule <k> Key:Val ~> minKeyDefaultDefault(Iter:Val, Default:Exp) =>
+           Default ~> minKeyDefaultApply(Iter, Key)
+       ... </k>
+  rule <k> Default:Val ~> minKeyDefaultApply(Iter:Val, Key:Val) =>
+           Key ~> minDefaultKeyApply(Iter, Default)
+       ... </k>
+  rule <k> maxDefaultKeyExp(Iter:Exp, Default:Exp, Key:Exp) =>
+           Iter ~> maxDefaultKeyDefault(Default, Key)
+       ... </k>
+  rule <k> V:Val ~> maxDefaultKeyDefault(Default:Exp, Key:Exp) =>
+           Default ~> maxDefaultKeyKey(V, Key)
+       ... </k>
+  rule <k> Default:Val ~> maxDefaultKeyKey(Iter:Val, Key:Exp) =>
+           Key ~> maxDefaultKeyApply(Iter, Default)
+       ... </k>
+  rule <k> _Key:Val ~> maxDefaultKeyApply([], Default:Val) => Default ... </k>
+  rule <k> _Key:Val ~> maxDefaultKeyApply((), Default:Val) => Default ... </k>
+  rule <k> _Key:Val ~> maxDefaultKeyApply("", Default:Val) => Default ... </k>
+  rule <k> _Key:Val ~> maxDefaultKeyApply(#bytes(), Default:Val) => Default ... </k>
+  rule <k> _Key:Val ~> maxDefaultKeyApply(({}):Val, Default:Val) => Default ... </k>
+  rule <k> _Key:Val ~> maxDefaultKeyApply(set(), Default:Val) => Default ... </k>
+  rule <k> _Key:Val ~> maxDefaultKeyApply(rangeVal(Start:Int, Stop:Int), Default:Val) => Default ... </k>
+    requires pyRangeLen(Start, Stop, 1) ==Int 0
+  rule <k> _Key:Val ~> maxDefaultKeyApply(rangeVal(Start:Int, Stop:Int, Step:Int), Default:Val) => Default ... </k>
+    requires Step =/=Int 0 andBool pyRangeLen(Start, Stop, Step) ==Int 0
+  rule <k> Key:Val ~> maxDefaultKeyApply(listVal(VS:ValItems), _Default:Val) =>
+           Key ~> maxKeyApply(listVal(VS))
+       ... </k>
+  rule <k> Key:Val ~> maxDefaultKeyApply(tupleVal(VS:ValItems), _Default:Val) =>
+           Key ~> maxKeyApply(tupleVal(VS))
+       ... </k>
+  rule <k> Key:Val ~> maxDefaultKeyApply(bytesVal(VS:ValItems), _Default:Val) =>
+           Key ~> maxKeyApply(bytesVal(VS))
+       ... </k>
+  rule <k> Key:Val ~> maxDefaultKeyApply(dictVal(DS:DictItems), _Default:Val) =>
+           Key ~> maxKeyApply(dictVal(DS))
+       ... </k>
+  rule <k> Key:Val ~> maxDefaultKeyApply(setVal(VS:ValItems), _Default:Val) =>
+           Key ~> maxKeyApply(setVal(VS))
+       ... </k>
+  rule <k> Key:Val ~> maxDefaultKeyApply(rangeVal(Start:Int, Stop:Int), _Default:Val) =>
+           Key ~> maxKeyApply(rangeVal(Start, Stop))
+       ... </k>
+    requires pyRangeLen(Start, Stop, 1) >Int 0
+  rule <k> Key:Val ~> maxDefaultKeyApply(rangeVal(Start:Int, Stop:Int, Step:Int), _Default:Val) =>
+           Key ~> maxKeyApply(rangeVal(Start, Stop, Step))
+       ... </k>
+    requires Step =/=Int 0 andBool pyRangeLen(Start, Stop, Step) >Int 0
+  rule <k> maxKeyDefaultExp(Iter:Exp, Key:Exp, Default:Exp) =>
+           Iter ~> maxKeyDefaultKey(Key, Default)
+       ... </k>
+  rule <k> V:Val ~> maxKeyDefaultKey(Key:Exp, Default:Exp) =>
+           Key ~> maxKeyDefaultDefault(V, Default)
+       ... </k>
+  rule <k> Key:Val ~> maxKeyDefaultDefault(Iter:Val, Default:Exp) =>
+           Default ~> maxKeyDefaultApply(Iter, Key)
+       ... </k>
+  rule <k> Default:Val ~> maxKeyDefaultApply(Iter:Val, Key:Val) =>
+           Key ~> maxDefaultKeyApply(Iter, Default)
+       ... </k>
   rule <k> minArgsExp(Args:ArgExps) => evalArgs(Args, #noArgVals) ~> minArgsResult ... </k>
   rule <k> argsVal(VS:ArgVals) ~> minArgsResult => minArgVals(VS) ... </k>
     requires notBool emptyArgVals(VS)
@@ -10993,6 +11133,54 @@ module PYTHON
     requires notBool emptyArgVals(VS)
   rule <k> Key:Val ~> maxArgsKeyApply(VS:ArgVals) => maxKeyFold(argValsToValItems(VS), Key) ... </k>
     requires notBool emptyArgVals(VS)
+  rule <k> minArgsDefaultKeyExp(Args:ArgExps, Default:Exp, Key:Exp) =>
+           evalArgs(Args, #noArgVals) ~> minArgsDefaultKeyEval(Default, Key)
+       ... </k>
+  rule <k> argsVal(VS:ArgVals) ~> minArgsDefaultKeyEval(Default:Exp, Key:Exp) =>
+           Default ~> minArgsDefaultKeyKey(VS, Key)
+       ... </k>
+  rule <k> Default:Val ~> minArgsDefaultKeyKey(VS:ArgVals, Key:Exp) =>
+           Key ~> minArgsDefaultKeyReject(VS, Default)
+       ... </k>
+  rule <k> _Key:Val ~> minArgsDefaultKeyReject(_:ArgVals, _:Val) =>
+           exceptionSignal(#exception(#token("TypeError", "Id")))
+       ... </k>
+  rule <k> maxArgsDefaultKeyExp(Args:ArgExps, Default:Exp, Key:Exp) =>
+           evalArgs(Args, #noArgVals) ~> maxArgsDefaultKeyEval(Default, Key)
+       ... </k>
+  rule <k> argsVal(VS:ArgVals) ~> maxArgsDefaultKeyEval(Default:Exp, Key:Exp) =>
+           Default ~> maxArgsDefaultKeyKey(VS, Key)
+       ... </k>
+  rule <k> Default:Val ~> maxArgsDefaultKeyKey(VS:ArgVals, Key:Exp) =>
+           Key ~> maxArgsDefaultKeyReject(VS, Default)
+       ... </k>
+  rule <k> _Key:Val ~> maxArgsDefaultKeyReject(_:ArgVals, _:Val) =>
+           exceptionSignal(#exception(#token("TypeError", "Id")))
+       ... </k>
+  rule <k> minArgsKeyDefaultExp(Args:ArgExps, Key:Exp, Default:Exp) =>
+           evalArgs(Args, #noArgVals) ~> minArgsKeyDefaultEval(Key, Default)
+       ... </k>
+  rule <k> argsVal(VS:ArgVals) ~> minArgsKeyDefaultEval(Key:Exp, Default:Exp) =>
+           Key ~> minArgsKeyDefaultDefault(VS, Default)
+       ... </k>
+  rule <k> Key:Val ~> minArgsKeyDefaultDefault(VS:ArgVals, Default:Exp) =>
+           Default ~> minArgsKeyDefaultReject(VS, Key)
+       ... </k>
+  rule <k> _Default:Val ~> minArgsKeyDefaultReject(_:ArgVals, _:Val) =>
+           exceptionSignal(#exception(#token("TypeError", "Id")))
+       ... </k>
+  rule <k> maxArgsKeyDefaultExp(Args:ArgExps, Key:Exp, Default:Exp) =>
+           evalArgs(Args, #noArgVals) ~> maxArgsKeyDefaultEval(Key, Default)
+       ... </k>
+  rule <k> argsVal(VS:ArgVals) ~> maxArgsKeyDefaultEval(Key:Exp, Default:Exp) =>
+           Key ~> maxArgsKeyDefaultDefault(VS, Default)
+       ... </k>
+  rule <k> Key:Val ~> maxArgsKeyDefaultDefault(VS:ArgVals, Default:Exp) =>
+           Default ~> maxArgsKeyDefaultReject(VS, Key)
+       ... </k>
+  rule <k> _Default:Val ~> maxArgsKeyDefaultReject(_:ArgVals, _:Val) =>
+           exceptionSignal(#exception(#token("TypeError", "Id")))
+       ... </k>
   rule #sliceCtor(Stop:Val) => sliceVal(None, Stop, None)
   rule #sliceCtor(Start:Val, Stop:Val) => sliceVal(Start, Stop, None)
   rule #sliceCtor(Start:Val, Stop:Val, Step:Val) => sliceVal(Start, Stop, Step)
@@ -14657,6 +14845,18 @@ module PYTHON
   rule <k> exceptionSignal(V:Val) ~> maxKeyCompare(_:Val, _:Val, _:Val, _:ValItems, _:Val) => exceptionSignal(V) ... </k>
   rule <k> exceptionSignal(V:Val) ~> minKeyCompareLast(_:Val, _:Val, _:Val) => exceptionSignal(V) ... </k>
   rule <k> exceptionSignal(V:Val) ~> maxKeyCompareLast(_:Val, _:Val, _:Val) => exceptionSignal(V) ... </k>
+  rule <k> exceptionSignal(V:Val) ~> minDefaultKeyDefault(_:Exp, _:Exp) => exceptionSignal(V) ... </k>
+  rule <k> exceptionSignal(V:Val) ~> maxDefaultKeyDefault(_:Exp, _:Exp) => exceptionSignal(V) ... </k>
+  rule <k> exceptionSignal(V:Val) ~> minDefaultKeyKey(_:Val, _:Exp) => exceptionSignal(V) ... </k>
+  rule <k> exceptionSignal(V:Val) ~> maxDefaultKeyKey(_:Val, _:Exp) => exceptionSignal(V) ... </k>
+  rule <k> exceptionSignal(V:Val) ~> minDefaultKeyApply(_:Val, _:Val) => exceptionSignal(V) ... </k>
+  rule <k> exceptionSignal(V:Val) ~> maxDefaultKeyApply(_:Val, _:Val) => exceptionSignal(V) ... </k>
+  rule <k> exceptionSignal(V:Val) ~> minKeyDefaultKey(_:Exp, _:Exp) => exceptionSignal(V) ... </k>
+  rule <k> exceptionSignal(V:Val) ~> maxKeyDefaultKey(_:Exp, _:Exp) => exceptionSignal(V) ... </k>
+  rule <k> exceptionSignal(V:Val) ~> minKeyDefaultDefault(_:Val, _:Exp) => exceptionSignal(V) ... </k>
+  rule <k> exceptionSignal(V:Val) ~> maxKeyDefaultDefault(_:Val, _:Exp) => exceptionSignal(V) ... </k>
+  rule <k> exceptionSignal(V:Val) ~> minKeyDefaultApply(_:Val, _:Val) => exceptionSignal(V) ... </k>
+  rule <k> exceptionSignal(V:Val) ~> maxKeyDefaultApply(_:Val, _:Val) => exceptionSignal(V) ... </k>
   rule <k> exceptionSignal(V:Val) ~> minArgsDefaultResult(_:Exp) => exceptionSignal(V) ... </k>
   rule <k> exceptionSignal(V:Val) ~> maxArgsDefaultResult(_:Exp) => exceptionSignal(V) ... </k>
   rule <k> exceptionSignal(V:Val) ~> minArgsDefaultReject(_:ArgVals) => exceptionSignal(V) ... </k>
@@ -14665,6 +14865,18 @@ module PYTHON
   rule <k> exceptionSignal(V:Val) ~> maxArgsKeyEval(_:Exp) => exceptionSignal(V) ... </k>
   rule <k> exceptionSignal(V:Val) ~> minArgsKeyApply(_:ArgVals) => exceptionSignal(V) ... </k>
   rule <k> exceptionSignal(V:Val) ~> maxArgsKeyApply(_:ArgVals) => exceptionSignal(V) ... </k>
+  rule <k> exceptionSignal(V:Val) ~> minArgsDefaultKeyEval(_:Exp, _:Exp) => exceptionSignal(V) ... </k>
+  rule <k> exceptionSignal(V:Val) ~> maxArgsDefaultKeyEval(_:Exp, _:Exp) => exceptionSignal(V) ... </k>
+  rule <k> exceptionSignal(V:Val) ~> minArgsDefaultKeyKey(_:ArgVals, _:Exp) => exceptionSignal(V) ... </k>
+  rule <k> exceptionSignal(V:Val) ~> maxArgsDefaultKeyKey(_:ArgVals, _:Exp) => exceptionSignal(V) ... </k>
+  rule <k> exceptionSignal(V:Val) ~> minArgsDefaultKeyReject(_:ArgVals, _:Val) => exceptionSignal(V) ... </k>
+  rule <k> exceptionSignal(V:Val) ~> maxArgsDefaultKeyReject(_:ArgVals, _:Val) => exceptionSignal(V) ... </k>
+  rule <k> exceptionSignal(V:Val) ~> minArgsKeyDefaultEval(_:Exp, _:Exp) => exceptionSignal(V) ... </k>
+  rule <k> exceptionSignal(V:Val) ~> maxArgsKeyDefaultEval(_:Exp, _:Exp) => exceptionSignal(V) ... </k>
+  rule <k> exceptionSignal(V:Val) ~> minArgsKeyDefaultDefault(_:ArgVals, _:Exp) => exceptionSignal(V) ... </k>
+  rule <k> exceptionSignal(V:Val) ~> maxArgsKeyDefaultDefault(_:ArgVals, _:Exp) => exceptionSignal(V) ... </k>
+  rule <k> exceptionSignal(V:Val) ~> minArgsKeyDefaultReject(_:ArgVals, _:Val) => exceptionSignal(V) ... </k>
+  rule <k> exceptionSignal(V:Val) ~> maxArgsKeyDefaultReject(_:ArgVals, _:Val) => exceptionSignal(V) ... </k>
   rule <k> exceptionSignal(V:Val) ~> whileStmtBranch(_:Exp, _:Block) => exceptionSignal(V) ... </k>
   rule <k> exceptionSignal(V:Val) ~> whileElseStmtBranch(_:Exp, _:Block, _:Block) => exceptionSignal(V) ... </k>
   rule <k> breakSignal ~> whileStmtAgain(_:Exp, _:Block) => stmtNoResult ... </k>

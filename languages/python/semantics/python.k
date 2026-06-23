@@ -1400,6 +1400,8 @@ module PYTHON
                  | pyFloatFloorDiv(Float, Float) [function, symbol(pyFloatFloorDiv)]
                  | pyFloatModulo(Float, Float) [function, symbol(pyFloatModulo)]
   syntax String ::= repeatString(String, Int) [function, symbol(repeatString)]
+                  | minStringItems(ValItems) [function, symbol(minStringItems)]
+                  | maxStringItems(ValItems) [function, symbol(maxStringItems)]
                   | sliceString(String, Int, Int) [function, symbol(sliceString)]
                   | sliceStepString(String, Int, Int, Int) [function, symbol(sliceStepString)]
                   | utf8ByteString(Int, Int) [function, symbol(utf8ByteString2)]
@@ -4637,6 +4639,16 @@ module PYTHON
     requires isIntLike(V)
       andBool valItemsAllIntLike(VS)
       andBool intValue(V) <Int maxValItems(VS)
+  rule minStringItems(valItemsLast(S:String)) => S
+  rule minStringItems(valItemsCons(S:String, VS:ValItems)) => S
+    requires S <=String minStringItems(VS)
+  rule minStringItems(valItemsCons(S:String, VS:ValItems)) => minStringItems(VS)
+    requires S >String minStringItems(VS)
+  rule maxStringItems(valItemsLast(S:String)) => S
+  rule maxStringItems(valItemsCons(S:String, VS:ValItems)) => S
+    requires S >=String maxStringItems(VS)
+  rule maxStringItems(valItemsCons(S:String, VS:ValItems)) => maxStringItems(VS)
+    requires S <String maxStringItems(VS)
   rule minArgVals(argValsCons(V:Val, #noArgVals)) => intValue(V)
     requires isIntLike(V)
   rule minArgVals(argValsCons(V:Val, VS:ArgVals)) => intValue(V)
@@ -10779,6 +10791,8 @@ module PYTHON
     requires pyRangeLen(Start, Stop, 1) ==Int 0
   rule <k> #min(rangeVal(Start:Int, Stop:Int, Step:Int)) => exceptionSignal(#exception(#token("ValueError", "Id"))) ... </k>
     requires Step =/=Int 0 andBool pyRangeLen(Start, Stop, Step) ==Int 0
+  rule #min(S:String) => minStringItems(stringToValItems(S, 0, lengthString(S)))
+    requires lengthString(S) >Int 0
   rule #min(listVal(VS:ValItems)) => minValItems(VS)
     requires valItemsAllIntLike(VS)
   rule #min(tupleVal(VS:ValItems)) => minValItems(VS)
@@ -10803,6 +10817,8 @@ module PYTHON
     requires pyRangeLen(Start, Stop, 1) ==Int 0
   rule <k> #max(rangeVal(Start:Int, Stop:Int, Step:Int)) => exceptionSignal(#exception(#token("ValueError", "Id"))) ... </k>
     requires Step =/=Int 0 andBool pyRangeLen(Start, Stop, Step) ==Int 0
+  rule #max(S:String) => maxStringItems(stringToValItems(S, 0, lengthString(S)))
+    requires lengthString(S) >Int 0
   rule #max(listVal(VS:ValItems)) => maxValItems(VS)
     requires valItemsAllIntLike(VS)
   rule #max(tupleVal(VS:ValItems)) => maxValItems(VS)
@@ -10829,6 +10845,10 @@ module PYTHON
     requires pyRangeLen(Start, Stop, 1) ==Int 0
   rule <k> Default:Val ~> minDefaultApply(rangeVal(Start:Int, Stop:Int, Step:Int)) => Default ... </k>
     requires Step =/=Int 0 andBool pyRangeLen(Start, Stop, Step) ==Int 0
+  rule <k> _Default:Val ~> minDefaultApply(S:String) =>
+           minStringItems(stringToValItems(S, 0, lengthString(S)))
+       ... </k>
+    requires lengthString(S) >Int 0
   rule <k> _Default:Val ~> minDefaultApply(listVal(VS:ValItems)) => minValItems(VS) ... </k>
     requires valItemsAllIntLike(VS)
   rule <k> _Default:Val ~> minDefaultApply(tupleVal(VS:ValItems)) => minValItems(VS) ... </k>
@@ -10855,6 +10875,10 @@ module PYTHON
     requires pyRangeLen(Start, Stop, 1) ==Int 0
   rule <k> Default:Val ~> maxDefaultApply(rangeVal(Start:Int, Stop:Int, Step:Int)) => Default ... </k>
     requires Step =/=Int 0 andBool pyRangeLen(Start, Stop, Step) ==Int 0
+  rule <k> _Default:Val ~> maxDefaultApply(S:String) =>
+           maxStringItems(stringToValItems(S, 0, lengthString(S)))
+       ... </k>
+    requires lengthString(S) >Int 0
   rule <k> _Default:Val ~> maxDefaultApply(listVal(VS:ValItems)) => maxValItems(VS) ... </k>
     requires valItemsAllIntLike(VS)
   rule <k> _Default:Val ~> maxDefaultApply(tupleVal(VS:ValItems)) => maxValItems(VS) ... </k>
@@ -11000,6 +11024,10 @@ module PYTHON
     requires pyRangeLen(Start, Stop, 1) ==Int 0
   rule <k> _Key:Val ~> minDefaultKeyApply(rangeVal(Start:Int, Stop:Int, Step:Int), Default:Val) => Default ... </k>
     requires Step =/=Int 0 andBool pyRangeLen(Start, Stop, Step) ==Int 0
+  rule <k> None ~> minDefaultKeyApply(S:String, _Default:Val) =>
+           #min(S)
+       ... </k>
+    requires lengthString(S) >Int 0
   rule <k> Key:Val ~> minDefaultKeyApply(listVal(VS:ValItems), _Default:Val) =>
            Key ~> minKeyApply(listVal(VS))
        ... </k>
@@ -11054,6 +11082,10 @@ module PYTHON
     requires pyRangeLen(Start, Stop, 1) ==Int 0
   rule <k> _Key:Val ~> maxDefaultKeyApply(rangeVal(Start:Int, Stop:Int, Step:Int), Default:Val) => Default ... </k>
     requires Step =/=Int 0 andBool pyRangeLen(Start, Stop, Step) ==Int 0
+  rule <k> None ~> maxDefaultKeyApply(S:String, _Default:Val) =>
+           #max(S)
+       ... </k>
+    requires lengthString(S) >Int 0
   rule <k> Key:Val ~> maxDefaultKeyApply(listVal(VS:ValItems), _Default:Val) =>
            Key ~> maxKeyApply(listVal(VS))
        ... </k>

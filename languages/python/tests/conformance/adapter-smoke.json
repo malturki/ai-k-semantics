@@ -2104,6 +2104,13 @@
       "coverage": ["assignment-statement", "augmented-assignment", "del-statement", "subscript-target", "sequence-index-error", "dict-key-error", "single-target-evaluation", "ordinary-python-source-adapter"]
     },
     {
+      "id": "adapter-subscript-type-errors",
+      "source": "../adapter/adapter-subscript-type-errors.py",
+      "reference": "Python Language Reference 6.3.2 Subscriptions; 7.2 Assignment statements; 7.2.1 Augmented assignment statements; 7.5 The del statement; 6.16 Evaluation order; Python Standard Library sequence types; Python Standard Library mapping types dict",
+      "expected_result": "True ~> .K",
+      "coverage": ["subscription", "assignment-statement", "augmented-assignment", "del-statement", "invalid-sequence-index", "unhashable-dict-key", "type-error", "dict-key-error", "single-target-evaluation", "ordinary-python-source-adapter"]
+    },
+    {
       "id": "adapter-nested-subscript-assignment-deletion",
       "source": "../adapter/adapter-nested-subscript-assignment-deletion.py",
       "reference": "Python Language Reference 7.2 Assignment statements; 7.5 The del statement; 6.3.2 Subscriptions; 6.16 Evaluation order",

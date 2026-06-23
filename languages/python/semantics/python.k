@@ -1326,10 +1326,12 @@ module PYTHON
                 | rangeContains(Val, Int, Int, Int) [function, symbol(rangeContainsStep)]
                 | rangeContainsFloat(Float, Int, Int, Int, Int) [function, symbol(rangeContainsFloat)]
                 | rangeEq(Int, Int, Int, Int, Int, Int) [function, symbol(rangeEq)]
-                | allValItems(ValItems) [function, symbol(allValItems)]
-                | anyValItems(ValItems) [function, symbol(anyValItems)]
-                | valItemsAllIntLike(ValItems) [function, symbol(valItemsAllIntLike)]
-                | valItemsAllByteInts(ValItems) [function, symbol(valItemsAllByteInts)]
+               | allValItems(ValItems) [function, symbol(allValItems)]
+               | anyValItems(ValItems) [function, symbol(anyValItems)]
+               | numericComparableVal(Val) [function, symbol(numericComparableVal)]
+               | valItemsAllIntLike(ValItems) [function, symbol(valItemsAllIntLike)]
+               | valItemsAllNumericComparable(ValItems) [function, symbol(valItemsAllNumericComparable)]
+               | valItemsAllByteInts(ValItems) [function, symbol(valItemsAllByteInts)]
                 | rangeAllTruthy(Int, Int, Int) [function, symbol(rangeAllTruthy)]
                 | rangeAnyTruthy(Int, Int, Int) [function, symbol(rangeAnyTruthy)]
 
@@ -1438,6 +1440,8 @@ module PYTHON
                    | valItemsToArgVals(ValItems) [function, symbol(valItemsToArgVals)]
                    | iterableArgVals(Val) [function, symbol(iterableArgVals)]
   syntax Val ::= argValsToTupleVal(ArgVals) [function, symbol(argValsToTupleVal)]
+               | minNumericItems(ValItems) [function, symbol(minNumericItems)]
+               | maxNumericItems(ValItems) [function, symbol(maxNumericItems)]
                | setFromArgVals(ArgVals) [function, symbol(setFromArgVals)]
   syntax Val ::= kwExtrasDict(KwArgVals, IdItems) [function, symbol(kwExtrasDict)]
                | kwExtrasEitherDict(KwArgVals, IdItems, IdItems) [function, symbol(kwExtrasEitherDict)]
@@ -4587,9 +4591,14 @@ module PYTHON
   rule allValItems(valItemsCons(V:Val, VS:ValItems)) => truthy(V) andBool allValItems(VS)
   rule anyValItems(valItemsLast(V:Val)) => truthy(V)
   rule anyValItems(valItemsCons(V:Val, VS:ValItems)) => truthy(V) orBool anyValItems(VS)
+  rule numericComparableVal(_:Float) => true
+  rule numericComparableVal(V:Val) => isIntLike(V) [owise]
   rule valItemsAllIntLike(valItemsLast(V:Val)) => isIntLike(V)
   rule valItemsAllIntLike(valItemsCons(V:Val, VS:ValItems)) =>
     isIntLike(V) andBool valItemsAllIntLike(VS)
+  rule valItemsAllNumericComparable(valItemsLast(V:Val)) => numericComparableVal(V)
+  rule valItemsAllNumericComparable(valItemsCons(V:Val, VS:ValItems)) =>
+    numericComparableVal(V) andBool valItemsAllNumericComparable(VS)
   rule valItemsAllByteInts(valItemsLast(V:Val)) =>
     isIntLike(V) andBool intValue(V) >=Int 0 andBool intValue(V) <=Int 255
   rule valItemsAllByteInts(valItemsCons(V:Val, VS:ValItems)) =>
@@ -4639,6 +4648,26 @@ module PYTHON
     requires isIntLike(V)
       andBool valItemsAllIntLike(VS)
       andBool intValue(V) <Int maxValItems(VS)
+  rule minNumericItems(valItemsLast(V:Val)) => V
+    requires numericComparableVal(V)
+  rule minNumericItems(valItemsCons(V:Val, VS:ValItems)) => V
+    requires numericComparableVal(V)
+      andBool valItemsAllNumericComparable(VS)
+      andBool cmpHolds(#le, V, minNumericItems(VS))
+  rule minNumericItems(valItemsCons(V:Val, VS:ValItems)) => minNumericItems(VS)
+    requires numericComparableVal(V)
+      andBool valItemsAllNumericComparable(VS)
+      andBool cmpHolds(#gt, V, minNumericItems(VS))
+  rule maxNumericItems(valItemsLast(V:Val)) => V
+    requires numericComparableVal(V)
+  rule maxNumericItems(valItemsCons(V:Val, VS:ValItems)) => V
+    requires numericComparableVal(V)
+      andBool valItemsAllNumericComparable(VS)
+      andBool cmpHolds(#ge, V, maxNumericItems(VS))
+  rule maxNumericItems(valItemsCons(V:Val, VS:ValItems)) => maxNumericItems(VS)
+    requires numericComparableVal(V)
+      andBool valItemsAllNumericComparable(VS)
+      andBool cmpHolds(#lt, V, maxNumericItems(VS))
   rule minStringItems(valItemsLast(S:String)) => S
   rule minStringItems(valItemsCons(S:String, VS:ValItems)) => S
     requires S <=String minStringItems(VS)
@@ -10795,8 +10824,12 @@ module PYTHON
     requires lengthString(S) >Int 0
   rule #min(listVal(VS:ValItems)) => minValItems(VS)
     requires valItemsAllIntLike(VS)
+  rule #min(listVal(VS:ValItems)) => minNumericItems(VS)
+    requires (notBool valItemsAllIntLike(VS)) andBool valItemsAllNumericComparable(VS)
   rule #min(tupleVal(VS:ValItems)) => minValItems(VS)
     requires valItemsAllIntLike(VS)
+  rule #min(tupleVal(VS:ValItems)) => minNumericItems(VS)
+    requires (notBool valItemsAllIntLike(VS)) andBool valItemsAllNumericComparable(VS)
   rule #min(bytesVal(VS:ValItems)) => minValItems(VS)
     requires valItemsAllIntLike(VS)
   rule #min(dictVal(DS:DictItems)) => minValItems(dictKeysToValItems(DS))
@@ -10821,8 +10854,12 @@ module PYTHON
     requires lengthString(S) >Int 0
   rule #max(listVal(VS:ValItems)) => maxValItems(VS)
     requires valItemsAllIntLike(VS)
+  rule #max(listVal(VS:ValItems)) => maxNumericItems(VS)
+    requires (notBool valItemsAllIntLike(VS)) andBool valItemsAllNumericComparable(VS)
   rule #max(tupleVal(VS:ValItems)) => maxValItems(VS)
     requires valItemsAllIntLike(VS)
+  rule #max(tupleVal(VS:ValItems)) => maxNumericItems(VS)
+    requires (notBool valItemsAllIntLike(VS)) andBool valItemsAllNumericComparable(VS)
   rule #max(bytesVal(VS:ValItems)) => maxValItems(VS)
     requires valItemsAllIntLike(VS)
   rule #max(dictVal(DS:DictItems)) => maxValItems(dictKeysToValItems(DS))
@@ -10851,8 +10888,12 @@ module PYTHON
     requires lengthString(S) >Int 0
   rule <k> _Default:Val ~> minDefaultApply(listVal(VS:ValItems)) => minValItems(VS) ... </k>
     requires valItemsAllIntLike(VS)
+  rule <k> _Default:Val ~> minDefaultApply(listVal(VS:ValItems)) => minNumericItems(VS) ... </k>
+    requires (notBool valItemsAllIntLike(VS)) andBool valItemsAllNumericComparable(VS)
   rule <k> _Default:Val ~> minDefaultApply(tupleVal(VS:ValItems)) => minValItems(VS) ... </k>
     requires valItemsAllIntLike(VS)
+  rule <k> _Default:Val ~> minDefaultApply(tupleVal(VS:ValItems)) => minNumericItems(VS) ... </k>
+    requires (notBool valItemsAllIntLike(VS)) andBool valItemsAllNumericComparable(VS)
   rule <k> _Default:Val ~> minDefaultApply(bytesVal(VS:ValItems)) => minValItems(VS) ... </k>
     requires valItemsAllIntLike(VS)
   rule <k> _Default:Val ~> minDefaultApply(dictVal(DS:DictItems)) => minValItems(dictKeysToValItems(DS)) ... </k>
@@ -10881,8 +10922,12 @@ module PYTHON
     requires lengthString(S) >Int 0
   rule <k> _Default:Val ~> maxDefaultApply(listVal(VS:ValItems)) => maxValItems(VS) ... </k>
     requires valItemsAllIntLike(VS)
+  rule <k> _Default:Val ~> maxDefaultApply(listVal(VS:ValItems)) => maxNumericItems(VS) ... </k>
+    requires (notBool valItemsAllIntLike(VS)) andBool valItemsAllNumericComparable(VS)
   rule <k> _Default:Val ~> maxDefaultApply(tupleVal(VS:ValItems)) => maxValItems(VS) ... </k>
     requires valItemsAllIntLike(VS)
+  rule <k> _Default:Val ~> maxDefaultApply(tupleVal(VS:ValItems)) => maxNumericItems(VS) ... </k>
+    requires (notBool valItemsAllIntLike(VS)) andBool valItemsAllNumericComparable(VS)
   rule <k> _Default:Val ~> maxDefaultApply(bytesVal(VS:ValItems)) => maxValItems(VS) ... </k>
     requires valItemsAllIntLike(VS)
   rule <k> _Default:Val ~> maxDefaultApply(dictVal(DS:DictItems)) => maxValItems(dictKeysToValItems(DS)) ... </k>

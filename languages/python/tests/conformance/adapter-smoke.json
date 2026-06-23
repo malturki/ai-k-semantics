@@ -795,6 +795,13 @@
       "coverage": ["del-statement", "multi-target-delete", "simple-name-targets", "ordinary-python-source-adapter"]
     },
     {
+      "id": "adapter-del-subscript",
+      "source": "../adapter/adapter-del-subscript.py",
+      "reference": "Python Language Reference 7.5 The del statement; 6.3.2 Subscriptions",
+      "expected_result": "True ~> .K",
+      "coverage": ["del-statement", "subscript-delete", "simple-name-list-target", "simple-name-dict-target", "ordinary-python-source-adapter"]
+    },
+    {
       "id": "adapter-global-many",
       "source": "../adapter/adapter-global-many.py",
       "reference": "Python Language Reference 7.12 The global statement",

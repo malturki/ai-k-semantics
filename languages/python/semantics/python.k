@@ -193,6 +193,7 @@ module PYTHON-SYNTAX
                 | "#globalMany" "(" IdItems ")" [symbol(globalManyStmt)]
                 | "del" Id [symbol(delNameStmt)]
                 | "#delMany" "(" IdItems ")" [symbol(delManyStmt)]
+                | "#delSubscript" "(" Id "," Exp ")" [symbol(delSubscriptStmt)]
                 | Id "=" Exp [symbol(assignStmt), strict(2)]
                 | "#assignName" "(" Id "," Exp ")" [symbol(assignNameStmt), strict(2)]
                 | Id "+=" Exp [symbol(augAddStmt)]
@@ -1020,6 +1021,7 @@ module PYTHON
                  | assignMany(IdItems, Val) [symbol(assignMany)]
                  | subscriptAssignIndex(Id, Exp) [symbol(subscriptAssignIndex)]
                  | subscriptAssignApply(Id, Val) [symbol(subscriptAssignApply)]
+                 | delSubscriptApply(Id) [symbol(delSubscriptApply)]
 
   syntax Bool ::= truthy(Val) [function, symbol(truthy)]
                 | isIntLike(Val) [function, symbol(isIntLike)]
@@ -1370,6 +1372,10 @@ module PYTHON
   syntax ValItems ::= listSet(ValItems, Int, Val) [function, symbol(listSet)]
   syntax DictItems ::= dictValsToDictItems(DictVals) [function, symbol(dictValsToDictItems)]
   syntax DictItems ::= dictSet(DictItems, Val, Val) [function, symbol(dictSet)]
+  syntax Val ::= listDel(ValItems, Int) [function, symbol(listDel)]
+               | listPrepend(Val, Val) [function, symbol(listPrepend)]
+               | dictDel(DictItems, Val) [function, symbol(dictDel)]
+               | dictPrepend(Val, Val, Val) [function, symbol(dictPrepend)]
   syntax Val ::= dictFromDictVals(DictVals) [function, symbol(dictFromDictVals)]
   syntax Val ::= dictCtorFromPairs(ValItems) [function, symbol(dictCtorFromPairs)]
   syntax Val ::= dictCtorFromKwArgs(KwArgVals) [function, symbol(dictCtorFromKwArgs)]
@@ -4816,6 +4822,15 @@ module PYTHON
     valItemsCons(V0, listSet(VS, I -Int 1, V))
     requires I >Int 0
 
+  rule listDel(valItemsLast(_:Val), 0) => []
+  rule listDel(valItemsCons(_:Val, VS:ValItems), 0) => listVal(VS)
+  rule listDel(valItemsCons(V0:Val, VS:ValItems), I:Int) =>
+    listPrepend(V0, listDel(VS, I -Int 1))
+    requires I >Int 0
+
+  rule listPrepend(V:Val, []) => listVal(valItemsLast(V))
+  rule listPrepend(V:Val, listVal(VS:ValItems)) => listVal(valItemsCons(V, VS))
+
   rule dictGet(dictItemsLast(K1:Val, V:Val), K:Val) => V
     requires valEq(K, K1)
   rule dictGet(dictItemsCons(K1:Val, V:Val, _:DictItems), K:Val) => V
@@ -4834,6 +4849,17 @@ module PYTHON
   rule dictSet(dictItemsCons(K1:Val, V1:Val, DS:DictItems), K:Val, V:Val) =>
     dictItemsCons(K1, V1, dictSet(DS, K, V))
     requires notBool valEq(K, K1)
+
+  rule dictDel(dictItemsLast(K1:Val, _:Val), K:Val) => ({}):Val
+    requires valEq(K, K1)
+  rule dictDel(dictItemsCons(K1:Val, _:Val, DS:DictItems), K:Val) => dictVal(DS)
+    requires valEq(K, K1)
+  rule dictDel(dictItemsCons(K1:Val, V1:Val, DS:DictItems), K:Val) =>
+    dictPrepend(K1, V1, dictDel(DS, K))
+    requires notBool valEq(K, K1)
+
+  rule dictPrepend(K:Val, V:Val, ({}):Val) => dictVal(dictItemsLast(K, V))
+  rule dictPrepend(K:Val, V:Val, dictVal(DS:DictItems)) => dictVal(dictItemsCons(K, V, DS))
 
   configuration
     <python>
@@ -13203,6 +13229,21 @@ module PYTHON
   rule <k> delManyStmt(IDS:IdItems) => stmtNoResult ... </k>
        <env> Rho => delIds(Rho, IDS) </env>
        <result> _ => .K </result>
+  rule <k> delSubscriptStmt(X:Id, I:Exp) => I ~> delSubscriptApply(X) ... </k>
+  rule <k> I:Val ~> delSubscriptApply(X:Id) => stmtNoResult ... </k>
+       <env> ... X |-> (listVal(VS:ValItems) => listDel(VS, intValue(I))) ... </env>
+       <result> _ => .K </result>
+    requires isIntLike(I) andBool intValue(I) >=Int 0 andBool intValue(I) <Int valItemsLen(VS)
+  rule <k> I:Val ~> delSubscriptApply(X:Id) => stmtNoResult ... </k>
+       <env> ... X |-> (listVal(VS:ValItems) => listDel(VS, valItemsLen(VS) +Int intValue(I))) ... </env>
+       <result> _ => .K </result>
+    requires isIntLike(I)
+      andBool intValue(I) <Int 0
+      andBool valItemsLen(VS) +Int intValue(I) >=Int 0
+  rule <k> K:Val ~> delSubscriptApply(X:Id) => stmtNoResult ... </k>
+       <env> ... X |-> (dictVal(DS:DictItems) => dictDel(DS, K)) ... </env>
+       <result> _ => .K </result>
+    requires containsKey(K, DS)
 
   rule <k> pass => stmtNoResult ... </k>
   rule <k> assertStmt(V:Val) => stmtNoResult ... </k>

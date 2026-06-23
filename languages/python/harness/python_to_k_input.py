@@ -1733,10 +1733,19 @@ def emit_ann_assign(node: ast.AST, target: ast.expr, value: ast.expr | None) -> 
 
 
 def emit_delete(node: ast.AST, targets: list[ast.expr]) -> str:
+    if len(targets) == 1:
+        target = targets[0]
+        if (
+            isinstance(target, ast.Subscript)
+            and isinstance(target.value, ast.Name)
+            and not isinstance(target.slice, ast.Slice)
+        ):
+            return f"#delSubscript({emit_id(target.value.id)}, {emit_exp(target.slice)})"
+
     names: list[str] = []
     for target in targets:
         if not isinstance(target, ast.Name):
-            raise unsupported(target, "only simple-name delete targets are supported")
+            raise unsupported(target, "only simple-name and single simple-name subscript delete targets are supported")
         names.append(target.id)
     if len(names) < 1:
         raise unsupported(node, "delete statement needs at least one target")

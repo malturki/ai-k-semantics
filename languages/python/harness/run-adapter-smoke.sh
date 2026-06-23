@@ -159,6 +159,7 @@ run_case "adapter-named-expression" "$ROOT/tests/adapter/adapter-named-expressio
 run_case "adapter-assert-message" "$ROOT/tests/adapter/adapter-assert-message.py" "True ~> .K"
 run_case "adapter-assert-false" "$ROOT/tests/adapter/adapter-assert-false.py" "True ~> .K"
 run_case "adapter-del-many" "$ROOT/tests/adapter/adapter-del-many.py" "True ~> .K"
+run_case "adapter-del-subscript" "$ROOT/tests/adapter/adapter-del-subscript.py" "True ~> .K"
 run_case "adapter-global-many" "$ROOT/tests/adapter/adapter-global-many.py" "True ~> .K"
 run_case "adapter-while" "$ROOT/tests/adapter/adapter-while.py" "True ~> .K"
 run_case "adapter-while-else-normal" "$ROOT/tests/adapter/adapter-while-else-normal.py" "True ~> .K"

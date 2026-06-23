@@ -378,10 +378,14 @@ module PYTHON-SYNTAX
                | "#max" "(" Exp ")" [symbol(maxExp), strict]
                | "#minDefault" "(" Exp "," Exp ")" [symbol(minDefaultExp)]
                | "#maxDefault" "(" Exp "," Exp ")" [symbol(maxDefaultExp)]
+               | "#minKey" "(" Exp "," Exp ")" [symbol(minKeyExp)]
+               | "#maxKey" "(" Exp "," Exp ")" [symbol(maxKeyExp)]
                | "#minArgs" "(" ArgExps ")" [symbol(minArgsExp)]
                | "#maxArgs" "(" ArgExps ")" [symbol(maxArgsExp)]
                | "#minArgsDefault" "(" ArgExps "," Exp ")" [symbol(minArgsDefaultExp)]
                | "#maxArgsDefault" "(" ArgExps "," Exp ")" [symbol(maxArgsDefaultExp)]
+               | "#minArgsKey" "(" ArgExps "," Exp ")" [symbol(minArgsKeyExp)]
+               | "#maxArgsKey" "(" ArgExps "," Exp ")" [symbol(maxArgsKeyExp)]
                | "#sliceCtor" "(" Exp ")" [symbol(sliceCtor1Exp), strict]
                | "#sliceCtor" "(" Exp "," Exp ")" [symbol(sliceCtor2Exp), strict]
                | "#sliceCtor" "(" Exp "," Exp "," Exp ")" [symbol(sliceCtor3Exp), strict]
@@ -825,10 +829,30 @@ module PYTHON
                  | maxDefaultEval(Exp) [symbol(maxDefaultEval)]
                  | minDefaultApply(Val) [symbol(minDefaultApply)]
                  | maxDefaultApply(Val) [symbol(maxDefaultApply)]
+                 | minKeyEval(Exp) [symbol(minKeyEval)]
+                 | maxKeyEval(Exp) [symbol(maxKeyEval)]
+                 | minKeyApply(Val) [symbol(minKeyApply)]
+                 | maxKeyApply(Val) [symbol(maxKeyApply)]
+                 | minKeyFold(ValItems, Val) [symbol(minKeyFold)]
+                 | maxKeyFold(ValItems, Val) [symbol(maxKeyFold)]
+                 | minKeyInit(Val, ValItems, Val) [symbol(minKeyInit)]
+                 | maxKeyInit(Val, ValItems, Val) [symbol(maxKeyInit)]
+                 | minKeySingle(Val) [symbol(minKeySingle)]
+                 | maxKeySingle(Val) [symbol(maxKeySingle)]
+                 | minKeyLoop(Val, Val, ValItems, Val) [symbol(minKeyLoop)]
+                 | maxKeyLoop(Val, Val, ValItems, Val) [symbol(maxKeyLoop)]
+                 | minKeyCompare(Val, Val, Val, ValItems, Val) [symbol(minKeyCompare)]
+                 | maxKeyCompare(Val, Val, Val, ValItems, Val) [symbol(maxKeyCompare)]
+                 | minKeyCompareLast(Val, Val, Val) [symbol(minKeyCompareLast)]
+                 | maxKeyCompareLast(Val, Val, Val) [symbol(maxKeyCompareLast)]
                  | minArgsDefaultResult(Exp) [symbol(minArgsDefaultResult)]
                  | maxArgsDefaultResult(Exp) [symbol(maxArgsDefaultResult)]
                  | minArgsDefaultReject(ArgVals) [symbol(minArgsDefaultReject)]
                  | maxArgsDefaultReject(ArgVals) [symbol(maxArgsDefaultReject)]
+                 | minArgsKeyEval(Exp) [symbol(minArgsKeyEval)]
+                 | maxArgsKeyEval(Exp) [symbol(maxArgsKeyEval)]
+                 | minArgsKeyApply(ArgVals) [symbol(minArgsKeyApply)]
+                 | maxArgsKeyApply(ArgVals) [symbol(maxArgsKeyApply)]
                  | evalDict(DictExps, DictVals) [symbol(evalDict)]
                  | evalDictValue(Exp, DictExps, DictVals) [symbol(evalDictValue)]
                  | evalDictNext(DictExps, DictVals, Val) [symbol(evalDictNext)]
@@ -10813,6 +10837,118 @@ module PYTHON
     requires pyRangeLen(Start, Stop, 1) >Int 0
   rule <k> _Default:Val ~> maxDefaultApply(rangeVal(Start:Int, Stop:Int, Step:Int)) => rangeMax(Start, Stop, Step) ... </k>
     requires Step =/=Int 0 andBool pyRangeLen(Start, Stop, Step) >Int 0
+  rule <k> minKeyExp(Iter:Exp, Key:Exp) => Iter ~> minKeyEval(Key) ... </k>
+  rule <k> V:Val ~> minKeyEval(Key:Exp) => Key ~> minKeyApply(V) ... </k>
+  rule <k> None ~> minKeyApply(V:Val) => #min(V) ... </k>
+  rule <k> _Key:Val ~> minKeyApply([]) => exceptionSignal(#exception(#token("ValueError", "Id"))) ... </k>
+  rule <k> _Key:Val ~> minKeyApply(()) => exceptionSignal(#exception(#token("ValueError", "Id"))) ... </k>
+  rule <k> _Key:Val ~> minKeyApply("") => exceptionSignal(#exception(#token("ValueError", "Id"))) ... </k>
+  rule <k> _Key:Val ~> minKeyApply(#bytes()) => exceptionSignal(#exception(#token("ValueError", "Id"))) ... </k>
+  rule <k> _Key:Val ~> minKeyApply(({}):Val) => exceptionSignal(#exception(#token("ValueError", "Id"))) ... </k>
+  rule <k> _Key:Val ~> minKeyApply(set()) => exceptionSignal(#exception(#token("ValueError", "Id"))) ... </k>
+  rule <k> _Key:Val ~> minKeyApply(rangeVal(Start:Int, Stop:Int)) => exceptionSignal(#exception(#token("ValueError", "Id"))) ... </k>
+    requires pyRangeLen(Start, Stop, 1) ==Int 0
+  rule <k> _Key:Val ~> minKeyApply(rangeVal(Start:Int, Stop:Int, Step:Int)) => exceptionSignal(#exception(#token("ValueError", "Id"))) ... </k>
+    requires Step =/=Int 0 andBool pyRangeLen(Start, Stop, Step) ==Int 0
+  rule <k> Key:Val ~> minKeyApply(listVal(VS:ValItems)) => minKeyFold(VS, Key) ... </k>
+  rule <k> Key:Val ~> minKeyApply(tupleVal(VS:ValItems)) => minKeyFold(VS, Key) ... </k>
+  rule <k> Key:Val ~> minKeyApply(bytesVal(VS:ValItems)) => minKeyFold(VS, Key) ... </k>
+  rule <k> Key:Val ~> minKeyApply(dictVal(DS:DictItems)) => minKeyFold(dictKeysToValItems(DS), Key) ... </k>
+  rule <k> Key:Val ~> minKeyApply(setVal(VS:ValItems)) => minKeyFold(VS, Key) ... </k>
+  rule <k> Key:Val ~> minKeyApply(rangeVal(Start:Int, Stop:Int)) =>
+           minKeyFold(rangeToValItems(Start, Stop, 1, 0, pyRangeLen(Start, Stop, 1)), Key)
+       ... </k>
+    requires pyRangeLen(Start, Stop, 1) >Int 0
+  rule <k> Key:Val ~> minKeyApply(rangeVal(Start:Int, Stop:Int, Step:Int)) =>
+           minKeyFold(rangeToValItems(Start, Stop, Step, 0, pyRangeLen(Start, Stop, Step)), Key)
+       ... </k>
+    requires Step =/=Int 0 andBool pyRangeLen(Start, Stop, Step) >Int 0
+  rule <k> minKeyFold(valItemsLast(V:Val), Key:Val) =>
+           callExp(Key, V) ~> minKeySingle(V)
+       ... </k>
+  rule <k> minKeyFold(valItemsCons(V:Val, VS:ValItems), Key:Val) =>
+           callExp(Key, V) ~> minKeyInit(V, VS, Key)
+       ... </k>
+  rule <k> K:Val ~> minKeySingle(Item:Val) => Item ... </k>
+    requires isIntLike(K)
+  rule <k> K:Val ~> minKeyInit(Item:Val, VS:ValItems, Key:Val) =>
+           minKeyLoop(Item, K, VS, Key)
+       ... </k>
+    requires isIntLike(K)
+  rule <k> minKeyLoop(BestItem:Val, BestKey:Val, valItemsLast(V:Val), Key:Val) =>
+           callExp(Key, V) ~> minKeyCompareLast(V, BestItem, BestKey)
+       ... </k>
+  rule <k> minKeyLoop(BestItem:Val, BestKey:Val, valItemsCons(V:Val, VS:ValItems), Key:Val) =>
+           callExp(Key, V) ~> minKeyCompare(V, BestItem, BestKey, VS, Key)
+       ... </k>
+  rule <k> K:Val ~> minKeyCompareLast(Item:Val, _BestItem:Val, BestKey:Val) => Item ... </k>
+    requires isIntLike(K) andBool isIntLike(BestKey) andBool intValue(K) <Int intValue(BestKey)
+  rule <k> K:Val ~> minKeyCompareLast(_Item:Val, BestItem:Val, BestKey:Val) => BestItem ... </k>
+    requires isIntLike(K) andBool isIntLike(BestKey) andBool intValue(K) >=Int intValue(BestKey)
+  rule <k> K:Val ~> minKeyCompare(Item:Val, _BestItem:Val, BestKey:Val, VS:ValItems, Key:Val) =>
+           minKeyLoop(Item, K, VS, Key)
+       ... </k>
+    requires isIntLike(K) andBool isIntLike(BestKey) andBool intValue(K) <Int intValue(BestKey)
+  rule <k> K:Val ~> minKeyCompare(_Item:Val, BestItem:Val, BestKey:Val, VS:ValItems, Key:Val) =>
+           minKeyLoop(BestItem, BestKey, VS, Key)
+       ... </k>
+    requires isIntLike(K) andBool isIntLike(BestKey) andBool intValue(K) >=Int intValue(BestKey)
+  rule <k> maxKeyExp(Iter:Exp, Key:Exp) => Iter ~> maxKeyEval(Key) ... </k>
+  rule <k> V:Val ~> maxKeyEval(Key:Exp) => Key ~> maxKeyApply(V) ... </k>
+  rule <k> None ~> maxKeyApply(V:Val) => #max(V) ... </k>
+  rule <k> _Key:Val ~> maxKeyApply([]) => exceptionSignal(#exception(#token("ValueError", "Id"))) ... </k>
+  rule <k> _Key:Val ~> maxKeyApply(()) => exceptionSignal(#exception(#token("ValueError", "Id"))) ... </k>
+  rule <k> _Key:Val ~> maxKeyApply("") => exceptionSignal(#exception(#token("ValueError", "Id"))) ... </k>
+  rule <k> _Key:Val ~> maxKeyApply(#bytes()) => exceptionSignal(#exception(#token("ValueError", "Id"))) ... </k>
+  rule <k> _Key:Val ~> maxKeyApply(({}):Val) => exceptionSignal(#exception(#token("ValueError", "Id"))) ... </k>
+  rule <k> _Key:Val ~> maxKeyApply(set()) => exceptionSignal(#exception(#token("ValueError", "Id"))) ... </k>
+  rule <k> _Key:Val ~> maxKeyApply(rangeVal(Start:Int, Stop:Int)) => exceptionSignal(#exception(#token("ValueError", "Id"))) ... </k>
+    requires pyRangeLen(Start, Stop, 1) ==Int 0
+  rule <k> _Key:Val ~> maxKeyApply(rangeVal(Start:Int, Stop:Int, Step:Int)) => exceptionSignal(#exception(#token("ValueError", "Id"))) ... </k>
+    requires Step =/=Int 0 andBool pyRangeLen(Start, Stop, Step) ==Int 0
+  rule <k> Key:Val ~> maxKeyApply(listVal(VS:ValItems)) => maxKeyFold(VS, Key) ... </k>
+  rule <k> Key:Val ~> maxKeyApply(tupleVal(VS:ValItems)) => maxKeyFold(VS, Key) ... </k>
+  rule <k> Key:Val ~> maxKeyApply(bytesVal(VS:ValItems)) => maxKeyFold(VS, Key) ... </k>
+  rule <k> Key:Val ~> maxKeyApply(dictVal(DS:DictItems)) => maxKeyFold(dictKeysToValItems(DS), Key) ... </k>
+  rule <k> Key:Val ~> maxKeyApply(setVal(VS:ValItems)) => maxKeyFold(VS, Key) ... </k>
+  rule <k> Key:Val ~> maxKeyApply(rangeVal(Start:Int, Stop:Int)) =>
+           maxKeyFold(rangeToValItems(Start, Stop, 1, 0, pyRangeLen(Start, Stop, 1)), Key)
+       ... </k>
+    requires pyRangeLen(Start, Stop, 1) >Int 0
+  rule <k> Key:Val ~> maxKeyApply(rangeVal(Start:Int, Stop:Int, Step:Int)) =>
+           maxKeyFold(rangeToValItems(Start, Stop, Step, 0, pyRangeLen(Start, Stop, Step)), Key)
+       ... </k>
+    requires Step =/=Int 0 andBool pyRangeLen(Start, Stop, Step) >Int 0
+  rule <k> maxKeyFold(valItemsLast(V:Val), Key:Val) =>
+           callExp(Key, V) ~> maxKeySingle(V)
+       ... </k>
+  rule <k> maxKeyFold(valItemsCons(V:Val, VS:ValItems), Key:Val) =>
+           callExp(Key, V) ~> maxKeyInit(V, VS, Key)
+       ... </k>
+  rule <k> K:Val ~> maxKeySingle(Item:Val) => Item ... </k>
+    requires isIntLike(K)
+  rule <k> K:Val ~> maxKeyInit(Item:Val, VS:ValItems, Key:Val) =>
+           maxKeyLoop(Item, K, VS, Key)
+       ... </k>
+    requires isIntLike(K)
+  rule <k> maxKeyLoop(BestItem:Val, BestKey:Val, valItemsLast(V:Val), Key:Val) =>
+           callExp(Key, V) ~> maxKeyCompareLast(V, BestItem, BestKey)
+       ... </k>
+  rule <k> maxKeyLoop(BestItem:Val, BestKey:Val, valItemsCons(V:Val, VS:ValItems), Key:Val) =>
+           callExp(Key, V) ~> maxKeyCompare(V, BestItem, BestKey, VS, Key)
+       ... </k>
+  rule <k> K:Val ~> maxKeyCompareLast(Item:Val, _BestItem:Val, BestKey:Val) => Item ... </k>
+    requires isIntLike(K) andBool isIntLike(BestKey) andBool intValue(K) >Int intValue(BestKey)
+  rule <k> K:Val ~> maxKeyCompareLast(_Item:Val, BestItem:Val, BestKey:Val) => BestItem ... </k>
+    requires isIntLike(K) andBool isIntLike(BestKey) andBool intValue(K) <=Int intValue(BestKey)
+  rule <k> K:Val ~> maxKeyCompare(Item:Val, _BestItem:Val, BestKey:Val, VS:ValItems, Key:Val) =>
+           maxKeyLoop(Item, K, VS, Key)
+       ... </k>
+    requires isIntLike(K) andBool isIntLike(BestKey) andBool intValue(K) >Int intValue(BestKey)
+  rule <k> K:Val ~> maxKeyCompare(_Item:Val, BestItem:Val, BestKey:Val, VS:ValItems, Key:Val) =>
+           maxKeyLoop(BestItem, BestKey, VS, Key)
+       ... </k>
+    requires isIntLike(K) andBool isIntLike(BestKey) andBool intValue(K) <=Int intValue(BestKey)
   rule <k> minArgsExp(Args:ArgExps) => evalArgs(Args, #noArgVals) ~> minArgsResult ... </k>
   rule <k> argsVal(VS:ArgVals) ~> minArgsResult => minArgVals(VS) ... </k>
     requires notBool emptyArgVals(VS)
@@ -10837,6 +10973,26 @@ module PYTHON
   rule <k> _Default:Val ~> maxArgsDefaultReject(_:ArgVals) =>
            exceptionSignal(#exception(#token("TypeError", "Id")))
        ... </k>
+  rule <k> minArgsKeyExp(Args:ArgExps, Key:Exp) =>
+           evalArgs(Args, #noArgVals) ~> minArgsKeyEval(Key)
+       ... </k>
+  rule <k> argsVal(VS:ArgVals) ~> minArgsKeyEval(Key:Exp) =>
+           Key ~> minArgsKeyApply(VS)
+       ... </k>
+  rule <k> None ~> minArgsKeyApply(VS:ArgVals) => minArgVals(VS) ... </k>
+    requires notBool emptyArgVals(VS)
+  rule <k> Key:Val ~> minArgsKeyApply(VS:ArgVals) => minKeyFold(argValsToValItems(VS), Key) ... </k>
+    requires notBool emptyArgVals(VS)
+  rule <k> maxArgsKeyExp(Args:ArgExps, Key:Exp) =>
+           evalArgs(Args, #noArgVals) ~> maxArgsKeyEval(Key)
+       ... </k>
+  rule <k> argsVal(VS:ArgVals) ~> maxArgsKeyEval(Key:Exp) =>
+           Key ~> maxArgsKeyApply(VS)
+       ... </k>
+  rule <k> None ~> maxArgsKeyApply(VS:ArgVals) => maxArgVals(VS) ... </k>
+    requires notBool emptyArgVals(VS)
+  rule <k> Key:Val ~> maxArgsKeyApply(VS:ArgVals) => maxKeyFold(argValsToValItems(VS), Key) ... </k>
+    requires notBool emptyArgVals(VS)
   rule #sliceCtor(Stop:Val) => sliceVal(None, Stop, None)
   rule #sliceCtor(Start:Val, Stop:Val) => sliceVal(Start, Stop, None)
   rule #sliceCtor(Start:Val, Stop:Val, Step:Val) => sliceVal(Start, Stop, Step)
@@ -14489,10 +14645,26 @@ module PYTHON
   rule <k> exceptionSignal(V:Val) ~> maxDefaultEval(_:Exp) => exceptionSignal(V) ... </k>
   rule <k> exceptionSignal(V:Val) ~> minDefaultApply(_:Val) => exceptionSignal(V) ... </k>
   rule <k> exceptionSignal(V:Val) ~> maxDefaultApply(_:Val) => exceptionSignal(V) ... </k>
+  rule <k> exceptionSignal(V:Val) ~> minKeyEval(_:Exp) => exceptionSignal(V) ... </k>
+  rule <k> exceptionSignal(V:Val) ~> maxKeyEval(_:Exp) => exceptionSignal(V) ... </k>
+  rule <k> exceptionSignal(V:Val) ~> minKeyApply(_:Val) => exceptionSignal(V) ... </k>
+  rule <k> exceptionSignal(V:Val) ~> maxKeyApply(_:Val) => exceptionSignal(V) ... </k>
+  rule <k> exceptionSignal(V:Val) ~> minKeySingle(_:Val) => exceptionSignal(V) ... </k>
+  rule <k> exceptionSignal(V:Val) ~> maxKeySingle(_:Val) => exceptionSignal(V) ... </k>
+  rule <k> exceptionSignal(V:Val) ~> minKeyInit(_:Val, _:ValItems, _:Val) => exceptionSignal(V) ... </k>
+  rule <k> exceptionSignal(V:Val) ~> maxKeyInit(_:Val, _:ValItems, _:Val) => exceptionSignal(V) ... </k>
+  rule <k> exceptionSignal(V:Val) ~> minKeyCompare(_:Val, _:Val, _:Val, _:ValItems, _:Val) => exceptionSignal(V) ... </k>
+  rule <k> exceptionSignal(V:Val) ~> maxKeyCompare(_:Val, _:Val, _:Val, _:ValItems, _:Val) => exceptionSignal(V) ... </k>
+  rule <k> exceptionSignal(V:Val) ~> minKeyCompareLast(_:Val, _:Val, _:Val) => exceptionSignal(V) ... </k>
+  rule <k> exceptionSignal(V:Val) ~> maxKeyCompareLast(_:Val, _:Val, _:Val) => exceptionSignal(V) ... </k>
   rule <k> exceptionSignal(V:Val) ~> minArgsDefaultResult(_:Exp) => exceptionSignal(V) ... </k>
   rule <k> exceptionSignal(V:Val) ~> maxArgsDefaultResult(_:Exp) => exceptionSignal(V) ... </k>
   rule <k> exceptionSignal(V:Val) ~> minArgsDefaultReject(_:ArgVals) => exceptionSignal(V) ... </k>
   rule <k> exceptionSignal(V:Val) ~> maxArgsDefaultReject(_:ArgVals) => exceptionSignal(V) ... </k>
+  rule <k> exceptionSignal(V:Val) ~> minArgsKeyEval(_:Exp) => exceptionSignal(V) ... </k>
+  rule <k> exceptionSignal(V:Val) ~> maxArgsKeyEval(_:Exp) => exceptionSignal(V) ... </k>
+  rule <k> exceptionSignal(V:Val) ~> minArgsKeyApply(_:ArgVals) => exceptionSignal(V) ... </k>
+  rule <k> exceptionSignal(V:Val) ~> maxArgsKeyApply(_:ArgVals) => exceptionSignal(V) ... </k>
   rule <k> exceptionSignal(V:Val) ~> whileStmtBranch(_:Exp, _:Block) => exceptionSignal(V) ... </k>
   rule <k> exceptionSignal(V:Val) ~> whileElseStmtBranch(_:Exp, _:Block, _:Block) => exceptionSignal(V) ... </k>
   rule <k> breakSignal ~> whileStmtAgain(_:Exp, _:Block) => stmtNoResult ... </k>

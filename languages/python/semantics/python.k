@@ -1089,6 +1089,7 @@ module PYTHON
                 | exceptionIn(Val, IdItems) [function, symbol(exceptionIn)]
                 | valIs(Val, Val) [function, symbol(valIs)]
                 | cmpHolds(CmpOp, Val, Val) [function, symbol(cmpHolds)]
+                | orderingComparisonOp(CmpOp) [function, symbol(orderingComparisonOp)]
                 | singletonIdentity(Val) [function, symbol(singletonIdentity)]
                 | valsEq(ValItems, ValItems) [function, symbol(valsEq)]
                 | valItemsLt(ValItems, ValItems) [function, symbol(valItemsLt)]
@@ -1099,6 +1100,7 @@ module PYTHON
                 | isConcreteSequenceVal(Val) [function, symbol(isConcreteSequenceVal)]
                 | zeroNumeric(Val) [function, symbol(zeroNumeric)]
                 | seqOrderComparable(Val, Val) [function, symbol(seqOrderComparable)]
+                | orderComparable(Val, Val) [function, symbol(orderComparable)]
                 | concreteIterableExtraNonEmpty(Val) [function, symbol(concreteIterableExtraNonEmpty)]
                 | concreteIterableExtraEmpty(Val) [function, symbol(concreteIterableExtraEmpty)]
                 | sliceStepAssignRhsSupported(Val) [function, symbol(sliceStepAssignRhsSupported)]
@@ -4832,6 +4834,7 @@ module PYTHON
   rule isListSequence(argsVal(_:ArgVals)) => false
   rule isListSequence(dictArgsVal(_:DictVals)) => false
   rule isListSequence(_:Float) => false
+  rule isListSequence(_:Val) => false [owise]
 
   rule isTupleSequence([]) => false
   rule isTupleSequence(listVal(_:ValItems)) => false
@@ -4926,6 +4929,7 @@ module PYTHON
   rule isTupleSequence(argsVal(_:ArgVals)) => false
   rule isTupleSequence(dictArgsVal(_:DictVals)) => false
   rule isTupleSequence(_:Float) => false
+  rule isTupleSequence(_:Val) => false [owise]
 
   rule isBytesSequence(#bytes()) => true
   rule isBytesSequence(bytesVal(_:ValItems)) => true
@@ -4947,6 +4951,33 @@ module PYTHON
     (isListSequence(V1) andBool isListSequence(V2))
       orBool (isTupleSequence(V1) andBool isTupleSequence(V2))
       orBool (isBytesSequence(V1) andBool isBytesSequence(V2))
+
+  rule orderComparable(V1:Val, V2:Val) => true
+    requires isIntLike(V1) andBool isIntLike(V2)
+  rule orderComparable(_:Float, _:Float) => true
+  rule orderComparable(_:Float, V:Val) => true
+    requires isIntLike(V)
+  rule orderComparable(V:Val, _:Float) => true
+    requires isIntLike(V)
+  rule orderComparable(_:String, _:String) => true
+  rule orderComparable(V1:Val, V2:Val) => true
+    requires seqOrderComparable(V1, V2)
+  rule orderComparable(set(), set()) => true
+  rule orderComparable(set(), setVal(_:ValItems)) => true
+  rule orderComparable(setVal(_:ValItems), set()) => true
+  rule orderComparable(setVal(_:ValItems), setVal(_:ValItems)) => true
+  rule orderComparable(_:Val, _:Val) => false [owise]
+
+  rule orderingComparisonOp(#lt) => true
+  rule orderingComparisonOp(#le) => true
+  rule orderingComparisonOp(#gt) => true
+  rule orderingComparisonOp(#ge) => true
+  rule orderingComparisonOp(#eq) => false
+  rule orderingComparisonOp(#ne) => false
+  rule orderingComparisonOp(#is) => false
+  rule orderingComparisonOp(#isNot) => false
+  rule orderingComparisonOp(#in) => false
+  rule orderingComparisonOp(#notIn) => false
 
   rule seqLt([], []) => false
   rule seqLt([], listVal(_:ValItems)) => true
@@ -5710,6 +5741,10 @@ module PYTHON
   rule set() < set() => False
   rule set() < setVal(_:ValItems) => True
   rule setVal(_:ValItems) < set() => False
+  rule <k> V1:Val < V2:Val =>
+           exceptionSignal(#exception(#token("TypeError", "Id")))
+       ... </k>
+    requires notBool orderComparable(V1, V2)
   rule V1:Val <= V2:Val => boolValue(intValue(V1) <=Int intValue(V2))
     requires isIntLike(V1) andBool isIntLike(V2)
   rule F1:Float <= F2:Float => boolValue(F1 <=Float F2)
@@ -5725,6 +5760,10 @@ module PYTHON
   rule set() <= set() => True
   rule set() <= setVal(_:ValItems) => True
   rule setVal(_:ValItems) <= set() => False
+  rule <k> V1:Val <= V2:Val =>
+           exceptionSignal(#exception(#token("TypeError", "Id")))
+       ... </k>
+    requires notBool orderComparable(V1, V2)
   rule V1:Val > V2:Val => boolValue(intValue(V1) >Int intValue(V2))
     requires isIntLike(V1) andBool isIntLike(V2)
   rule F1:Float > F2:Float => boolValue(F1 >Float F2)
@@ -5740,6 +5779,10 @@ module PYTHON
   rule set() > set() => False
   rule set() > setVal(_:ValItems) => False
   rule setVal(_:ValItems) > set() => True
+  rule <k> V1:Val > V2:Val =>
+           exceptionSignal(#exception(#token("TypeError", "Id")))
+       ... </k>
+    requires notBool orderComparable(V1, V2)
   rule V1:Val >= V2:Val => boolValue(intValue(V1) >=Int intValue(V2))
     requires isIntLike(V1) andBool isIntLike(V2)
   rule F1:Float >= F2:Float => boolValue(F1 >=Float F2)
@@ -5755,6 +5798,10 @@ module PYTHON
   rule set() >= set() => True
   rule set() >= setVal(_:ValItems) => False
   rule setVal(_:ValItems) >= set() => True
+  rule <k> V1:Val >= V2:Val =>
+           exceptionSignal(#exception(#token("TypeError", "Id")))
+       ... </k>
+    requires notBool orderComparable(V1, V2)
   rule V1:Val == V2:Val => boolValue(valEq(V1, V2))
   rule V1:Val != V2:Val => boolValue(notBool valEq(V1, V2))
   rule V1:Val is V2:Val => boolValue(valIs(V1, V2))
@@ -5765,20 +5812,55 @@ module PYTHON
   rule <k> L:Val ~> compareChain(cmpChainLast(Op:CmpOp, Right:Exp)) =>
            Right ~> compareChainLast(Op, L)
        ... </k>
+  rule <k> R:Val ~> compareChainLast(#lt, L:Val) =>
+           exceptionSignal(#exception(#token("TypeError", "Id")))
+       ... </k>
+    requires notBool orderComparable(L, R)
+  rule <k> R:Val ~> compareChainLast(#le, L:Val) =>
+           exceptionSignal(#exception(#token("TypeError", "Id")))
+       ... </k>
+    requires notBool orderComparable(L, R)
+  rule <k> R:Val ~> compareChainLast(#gt, L:Val) =>
+           exceptionSignal(#exception(#token("TypeError", "Id")))
+       ... </k>
+    requires notBool orderComparable(L, R)
+  rule <k> R:Val ~> compareChainLast(#ge, L:Val) =>
+           exceptionSignal(#exception(#token("TypeError", "Id")))
+       ... </k>
+    requires notBool orderComparable(L, R)
   rule <k> R:Val ~> compareChainLast(Op:CmpOp, L:Val) =>
            boolValue(cmpHolds(Op, L, R))
        ... </k>
+    requires (notBool orderingComparisonOp(Op)) orBool orderComparable(L, R)
   rule <k> L:Val ~> compareChain(cmpChainCons(Op:CmpOp, Right:Exp, Rest:CmpChain)) =>
            Right ~> compareChainNext(Op, L, Rest)
        ... </k>
+  rule <k> R:Val ~> compareChainNext(#lt, L:Val, _Rest:CmpChain) =>
+           exceptionSignal(#exception(#token("TypeError", "Id")))
+       ... </k>
+    requires notBool orderComparable(L, R)
+  rule <k> R:Val ~> compareChainNext(#le, L:Val, _Rest:CmpChain) =>
+           exceptionSignal(#exception(#token("TypeError", "Id")))
+       ... </k>
+    requires notBool orderComparable(L, R)
+  rule <k> R:Val ~> compareChainNext(#gt, L:Val, _Rest:CmpChain) =>
+           exceptionSignal(#exception(#token("TypeError", "Id")))
+       ... </k>
+    requires notBool orderComparable(L, R)
+  rule <k> R:Val ~> compareChainNext(#ge, L:Val, _Rest:CmpChain) =>
+           exceptionSignal(#exception(#token("TypeError", "Id")))
+       ... </k>
+    requires notBool orderComparable(L, R)
   rule <k> R:Val ~> compareChainNext(Op:CmpOp, L:Val, Rest:CmpChain) =>
            compareFrom(R, Rest)
        ... </k>
-    requires cmpHolds(Op, L, R)
+    requires ((notBool orderingComparisonOp(Op)) orBool orderComparable(L, R))
+      andBool cmpHolds(Op, L, R)
   rule <k> R:Val ~> compareChainNext(Op:CmpOp, L:Val, _:CmpChain) =>
            False
        ... </k>
-    requires notBool cmpHolds(Op, L, R)
+    requires ((notBool orderingComparisonOp(Op)) orBool orderComparable(L, R))
+      andBool notBool cmpHolds(Op, L, R)
   rule <k> compareFrom(L:Val, Chain:CmpChain) =>
            L ~> compareChain(Chain)
        ... </k>
@@ -14226,6 +14308,10 @@ module PYTHON
   rule <k> continueSignal ~> matchDone => continueSignal ... </k>
   rule <k> returnSignal(V:Val) ~> matchDone => returnSignal(V) ... </k>
   rule <k> exceptionSignal(V:Val) ~> matchDone => exceptionSignal(V) ... </k>
+  rule <k> exceptionSignal(V:Val) ~> compareChain(_:CmpChain) => exceptionSignal(V) ... </k>
+  rule <k> exceptionSignal(V:Val) ~> compareChainLast(_:CmpOp, _:Val) => exceptionSignal(V) ... </k>
+  rule <k> exceptionSignal(V:Val) ~> compareChainNext(_:CmpOp, _:Val, _:CmpChain) => exceptionSignal(V) ... </k>
+  rule <k> exceptionSignal(V:Val) ~> compareFrom(_:Val, _:CmpChain) => exceptionSignal(V) ... </k>
   rule <k> exceptionSignal(V:Val) ~> whileStmtBranch(_:Exp, _:Block) => exceptionSignal(V) ... </k>
   rule <k> exceptionSignal(V:Val) ~> whileElseStmtBranch(_:Exp, _:Block, _:Block) => exceptionSignal(V) ... </k>
   rule <k> breakSignal ~> whileStmtAgain(_:Exp, _:Block) => stmtNoResult ... </k>

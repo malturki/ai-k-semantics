@@ -795,6 +795,13 @@
       "coverage": ["chained-comparison", "identity-comparison", "ordinary-python-source-adapter"]
     },
     {
+      "id": "adapter-comparison-type-errors",
+      "source": "../adapter/adapter-comparison-type-errors.py",
+      "reference": "Python Language Reference 6.10 Comparisons; Python Built-in Exceptions TypeError; Python Standard Library Built-in Types range",
+      "expected_result": "True ~> .K",
+      "coverage": ["ordering-comparison", "comparison-type-error", "cross-type-ordering-diagnostic", "non-set-ordering-diagnostic", "chained-comparison", "ordinary-python-source-adapter"]
+    },
+    {
       "id": "adapter-named-expression",
       "source": "../adapter/adapter-named-expression.py",
       "reference": "Python Language Reference 6.12 Assignment expressions; 6.16 Evaluation order",

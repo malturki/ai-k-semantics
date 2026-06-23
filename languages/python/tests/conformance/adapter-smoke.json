@@ -704,6 +704,13 @@
       "coverage": ["divmod-builtin", "floor-division", "modulo", "negative-integer-divmod", "bool-as-int-divmod", "ordinary-python-source-adapter"]
     },
     {
+      "id": "adapter-division-zero-diagnostics",
+      "source": "../adapter/adapter-division-zero-diagnostics.py",
+      "reference": "Python Language Reference 6.7 Binary arithmetic operations; Python Standard Library Built-in Functions divmod",
+      "expected_result": "True ~> .K",
+      "coverage": ["true-division", "floor-division", "modulo", "divmod-builtin", "zero-divisor", "zero-division-error", "bool-as-int-division", "complex-values", "ordinary-python-source-adapter"]
+    },
+    {
       "id": "adapter-pow-int",
       "source": "../adapter/adapter-pow-int.py",
       "reference": "Python Standard Library Built-in Functions pow; Python Language Reference power operator",

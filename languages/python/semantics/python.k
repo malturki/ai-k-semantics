@@ -1097,6 +1097,7 @@ module PYTHON
                 | isBytesSequence(Val) [function, symbol(isBytesSequence)]
                 | isStringVal(Val) [function, symbol(isStringVal)]
                 | isConcreteSequenceVal(Val) [function, symbol(isConcreteSequenceVal)]
+                | zeroNumeric(Val) [function, symbol(zeroNumeric)]
                 | seqOrderComparable(Val, Val) [function, symbol(seqOrderComparable)]
                 | concreteIterableExtraNonEmpty(Val) [function, symbol(concreteIterableExtraNonEmpty)]
                 | concreteIterableExtraEmpty(Val) [function, symbol(concreteIterableExtraEmpty)]
@@ -2291,6 +2292,12 @@ module PYTHON
   rule isComplexLike(#complex(_:Float, _:Float)) => true
   rule isComplexLike(_:Float) => true
   rule isComplexLike(V:Val) => isIntLike(V) [owise]
+
+  rule zeroNumeric(V:Val) => true
+    requires isIntLike(V) andBool intValue(V) ==Int 0
+  rule zeroNumeric(F:Float) => F ==Float 0.0
+  rule zeroNumeric(#complex(R:Float, I:Float)) => (R *Float R) +Float (I *Float I) ==Float 0.0
+  rule zeroNumeric(_:Val) => false [owise]
 
   rule complexReal(#complex(R:Float, _:Float)) => R
   rule complexReal(F:Float) => F
@@ -5434,6 +5441,18 @@ module PYTHON
     requires isIntLike(V) andBool intValue(V) =/=Int 0
   rule floorDivInternal(V:Val, F:Float) => pyFloatFloorDiv(floatValue(V), F)
     requires isIntLike(V) andBool F =/=Float 0.0
+  rule <k> floorDivExp(V1:Val, V2:Val) =>
+           exceptionSignal(#exception(#token("ZeroDivisionError", "Id")))
+       ... </k>
+    requires isFloatLike(V1)
+      andBool isFloatLike(V2)
+      andBool zeroNumeric(V2)
+  rule <k> floorDivInternal(V1:Val, V2:Val) =>
+           exceptionSignal(#exception(#token("ZeroDivisionError", "Id")))
+       ... </k>
+    requires isFloatLike(V1)
+      andBool isFloatLike(V2)
+      andBool zeroNumeric(V2)
   rule trueDivInternal(V1:Val, V2:Val) =>
     Int2Float(intValue(V1), 53, 11) /Float Int2Float(intValue(V2), 53, 11)
     requires isIntLike(V1) andBool isIntLike(V2) andBool intValue(V2) =/=Int 0
@@ -5463,6 +5482,12 @@ module PYTHON
     requires isIntLike(V) andBool intValue(V) =/=Int 0
   rule trueDivInternal(V:Val, F:Float) => floatValue(V) /Float F
     requires isIntLike(V) andBool F =/=Float 0.0
+  rule <k> trueDivInternal(V1:Val, V2:Val) =>
+           exceptionSignal(#exception(#token("ZeroDivisionError", "Id")))
+       ... </k>
+    requires isComplexLike(V1)
+      andBool isComplexLike(V2)
+      andBool zeroNumeric(V2)
   rule V1:Val % V2:Val => pyModulo(intValue(V1), intValue(V2))
     requires isIntLike(V1) andBool isIntLike(V2) andBool intValue(V2) =/=Int 0
   rule F1:Float % F2:Float => pyFloatModulo(F1, F2)
@@ -5471,6 +5496,12 @@ module PYTHON
     requires isIntLike(V) andBool intValue(V) =/=Int 0
   rule V:Val % F:Float => pyFloatModulo(floatValue(V), F)
     requires isIntLike(V) andBool F =/=Float 0.0
+  rule <k> V1:Val % V2:Val =>
+           exceptionSignal(#exception(#token("ZeroDivisionError", "Id")))
+       ... </k>
+    requires isFloatLike(V1)
+      andBool isFloatLike(V2)
+      andBool zeroNumeric(V2)
   rule V1:Val << V2:Val => intValue(V1) <<Int intValue(V2)
     requires isIntLike(V1) andBool isIntLike(V2) andBool intValue(V2) >=Int 0
   rule V1:Val >> V2:Val => intValue(V1) >>Int intValue(V2)
@@ -10664,6 +10695,12 @@ module PYTHON
   rule #divmod(V:Val, F:Float) =>
     tupleVal(valItemsCons(pyFloatFloorDiv(floatValue(V), F), valItemsLast(pyFloatModulo(floatValue(V), F))))
     requires isIntLike(V) andBool F =/=Float 0.0
+  rule <k> #divmod(V1:Val, V2:Val) =>
+           exceptionSignal(#exception(#token("ZeroDivisionError", "Id")))
+       ... </k>
+    requires isFloatLike(V1)
+      andBool isFloatLike(V2)
+      andBool zeroNumeric(V2)
   rule #pow(V1:Val, V2:Val) => intValue(V1) ^Int intValue(V2)
     requires isIntLike(V1) andBool isIntLike(V2) andBool intValue(V2) >=Int 0
   rule #pow(V1:Val, V2:Val) => Int2Float(intValue(V1), 53, 11) ^Float Int2Float(intValue(V2), 53, 11)

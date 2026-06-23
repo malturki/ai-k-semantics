@@ -145,6 +145,7 @@ run_case "adapter-numeric-string-spaces" "$ROOT/tests/adapter/adapter-numeric-st
 run_case "adapter-numeric-string-nonspace-whitespace" "$ROOT/tests/adapter/adapter-numeric-string-nonspace-whitespace.py" "True ~> .K"
 run_case "adapter-abs-int" "$ROOT/tests/adapter/adapter-abs-int.py" "True ~> .K"
 run_case "adapter-divmod-int" "$ROOT/tests/adapter/adapter-divmod-int.py" "True ~> .K"
+run_case "adapter-division-zero-diagnostics" "$ROOT/tests/adapter/adapter-division-zero-diagnostics.py" "True ~> .K"
 run_case "adapter-pow-int" "$ROOT/tests/adapter/adapter-pow-int.py" "True ~> .K"
 run_case "adapter-pow-negative" "$ROOT/tests/adapter/adapter-pow-negative.py" "True ~> .K"
 run_case "adapter-pow-mod" "$ROOT/tests/adapter/adapter-pow-mod.py" "True ~> .K"

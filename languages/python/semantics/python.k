@@ -207,6 +207,7 @@ module PYTHON-SYNTAX
                 | "del" Id [symbol(delNameStmt)]
                 | "#delMany" "(" IdItems ")" [symbol(delManyStmt)]
                 | "#delSubscript" "(" Id "," Exp ")" [symbol(delSubscriptStmt)]
+                | "#delSubscript2" "(" Id "," Exp "," Exp ")" [symbol(delSubscriptNestedStmt)]
                 | "#delSlice" "(" Id "," Exp "," Exp ")" [symbol(delSliceStmt)]
                 | "#delSliceStep" "(" Id "," Exp "," Exp "," Exp ")" [symbol(delSliceStepStmt)]
                 | Id "=" Exp [symbol(assignStmt), strict(2)]
@@ -225,6 +226,7 @@ module PYTHON-SYNTAX
                 | "#floorDivAssign" "(" Id "," Exp ")" [symbol(augFloorDivStmt)]
                 | "#assignMany" "(" IdItems ";" Exp ")" [symbol(assignManyStmt), strict(2)]
                 | "#subscriptAssign" "(" Id "," Exp "," Exp ")" [symbol(subscriptAssignStmt)]
+                | "#subscriptAssign2" "(" Id "," Exp "," Exp "," Exp ")" [symbol(subscriptAssignNestedStmt)]
                 | "#subscriptAug" "(" Id "," Exp "," AugOp "," Exp ")" [symbol(subscriptAugStmt)]
                 | "#sliceAssign" "(" Id "," Exp "," Exp "," Exp ")" [symbol(sliceAssignStmt)]
                 | "#sliceStepAssign" "(" Id "," Exp "," Exp "," Exp "," Exp ")" [symbol(sliceStepAssignStmt)]
@@ -1039,6 +1041,9 @@ module PYTHON
                  | assignMany(IdItems, Val) [symbol(assignMany)]
                  | subscriptAssignIndex(Id, Exp) [symbol(subscriptAssignIndex)]
                  | subscriptAssignApply(Id, Val) [symbol(subscriptAssignApply)]
+                 | subscriptAssignNestedOuter(Id, Exp, Exp) [symbol(subscriptAssignNestedOuter)]
+                 | subscriptAssignNestedInner(Id, Val, Exp) [symbol(subscriptAssignNestedInner)]
+                 | subscriptAssignNestedApply(Id, Val, Val) [symbol(subscriptAssignNestedApply)]
                  | subscriptAugOld(Id, AugOp, Exp) [symbol(subscriptAugOld)]
                  | subscriptAugApply(Id, Val, Val, AugOp) [symbol(subscriptAugApply)]
                  | subscriptAugStore(Id, Val) [symbol(subscriptAugStore)]
@@ -1050,6 +1055,8 @@ module PYTHON
                  | sliceStepAssignStep(Id, Val, Val, Exp) [symbol(sliceStepAssignStep)]
                  | sliceStepAssignApply(Id, Val, Val, Val) [symbol(sliceStepAssignApply)]
                  | delSubscriptApply(Id) [symbol(delSubscriptApply)]
+                 | delSubscriptNestedInner(Id, Exp) [symbol(delSubscriptNestedInner)]
+                 | delSubscriptNestedApply(Id, Val) [symbol(delSubscriptNestedApply)]
                  | delSliceUpper(Id, Exp) [symbol(delSliceUpper)]
                  | delSliceApply(Id, Val) [symbol(delSliceApply)]
                  | delSliceStepUpper(Id, Exp, Exp) [symbol(delSliceStepUpper)]
@@ -1091,6 +1098,9 @@ module PYTHON
                 | seqOrderComparable(Val, Val) [function, symbol(seqOrderComparable)]
                 | concreteIterableExtraNonEmpty(Val) [function, symbol(concreteIterableExtraNonEmpty)]
                 | concreteIterableExtraEmpty(Val) [function, symbol(concreteIterableExtraEmpty)]
+                | subscriptLookupable(Val, Val) [function, symbol(subscriptLookupable)]
+                | subscriptSettable(Val, Val) [function, symbol(subscriptSettable)]
+                | subscriptDeletable(Val, Val) [function, symbol(subscriptDeletable)]
                 | seqLt(Val, Val) [function, symbol(seqLt)]
                 | dictsEq(DictItems, DictItems) [function, symbol(dictsEq)]
                 | dictItemsContained(DictItems, DictItems) [function, symbol(dictItemsContained)]
@@ -1419,6 +1429,9 @@ module PYTHON
                | listSliceStepDeleteN(Val, Int, Int, Int) [function, symbol(listSliceStepDeleteN)]
                | dictDel(DictItems, Val) [function, symbol(dictDel)]
                | dictPrepend(Val, Val, Val) [function, symbol(dictPrepend)]
+               | subscriptGet(Val, Val) [function, symbol(subscriptGet)]
+               | subscriptSet(Val, Val, Val) [function, symbol(subscriptSet)]
+               | subscriptDel(Val, Val) [function, symbol(subscriptDel)]
   syntax Val ::= dictFromDictVals(DictVals) [function, symbol(dictFromDictVals)]
   syntax Val ::= dictCtorFromPairs(ValItems) [function, symbol(dictCtorFromPairs)]
   syntax Val ::= dictCtorFromKwArgs(KwArgVals) [function, symbol(dictCtorFromKwArgs)]
@@ -5004,6 +5017,63 @@ module PYTHON
   rule dictDel(dictItemsCons(K1:Val, V1:Val, DS:DictItems), K:Val) =>
     dictPrepend(K1, V1, dictDel(DS, K))
     requires notBool valEq(K, K1)
+
+  rule subscriptLookupable(listVal(VS:ValItems), I:Val) =>
+    intValue(I) <Int valItemsLen(VS)
+    requires isIntLike(I) andBool intValue(I) >=Int 0
+  rule subscriptLookupable(listVal(VS:ValItems), I:Val) =>
+    valItemsLen(VS) +Int intValue(I) >=Int 0
+    requires isIntLike(I) andBool intValue(I) <Int 0
+  rule subscriptLookupable(dictVal(DS:DictItems), K:Val) => containsKey(K, DS)
+  rule subscriptLookupable(_:Val, _:Val) => false [owise]
+
+  rule subscriptSettable(listVal(VS:ValItems), I:Val) =>
+    intValue(I) <Int valItemsLen(VS)
+    requires isIntLike(I) andBool intValue(I) >=Int 0
+  rule subscriptSettable(listVal(VS:ValItems), I:Val) =>
+    valItemsLen(VS) +Int intValue(I) >=Int 0
+    requires isIntLike(I) andBool intValue(I) <Int 0
+  rule subscriptSettable(({}):Val, _:Val) => true
+  rule subscriptSettable(dictVal(_:DictItems), _:Val) => true
+  rule subscriptSettable(_:Val, _:Val) => false [owise]
+
+  rule subscriptDeletable(listVal(VS:ValItems), I:Val) =>
+    intValue(I) <Int valItemsLen(VS)
+    requires isIntLike(I) andBool intValue(I) >=Int 0
+  rule subscriptDeletable(listVal(VS:ValItems), I:Val) =>
+    valItemsLen(VS) +Int intValue(I) >=Int 0
+    requires isIntLike(I) andBool intValue(I) <Int 0
+  rule subscriptDeletable(dictVal(DS:DictItems), K:Val) => containsKey(K, DS)
+  rule subscriptDeletable(_:Val, _:Val) => false [owise]
+
+  rule subscriptGet(listVal(VS:ValItems), I:Val) => listGet(VS, intValue(I))
+    requires isIntLike(I) andBool intValue(I) >=Int 0 andBool intValue(I) <Int valItemsLen(VS)
+  rule subscriptGet(listVal(VS:ValItems), I:Val) => listGet(VS, valItemsLen(VS) +Int intValue(I))
+    requires isIntLike(I)
+      andBool intValue(I) <Int 0
+      andBool valItemsLen(VS) +Int intValue(I) >=Int 0
+  rule subscriptGet(dictVal(DS:DictItems), K:Val) => dictGet(DS, K)
+    requires containsKey(K, DS)
+
+  rule subscriptSet(listVal(VS:ValItems), I:Val, V:Val) =>
+    listVal(listSet(VS, intValue(I), V))
+    requires isIntLike(I) andBool intValue(I) >=Int 0 andBool intValue(I) <Int valItemsLen(VS)
+  rule subscriptSet(listVal(VS:ValItems), I:Val, V:Val) =>
+    listVal(listSet(VS, valItemsLen(VS) +Int intValue(I), V))
+    requires isIntLike(I)
+      andBool intValue(I) <Int 0
+      andBool valItemsLen(VS) +Int intValue(I) >=Int 0
+  rule subscriptSet(({}):Val, K:Val, V:Val) => dictVal(dictItemsLast(K, V))
+  rule subscriptSet(dictVal(DS:DictItems), K:Val, V:Val) => dictVal(dictSet(DS, K, V))
+
+  rule subscriptDel(listVal(VS:ValItems), I:Val) => listDel(VS, intValue(I))
+    requires isIntLike(I) andBool intValue(I) >=Int 0 andBool intValue(I) <Int valItemsLen(VS)
+  rule subscriptDel(listVal(VS:ValItems), I:Val) => listDel(VS, valItemsLen(VS) +Int intValue(I))
+    requires isIntLike(I)
+      andBool intValue(I) <Int 0
+      andBool valItemsLen(VS) +Int intValue(I) >=Int 0
+  rule subscriptDel(dictVal(DS:DictItems), K:Val) => dictDel(DS, K)
+    requires containsKey(K, DS)
 
   rule dictPrepend(K:Val, V:Val, ({}):Val) => dictVal(dictItemsLast(K, V))
   rule dictPrepend(K:Val, V:Val, dictVal(DS:DictItems)) => dictVal(dictItemsCons(K, V, DS))
@@ -10269,6 +10339,21 @@ module PYTHON
        <env> ... X |-> (dictVal(DS:DictItems) => dictVal(dictSet(DS, K, V))) ... </env>
        <result> _ => .K </result>
 
+  rule <k> subscriptAssignNestedStmt(X:Id, Outer:Exp, Inner:Exp, E:Exp) =>
+           E ~> subscriptAssignNestedOuter(X, Outer, Inner)
+       ... </k>
+  rule <k> V:Val ~> subscriptAssignNestedOuter(X:Id, Outer:Exp, Inner:Exp) =>
+           Outer ~> subscriptAssignNestedInner(X, V, Inner)
+       ... </k>
+  rule <k> Outer:Val ~> subscriptAssignNestedInner(X:Id, V:Val, Inner:Exp) =>
+           Inner ~> subscriptAssignNestedApply(X, V, Outer)
+       ... </k>
+  rule <k> Inner:Val ~> subscriptAssignNestedApply(X:Id, V:Val, Outer:Val) => stmtNoResult ... </k>
+       <env> ... X |-> (Base:Val => subscriptSet(Base, Outer, subscriptSet(subscriptGet(Base, Outer), Inner, V))) ... </env>
+       <result> _ => .K </result>
+    requires subscriptLookupable(Base, Outer)
+      andBool subscriptSettable(subscriptGet(Base, Outer), Inner)
+
   rule <k> subscriptAugStmt(X:Id, I:Exp, Op:AugOp, E:Exp) =>
            I ~> subscriptAugOld(X, Op, E)
        ... </k>
@@ -13646,6 +13731,17 @@ module PYTHON
        <env> ... X |-> (dictVal(DS:DictItems) => dictDel(DS, K)) ... </env>
        <result> _ => .K </result>
     requires containsKey(K, DS)
+  rule <k> delSubscriptNestedStmt(X:Id, Outer:Exp, Inner:Exp) =>
+           Outer ~> delSubscriptNestedInner(X, Inner)
+       ... </k>
+  rule <k> Outer:Val ~> delSubscriptNestedInner(X:Id, Inner:Exp) =>
+           Inner ~> delSubscriptNestedApply(X, Outer)
+       ... </k>
+  rule <k> Inner:Val ~> delSubscriptNestedApply(X:Id, Outer:Val) => stmtNoResult ... </k>
+       <env> ... X |-> (Base:Val => subscriptSet(Base, Outer, subscriptDel(subscriptGet(Base, Outer), Inner))) ... </env>
+       <result> _ => .K </result>
+    requires subscriptLookupable(Base, Outer)
+      andBool subscriptDeletable(subscriptGet(Base, Outer), Inner)
   rule <k> delSliceStmt(X:Id, Lower:Exp, Upper:Exp) =>
            Lower ~> delSliceUpper(X, Upper)
        ... </k>

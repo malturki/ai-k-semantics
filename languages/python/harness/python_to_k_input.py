@@ -1736,9 +1736,20 @@ def emit_assign(node: ast.AST, targets: list[ast.expr], value: ast.expr) -> str:
                 f"#subscriptAssign({emit_id(target.value.id)}, "
                 f"{emit_exp(target.slice)}, {emit_exp(value)})"
             )
+        if (
+            isinstance(target, ast.Subscript)
+            and isinstance(target.value, ast.Subscript)
+            and isinstance(target.value.value, ast.Name)
+            and not isinstance(target.value.slice, ast.Slice)
+            and not isinstance(target.slice, ast.Slice)
+        ):
+            return (
+                f"#subscriptAssign2({emit_id(target.value.value.id)}, "
+                f"{emit_exp(target.value.slice)}, {emit_exp(target.slice)}, {emit_exp(value)})"
+            )
         if isinstance(target, ast.Tuple | ast.List):
             return emit_sequence_assign(target, value)
-        raise unsupported(target, "only simple-name, simple-name subscript/slice, and flat/starred sequence assignment targets are supported")
+        raise unsupported(target, "only simple-name, simple-name subscript/slice, two-level simple-name subscript, and flat/starred sequence assignment targets are supported")
 
     names: list[str] = []
     for target in targets:
@@ -1782,11 +1793,22 @@ def emit_delete(node: ast.AST, targets: list[ast.expr]) -> str:
             and not isinstance(target.slice, ast.Slice)
         ):
             return f"#delSubscript({emit_id(target.value.id)}, {emit_exp(target.slice)})"
+        if (
+            isinstance(target, ast.Subscript)
+            and isinstance(target.value, ast.Subscript)
+            and isinstance(target.value.value, ast.Name)
+            and not isinstance(target.value.slice, ast.Slice)
+            and not isinstance(target.slice, ast.Slice)
+        ):
+            return (
+                f"#delSubscript2({emit_id(target.value.value.id)}, "
+                f"{emit_exp(target.value.slice)}, {emit_exp(target.slice)})"
+            )
 
     names: list[str] = []
     for target in targets:
         if not isinstance(target, ast.Name):
-            raise unsupported(target, "only simple-name and single simple-name subscript/slice delete targets are supported")
+            raise unsupported(target, "only simple-name, single simple-name subscript/slice, and two-level simple-name subscript delete targets are supported")
         names.append(target.id)
     if len(names) < 1:
         raise unsupported(node, "delete statement needs at least one target")

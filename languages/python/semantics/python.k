@@ -1098,6 +1098,7 @@ module PYTHON
                 | seqOrderComparable(Val, Val) [function, symbol(seqOrderComparable)]
                 | concreteIterableExtraNonEmpty(Val) [function, symbol(concreteIterableExtraNonEmpty)]
                 | concreteIterableExtraEmpty(Val) [function, symbol(concreteIterableExtraEmpty)]
+                | sliceStepAssignRhsSupported(Val) [function, symbol(sliceStepAssignRhsSupported)]
                 | subscriptLookupable(Val, Val) [function, symbol(subscriptLookupable)]
                 | subscriptSettable(Val, Val) [function, symbol(subscriptSettable)]
                 | subscriptDeletable(Val, Val) [function, symbol(subscriptDeletable)]
@@ -1283,6 +1284,7 @@ module PYTHON
                | pySliceUpperNeg(Val, Int) [function, symbol(pySliceUpperNeg)]
                | pySliceIndexNeg(Int, Int) [function, symbol(pySliceIndexNeg)]
                | sliceStepLen(Int, Int, Int) [function, symbol(sliceStepLen)]
+               | sliceStepAssignRhsLen(Val) [function, symbol(sliceStepAssignRhsLen)]
                | valItemsLen(ValItems) [function, symbol(valItemsLen)]
                | matchPatternsLen(MatchPatterns) [function, symbol(matchPatternsLen)]
                | idItemsLen(IdItems) [function, symbol(idItemsLen)]
@@ -4409,6 +4411,23 @@ module PYTHON
   rule concreteIterableExtraItems(rangeVal(Start:Int, Stop:Int, Step:Int)) =>
     rangeToValItems(Start, Stop, Step, 0, pyRangeLen(Start, Stop, Step))
     requires Step =/=Int 0 andBool pyRangeLen(Start, Stop, Step) >Int 0
+
+  rule sliceStepAssignRhsSupported(listVal(_:ValItems)) => true
+  rule sliceStepAssignRhsSupported(tupleVal(_:ValItems)) => true
+  rule sliceStepAssignRhsSupported([]) => true
+  rule sliceStepAssignRhsSupported(()) => true
+  rule sliceStepAssignRhsSupported(RHS:Val) =>
+    concreteIterableExtraNonEmpty(RHS) orBool concreteIterableExtraEmpty(RHS)
+    [owise]
+
+  rule sliceStepAssignRhsLen(listVal(VS:ValItems)) => valItemsLen(VS)
+  rule sliceStepAssignRhsLen(tupleVal(VS:ValItems)) => valItemsLen(VS)
+  rule sliceStepAssignRhsLen([]) => 0
+  rule sliceStepAssignRhsLen(()) => 0
+  rule sliceStepAssignRhsLen(RHS:Val) => valItemsLen(concreteIterableExtraItems(RHS))
+    requires concreteIterableExtraNonEmpty(RHS)
+  rule sliceStepAssignRhsLen(RHS:Val) => 0
+    requires concreteIterableExtraEmpty(RHS)
 
   rule stringToValItems(S:String, I:Int, Len:Int) =>
     valItemsLast(substrString(S, I, I +Int 1))
@@ -10580,6 +10599,22 @@ module PYTHON
       andBool intValue(Step) <Int 0
       andBool concreteIterableExtraEmpty(RHS)
       andBool sliceStepLen(pySliceLowerNeg(Lower, valItemsLen(VS)), pySliceUpperNeg(Upper, valItemsLen(VS)), intValue(Step)) ==Int 0
+  rule <k> Step:Val ~> sliceStepAssignApply(X:Id, RHS:Val, Lower:Val, Upper:Val) =>
+           exceptionSignal(#exception(#token("ValueError", "Id")))
+       ... </k>
+       <env> ... X |-> listVal(VS:ValItems) ... </env>
+    requires isIntLike(Step)
+      andBool intValue(Step) >Int 1
+      andBool sliceStepAssignRhsSupported(RHS)
+      andBool sliceStepAssignRhsLen(RHS) =/=Int sliceStepLen(pySliceLower(Lower, valItemsLen(VS)), pySliceUpper(Upper, valItemsLen(VS)), intValue(Step))
+  rule <k> Step:Val ~> sliceStepAssignApply(X:Id, RHS:Val, Lower:Val, Upper:Val) =>
+           exceptionSignal(#exception(#token("ValueError", "Id")))
+       ... </k>
+       <env> ... X |-> listVal(VS:ValItems) ... </env>
+    requires isIntLike(Step)
+      andBool intValue(Step) <Int 0
+      andBool sliceStepAssignRhsSupported(RHS)
+      andBool sliceStepAssignRhsLen(RHS) =/=Int sliceStepLen(pySliceLowerNeg(Lower, valItemsLen(VS)), pySliceUpperNeg(Upper, valItemsLen(VS)), intValue(Step))
   rule <k> Step:Val ~> sliceStepAssignApply(X:Id, listVal(RS:ValItems), _Lower:Val, _Upper:Val) => stmtNoResult ... </k>
        <env> ... X |-> ([] => listVal(RS)) ... </env>
        <result> _ => .K </result>
@@ -10608,6 +10643,15 @@ module PYTHON
     requires isIntLike(Step)
       andBool intValue(Step) =/=Int 0
       andBool concreteIterableExtraEmpty(RHS)
+  rule <k> Step:Val ~> sliceStepAssignApply(X:Id, RHS:Val, _Lower:Val, _Upper:Val) =>
+           exceptionSignal(#exception(#token("ValueError", "Id")))
+       ... </k>
+       <env> ... X |-> [] ... </env>
+    requires isIntLike(Step)
+      andBool intValue(Step) =/=Int 0
+      andBool intValue(Step) =/=Int 1
+      andBool sliceStepAssignRhsSupported(RHS)
+      andBool sliceStepAssignRhsLen(RHS) =/=Int 0
 
   rule <k> augAddStmt(X:Id, E:Exp) => assignStmt(X, X + E) ... </k>
   rule <k> augSubStmt(X:Id, E:Exp) => assignStmt(X, X - E) ... </k>

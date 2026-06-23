@@ -2104,6 +2104,13 @@
       "coverage": ["assignment-statement", "del-statement", "extended-slice-target", "list-extended-slice-assignment", "list-extended-slice-deletion", "negative-slice-step", "ordinary-python-source-adapter"]
     },
     {
+      "id": "adapter-list-extended-slice-assignment-errors",
+      "source": "../adapter/adapter-list-extended-slice-assignment-errors.py",
+      "reference": "Python Language Reference 7.2 Assignment statements; 6.3.3 Slicings",
+      "expected_result": "True ~> .K",
+      "coverage": ["assignment-statement", "extended-slice-target", "list-extended-slice-assignment", "replacement-length-check", "value-error", "negative-slice-step", "ordinary-python-source-adapter"]
+    },
+    {
       "id": "adapter-list-slice-assignment-iterables",
       "source": "../adapter/adapter-list-slice-assignment-iterables.py",
       "reference": "Python Language Reference 7.2 Assignment statements; 6.3.3 Slicings",

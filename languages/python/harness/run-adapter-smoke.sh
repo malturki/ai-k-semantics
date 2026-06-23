@@ -310,6 +310,7 @@ run_case "adapter-list-tuple-set-constructors" "$ROOT/tests/adapter/adapter-list
 run_case "adapter-dict-constructor" "$ROOT/tests/adapter/adapter-dict-constructor.py" "True ~> .K"
 run_case "adapter-dict-constructor-keywords" "$ROOT/tests/adapter/adapter-dict-constructor-keywords.py" "True ~> .K"
 run_case "adapter-dict-constructor-kw-unpack" "$ROOT/tests/adapter/adapter-dict-constructor-kw-unpack.py" "True ~> .K"
+run_case "adapter-dict-constructor-duplicate-keywords" "$ROOT/tests/adapter/adapter-dict-constructor-duplicate-keywords.py" "True ~> .K"
 run_case "adapter-set-constructor" "$ROOT/tests/adapter/adapter-set-constructor.py" "True ~> .K"
 run_case "adapter-len-string-range" "$ROOT/tests/adapter/adapter-len-string-range.py" "True ~> .K"
 run_case "adapter-len-range-step" "$ROOT/tests/adapter/adapter-len-range-step.py" "True ~> .K"

@@ -10484,12 +10484,22 @@ module PYTHON
   rule <k> kwArgsVal(KWS:KwArgVals) ~> buildDictCtorKw =>
            dictCtorFromKwArgs(KWS)
        ... </k>
+    requires kwNoDuplicates(KWS)
+  rule <k> kwArgsVal(KWS:KwArgVals) ~> buildDictCtorKw =>
+           exceptionSignal(#exception(#token("TypeError", "Id")))
+       ... </k>
+    requires notBool kwNoDuplicates(KWS)
   rule <k> dictCtorMixedExp(Base:Val, KWS:KwArgExps) =>
            evalKwArgs(KWS, #noKwArgVals) ~> buildDictCtorMixed(Base)
        ... </k>
   rule <k> kwArgsVal(KWS:KwArgVals) ~> buildDictCtorMixed(Base:Val) =>
            dictCtorMergeKw(Base, KWS)
        ... </k>
+    requires kwNoDuplicates(KWS)
+  rule <k> kwArgsVal(KWS:KwArgVals) ~> buildDictCtorMixed(_Base:Val) =>
+           exceptionSignal(#exception(#token("TypeError", "Id")))
+       ... </k>
+    requires notBool kwNoDuplicates(KWS)
   rule <k> complexCtorKwExp(KWS:KwArgExps) =>
            evalKwArgs(KWS, #noKwArgVals) ~> buildComplexCtorKw
        ... </k>
@@ -14312,6 +14322,17 @@ module PYTHON
   rule <k> exceptionSignal(V:Val) ~> compareChainLast(_:CmpOp, _:Val) => exceptionSignal(V) ... </k>
   rule <k> exceptionSignal(V:Val) ~> compareChainNext(_:CmpOp, _:Val, _:CmpChain) => exceptionSignal(V) ... </k>
   rule <k> exceptionSignal(V:Val) ~> compareFrom(_:Val, _:CmpChain) => exceptionSignal(V) ... </k>
+  rule <k> exceptionSignal(V:Val) ~> callKwArgs(_:KwArgExps) => exceptionSignal(V) ... </k>
+  rule <k> exceptionSignal(V:Val) ~> evalKwArgNext(_:Id, _:KwArgExps, _:KwArgVals) => exceptionSignal(V) ... </k>
+  rule <k> exceptionSignal(V:Val) ~> evalKwStarArgNext(_:KwArgExps, _:KwArgVals) => exceptionSignal(V) ... </k>
+  rule <k> exceptionSignal(V:Val) ~> callApplyKwArgs(_:Val) => exceptionSignal(V) ... </k>
+  rule <k> exceptionSignal(V:Val) ~> callMixedArgs(_:ArgExps, _:KwArgExps) => exceptionSignal(V) ... </k>
+  rule <k> exceptionSignal(V:Val) ~> evalMixedKwArgs(_:KwArgExps, _:Val) => exceptionSignal(V) ... </k>
+  rule <k> exceptionSignal(V:Val) ~> callApplyMixedArgs(_:Val, _:ArgVals) => exceptionSignal(V) ... </k>
+  rule <k> exceptionSignal(V:Val) ~> buildDictCtorKw => exceptionSignal(V) ... </k>
+  rule <k> exceptionSignal(V:Val) ~> buildDictCtorMixed(_:Val) => exceptionSignal(V) ... </k>
+  rule <k> exceptionSignal(V:Val) ~> buildComplexCtorKw => exceptionSignal(V) ... </k>
+  rule <k> exceptionSignal(V:Val) ~> buildComplexCtorMixed(_:Val) => exceptionSignal(V) ... </k>
   rule <k> exceptionSignal(V:Val) ~> whileStmtBranch(_:Exp, _:Block) => exceptionSignal(V) ... </k>
   rule <k> exceptionSignal(V:Val) ~> whileElseStmtBranch(_:Exp, _:Block, _:Block) => exceptionSignal(V) ... </k>
   rule <k> breakSignal ~> whileStmtAgain(_:Exp, _:Block) => stmtNoResult ... </k>

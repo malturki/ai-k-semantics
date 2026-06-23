@@ -83,13 +83,15 @@ def emit_stmt_block(stmt: str) -> str:
     return "{\n" + stmt + ";\n}"
 
 
-def emit_exception_sentinel(exp: ast.expr) -> str:
+def emit_exception_expr(exp: ast.expr) -> str:
     match exp:
         case ast.Name(id=name):
             return f"#exception({emit_id(name)})"
-        case ast.Call(func=ast.Name(id=name), args=[], keywords=[]):
-            return f"#exception({emit_id(name)})"
-    raise unsupported(exp, "only named exception sentinels are supported")
+        case ast.Call(func=ast.Name(id=name), args=args, keywords=[]):
+            return f"#exceptionCall({emit_id(name)}, {emit_arg_exps(args)})"
+        case ast.Call(func=ast.Name(), keywords=keywords) if keywords:
+            raise unsupported(exp, "exception constructor calls with keyword arguments are not supported")
+    raise unsupported(exp, "only named exception classes and named exception constructor calls are supported")
 
 
 def emit_stmt(stmt: ast.stmt) -> str:
@@ -131,13 +133,13 @@ def emit_stmt(stmt: ast.stmt) -> str:
         case ast.Raise(exc=None, cause=None):
             return "raise"
         case ast.Raise(exc=exc, cause=ast.Constant(value=None)) if exc is not None:
-            return f"#raiseFromNone({emit_exception_sentinel(exc)})"
+            return f"#raiseFromNone({emit_exception_expr(exc)})"
         case ast.Raise(exc=exc, cause=cause) if exc is not None and cause is not None:
-            return f"#raiseFrom({emit_exception_sentinel(exc)}, {emit_exception_sentinel(cause)})"
+            return f"#raiseFrom({emit_exception_expr(exc)}, {emit_exception_expr(cause)})"
         case ast.Raise(exc=exc, cause=None) if exc is not None:
-            return f"raise {emit_exception_sentinel(exc)}"
+            return f"raise {emit_exception_expr(exc)}"
         case ast.Raise():
-            raise unsupported(stmt, "only bare re-raise or raising a named exception sentinel, optionally from None or another named sentinel, is supported")
+            raise unsupported(stmt, "only bare re-raise or raising a named exception class/call, optionally from None or another named class/call, is supported")
         case ast.FunctionDef(
             name=name,
             args=args,

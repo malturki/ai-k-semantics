@@ -288,6 +288,7 @@ module PYTHON-SYNTAX
                | "#call" "(" Exp "," ArgExps ")" [symbol(callArgsExp)]
                | "#callKw" "(" Exp "," KwArgExps ")" [symbol(callKwArgsExp)]
                | "#callMixed" "(" Exp "," ArgExps "," KwArgExps ")" [symbol(callMixedArgsExp)]
+               | "#exceptionCall" "(" Id "," ArgExps ")" [symbol(exceptionCallExp)]
                | "#attr" "(" Exp "," Id ")" [symbol(attrExp), strict(1)]
                | "#list" "(" ArgExps ")" [symbol(listDisplayExp)]
                | "#tuple" "(" ArgExps ")" [symbol(tupleDisplayExp)]
@@ -533,6 +534,7 @@ module PYTHON
                | functionValPosKwDefaults(IdItems, ArgVals, IdItems, ArgVals, Block) [symbol(functionValPosKwDefaults)]
                | functionValPosKwOnlyKwArgs(IdItems, IdItems, Id, Block) [symbol(functionValPosKwOnlyKwArgs)]
                | functionValPosKwDefaultsKwArgs(IdItems, ArgVals, IdItems, ArgVals, Id, Block) [symbol(functionValPosKwDefaultsKwArgs)]
+               | "#exceptionInstance" "(" Id "," ArgVals ")" [symbol(exceptionInstanceVal)]
                | buildFunctionDefault(FunctionDefaultBuilder, ArgVals) [function, symbol(buildFunctionDefault)]
                | buildFunctionTwoDefaults(FunctionTwoDefaultBuilder, ArgVals, ArgVals) [function, symbol(buildFunctionTwoDefaults)]
                | rangeVal(Int, Int) [symbol(rangeVal)]
@@ -564,6 +566,7 @@ module PYTHON
                  | evalArgNext(ArgExps, ArgVals) [symbol(evalArgNext)]
                  | evalStarArgNext(ArgExps, ArgVals) [symbol(evalStarArgNext)]
                  | callApplyArgs(Val) [symbol(callApplyArgs)]
+                 | buildException(Id) [symbol(buildException)]
                  | callKwArgs(KwArgExps) [symbol(callKwArgs)]
                  | evalKwArgs(KwArgExps, KwArgVals) [symbol(evalKwArgs)]
                  | evalKwArgNext(Id, KwArgExps, KwArgVals) [symbol(evalKwArgNext)]
@@ -1037,6 +1040,8 @@ module PYTHON
                 | matchValItemsPatterns(ValItems, MatchPatterns) [function, symbol(matchValItemsPatterns)]
                 | matchValItemsPrefix(ValItems, MatchPatterns) [function, symbol(matchValItemsPrefix)]
                 | matchValItemsSuffix(ValItems, MatchPatterns) [function, symbol(matchValItemsSuffix)]
+                | exceptionMatches(Val, Id) [function, symbol(exceptionMatches)]
+                | exceptionIn(Val, IdItems) [function, symbol(exceptionIn)]
                 | valIs(Val, Val) [function, symbol(valIs)]
                 | cmpHolds(CmpOp, Val, Val) [function, symbol(cmpHolds)]
                 | singletonIdentity(Val) [function, symbol(singletonIdentity)]
@@ -3014,6 +3019,14 @@ module PYTHON
   rule valEq(_:Float, Ellipsis) => false
   rule valEq(Ellipsis, _:String) => false
   rule valEq(_:String, Ellipsis) => false
+
+  rule exceptionMatches(#exception(E:Id), F:Id) => Id2String(E) ==String Id2String(F)
+  rule exceptionMatches(#exceptionInstance(E:Id, _Args:ArgVals), F:Id) => Id2String(E) ==String Id2String(F)
+  rule exceptionMatches(_V:Val, _F:Id) => false [owise]
+
+  rule exceptionIn(#exception(E:Id), IDS:IdItems) => stringIdContains(Id2String(E), IDS)
+  rule exceptionIn(#exceptionInstance(E:Id, _Args:ArgVals), IDS:IdItems) => stringIdContains(Id2String(E), IDS)
+  rule exceptionIn(_V:Val, _IDS:IdItems) => false [owise]
 
   rule valIs(V1:Val, V2:Val) => valEq(V1, V2)
     requires singletonIdentity(V1) andBool singletonIdentity(V2)
@@ -5877,6 +5890,12 @@ module PYTHON
   rule <k> callArgsExp(F:Exp, Args:ArgExps) => F ~> callArgs(Args) ... </k>
   rule <k> F:Val ~> callArgs(Args:ArgExps) =>
            evalArgs(Args, #noArgVals) ~> callApplyArgs(F)
+       ... </k>
+  rule <k> exceptionCallExp(E:Id, Args:ArgExps) =>
+           evalArgs(Args, #noArgVals) ~> buildException(E)
+       ... </k>
+  rule <k> argsVal(Args:ArgVals) ~> buildException(E:Id) =>
+           #exceptionInstance(E, Args)
        ... </k>
   rule <k> evalArgs(#noArgs, VS:ArgVals) => argsVal(VS) ... </k>
   rule <k> evalArgs(argExp(E:Exp), VS:ArgVals) =>
@@ -10584,12 +10603,15 @@ module PYTHON
       ... </k>
   rule <k> tryExceptStmt({}, _E:Id, _Handler:Block) => stmtNoResult ... </k>
   rule <k> tryExceptDone(_E:Id, _Handler:Block) => stmtNoResult ... </k>
-  rule <k> exceptionSignal(#exception(E:Id)) ~> tryExceptDone(E, block(SS:Stmts)) =>
+  rule <k> exceptionSignal(V:Val) ~> tryExceptDone(E:Id, block(SS:Stmts)) =>
            SS ~> restoreActiveException(Prev)
       ... </k>
-       <activeException> Prev => currentException(#exception(E)) </activeException>
-  rule <k> exceptionSignal(#exception(E:Id)) ~> tryExceptDone(E, {}) => stmtNoResult ... </k>
-  rule <k> exceptionSignal(V:Val) ~> tryExceptDone(_E:Id, _Handler:Block) => exceptionSignal(V) ... </k> [owise]
+       <activeException> Prev => currentException(V) </activeException>
+    requires exceptionMatches(V, E)
+  rule <k> exceptionSignal(V:Val) ~> tryExceptDone(E:Id, {}) => stmtNoResult ... </k>
+    requires exceptionMatches(V, E)
+  rule <k> exceptionSignal(V:Val) ~> tryExceptDone(E:Id, _Handler:Block) => exceptionSignal(V) ... </k>
+    requires notBool exceptionMatches(V, E)
 
   rule <k> tryExceptElseStmt(block(SS:Stmts), E:Id, Handler:Block, Else:Block) =>
            SS ~> tryExceptElseDone(E, Handler, Else)
@@ -10602,12 +10624,15 @@ module PYTHON
            SS ~> ifStmtDone
       ... </k>
   rule <k> tryExceptElseDone(_E:Id, _Handler:Block, {}) => stmtNoResult ... </k>
-  rule <k> exceptionSignal(#exception(E:Id)) ~> tryExceptElseDone(E, block(SS:Stmts), _Else:Block) =>
+  rule <k> exceptionSignal(V:Val) ~> tryExceptElseDone(E:Id, block(SS:Stmts), _Else:Block) =>
            SS ~> restoreActiveException(Prev)
       ... </k>
-       <activeException> Prev => currentException(#exception(E)) </activeException>
-  rule <k> exceptionSignal(#exception(E:Id)) ~> tryExceptElseDone(E, {}, _Else:Block) => stmtNoResult ... </k>
-  rule <k> exceptionSignal(V:Val) ~> tryExceptElseDone(_E:Id, _Handler:Block, _Else:Block) => exceptionSignal(V) ... </k> [owise]
+       <activeException> Prev => currentException(V) </activeException>
+    requires exceptionMatches(V, E)
+  rule <k> exceptionSignal(V:Val) ~> tryExceptElseDone(E:Id, {}, _Else:Block) => stmtNoResult ... </k>
+    requires exceptionMatches(V, E)
+  rule <k> exceptionSignal(V:Val) ~> tryExceptElseDone(E:Id, _Handler:Block, _Else:Block) => exceptionSignal(V) ... </k>
+    requires notBool exceptionMatches(V, E)
 
   rule <k> tryExceptCasesStmt(block(SS:Stmts), Cases:ExceptHandlers) =>
            SS ~> tryExceptCasesDone(Cases)
@@ -10633,107 +10658,115 @@ module PYTHON
            handleException(V, Cases)
       ... </k>
 
-  rule <k> handleException(#exception(E:Id), #except(E, block(SS:Stmts))) =>
+  rule <k> handleException(V:Val, #except(E:Id, block(SS:Stmts))) =>
            SS ~> restoreActiveException(Prev)
       ... </k>
-       <activeException> Prev => currentException(#exception(E)) </activeException>
-  rule <k> handleException(#exception(E:Id), #except(E, {})) => stmtNoResult ... </k>
-  rule <k> handleException(#exception(E:Id), #except(F:Id, _Handler:Block)) =>
-           exceptionSignal(#exception(E))
+       <activeException> Prev => currentException(V) </activeException>
+    requires exceptionMatches(V, E)
+  rule <k> handleException(V:Val, #except(E:Id, {})) => stmtNoResult ... </k>
+    requires exceptionMatches(V, E)
+  rule <k> handleException(V:Val, #except(E:Id, _Handler:Block)) =>
+           exceptionSignal(V)
       ... </k>
-    requires Id2String(E) =/=String Id2String(F)
-  rule <k> handleException(#exception(E:Id), #exceptAs(E, Alias:Id, block(SS:Stmts))) =>
+    requires notBool exceptionMatches(V, E)
+  rule <k> handleException(V:Val, #exceptAs(E:Id, Alias:Id, block(SS:Stmts))) =>
            SS ~> exceptAsCleanup(Alias) ~> restoreActiveException(Prev)
       ... </k>
-       <activeException> Prev => currentException(#exception(E)) </activeException>
-       <env> Rho => Rho [ Alias <- #exception(E) ] </env>
-  rule <k> handleException(#exception(E:Id), #exceptAs(E, Alias:Id, {})) =>
+       <activeException> Prev => currentException(V) </activeException>
+       <env> Rho => Rho [ Alias <- V ] </env>
+    requires exceptionMatches(V, E)
+  rule <k> handleException(V:Val, #exceptAs(E:Id, Alias:Id, {})) =>
            exceptAsCleanup(Alias)
       ... </k>
-       <env> Rho => Rho [ Alias <- #exception(E) ] </env>
-  rule <k> handleException(#exception(E:Id), #exceptAs(F:Id, _Alias:Id, _Handler:Block)) =>
-           exceptionSignal(#exception(E))
+       <env> Rho => Rho [ Alias <- V ] </env>
+    requires exceptionMatches(V, E)
+  rule <k> handleException(V:Val, #exceptAs(E:Id, _Alias:Id, _Handler:Block)) =>
+           exceptionSignal(V)
       ... </k>
-    requires Id2String(E) =/=String Id2String(F)
-  rule <k> handleException(#exception(E:Id), #exceptTuple(IDS:IdItems, block(SS:Stmts))) =>
+    requires notBool exceptionMatches(V, E)
+  rule <k> handleException(V:Val, #exceptTuple(IDS:IdItems, block(SS:Stmts))) =>
            SS ~> restoreActiveException(Prev)
       ... </k>
-       <activeException> Prev => currentException(#exception(E)) </activeException>
-    requires stringIdContains(Id2String(E), IDS)
-  rule <k> handleException(#exception(E:Id), #exceptTuple(IDS:IdItems, {})) => stmtNoResult ... </k>
-    requires stringIdContains(Id2String(E), IDS)
-  rule <k> handleException(#exception(E:Id), #exceptTuple(IDS:IdItems, _Handler:Block)) =>
-           exceptionSignal(#exception(E))
+       <activeException> Prev => currentException(V) </activeException>
+    requires exceptionIn(V, IDS)
+  rule <k> handleException(V:Val, #exceptTuple(IDS:IdItems, {})) => stmtNoResult ... </k>
+    requires exceptionIn(V, IDS)
+  rule <k> handleException(V:Val, #exceptTuple(IDS:IdItems, _Handler:Block)) =>
+           exceptionSignal(V)
       ... </k>
-    requires notBool stringIdContains(Id2String(E), IDS)
-  rule <k> handleException(#exception(E:Id), #exceptTupleAs(IDS:IdItems, Alias:Id, block(SS:Stmts))) =>
+    requires notBool exceptionIn(V, IDS)
+  rule <k> handleException(V:Val, #exceptTupleAs(IDS:IdItems, Alias:Id, block(SS:Stmts))) =>
            SS ~> exceptAsCleanup(Alias) ~> restoreActiveException(Prev)
       ... </k>
-       <activeException> Prev => currentException(#exception(E)) </activeException>
-       <env> Rho => Rho [ Alias <- #exception(E) ] </env>
-    requires stringIdContains(Id2String(E), IDS)
-  rule <k> handleException(#exception(E:Id), #exceptTupleAs(IDS:IdItems, Alias:Id, {})) =>
+       <activeException> Prev => currentException(V) </activeException>
+       <env> Rho => Rho [ Alias <- V ] </env>
+    requires exceptionIn(V, IDS)
+  rule <k> handleException(V:Val, #exceptTupleAs(IDS:IdItems, Alias:Id, {})) =>
            exceptAsCleanup(Alias)
       ... </k>
-       <env> Rho => Rho [ Alias <- #exception(E) ] </env>
-    requires stringIdContains(Id2String(E), IDS)
-  rule <k> handleException(#exception(E:Id), #exceptTupleAs(IDS:IdItems, _Alias:Id, _Handler:Block)) =>
-           exceptionSignal(#exception(E))
+       <env> Rho => Rho [ Alias <- V ] </env>
+    requires exceptionIn(V, IDS)
+  rule <k> handleException(V:Val, #exceptTupleAs(IDS:IdItems, _Alias:Id, _Handler:Block)) =>
+           exceptionSignal(V)
       ... </k>
-    requires notBool stringIdContains(Id2String(E), IDS)
+    requires notBool exceptionIn(V, IDS)
   rule <k> handleException(V:Val, #exceptAny(block(SS:Stmts))) =>
            SS ~> restoreActiveException(Prev)
       ... </k>
        <activeException> Prev => currentException(V) </activeException>
   rule <k> handleException(_V:Val, #exceptAny({})) => stmtNoResult ... </k>
-  rule <k> handleException(#exception(E:Id), #excepts(E, block(SS:Stmts), _Rest:ExceptHandlers)) =>
+  rule <k> handleException(V:Val, #excepts(E:Id, block(SS:Stmts), _Rest:ExceptHandlers)) =>
            SS ~> restoreActiveException(Prev)
       ... </k>
-       <activeException> Prev => currentException(#exception(E)) </activeException>
-  rule <k> handleException(#exception(E:Id), #excepts(E, {}, _Rest:ExceptHandlers)) => stmtNoResult ... </k>
-  rule <k> handleException(#exception(E:Id), #excepts(F:Id, _Handler:Block, Rest:ExceptHandlers)) =>
-           handleException(#exception(E), Rest)
+       <activeException> Prev => currentException(V) </activeException>
+    requires exceptionMatches(V, E)
+  rule <k> handleException(V:Val, #excepts(E:Id, {}, _Rest:ExceptHandlers)) => stmtNoResult ... </k>
+    requires exceptionMatches(V, E)
+  rule <k> handleException(V:Val, #excepts(E:Id, _Handler:Block, Rest:ExceptHandlers)) =>
+           handleException(V, Rest)
       ... </k>
-    requires Id2String(E) =/=String Id2String(F)
-  rule <k> handleException(#exception(E:Id), #exceptsAs(E, Alias:Id, block(SS:Stmts), _Rest:ExceptHandlers)) =>
+    requires notBool exceptionMatches(V, E)
+  rule <k> handleException(V:Val, #exceptsAs(E:Id, Alias:Id, block(SS:Stmts), _Rest:ExceptHandlers)) =>
            SS ~> exceptAsCleanup(Alias) ~> restoreActiveException(Prev)
       ... </k>
-       <activeException> Prev => currentException(#exception(E)) </activeException>
-       <env> Rho => Rho [ Alias <- #exception(E) ] </env>
-  rule <k> handleException(#exception(E:Id), #exceptsAs(E, Alias:Id, {}, _Rest:ExceptHandlers)) =>
+       <activeException> Prev => currentException(V) </activeException>
+       <env> Rho => Rho [ Alias <- V ] </env>
+    requires exceptionMatches(V, E)
+  rule <k> handleException(V:Val, #exceptsAs(E:Id, Alias:Id, {}, _Rest:ExceptHandlers)) =>
            exceptAsCleanup(Alias)
       ... </k>
-       <env> Rho => Rho [ Alias <- #exception(E) ] </env>
-  rule <k> handleException(#exception(E:Id), #exceptsAs(F:Id, _Alias:Id, _Handler:Block, Rest:ExceptHandlers)) =>
-           handleException(#exception(E), Rest)
+       <env> Rho => Rho [ Alias <- V ] </env>
+    requires exceptionMatches(V, E)
+  rule <k> handleException(V:Val, #exceptsAs(E:Id, _Alias:Id, _Handler:Block, Rest:ExceptHandlers)) =>
+           handleException(V, Rest)
       ... </k>
-    requires Id2String(E) =/=String Id2String(F)
-  rule <k> handleException(#exception(E:Id), #exceptsTuple(IDS:IdItems, block(SS:Stmts), _Rest:ExceptHandlers)) =>
+    requires notBool exceptionMatches(V, E)
+  rule <k> handleException(V:Val, #exceptsTuple(IDS:IdItems, block(SS:Stmts), _Rest:ExceptHandlers)) =>
            SS ~> restoreActiveException(Prev)
       ... </k>
-       <activeException> Prev => currentException(#exception(E)) </activeException>
-    requires stringIdContains(Id2String(E), IDS)
-  rule <k> handleException(#exception(E:Id), #exceptsTuple(IDS:IdItems, {}, _Rest:ExceptHandlers)) => stmtNoResult ... </k>
-    requires stringIdContains(Id2String(E), IDS)
-  rule <k> handleException(#exception(E:Id), #exceptsTuple(IDS:IdItems, _Handler:Block, Rest:ExceptHandlers)) =>
-           handleException(#exception(E), Rest)
+       <activeException> Prev => currentException(V) </activeException>
+    requires exceptionIn(V, IDS)
+  rule <k> handleException(V:Val, #exceptsTuple(IDS:IdItems, {}, _Rest:ExceptHandlers)) => stmtNoResult ... </k>
+    requires exceptionIn(V, IDS)
+  rule <k> handleException(V:Val, #exceptsTuple(IDS:IdItems, _Handler:Block, Rest:ExceptHandlers)) =>
+           handleException(V, Rest)
       ... </k>
-    requires notBool stringIdContains(Id2String(E), IDS)
-  rule <k> handleException(#exception(E:Id), #exceptsTupleAs(IDS:IdItems, Alias:Id, block(SS:Stmts), _Rest:ExceptHandlers)) =>
+    requires notBool exceptionIn(V, IDS)
+  rule <k> handleException(V:Val, #exceptsTupleAs(IDS:IdItems, Alias:Id, block(SS:Stmts), _Rest:ExceptHandlers)) =>
            SS ~> exceptAsCleanup(Alias) ~> restoreActiveException(Prev)
       ... </k>
-       <activeException> Prev => currentException(#exception(E)) </activeException>
-       <env> Rho => Rho [ Alias <- #exception(E) ] </env>
-    requires stringIdContains(Id2String(E), IDS)
-  rule <k> handleException(#exception(E:Id), #exceptsTupleAs(IDS:IdItems, Alias:Id, {}, _Rest:ExceptHandlers)) =>
+       <activeException> Prev => currentException(V) </activeException>
+       <env> Rho => Rho [ Alias <- V ] </env>
+    requires exceptionIn(V, IDS)
+  rule <k> handleException(V:Val, #exceptsTupleAs(IDS:IdItems, Alias:Id, {}, _Rest:ExceptHandlers)) =>
            exceptAsCleanup(Alias)
       ... </k>
-       <env> Rho => Rho [ Alias <- #exception(E) ] </env>
-    requires stringIdContains(Id2String(E), IDS)
-  rule <k> handleException(#exception(E:Id), #exceptsTupleAs(IDS:IdItems, _Alias:Id, _Handler:Block, Rest:ExceptHandlers)) =>
-           handleException(#exception(E), Rest)
+       <env> Rho => Rho [ Alias <- V ] </env>
+    requires exceptionIn(V, IDS)
+  rule <k> handleException(V:Val, #exceptsTupleAs(IDS:IdItems, _Alias:Id, _Handler:Block, Rest:ExceptHandlers)) =>
+           handleException(V, Rest)
       ... </k>
-    requires notBool stringIdContains(Id2String(E), IDS)
+    requires notBool exceptionIn(V, IDS)
   rule <k> handleException(V:Val, _Cases:ExceptHandlers) => exceptionSignal(V) ... </k> [owise]
 
   rule <k> exceptAsCleanup(Alias:Id) => stmtNoResult ... </k>

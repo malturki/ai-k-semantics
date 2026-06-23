@@ -271,6 +271,7 @@ run_case "adapter-try-except-finally" "$ROOT/tests/adapter/adapter-try-except-fi
 run_case "adapter-raise-from-none" "$ROOT/tests/adapter/adapter-raise-from-none.py" "True ~> .K"
 run_case "adapter-raise-from-cause" "$ROOT/tests/adapter/adapter-raise-from-cause.py" "True ~> .K"
 run_case "adapter-reraise" "$ROOT/tests/adapter/adapter-reraise.py" "True ~> .K"
+run_case "adapter-raise-exception-call" "$ROOT/tests/adapter/adapter-raise-exception-call.py" "True ~> .K"
 run_case "adapter-try-except-basic" "$ROOT/tests/adapter/adapter-try-except-basic.py" "True ~> .K"
 run_case "adapter-try-except-no-exception" "$ROOT/tests/adapter/adapter-try-except-no-exception.py" "True ~> .K"
 run_case "adapter-try-except-else" "$ROOT/tests/adapter/adapter-try-except-else.py" "True ~> .K"

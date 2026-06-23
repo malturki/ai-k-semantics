@@ -11169,9 +11169,19 @@ module PYTHON
   rule <k> minArgsExp(Args:ArgExps) => evalArgs(Args, #noArgVals) ~> minArgsResult ... </k>
   rule <k> argsVal(VS:ArgVals) ~> minArgsResult => minArgVals(VS) ... </k>
     requires notBool emptyArgVals(VS)
+      andBool valItemsAllIntLike(argValsToValItems(VS))
+  rule <k> argsVal(VS:ArgVals) ~> minArgsResult => minNumericItems(argValsToValItems(VS)) ... </k>
+    requires notBool emptyArgVals(VS)
+      andBool (notBool valItemsAllIntLike(argValsToValItems(VS)))
+      andBool valItemsAllNumericComparable(argValsToValItems(VS))
   rule <k> maxArgsExp(Args:ArgExps) => evalArgs(Args, #noArgVals) ~> maxArgsResult ... </k>
   rule <k> argsVal(VS:ArgVals) ~> maxArgsResult => maxArgVals(VS) ... </k>
     requires notBool emptyArgVals(VS)
+      andBool valItemsAllIntLike(argValsToValItems(VS))
+  rule <k> argsVal(VS:ArgVals) ~> maxArgsResult => maxNumericItems(argValsToValItems(VS)) ... </k>
+    requires notBool emptyArgVals(VS)
+      andBool (notBool valItemsAllIntLike(argValsToValItems(VS)))
+      andBool valItemsAllNumericComparable(argValsToValItems(VS))
   rule <k> minArgsDefaultExp(Args:ArgExps, Default:Exp) =>
            evalArgs(Args, #noArgVals) ~> minArgsDefaultResult(Default)
        ... </k>
@@ -11198,6 +11208,11 @@ module PYTHON
        ... </k>
   rule <k> None ~> minArgsKeyApply(VS:ArgVals) => minArgVals(VS) ... </k>
     requires notBool emptyArgVals(VS)
+      andBool valItemsAllIntLike(argValsToValItems(VS))
+  rule <k> None ~> minArgsKeyApply(VS:ArgVals) => minNumericItems(argValsToValItems(VS)) ... </k>
+    requires notBool emptyArgVals(VS)
+      andBool (notBool valItemsAllIntLike(argValsToValItems(VS)))
+      andBool valItemsAllNumericComparable(argValsToValItems(VS))
   rule <k> Key:Val ~> minArgsKeyApply(VS:ArgVals) => minKeyFold(argValsToValItems(VS), Key) ... </k>
     requires notBool emptyArgVals(VS)
   rule <k> maxArgsKeyExp(Args:ArgExps, Key:Exp) =>
@@ -11208,6 +11223,11 @@ module PYTHON
        ... </k>
   rule <k> None ~> maxArgsKeyApply(VS:ArgVals) => maxArgVals(VS) ... </k>
     requires notBool emptyArgVals(VS)
+      andBool valItemsAllIntLike(argValsToValItems(VS))
+  rule <k> None ~> maxArgsKeyApply(VS:ArgVals) => maxNumericItems(argValsToValItems(VS)) ... </k>
+    requires notBool emptyArgVals(VS)
+      andBool (notBool valItemsAllIntLike(argValsToValItems(VS)))
+      andBool valItemsAllNumericComparable(argValsToValItems(VS))
   rule <k> Key:Val ~> maxArgsKeyApply(VS:ArgVals) => maxKeyFold(argValsToValItems(VS), Key) ... </k>
     requires notBool emptyArgVals(VS)
   rule <k> minArgsDefaultKeyExp(Args:ArgExps, Default:Exp, Key:Exp) =>

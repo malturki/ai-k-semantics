@@ -2188,6 +2188,13 @@
       "coverage": ["sequence-unpacking-assignment", "expression-rhs", "flat-name-targets", "ordinary-python-source-adapter"]
     },
     {
+      "id": "adapter-unpack-arity-errors",
+      "source": "../adapter/adapter-unpack-arity-errors.py",
+      "reference": "Python Language Reference 7.2 Assignment statements",
+      "expected_result": "True ~> .K",
+      "coverage": ["sequence-unpacking-assignment", "starred-target-assignment", "top-level-unpack-arity-check", "value-error", "ordinary-python-source-adapter"]
+    },
+    {
       "id": "adapter-star-unpack-assignment",
       "source": "../adapter/adapter-star-unpack-assignment.py",
       "reference": "Python Language Reference 7.2 Assignment statements; PEP 3132 Extended Iterable Unpacking",

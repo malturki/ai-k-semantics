@@ -1099,6 +1099,7 @@ module PYTHON
                 | concreteIterableExtraNonEmpty(Val) [function, symbol(concreteIterableExtraNonEmpty)]
                 | concreteIterableExtraEmpty(Val) [function, symbol(concreteIterableExtraEmpty)]
                 | sliceStepAssignRhsSupported(Val) [function, symbol(sliceStepAssignRhsSupported)]
+                | unpackValueSupported(Val) [function, symbol(unpackValueSupported)]
                 | subscriptLookupable(Val, Val) [function, symbol(subscriptLookupable)]
                 | subscriptSettable(Val, Val) [function, symbol(subscriptSettable)]
                 | subscriptDeletable(Val, Val) [function, symbol(subscriptDeletable)]
@@ -1285,6 +1286,7 @@ module PYTHON
                | pySliceIndexNeg(Int, Int) [function, symbol(pySliceIndexNeg)]
                | sliceStepLen(Int, Int, Int) [function, symbol(sliceStepLen)]
                | sliceStepAssignRhsLen(Val) [function, symbol(sliceStepAssignRhsLen)]
+               | unpackValueLen(Val) [function, symbol(unpackValueLen)]
                | valItemsLen(ValItems) [function, symbol(valItemsLen)]
                | matchPatternsLen(MatchPatterns) [function, symbol(matchPatternsLen)]
                | idItemsLen(IdItems) [function, symbol(idItemsLen)]
@@ -4428,6 +4430,37 @@ module PYTHON
     requires concreteIterableExtraNonEmpty(RHS)
   rule sliceStepAssignRhsLen(RHS:Val) => 0
     requires concreteIterableExtraEmpty(RHS)
+
+  rule unpackValueSupported(listVal(_:ValItems)) => true
+  rule unpackValueSupported([]) => true
+  rule unpackValueSupported(tupleVal(_:ValItems)) => true
+  rule unpackValueSupported(()) => true
+  rule unpackValueSupported(bytesVal(_:ValItems)) => true
+  rule unpackValueSupported(#bytes()) => true
+  rule unpackValueSupported(_:String) => true
+  rule unpackValueSupported(dictVal(_:DictItems)) => true
+  rule unpackValueSupported(({}):Val) => true
+  rule unpackValueSupported(setVal(_:ValItems)) => true
+  rule unpackValueSupported(set()) => true
+  rule unpackValueSupported(rangeVal(_:Int, _:Int)) => true
+  rule unpackValueSupported(rangeVal(_:Int, _:Int, Step:Int)) => true
+    requires Step =/=Int 0
+  rule unpackValueSupported(_:Val) => false [owise]
+
+  rule unpackValueLen(listVal(VS:ValItems)) => valItemsLen(VS)
+  rule unpackValueLen([]) => 0
+  rule unpackValueLen(tupleVal(VS:ValItems)) => valItemsLen(VS)
+  rule unpackValueLen(()) => 0
+  rule unpackValueLen(bytesVal(VS:ValItems)) => valItemsLen(VS)
+  rule unpackValueLen(#bytes()) => 0
+  rule unpackValueLen(S:String) => lengthString(S)
+  rule unpackValueLen(dictVal(DS:DictItems)) => valItemsLen(dictKeysToValItems(DS))
+  rule unpackValueLen(({}):Val) => 0
+  rule unpackValueLen(setVal(VS:ValItems)) => valItemsLen(VS)
+  rule unpackValueLen(set()) => 0
+  rule unpackValueLen(rangeVal(Start:Int, Stop:Int)) => pyRangeLen(Start, Stop, 1)
+  rule unpackValueLen(rangeVal(Start:Int, Stop:Int, Step:Int)) => pyRangeLen(Start, Stop, Step)
+    requires Step =/=Int 0
 
   rule stringToValItems(S:String, I:Int, Len:Int) =>
     valItemsLast(substrString(S, I, I +Int 1))
@@ -10724,6 +10757,11 @@ module PYTHON
     requires Step =/=Int 0
       andBool pyRangeLen(Start, Stop, Step) >Int 0
       andBool sameIdValArity(IDS, rangeToValItems(Start, Stop, Step, 0, pyRangeLen(Start, Stop, Step)))
+  rule <k> unpackAssignStmt(IDS:IdItems, V:Val) =>
+           exceptionSignal(#exception(#token("ValueError", "Id")))
+       ... </k>
+    requires unpackValueSupported(V)
+      andBool idItemsLen(IDS) =/=Int unpackValueLen(V)
 
   rule <k> unpackTargetAssignStmt(TS:Targets, listVal(VS:ValItems)) => stmtNoResult ... </k>
        <env> Rho => bindTargets(Rho, TS, VS) </env>
@@ -10761,11 +10799,21 @@ module PYTHON
     requires Step =/=Int 0
       andBool pyRangeLen(Start, Stop, Step) >Int 0
       andBool sameTargetsValArity(TS, rangeToValItems(Start, Stop, Step, 0, pyRangeLen(Start, Stop, Step)))
+  rule <k> unpackTargetAssignStmt(TS:Targets, V:Val) =>
+           exceptionSignal(#exception(#token("ValueError", "Id")))
+       ... </k>
+    requires unpackValueSupported(V)
+      andBool targetsLen(TS) =/=Int unpackValueLen(V)
 
   rule <k> targetAssignStmt(T:Target, V:Val) => stmtNoResult ... </k>
        <env> Rho => bindTarget(Rho, T, V) </env>
        <result> _ => .K </result>
     requires targetValueArityOk(T, V)
+  rule <k> targetAssignStmt(targetStarSeq(Prefix:MaybeTargets, _Star:Id, Suffix:MaybeTargets), V:Val) =>
+           exceptionSignal(#exception(#token("ValueError", "Id")))
+       ... </k>
+    requires unpackValueSupported(V)
+      andBool maybeTargetsLen(Prefix) +Int maybeTargetsLen(Suffix) >Int unpackValueLen(V)
 
   rule <k> unpackStarAssignStmt(Prefix:IdItems, Star:Id, Suffix:IdItems, listVal(VS:ValItems)) => stmtNoResult ... </k>
        <env> Rho => bindStarUnpack(Rho, Prefix, Star, Suffix, VS) </env>
@@ -10839,6 +10887,11 @@ module PYTHON
     requires Step =/=Int 0
       andBool pyRangeLen(Start, Stop, Step) ==Int 0
       andBool idItemsLen(Prefix) +Int idItemsLen(Suffix) ==Int 0
+  rule <k> unpackStarAssignStmt(Prefix:IdItems, _Star:Id, Suffix:IdItems, V:Val) =>
+           exceptionSignal(#exception(#token("ValueError", "Id")))
+       ... </k>
+    requires unpackValueSupported(V)
+      andBool notBool starUnpackArityOk(Prefix, Suffix, unpackValueLen(V))
 
   rule <k> functionDefStmt(F:Id, X:Id, Body:Block) => stmtNoResult ... </k>
        <env> Rho => Rho [ F <- functionVal(X, Body) ] </env>

@@ -131,6 +131,19 @@ module PYTHON-SYNTAX
                  | "#in" [symbol(cmpIn)]
                  | "#notIn" [symbol(cmpNotIn)]
 
+  syntax AugOp ::= "#augAdd" [symbol(augAddOp)]
+                 | "#augSub" [symbol(augSubOp)]
+                 | "#augMul" [symbol(augMulOp)]
+                 | "#augTrueDiv" [symbol(augTrueDivOp)]
+                 | "#augFloorDiv" [symbol(augFloorDivOp)]
+                 | "#augMod" [symbol(augModOp)]
+                 | "#augPow" [symbol(augPowOp)]
+                 | "#augLShift" [symbol(augLShiftOp)]
+                 | "#augRShift" [symbol(augRShiftOp)]
+                 | "#augBitAnd" [symbol(augBitAndOp)]
+                 | "#augBitXor" [symbol(augBitXorOp)]
+                 | "#augBitOr" [symbol(augBitOrOp)]
+
   syntax CmpChain ::= "#cmpLast" "(" CmpOp "," Exp ")" [symbol(cmpChainLast)]
                     | "#cmpCons" "(" CmpOp "," Exp "," CmpChain ")" [symbol(cmpChainCons)]
 
@@ -210,6 +223,7 @@ module PYTHON-SYNTAX
                 | "#floorDivAssign" "(" Id "," Exp ")" [symbol(augFloorDivStmt)]
                 | "#assignMany" "(" IdItems ";" Exp ")" [symbol(assignManyStmt), strict(2)]
                 | "#subscriptAssign" "(" Id "," Exp "," Exp ")" [symbol(subscriptAssignStmt)]
+                | "#subscriptAug" "(" Id "," Exp "," AugOp "," Exp ")" [symbol(subscriptAugStmt)]
                 | "#unpackAssign" "(" IdItems ";" Exp ")" [symbol(unpackAssignStmt), strict(2)]
                 | "#unpackStarAssign" "(" IdItems ";" Id ";" IdItems ";" Exp ")" [symbol(unpackStarAssignStmt), strict(4)]
                 | "#unpackTargetAssign" "(" Targets ";" Exp ")" [symbol(unpackTargetAssignStmt), strict(2)]
@@ -1021,6 +1035,9 @@ module PYTHON
                  | assignMany(IdItems, Val) [symbol(assignMany)]
                  | subscriptAssignIndex(Id, Exp) [symbol(subscriptAssignIndex)]
                  | subscriptAssignApply(Id, Val) [symbol(subscriptAssignApply)]
+                 | subscriptAugOld(Id, AugOp, Exp) [symbol(subscriptAugOld)]
+                 | subscriptAugApply(Id, Val, Val, AugOp) [symbol(subscriptAugApply)]
+                 | subscriptAugStore(Id, Val) [symbol(subscriptAugStore)]
                  | delSubscriptApply(Id) [symbol(delSubscriptApply)]
 
   syntax Bool ::= truthy(Val) [function, symbol(truthy)]
@@ -10121,6 +10138,66 @@ module PYTHON
   rule <k> K:Val ~> subscriptAssignApply(X:Id, V:Val) => stmtNoResult ... </k>
        <env> ... X |-> (dictVal(DS:DictItems) => dictVal(dictSet(DS, K, V))) ... </env>
        <result> _ => .K </result>
+
+  rule <k> subscriptAugStmt(X:Id, I:Exp, Op:AugOp, E:Exp) =>
+           I ~> subscriptAugOld(X, Op, E)
+       ... </k>
+  rule <k> I:Val ~> subscriptAugOld(X:Id, Op:AugOp, E:Exp) =>
+           E ~> subscriptAugApply(X, I, listGet(VS, intValue(I)), Op)
+       ... </k>
+       <env> ... X |-> listVal(VS:ValItems) ... </env>
+    requires isIntLike(I) andBool intValue(I) >=Int 0 andBool intValue(I) <Int valItemsLen(VS)
+  rule <k> I:Val ~> subscriptAugOld(X:Id, Op:AugOp, E:Exp) =>
+           E ~> subscriptAugApply(X, I, listGet(VS, valItemsLen(VS) +Int intValue(I)), Op)
+       ... </k>
+       <env> ... X |-> listVal(VS:ValItems) ... </env>
+    requires isIntLike(I)
+      andBool intValue(I) <Int 0
+      andBool valItemsLen(VS) +Int intValue(I) >=Int 0
+  rule <k> K:Val ~> subscriptAugOld(X:Id, Op:AugOp, E:Exp) =>
+           E ~> subscriptAugApply(X, K, dictGet(DS, K), Op)
+       ... </k>
+       <env> ... X |-> dictVal(DS:DictItems) ... </env>
+    requires containsKey(K, DS)
+  rule <k> R:Val ~> subscriptAugApply(X:Id, I:Val, L:Val, #augAdd) =>
+           L + R ~> subscriptAugStore(X, I)
+       ... </k>
+  rule <k> R:Val ~> subscriptAugApply(X:Id, I:Val, L:Val, #augSub) =>
+           L - R ~> subscriptAugStore(X, I)
+       ... </k>
+  rule <k> R:Val ~> subscriptAugApply(X:Id, I:Val, L:Val, #augMul) =>
+           L * R ~> subscriptAugStore(X, I)
+       ... </k>
+  rule <k> R:Val ~> subscriptAugApply(X:Id, I:Val, L:Val, #augTrueDiv) =>
+           #trueDiv(L, R) ~> subscriptAugStore(X, I)
+       ... </k>
+  rule <k> R:Val ~> subscriptAugApply(X:Id, I:Val, L:Val, #augFloorDiv) =>
+           #floorDiv(L, R) ~> subscriptAugStore(X, I)
+       ... </k>
+  rule <k> R:Val ~> subscriptAugApply(X:Id, I:Val, L:Val, #augMod) =>
+           L % R ~> subscriptAugStore(X, I)
+       ... </k>
+  rule <k> R:Val ~> subscriptAugApply(X:Id, I:Val, L:Val, #augPow) =>
+           L ** R ~> subscriptAugStore(X, I)
+       ... </k>
+  rule <k> R:Val ~> subscriptAugApply(X:Id, I:Val, L:Val, #augLShift) =>
+           L << R ~> subscriptAugStore(X, I)
+       ... </k>
+  rule <k> R:Val ~> subscriptAugApply(X:Id, I:Val, L:Val, #augRShift) =>
+           L >> R ~> subscriptAugStore(X, I)
+       ... </k>
+  rule <k> R:Val ~> subscriptAugApply(X:Id, I:Val, L:Val, #augBitAnd) =>
+           L & R ~> subscriptAugStore(X, I)
+       ... </k>
+  rule <k> R:Val ~> subscriptAugApply(X:Id, I:Val, L:Val, #augBitXor) =>
+           L ^ R ~> subscriptAugStore(X, I)
+       ... </k>
+  rule <k> R:Val ~> subscriptAugApply(X:Id, I:Val, L:Val, #augBitOr) =>
+           L | R ~> subscriptAugStore(X, I)
+       ... </k>
+  rule <k> V:Val ~> subscriptAugStore(X:Id, I:Val) =>
+           I ~> subscriptAssignApply(X, V)
+       ... </k>
 
   rule <k> augAddStmt(X:Id, E:Exp) => assignStmt(X, X + E) ... </k>
   rule <k> augSubStmt(X:Id, E:Exp) => assignStmt(X, X - E) ... </k>

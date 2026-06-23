@@ -124,8 +124,17 @@ def emit_stmt(stmt: ast.stmt) -> str:
             if isinstance(op, ast.FloorDiv):
                 return f"#floorDivAssign({emit_id(name)}, {emit_exp(value)})"
             return f"{emit_id(name)} {emit_aug_op(op)}= {emit_exp(value)}"
+        case ast.AugAssign(
+            target=ast.Subscript(value=ast.Name(id=name), slice=slice_, ctx=ast.Store()),
+            op=op,
+            value=value,
+        ) if not isinstance(slice_, ast.Slice):
+            return (
+                f"#subscriptAug({emit_id(name)}, {emit_exp(slice_)}, "
+                f"{emit_aug_op_tag(op)}, {emit_exp(value)})"
+            )
         case ast.AugAssign():
-            raise unsupported(stmt, "only simple-name augmented assignment targets are supported")
+            raise unsupported(stmt, "only simple-name and simple-name subscript augmented assignment targets are supported")
         case ast.Return(value=None):
             return "return"
         case ast.Return(value=value):
@@ -1965,6 +1974,34 @@ def emit_aug_op(op: ast.operator) -> str:
         return "^"
     if isinstance(op, ast.BitOr):
         return "|"
+    raise unsupported(op, "augmented assignment operator is not supported")
+
+
+def emit_aug_op_tag(op: ast.operator) -> str:
+    if isinstance(op, ast.Add):
+        return "#augAdd"
+    if isinstance(op, ast.Sub):
+        return "#augSub"
+    if isinstance(op, ast.Mult):
+        return "#augMul"
+    if isinstance(op, ast.Div):
+        return "#augTrueDiv"
+    if isinstance(op, ast.FloorDiv):
+        return "#augFloorDiv"
+    if isinstance(op, ast.Mod):
+        return "#augMod"
+    if isinstance(op, ast.Pow):
+        return "#augPow"
+    if isinstance(op, ast.LShift):
+        return "#augLShift"
+    if isinstance(op, ast.RShift):
+        return "#augRShift"
+    if isinstance(op, ast.BitAnd):
+        return "#augBitAnd"
+    if isinstance(op, ast.BitXor):
+        return "#augBitXor"
+    if isinstance(op, ast.BitOr):
+        return "#augBitOr"
     raise unsupported(op, "augmented assignment operator is not supported")
 
 

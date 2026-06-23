@@ -2076,6 +2076,13 @@
       "coverage": ["assignment-statement", "subscript-target", "list-item-assignment", "dict-item-assignment", "negative-index", "bool-as-int-index", "ordinary-python-source-adapter"]
     },
     {
+      "id": "adapter-subscript-augmented-assignment",
+      "source": "../adapter/adapter-subscript-augmented-assignment.py",
+      "reference": "Python Language Reference 7.2.1 Augmented assignment statements; 6.3.2 Subscriptions; 6.16 Evaluation order",
+      "expected_result": "True ~> .K",
+      "coverage": ["augmented-assignment", "subscript-target", "single-target-evaluation", "list-item-assignment", "dict-item-assignment", "negative-index", "bool-as-int-index", "ordinary-python-source-adapter"]
+    },
+    {
       "id": "adapter-unpack-tuple",
       "source": "../adapter/adapter-unpack-tuple.py",
       "reference": "Python Language Reference 7.2 Assignment statements",

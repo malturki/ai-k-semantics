@@ -376,8 +376,12 @@ module PYTHON-SYNTAX
                | "#sum" "(" Exp "," Exp ")" [symbol(sum2Exp), strict]
                | "#min" "(" Exp ")" [symbol(minExp), strict]
                | "#max" "(" Exp ")" [symbol(maxExp), strict]
+               | "#minDefault" "(" Exp "," Exp ")" [symbol(minDefaultExp)]
+               | "#maxDefault" "(" Exp "," Exp ")" [symbol(maxDefaultExp)]
                | "#minArgs" "(" ArgExps ")" [symbol(minArgsExp)]
                | "#maxArgs" "(" ArgExps ")" [symbol(maxArgsExp)]
+               | "#minArgsDefault" "(" ArgExps "," Exp ")" [symbol(minArgsDefaultExp)]
+               | "#maxArgsDefault" "(" ArgExps "," Exp ")" [symbol(maxArgsDefaultExp)]
                | "#sliceCtor" "(" Exp ")" [symbol(sliceCtor1Exp), strict]
                | "#sliceCtor" "(" Exp "," Exp ")" [symbol(sliceCtor2Exp), strict]
                | "#sliceCtor" "(" Exp "," Exp "," Exp ")" [symbol(sliceCtor3Exp), strict]
@@ -817,6 +821,14 @@ module PYTHON
                  | "buildSet" [symbol(buildSet)]
                  | "minArgsResult" [symbol(minArgsResult)]
                  | "maxArgsResult" [symbol(maxArgsResult)]
+                 | minDefaultEval(Exp) [symbol(minDefaultEval)]
+                 | maxDefaultEval(Exp) [symbol(maxDefaultEval)]
+                 | minDefaultApply(Val) [symbol(minDefaultApply)]
+                 | maxDefaultApply(Val) [symbol(maxDefaultApply)]
+                 | minArgsDefaultResult(Exp) [symbol(minArgsDefaultResult)]
+                 | maxArgsDefaultResult(Exp) [symbol(maxArgsDefaultResult)]
+                 | minArgsDefaultReject(ArgVals) [symbol(minArgsDefaultReject)]
+                 | maxArgsDefaultReject(ArgVals) [symbol(maxArgsDefaultReject)]
                  | evalDict(DictExps, DictVals) [symbol(evalDict)]
                  | evalDictValue(Exp, DictExps, DictVals) [symbol(evalDictValue)]
                  | evalDictNext(DictExps, DictVals, Val) [symbol(evalDictNext)]
@@ -10701,6 +10713,16 @@ module PYTHON
            exceptionSignal(#exception(#token("TypeError", "Id")))
        ... </k>
     requires notBool sumAddSupported(Acc, V)
+  rule <k> #min([]) => exceptionSignal(#exception(#token("ValueError", "Id"))) ... </k>
+  rule <k> #min(()) => exceptionSignal(#exception(#token("ValueError", "Id"))) ... </k>
+  rule <k> #min("") => exceptionSignal(#exception(#token("ValueError", "Id"))) ... </k>
+  rule <k> #min(#bytes()) => exceptionSignal(#exception(#token("ValueError", "Id"))) ... </k>
+  rule <k> #min(({}):Val) => exceptionSignal(#exception(#token("ValueError", "Id"))) ... </k>
+  rule <k> #min(set()) => exceptionSignal(#exception(#token("ValueError", "Id"))) ... </k>
+  rule <k> #min(rangeVal(Start:Int, Stop:Int)) => exceptionSignal(#exception(#token("ValueError", "Id"))) ... </k>
+    requires pyRangeLen(Start, Stop, 1) ==Int 0
+  rule <k> #min(rangeVal(Start:Int, Stop:Int, Step:Int)) => exceptionSignal(#exception(#token("ValueError", "Id"))) ... </k>
+    requires Step =/=Int 0 andBool pyRangeLen(Start, Stop, Step) ==Int 0
   rule #min(listVal(VS:ValItems)) => minValItems(VS)
     requires valItemsAllIntLike(VS)
   rule #min(tupleVal(VS:ValItems)) => minValItems(VS)
@@ -10715,6 +10737,16 @@ module PYTHON
     requires pyRangeLen(Start, Stop, 1) >Int 0
   rule #min(rangeVal(Start:Int, Stop:Int, Step:Int)) => rangeMin(Start, Stop, Step)
     requires Step =/=Int 0 andBool pyRangeLen(Start, Stop, Step) >Int 0
+  rule <k> #max([]) => exceptionSignal(#exception(#token("ValueError", "Id"))) ... </k>
+  rule <k> #max(()) => exceptionSignal(#exception(#token("ValueError", "Id"))) ... </k>
+  rule <k> #max("") => exceptionSignal(#exception(#token("ValueError", "Id"))) ... </k>
+  rule <k> #max(#bytes()) => exceptionSignal(#exception(#token("ValueError", "Id"))) ... </k>
+  rule <k> #max(({}):Val) => exceptionSignal(#exception(#token("ValueError", "Id"))) ... </k>
+  rule <k> #max(set()) => exceptionSignal(#exception(#token("ValueError", "Id"))) ... </k>
+  rule <k> #max(rangeVal(Start:Int, Stop:Int)) => exceptionSignal(#exception(#token("ValueError", "Id"))) ... </k>
+    requires pyRangeLen(Start, Stop, 1) ==Int 0
+  rule <k> #max(rangeVal(Start:Int, Stop:Int, Step:Int)) => exceptionSignal(#exception(#token("ValueError", "Id"))) ... </k>
+    requires Step =/=Int 0 andBool pyRangeLen(Start, Stop, Step) ==Int 0
   rule #max(listVal(VS:ValItems)) => maxValItems(VS)
     requires valItemsAllIntLike(VS)
   rule #max(tupleVal(VS:ValItems)) => maxValItems(VS)
@@ -10729,12 +10761,82 @@ module PYTHON
     requires pyRangeLen(Start, Stop, 1) >Int 0
   rule #max(rangeVal(Start:Int, Stop:Int, Step:Int)) => rangeMax(Start, Stop, Step)
     requires Step =/=Int 0 andBool pyRangeLen(Start, Stop, Step) >Int 0
+  rule <k> minDefaultExp(Iter:Exp, Default:Exp) => Iter ~> minDefaultEval(Default) ... </k>
+  rule <k> V:Val ~> minDefaultEval(Default:Exp) => Default ~> minDefaultApply(V) ... </k>
+  rule <k> Default:Val ~> minDefaultApply([]) => Default ... </k>
+  rule <k> Default:Val ~> minDefaultApply(()) => Default ... </k>
+  rule <k> Default:Val ~> minDefaultApply("") => Default ... </k>
+  rule <k> Default:Val ~> minDefaultApply(#bytes()) => Default ... </k>
+  rule <k> Default:Val ~> minDefaultApply(({}):Val) => Default ... </k>
+  rule <k> Default:Val ~> minDefaultApply(set()) => Default ... </k>
+  rule <k> Default:Val ~> minDefaultApply(rangeVal(Start:Int, Stop:Int)) => Default ... </k>
+    requires pyRangeLen(Start, Stop, 1) ==Int 0
+  rule <k> Default:Val ~> minDefaultApply(rangeVal(Start:Int, Stop:Int, Step:Int)) => Default ... </k>
+    requires Step =/=Int 0 andBool pyRangeLen(Start, Stop, Step) ==Int 0
+  rule <k> _Default:Val ~> minDefaultApply(listVal(VS:ValItems)) => minValItems(VS) ... </k>
+    requires valItemsAllIntLike(VS)
+  rule <k> _Default:Val ~> minDefaultApply(tupleVal(VS:ValItems)) => minValItems(VS) ... </k>
+    requires valItemsAllIntLike(VS)
+  rule <k> _Default:Val ~> minDefaultApply(bytesVal(VS:ValItems)) => minValItems(VS) ... </k>
+    requires valItemsAllIntLike(VS)
+  rule <k> _Default:Val ~> minDefaultApply(dictVal(DS:DictItems)) => minValItems(dictKeysToValItems(DS)) ... </k>
+    requires valItemsAllIntLike(dictKeysToValItems(DS))
+  rule <k> _Default:Val ~> minDefaultApply(setVal(VS:ValItems)) => minValItems(VS) ... </k>
+    requires valItemsAllIntLike(VS)
+  rule <k> _Default:Val ~> minDefaultApply(rangeVal(Start:Int, Stop:Int)) => rangeMin(Start, Stop, 1) ... </k>
+    requires pyRangeLen(Start, Stop, 1) >Int 0
+  rule <k> _Default:Val ~> minDefaultApply(rangeVal(Start:Int, Stop:Int, Step:Int)) => rangeMin(Start, Stop, Step) ... </k>
+    requires Step =/=Int 0 andBool pyRangeLen(Start, Stop, Step) >Int 0
+  rule <k> maxDefaultExp(Iter:Exp, Default:Exp) => Iter ~> maxDefaultEval(Default) ... </k>
+  rule <k> V:Val ~> maxDefaultEval(Default:Exp) => Default ~> maxDefaultApply(V) ... </k>
+  rule <k> Default:Val ~> maxDefaultApply([]) => Default ... </k>
+  rule <k> Default:Val ~> maxDefaultApply(()) => Default ... </k>
+  rule <k> Default:Val ~> maxDefaultApply("") => Default ... </k>
+  rule <k> Default:Val ~> maxDefaultApply(#bytes()) => Default ... </k>
+  rule <k> Default:Val ~> maxDefaultApply(({}):Val) => Default ... </k>
+  rule <k> Default:Val ~> maxDefaultApply(set()) => Default ... </k>
+  rule <k> Default:Val ~> maxDefaultApply(rangeVal(Start:Int, Stop:Int)) => Default ... </k>
+    requires pyRangeLen(Start, Stop, 1) ==Int 0
+  rule <k> Default:Val ~> maxDefaultApply(rangeVal(Start:Int, Stop:Int, Step:Int)) => Default ... </k>
+    requires Step =/=Int 0 andBool pyRangeLen(Start, Stop, Step) ==Int 0
+  rule <k> _Default:Val ~> maxDefaultApply(listVal(VS:ValItems)) => maxValItems(VS) ... </k>
+    requires valItemsAllIntLike(VS)
+  rule <k> _Default:Val ~> maxDefaultApply(tupleVal(VS:ValItems)) => maxValItems(VS) ... </k>
+    requires valItemsAllIntLike(VS)
+  rule <k> _Default:Val ~> maxDefaultApply(bytesVal(VS:ValItems)) => maxValItems(VS) ... </k>
+    requires valItemsAllIntLike(VS)
+  rule <k> _Default:Val ~> maxDefaultApply(dictVal(DS:DictItems)) => maxValItems(dictKeysToValItems(DS)) ... </k>
+    requires valItemsAllIntLike(dictKeysToValItems(DS))
+  rule <k> _Default:Val ~> maxDefaultApply(setVal(VS:ValItems)) => maxValItems(VS) ... </k>
+    requires valItemsAllIntLike(VS)
+  rule <k> _Default:Val ~> maxDefaultApply(rangeVal(Start:Int, Stop:Int)) => rangeMax(Start, Stop, 1) ... </k>
+    requires pyRangeLen(Start, Stop, 1) >Int 0
+  rule <k> _Default:Val ~> maxDefaultApply(rangeVal(Start:Int, Stop:Int, Step:Int)) => rangeMax(Start, Stop, Step) ... </k>
+    requires Step =/=Int 0 andBool pyRangeLen(Start, Stop, Step) >Int 0
   rule <k> minArgsExp(Args:ArgExps) => evalArgs(Args, #noArgVals) ~> minArgsResult ... </k>
   rule <k> argsVal(VS:ArgVals) ~> minArgsResult => minArgVals(VS) ... </k>
     requires notBool emptyArgVals(VS)
   rule <k> maxArgsExp(Args:ArgExps) => evalArgs(Args, #noArgVals) ~> maxArgsResult ... </k>
   rule <k> argsVal(VS:ArgVals) ~> maxArgsResult => maxArgVals(VS) ... </k>
     requires notBool emptyArgVals(VS)
+  rule <k> minArgsDefaultExp(Args:ArgExps, Default:Exp) =>
+           evalArgs(Args, #noArgVals) ~> minArgsDefaultResult(Default)
+       ... </k>
+  rule <k> argsVal(VS:ArgVals) ~> minArgsDefaultResult(Default:Exp) =>
+           Default ~> minArgsDefaultReject(VS)
+       ... </k>
+  rule <k> _Default:Val ~> minArgsDefaultReject(_:ArgVals) =>
+           exceptionSignal(#exception(#token("TypeError", "Id")))
+       ... </k>
+  rule <k> maxArgsDefaultExp(Args:ArgExps, Default:Exp) =>
+           evalArgs(Args, #noArgVals) ~> maxArgsDefaultResult(Default)
+       ... </k>
+  rule <k> argsVal(VS:ArgVals) ~> maxArgsDefaultResult(Default:Exp) =>
+           Default ~> maxArgsDefaultReject(VS)
+       ... </k>
+  rule <k> _Default:Val ~> maxArgsDefaultReject(_:ArgVals) =>
+           exceptionSignal(#exception(#token("TypeError", "Id")))
+       ... </k>
   rule #sliceCtor(Stop:Val) => sliceVal(None, Stop, None)
   rule #sliceCtor(Start:Val, Stop:Val) => sliceVal(Start, Stop, None)
   rule #sliceCtor(Start:Val, Stop:Val, Step:Val) => sliceVal(Start, Stop, Step)
@@ -14383,6 +14485,14 @@ module PYTHON
   rule <k> exceptionSignal(V:Val) ~> buildComplexCtorKw => exceptionSignal(V) ... </k>
   rule <k> exceptionSignal(V:Val) ~> buildComplexCtorMixed(_:Val) => exceptionSignal(V) ... </k>
   rule <k> exceptionSignal(V:Val) ~> sumFold(_:ValItems) => exceptionSignal(V) ... </k>
+  rule <k> exceptionSignal(V:Val) ~> minDefaultEval(_:Exp) => exceptionSignal(V) ... </k>
+  rule <k> exceptionSignal(V:Val) ~> maxDefaultEval(_:Exp) => exceptionSignal(V) ... </k>
+  rule <k> exceptionSignal(V:Val) ~> minDefaultApply(_:Val) => exceptionSignal(V) ... </k>
+  rule <k> exceptionSignal(V:Val) ~> maxDefaultApply(_:Val) => exceptionSignal(V) ... </k>
+  rule <k> exceptionSignal(V:Val) ~> minArgsDefaultResult(_:Exp) => exceptionSignal(V) ... </k>
+  rule <k> exceptionSignal(V:Val) ~> maxArgsDefaultResult(_:Exp) => exceptionSignal(V) ... </k>
+  rule <k> exceptionSignal(V:Val) ~> minArgsDefaultReject(_:ArgVals) => exceptionSignal(V) ... </k>
+  rule <k> exceptionSignal(V:Val) ~> maxArgsDefaultReject(_:ArgVals) => exceptionSignal(V) ... </k>
   rule <k> exceptionSignal(V:Val) ~> whileStmtBranch(_:Exp, _:Block) => exceptionSignal(V) ... </k>
   rule <k> exceptionSignal(V:Val) ~> whileElseStmtBranch(_:Exp, _:Block, _:Block) => exceptionSignal(V) ... </k>
   rule <k> breakSignal ~> whileStmtAgain(_:Exp, _:Block) => stmtNoResult ... </k>

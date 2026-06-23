@@ -65,6 +65,17 @@ def unsupported(node: ast.AST, message: str) -> UnsupportedPythonSubset:
     return UnsupportedPythonSubset(f"{message}{location}: {node.__class__.__name__}")
 
 
+def emit_min_max_default_keyword(
+    node: ast.AST, builtin_name: str, keywords: list[ast.keyword]
+) -> ast.expr:
+    if len(keywords) == 1 and keywords[0].arg == "default":
+        return keywords[0].value
+    raise unsupported(
+        node,
+        f"{builtin_name} currently supports only the default= keyword, not key= or **kwargs",
+    )
+
+
 def emit_module(module: ast.Module) -> str:
     return emit_stmt_list(module.body) + "\n"
 
@@ -261,12 +272,24 @@ def emit_exp(exp: ast.expr) -> str:
             return f"#sum({emit_exp(arg)}, {emit_exp(start)})"
         case ast.Call(func=ast.Name(id="min"), args=[arg], keywords=[]):
             return f"#min({emit_exp(arg)})"
+        case ast.Call(func=ast.Name(id="min"), args=[arg], keywords=keywords) if keywords:
+            default = emit_min_max_default_keyword(exp, "min", keywords)
+            return f"#minDefault({emit_exp(arg)}, {emit_exp(default)})"
         case ast.Call(func=ast.Name(id="min"), args=args, keywords=[]) if len(args) >= 2:
             return f"#minArgs({emit_arg_exps(args)})"
+        case ast.Call(func=ast.Name(id="min"), args=args, keywords=keywords) if len(args) >= 2 and keywords:
+            default = emit_min_max_default_keyword(exp, "min", keywords)
+            return f"#minArgsDefault({emit_arg_exps(args)}, {emit_exp(default)})"
         case ast.Call(func=ast.Name(id="max"), args=[arg], keywords=[]):
             return f"#max({emit_exp(arg)})"
+        case ast.Call(func=ast.Name(id="max"), args=[arg], keywords=keywords) if keywords:
+            default = emit_min_max_default_keyword(exp, "max", keywords)
+            return f"#maxDefault({emit_exp(arg)}, {emit_exp(default)})"
         case ast.Call(func=ast.Name(id="max"), args=args, keywords=[]) if len(args) >= 2:
             return f"#maxArgs({emit_arg_exps(args)})"
+        case ast.Call(func=ast.Name(id="max"), args=args, keywords=keywords) if len(args) >= 2 and keywords:
+            default = emit_min_max_default_keyword(exp, "max", keywords)
+            return f"#maxArgsDefault({emit_arg_exps(args)}, {emit_exp(default)})"
         case ast.Call(func=ast.Name(id="int"), args=[], keywords=[]):
             return "#intCtor()"
         case ast.Call(func=ast.Name(id="int"), args=[arg], keywords=[]):

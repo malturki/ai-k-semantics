@@ -10461,6 +10461,17 @@ module PYTHON
     requires isIntLike(I)
       andBool intValue(I) <Int 0
       andBool valItemsLen(VS) +Int intValue(I) >=Int 0
+  rule <k> I:Val ~> subscriptAssignApply(X:Id, _V:Val) =>
+           exceptionSignal(#exception(#token("IndexError", "Id")))
+       ... </k>
+       <env> ... X |-> listVal(VS:ValItems) ... </env>
+    requires isIntLike(I)
+      andBool notBool subscriptIndexInBounds(I, valItemsLen(VS))
+  rule <k> I:Val ~> subscriptAssignApply(X:Id, _V:Val) =>
+           exceptionSignal(#exception(#token("IndexError", "Id")))
+       ... </k>
+       <env> ... X |-> [] ... </env>
+    requires isIntLike(I)
   rule <k> K:Val ~> subscriptAssignApply(X:Id, V:Val) => stmtNoResult ... </k>
        <env> ... X |-> (({}):Val => dictVal(dictItemsLast(K, V))) ... </env>
        <result> _ => .K </result>
@@ -10503,6 +10514,28 @@ module PYTHON
        ... </k>
        <env> ... X |-> dictVal(DS:DictItems) ... </env>
     requires containsKey(K, DS)
+  rule <k> I:Val ~> subscriptAugOld(X:Id, _Op:AugOp, _E:Exp) =>
+           exceptionSignal(#exception(#token("IndexError", "Id")))
+       ... </k>
+       <env> ... X |-> listVal(VS:ValItems) ... </env>
+    requires isIntLike(I)
+      andBool notBool subscriptIndexInBounds(I, valItemsLen(VS))
+  rule <k> I:Val ~> subscriptAugOld(X:Id, _Op:AugOp, _E:Exp) =>
+           exceptionSignal(#exception(#token("IndexError", "Id")))
+       ... </k>
+       <env> ... X |-> [] ... </env>
+    requires isIntLike(I)
+  rule <k> K:Val ~> subscriptAugOld(X:Id, _Op:AugOp, _E:Exp) =>
+           exceptionSignal(#exception(#token("KeyError", "Id")))
+       ... </k>
+       <env> ... X |-> ({}):Val ... </env>
+    requires dictLookupKeySupported(K)
+  rule <k> K:Val ~> subscriptAugOld(X:Id, _Op:AugOp, _E:Exp) =>
+           exceptionSignal(#exception(#token("KeyError", "Id")))
+       ... </k>
+       <env> ... X |-> dictVal(DS:DictItems) ... </env>
+    requires dictLookupKeySupported(K)
+      andBool notBool containsKey(K, DS)
   rule <k> R:Val ~> subscriptAugApply(X:Id, I:Val, L:Val, #augAdd) =>
            L + R ~> subscriptAugStore(X, I)
        ... </k>
@@ -13909,6 +13942,28 @@ module PYTHON
        <env> ... X |-> (dictVal(DS:DictItems) => dictDel(DS, K)) ... </env>
        <result> _ => .K </result>
     requires containsKey(K, DS)
+  rule <k> I:Val ~> delSubscriptApply(X:Id) =>
+           exceptionSignal(#exception(#token("IndexError", "Id")))
+       ... </k>
+       <env> ... X |-> listVal(VS:ValItems) ... </env>
+    requires isIntLike(I)
+      andBool notBool subscriptIndexInBounds(I, valItemsLen(VS))
+  rule <k> I:Val ~> delSubscriptApply(X:Id) =>
+           exceptionSignal(#exception(#token("IndexError", "Id")))
+       ... </k>
+       <env> ... X |-> [] ... </env>
+    requires isIntLike(I)
+  rule <k> K:Val ~> delSubscriptApply(X:Id) =>
+           exceptionSignal(#exception(#token("KeyError", "Id")))
+       ... </k>
+       <env> ... X |-> ({}):Val ... </env>
+    requires dictLookupKeySupported(K)
+  rule <k> K:Val ~> delSubscriptApply(X:Id) =>
+           exceptionSignal(#exception(#token("KeyError", "Id")))
+       ... </k>
+       <env> ... X |-> dictVal(DS:DictItems) ... </env>
+    requires dictLookupKeySupported(K)
+      andBool notBool containsKey(K, DS)
   rule <k> delSubscriptNestedStmt(X:Id, Outer:Exp, Inner:Exp) =>
            Outer ~> delSubscriptNestedInner(X, Inner)
        ... </k>

@@ -2097,6 +2097,13 @@
       "coverage": ["augmented-assignment", "subscript-target", "single-target-evaluation", "list-item-assignment", "dict-item-assignment", "negative-index", "bool-as-int-index", "ordinary-python-source-adapter"]
     },
     {
+      "id": "adapter-subscript-mutation-errors",
+      "source": "../adapter/adapter-subscript-mutation-errors.py",
+      "reference": "Python Language Reference 7.2 Assignment statements; 7.2.1 Augmented assignment statements; 7.5 The del statement; 6.3.2 Subscriptions; 6.16 Evaluation order",
+      "expected_result": "True ~> .K",
+      "coverage": ["assignment-statement", "augmented-assignment", "del-statement", "subscript-target", "sequence-index-error", "dict-key-error", "single-target-evaluation", "ordinary-python-source-adapter"]
+    },
+    {
       "id": "adapter-nested-subscript-assignment-deletion",
       "source": "../adapter/adapter-nested-subscript-assignment-deletion.py",
       "reference": "Python Language Reference 7.2 Assignment statements; 7.5 The del statement; 6.3.2 Subscriptions; 6.16 Evaluation order",

@@ -345,6 +345,7 @@ run_case "adapter-annotated-assignment" "$ROOT/tests/adapter/adapter-annotated-a
 run_case "adapter-assign-many" "$ROOT/tests/adapter/adapter-assign-many.py" "True ~> .K"
 run_case "adapter-subscript-assignment" "$ROOT/tests/adapter/adapter-subscript-assignment.py" "True ~> .K"
 run_case "adapter-subscript-augmented-assignment" "$ROOT/tests/adapter/adapter-subscript-augmented-assignment.py" "True ~> .K"
+run_case "adapter-subscript-mutation-errors" "$ROOT/tests/adapter/adapter-subscript-mutation-errors.py" "True ~> .K"
 run_case "adapter-nested-subscript-assignment-deletion" "$ROOT/tests/adapter/adapter-nested-subscript-assignment-deletion.py" "True ~> .K"
 run_case "adapter-list-slice-assignment-deletion" "$ROOT/tests/adapter/adapter-list-slice-assignment-deletion.py" "True ~> .K"
 run_case "adapter-list-extended-slice-assignment-deletion" "$ROOT/tests/adapter/adapter-list-extended-slice-assignment-deletion.py" "True ~> .K"

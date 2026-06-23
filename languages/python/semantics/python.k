@@ -5321,6 +5321,10 @@ module PYTHON
   rule sliceExp(rangeVal(Start:Int, Stop:Int, Step:Int), Lower:Val, Upper:Val) =>
     rangeSlice(Start, Stop, Step, pySliceLower(Lower, pyRangeLen(Start, Stop, Step)), pySliceUpper(Upper, pyRangeLen(Start, Stop, Step)))
     requires Step =/=Int 0
+  rule <k> sliceStepExp(_V:Val, _Lower:Val, _Upper:Val, Step:Val) =>
+           exceptionSignal(#exception(#token("ValueError", "Id")))
+       ... </k>
+    requires isIntLike(Step) andBool intValue(Step) ==Int 0
   rule sliceStepExp(S:String, Lower:Val, Upper:Val, Step:Val) =>
     sliceStepString(S, pySliceLower(Lower, lengthString(S)), pySliceUpper(Upper, lengthString(S)), intValue(Step))
     requires isIntLike(Step) andBool intValue(Step) >Int 0
@@ -10495,6 +10499,10 @@ module PYTHON
   rule <k> Upper:Val ~> sliceStepAssignStep(X:Id, V:Val, Lower:Val, Step:Exp) =>
            Step ~> sliceStepAssignApply(X, V, Lower, Upper)
        ... </k>
+  rule <k> Step:Val ~> sliceStepAssignApply(_X:Id, _RHS:Val, _Lower:Val, _Upper:Val) =>
+           exceptionSignal(#exception(#token("ValueError", "Id")))
+       ... </k>
+    requires isIntLike(Step) andBool intValue(Step) ==Int 0
   rule <k> Step:Val ~> sliceStepAssignApply(X:Id, listVal(RS:ValItems), Lower:Val, Upper:Val) => stmtNoResult ... </k>
        <env> ... X |-> (listVal(VS:ValItems) => listSliceAssign(VS, pySliceLower(Lower, valItemsLen(VS)), pySliceUpper(Upper, valItemsLen(VS)), RS)) ... </env>
        <result> _ => .K </result>
@@ -13807,6 +13815,10 @@ module PYTHON
   rule <k> Upper:Val ~> delSliceStepStep(X:Id, Lower:Val, Step:Exp) =>
            Step ~> delSliceStepApply(X, Lower, Upper)
        ... </k>
+  rule <k> Step:Val ~> delSliceStepApply(_X:Id, _Lower:Val, _Upper:Val) =>
+           exceptionSignal(#exception(#token("ValueError", "Id")))
+       ... </k>
+    requires isIntLike(Step) andBool intValue(Step) ==Int 0
   rule <k> Step:Val ~> delSliceStepApply(X:Id, Lower:Val, Upper:Val) => stmtNoResult ... </k>
        <env> ... X |-> (listVal(VS:ValItems) => listSliceAssignEmpty(VS, pySliceLower(Lower, valItemsLen(VS)), pySliceUpper(Upper, valItemsLen(VS)))) ... </env>
        <result> _ => .K </result>

@@ -1754,6 +1754,13 @@
       "coverage": ["slice-constructor", "slice-object", "slice-object-attributes", "slice-object-subscription", "sequence-slicing", "bytes-slicing", "range-slicing", "truth-value-testing", "ordinary-python-source-adapter"]
     },
     {
+      "id": "adapter-slice-zero-step-errors",
+      "source": "../adapter/adapter-slice-zero-step-errors.py",
+      "reference": "Python Language Reference 6.3.3 Slicings; 7.2 Assignment statements; 7.5 The del statement; Python Standard Library Built-in Types slice",
+      "expected_result": "True ~> .K",
+      "coverage": ["sequence-slicing", "slice-object-subscription", "extended-slice-target", "list-extended-slice-assignment", "list-extended-slice-deletion", "zero-step-slice-diagnostic", "value-error", "ordinary-python-source-adapter"]
+    },
+    {
       "id": "adapter-len-containers",
       "source": "../adapter/adapter-len-containers.py",
       "reference": "Python Standard Library Built-in Functions len(); Built-in Types sequence, mapping, and set length",

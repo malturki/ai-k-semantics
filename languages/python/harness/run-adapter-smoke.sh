@@ -296,6 +296,7 @@ run_case "adapter-range-slice" "$ROOT/tests/adapter/adapter-range-slice.py" "Tru
 run_case "adapter-range-slice-step" "$ROOT/tests/adapter/adapter-range-slice-step.py" "True ~> .K"
 run_case "adapter-range-attributes" "$ROOT/tests/adapter/adapter-range-attributes.py" "True ~> .K"
 run_case "adapter-slice-object" "$ROOT/tests/adapter/adapter-slice-object.py" "True ~> .K"
+run_case "adapter-slice-zero-step-errors" "$ROOT/tests/adapter/adapter-slice-zero-step-errors.py" "True ~> .K"
 run_case "adapter-len-containers" "$ROOT/tests/adapter/adapter-len-containers.py" "True ~> .K"
 run_case "adapter-empty-container-constructors" "$ROOT/tests/adapter/adapter-empty-container-constructors.py" "True ~> .K"
 run_case "adapter-list-tuple-constructors" "$ROOT/tests/adapter/adapter-list-tuple-constructors.py" "True ~> .K"

@@ -1095,6 +1095,8 @@ module PYTHON
                 | isListSequence(Val) [function, symbol(isListSequence)]
                 | isTupleSequence(Val) [function, symbol(isTupleSequence)]
                 | isBytesSequence(Val) [function, symbol(isBytesSequence)]
+                | isStringVal(Val) [function, symbol(isStringVal)]
+                | isConcreteSequenceVal(Val) [function, symbol(isConcreteSequenceVal)]
                 | seqOrderComparable(Val, Val) [function, symbol(seqOrderComparable)]
                 | concreteIterableExtraNonEmpty(Val) [function, symbol(concreteIterableExtraNonEmpty)]
                 | concreteIterableExtraEmpty(Val) [function, symbol(concreteIterableExtraEmpty)]
@@ -4922,6 +4924,18 @@ module PYTHON
   rule isBytesSequence(bytesVal(_:ValItems)) => true
   rule isBytesSequence(_:Val) => false [owise]
 
+  rule isStringVal(_:String) => true
+  rule isStringVal(_:Val) => false [owise]
+
+  rule isConcreteSequenceVal(_:String) => true
+  rule isConcreteSequenceVal(#bytes()) => true
+  rule isConcreteSequenceVal(bytesVal(_:ValItems)) => true
+  rule isConcreteSequenceVal([]) => true
+  rule isConcreteSequenceVal(listVal(_:ValItems)) => true
+  rule isConcreteSequenceVal(()) => true
+  rule isConcreteSequenceVal(tupleVal(_:ValItems)) => true
+  rule isConcreteSequenceVal(_:Val) => false [owise]
+
   rule seqOrderComparable(V1:Val, V2:Val) =>
     (isListSequence(V1) andBool isListSequence(V2))
       orBool (isTupleSequence(V1) andBool isTupleSequence(V2))
@@ -5298,6 +5312,69 @@ module PYTHON
     requires isIntLike(V) andBool intValue(V) >Int 0
   rule V:Val * tupleVal(VS:ValItems) => tupleVal(repeatValItems(VS, intValue(V)))
     requires isIntLike(V) andBool intValue(V) >Int 0
+  rule <k> _S:String * V:Val =>
+           exceptionSignal(#exception(#token("TypeError", "Id")))
+       ... </k>
+    requires notBool isIntLike(V)
+  rule <k> V:Val * _S:String =>
+           exceptionSignal(#exception(#token("TypeError", "Id")))
+       ... </k>
+    requires notBool isIntLike(V)
+      andBool notBool isConcreteSequenceVal(V)
+  rule <k> #bytes() * V:Val =>
+           exceptionSignal(#exception(#token("TypeError", "Id")))
+       ... </k>
+    requires notBool isIntLike(V)
+  rule <k> bytesVal(_:ValItems) * V:Val =>
+           exceptionSignal(#exception(#token("TypeError", "Id")))
+       ... </k>
+    requires notBool isIntLike(V)
+  rule <k> V:Val * #bytes() =>
+           exceptionSignal(#exception(#token("TypeError", "Id")))
+       ... </k>
+    requires notBool isIntLike(V)
+      andBool notBool isConcreteSequenceVal(V)
+  rule <k> V:Val * bytesVal(_:ValItems) =>
+           exceptionSignal(#exception(#token("TypeError", "Id")))
+       ... </k>
+    requires notBool isIntLike(V)
+      andBool notBool isConcreteSequenceVal(V)
+  rule <k> [] * V:Val =>
+           exceptionSignal(#exception(#token("TypeError", "Id")))
+       ... </k>
+    requires notBool isIntLike(V)
+  rule <k> listVal(_:ValItems) * V:Val =>
+           exceptionSignal(#exception(#token("TypeError", "Id")))
+       ... </k>
+    requires notBool isIntLike(V)
+  rule <k> V:Val * [] =>
+           exceptionSignal(#exception(#token("TypeError", "Id")))
+       ... </k>
+    requires notBool isIntLike(V)
+      andBool notBool isConcreteSequenceVal(V)
+  rule <k> V:Val * listVal(_:ValItems) =>
+           exceptionSignal(#exception(#token("TypeError", "Id")))
+       ... </k>
+    requires notBool isIntLike(V)
+      andBool notBool isConcreteSequenceVal(V)
+  rule <k> () * V:Val =>
+           exceptionSignal(#exception(#token("TypeError", "Id")))
+       ... </k>
+    requires notBool isIntLike(V)
+  rule <k> tupleVal(_:ValItems) * V:Val =>
+           exceptionSignal(#exception(#token("TypeError", "Id")))
+       ... </k>
+    requires notBool isIntLike(V)
+  rule <k> V:Val * () =>
+           exceptionSignal(#exception(#token("TypeError", "Id")))
+       ... </k>
+    requires notBool isIntLike(V)
+      andBool notBool isConcreteSequenceVal(V)
+  rule <k> V:Val * tupleVal(_:ValItems) =>
+           exceptionSignal(#exception(#token("TypeError", "Id")))
+       ... </k>
+    requires notBool isIntLike(V)
+      andBool notBool isConcreteSequenceVal(V)
   rule #complex(R:Float, I:Float) ** V:Val => complexPowInt(R, I, intValue(V))
     requires isIntLike(V)
       andBool (intValue(V) >=Int 0 orBool (R *Float R) +Float (I *Float I) =/=Float 0.0)
@@ -5395,6 +5472,69 @@ module PYTHON
   rule () + tupleVal(VS:ValItems) => tupleVal(VS)
   rule tupleVal(VS:ValItems) + () => tupleVal(VS)
   rule tupleVal(VS1:ValItems) + tupleVal(VS2:ValItems) => tupleVal(concatValItems(VS1, VS2))
+  rule <k> _S:String + V:Val =>
+           exceptionSignal(#exception(#token("TypeError", "Id")))
+       ... </k>
+    requires notBool isStringVal(V)
+  rule <k> V:Val + _S:String =>
+           exceptionSignal(#exception(#token("TypeError", "Id")))
+       ... </k>
+    requires notBool isStringVal(V)
+      andBool notBool isConcreteSequenceVal(V)
+  rule <k> #bytes() + V:Val =>
+           exceptionSignal(#exception(#token("TypeError", "Id")))
+       ... </k>
+    requires notBool isBytesSequence(V)
+  rule <k> bytesVal(_:ValItems) + V:Val =>
+           exceptionSignal(#exception(#token("TypeError", "Id")))
+       ... </k>
+    requires notBool isBytesSequence(V)
+  rule <k> V:Val + #bytes() =>
+           exceptionSignal(#exception(#token("TypeError", "Id")))
+       ... </k>
+    requires notBool isBytesSequence(V)
+      andBool notBool isConcreteSequenceVal(V)
+  rule <k> V:Val + bytesVal(_:ValItems) =>
+           exceptionSignal(#exception(#token("TypeError", "Id")))
+       ... </k>
+    requires notBool isBytesSequence(V)
+      andBool notBool isConcreteSequenceVal(V)
+  rule <k> [] + V:Val =>
+           exceptionSignal(#exception(#token("TypeError", "Id")))
+       ... </k>
+    requires notBool isListSequence(V)
+  rule <k> listVal(_:ValItems) + V:Val =>
+           exceptionSignal(#exception(#token("TypeError", "Id")))
+       ... </k>
+    requires notBool isListSequence(V)
+  rule <k> V:Val + [] =>
+           exceptionSignal(#exception(#token("TypeError", "Id")))
+       ... </k>
+    requires notBool isListSequence(V)
+      andBool notBool isConcreteSequenceVal(V)
+  rule <k> V:Val + listVal(_:ValItems) =>
+           exceptionSignal(#exception(#token("TypeError", "Id")))
+       ... </k>
+    requires notBool isListSequence(V)
+      andBool notBool isConcreteSequenceVal(V)
+  rule <k> () + V:Val =>
+           exceptionSignal(#exception(#token("TypeError", "Id")))
+       ... </k>
+    requires notBool isTupleSequence(V)
+  rule <k> tupleVal(_:ValItems) + V:Val =>
+           exceptionSignal(#exception(#token("TypeError", "Id")))
+       ... </k>
+    requires notBool isTupleSequence(V)
+  rule <k> V:Val + () =>
+           exceptionSignal(#exception(#token("TypeError", "Id")))
+       ... </k>
+    requires notBool isTupleSequence(V)
+      andBool notBool isConcreteSequenceVal(V)
+  rule <k> V:Val + tupleVal(_:ValItems) =>
+           exceptionSignal(#exception(#token("TypeError", "Id")))
+       ... </k>
+    requires notBool isTupleSequence(V)
+      andBool notBool isConcreteSequenceVal(V)
   rule lenExp(V:Val) => pyLen(V)
   rule sliceExp(S:String, Lower:Val, Upper:Val) =>
     sliceString(S, pySliceLower(Lower, lengthString(S)), pySliceUpper(Upper, lengthString(S)))

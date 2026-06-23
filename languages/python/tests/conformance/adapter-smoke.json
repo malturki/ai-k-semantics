@@ -389,6 +389,13 @@
       "coverage": ["tuple-repetition", "sequence-repetition", "zero-and-negative-sequence-repetition", "bool-as-int-repetition-count", "ordinary-python-source-adapter"]
     },
     {
+      "id": "adapter-sequence-operation-type-errors",
+      "source": "../adapter/adapter-sequence-operation-type-errors.py",
+      "reference": "Python Language Reference 6.7 Binary arithmetic operations; Python Standard Library sequence types",
+      "expected_result": "True ~> .K",
+      "coverage": ["sequence-repetition", "sequence-concatenation", "invalid-repeat-count", "cross-type-sequence-concatenation", "type-error", "ordinary-python-source-adapter"]
+    },
+    {
       "id": "adapter-tuple-slice",
       "source": "../adapter/adapter-tuple-slice.py",
       "reference": "Python Language Reference 6.3.3 Slicings; Standard Library sequence types",

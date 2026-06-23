@@ -98,6 +98,7 @@ run_case "adapter-tuple-negative-index" "$ROOT/tests/adapter/adapter-tuple-negat
 run_case "adapter-tuple-ordering" "$ROOT/tests/adapter/adapter-tuple-ordering.py" "True ~> .K"
 run_case "adapter-tuple-concat" "$ROOT/tests/adapter/adapter-tuple-concat.py" "True ~> .K"
 run_case "adapter-tuple-repeat" "$ROOT/tests/adapter/adapter-tuple-repeat.py" "True ~> .K"
+run_case "adapter-sequence-operation-type-errors" "$ROOT/tests/adapter/adapter-sequence-operation-type-errors.py" "True ~> .K"
 run_case "adapter-tuple-slice" "$ROOT/tests/adapter/adapter-tuple-slice.py" "True ~> .K"
 run_case "adapter-tuple-slice-step" "$ROOT/tests/adapter/adapter-tuple-slice-step.py" "True ~> .K"
 run_case "adapter-tuple-slice-negative-step" "$ROOT/tests/adapter/adapter-tuple-slice-negative-step.py" "True ~> .K"

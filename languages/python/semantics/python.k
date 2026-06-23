@@ -267,6 +267,7 @@ module PYTHON-SYNTAX
                 | "#forTargetElse" "(" Target "," Exp "," Block "," Block ")" [symbol(forTargetElseStmt)]
                 | "#forStarUnpack" "(" IdItems "," Id "," IdItems "," Exp "," Block ")" [symbol(forStarUnpackStmt)]
                 | "#forStarUnpackElse" "(" IdItems "," Id "," IdItems "," Exp "," Block "," Block ")" [symbol(forStarUnpackElseStmt)]
+                | "raise" [symbol(reraiseStmt)]
                 | "raise" Exp [symbol(raiseStmt), strict]
                 | "#raiseFromNone" "(" Exp ")" [symbol(raiseFromNoneStmt), strict]
                 | "#raiseFrom" "(" Exp "," Exp ")" [symbol(raiseFromStmt), strict]
@@ -545,6 +546,9 @@ module PYTHON
 
   syntax CompDictStack ::= "#noCompDictStack" [symbol(noCompDictStack)]
                          | compDictFrame(Target, MaybeCompFilters, MaybeCompClauses, Exp, Exp, ArgVals, Map, CompDictStack) [symbol(compDictFrame)]
+
+  syntax ActiveException ::= "noException" [symbol(noException)]
+                           | currentException(Val) [symbol(currentException)]
 
   syntax KResult ::= Val
   syntax KItem ::= stmtNext(Stmts) [symbol(stmtNext)]
@@ -966,6 +970,7 @@ module PYTHON
                  | tryExceptCasesElseDone(ExceptHandlers, Block) [symbol(tryExceptCasesElseDone)]
                  | handleException(Val, ExceptHandlers) [symbol(handleException)]
                  | exceptAsCleanup(Id) [symbol(exceptAsCleanup)]
+                 | restoreActiveException(ActiveException) [symbol(restoreActiveException)]
                  | "assertMsgRaise" [symbol(assertMsgRaise)]
                  | "forDone" [symbol(forDone)]
                  | "breakSignal" [symbol(breakSignal)]
@@ -4798,6 +4803,7 @@ module PYTHON
     <python>
       <k> $PGM:Stmts </k>
       <env> .Map </env>
+      <activeException> noException </activeException>
       <result> .K </result>
     </python>
 
@@ -10579,8 +10585,9 @@ module PYTHON
   rule <k> tryExceptStmt({}, _E:Id, _Handler:Block) => stmtNoResult ... </k>
   rule <k> tryExceptDone(_E:Id, _Handler:Block) => stmtNoResult ... </k>
   rule <k> exceptionSignal(#exception(E:Id)) ~> tryExceptDone(E, block(SS:Stmts)) =>
-           SS ~> ifStmtDone
+           SS ~> restoreActiveException(Prev)
       ... </k>
+       <activeException> Prev => currentException(#exception(E)) </activeException>
   rule <k> exceptionSignal(#exception(E:Id)) ~> tryExceptDone(E, {}) => stmtNoResult ... </k>
   rule <k> exceptionSignal(V:Val) ~> tryExceptDone(_E:Id, _Handler:Block) => exceptionSignal(V) ... </k> [owise]
 
@@ -10596,8 +10603,9 @@ module PYTHON
       ... </k>
   rule <k> tryExceptElseDone(_E:Id, _Handler:Block, {}) => stmtNoResult ... </k>
   rule <k> exceptionSignal(#exception(E:Id)) ~> tryExceptElseDone(E, block(SS:Stmts), _Else:Block) =>
-           SS ~> ifStmtDone
+           SS ~> restoreActiveException(Prev)
       ... </k>
+       <activeException> Prev => currentException(#exception(E)) </activeException>
   rule <k> exceptionSignal(#exception(E:Id)) ~> tryExceptElseDone(E, {}, _Else:Block) => stmtNoResult ... </k>
   rule <k> exceptionSignal(V:Val) ~> tryExceptElseDone(_E:Id, _Handler:Block, _Else:Block) => exceptionSignal(V) ... </k> [owise]
 
@@ -10626,16 +10634,18 @@ module PYTHON
       ... </k>
 
   rule <k> handleException(#exception(E:Id), #except(E, block(SS:Stmts))) =>
-           SS ~> ifStmtDone
+           SS ~> restoreActiveException(Prev)
       ... </k>
+       <activeException> Prev => currentException(#exception(E)) </activeException>
   rule <k> handleException(#exception(E:Id), #except(E, {})) => stmtNoResult ... </k>
   rule <k> handleException(#exception(E:Id), #except(F:Id, _Handler:Block)) =>
            exceptionSignal(#exception(E))
       ... </k>
     requires Id2String(E) =/=String Id2String(F)
   rule <k> handleException(#exception(E:Id), #exceptAs(E, Alias:Id, block(SS:Stmts))) =>
-           SS ~> exceptAsCleanup(Alias)
+           SS ~> exceptAsCleanup(Alias) ~> restoreActiveException(Prev)
       ... </k>
+       <activeException> Prev => currentException(#exception(E)) </activeException>
        <env> Rho => Rho [ Alias <- #exception(E) ] </env>
   rule <k> handleException(#exception(E:Id), #exceptAs(E, Alias:Id, {})) =>
            exceptAsCleanup(Alias)
@@ -10646,8 +10656,9 @@ module PYTHON
       ... </k>
     requires Id2String(E) =/=String Id2String(F)
   rule <k> handleException(#exception(E:Id), #exceptTuple(IDS:IdItems, block(SS:Stmts))) =>
-           SS ~> ifStmtDone
+           SS ~> restoreActiveException(Prev)
       ... </k>
+       <activeException> Prev => currentException(#exception(E)) </activeException>
     requires stringIdContains(Id2String(E), IDS)
   rule <k> handleException(#exception(E:Id), #exceptTuple(IDS:IdItems, {})) => stmtNoResult ... </k>
     requires stringIdContains(Id2String(E), IDS)
@@ -10656,8 +10667,9 @@ module PYTHON
       ... </k>
     requires notBool stringIdContains(Id2String(E), IDS)
   rule <k> handleException(#exception(E:Id), #exceptTupleAs(IDS:IdItems, Alias:Id, block(SS:Stmts))) =>
-           SS ~> exceptAsCleanup(Alias)
+           SS ~> exceptAsCleanup(Alias) ~> restoreActiveException(Prev)
       ... </k>
+       <activeException> Prev => currentException(#exception(E)) </activeException>
        <env> Rho => Rho [ Alias <- #exception(E) ] </env>
     requires stringIdContains(Id2String(E), IDS)
   rule <k> handleException(#exception(E:Id), #exceptTupleAs(IDS:IdItems, Alias:Id, {})) =>
@@ -10669,21 +10681,24 @@ module PYTHON
            exceptionSignal(#exception(E))
       ... </k>
     requires notBool stringIdContains(Id2String(E), IDS)
-  rule <k> handleException(_V:Val, #exceptAny(block(SS:Stmts))) =>
-           SS ~> ifStmtDone
+  rule <k> handleException(V:Val, #exceptAny(block(SS:Stmts))) =>
+           SS ~> restoreActiveException(Prev)
       ... </k>
+       <activeException> Prev => currentException(V) </activeException>
   rule <k> handleException(_V:Val, #exceptAny({})) => stmtNoResult ... </k>
   rule <k> handleException(#exception(E:Id), #excepts(E, block(SS:Stmts), _Rest:ExceptHandlers)) =>
-           SS ~> ifStmtDone
+           SS ~> restoreActiveException(Prev)
       ... </k>
+       <activeException> Prev => currentException(#exception(E)) </activeException>
   rule <k> handleException(#exception(E:Id), #excepts(E, {}, _Rest:ExceptHandlers)) => stmtNoResult ... </k>
   rule <k> handleException(#exception(E:Id), #excepts(F:Id, _Handler:Block, Rest:ExceptHandlers)) =>
            handleException(#exception(E), Rest)
       ... </k>
     requires Id2String(E) =/=String Id2String(F)
   rule <k> handleException(#exception(E:Id), #exceptsAs(E, Alias:Id, block(SS:Stmts), _Rest:ExceptHandlers)) =>
-           SS ~> exceptAsCleanup(Alias)
+           SS ~> exceptAsCleanup(Alias) ~> restoreActiveException(Prev)
       ... </k>
+       <activeException> Prev => currentException(#exception(E)) </activeException>
        <env> Rho => Rho [ Alias <- #exception(E) ] </env>
   rule <k> handleException(#exception(E:Id), #exceptsAs(E, Alias:Id, {}, _Rest:ExceptHandlers)) =>
            exceptAsCleanup(Alias)
@@ -10694,8 +10709,9 @@ module PYTHON
       ... </k>
     requires Id2String(E) =/=String Id2String(F)
   rule <k> handleException(#exception(E:Id), #exceptsTuple(IDS:IdItems, block(SS:Stmts), _Rest:ExceptHandlers)) =>
-           SS ~> ifStmtDone
+           SS ~> restoreActiveException(Prev)
       ... </k>
+       <activeException> Prev => currentException(#exception(E)) </activeException>
     requires stringIdContains(Id2String(E), IDS)
   rule <k> handleException(#exception(E:Id), #exceptsTuple(IDS:IdItems, {}, _Rest:ExceptHandlers)) => stmtNoResult ... </k>
     requires stringIdContains(Id2String(E), IDS)
@@ -10704,8 +10720,9 @@ module PYTHON
       ... </k>
     requires notBool stringIdContains(Id2String(E), IDS)
   rule <k> handleException(#exception(E:Id), #exceptsTupleAs(IDS:IdItems, Alias:Id, block(SS:Stmts), _Rest:ExceptHandlers)) =>
-           SS ~> exceptAsCleanup(Alias)
+           SS ~> exceptAsCleanup(Alias) ~> restoreActiveException(Prev)
       ... </k>
+       <activeException> Prev => currentException(#exception(E)) </activeException>
        <env> Rho => Rho [ Alias <- #exception(E) ] </env>
     requires stringIdContains(Id2String(E), IDS)
   rule <k> handleException(#exception(E:Id), #exceptsTupleAs(IDS:IdItems, Alias:Id, {}, _Rest:ExceptHandlers)) =>
@@ -10729,6 +10746,19 @@ module PYTHON
        <env> Rho => Rho [ Alias <- undef ] </env>
   rule <k> exceptionSignal(V:Val) ~> exceptAsCleanup(Alias:Id) => exceptionSignal(V) ... </k>
        <env> Rho => Rho [ Alias <- undef ] </env>
+
+  rule <k> restoreActiveException(Prev:ActiveException) => ifStmtDone ... </k>
+       <activeException> _ => Prev </activeException>
+  rule <k> stmtNoResult ~> restoreActiveException(Prev:ActiveException) => ifStmtDone ... </k>
+       <activeException> _ => Prev </activeException>
+  rule <k> breakSignal ~> restoreActiveException(Prev:ActiveException) => breakSignal ... </k>
+       <activeException> _ => Prev </activeException>
+  rule <k> continueSignal ~> restoreActiveException(Prev:ActiveException) => continueSignal ... </k>
+       <activeException> _ => Prev </activeException>
+  rule <k> returnSignal(V:Val) ~> restoreActiveException(Prev:ActiveException) => returnSignal(V) ... </k>
+       <activeException> _ => Prev </activeException>
+  rule <k> exceptionSignal(V:Val) ~> restoreActiveException(Prev:ActiveException) => exceptionSignal(V) ... </k>
+       <activeException> _ => Prev </activeException>
 
   rule <k> ifStmt(C:Exp, Then:Block, Else:Block) =>
            C ~> ifStmtBranch(Then, Else)
@@ -12971,6 +13001,10 @@ module PYTHON
   rule <k> continue => continueSignal ... </k>
   rule <k> return => returnSignal(None) ... </k>
   rule <k> returnStmt(V:Val) => returnSignal(V) ... </k>
+  rule <k> raise => exceptionSignal(V) ... </k>
+       <activeException> currentException(V) </activeException>
+  rule <k> raise => exceptionSignal(#exception(#token("RuntimeError", "Id"))) ... </k>
+       <activeException> noException </activeException>
   rule <k> raiseStmt(V:Val) => exceptionSignal(V) ... </k>
   rule <k> raiseFromNoneStmt(V:Val) => exceptionSignal(V) ... </k>
   rule <k> raiseFromStmt(V:Val, _Cause:Val) => exceptionSignal(V) ... </k>

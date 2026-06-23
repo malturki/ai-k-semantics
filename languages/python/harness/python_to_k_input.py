@@ -128,6 +128,8 @@ def emit_stmt(stmt: ast.stmt) -> str:
             return "return"
         case ast.Return(value=value):
             return f"return {emit_exp(value)}"
+        case ast.Raise(exc=None, cause=None):
+            return "raise"
         case ast.Raise(exc=exc, cause=ast.Constant(value=None)) if exc is not None:
             return f"#raiseFromNone({emit_exception_sentinel(exc)})"
         case ast.Raise(exc=exc, cause=cause) if exc is not None and cause is not None:
@@ -135,7 +137,7 @@ def emit_stmt(stmt: ast.stmt) -> str:
         case ast.Raise(exc=exc, cause=None) if exc is not None:
             return f"raise {emit_exception_sentinel(exc)}"
         case ast.Raise():
-            raise unsupported(stmt, "only raising a named exception sentinel, optionally from None or another named sentinel, is supported")
+            raise unsupported(stmt, "only bare re-raise or raising a named exception sentinel, optionally from None or another named sentinel, is supported")
         case ast.FunctionDef(
             name=name,
             args=args,

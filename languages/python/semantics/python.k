@@ -826,6 +826,7 @@ module PYTHON
                  | buildDictCtorMixed(Val) [symbol(buildDictCtorMixed)]
                  | "buildComplexCtorKw" [symbol(buildComplexCtorKw)]
                  | buildComplexCtorMixed(Val) [symbol(buildComplexCtorMixed)]
+                 | sumFold(ValItems) [symbol(sumFold)]
                  | dictCompIter(Id, Exp, Exp, ArgVals, DictVals, Map) [symbol(dictCompIter)]
                  | dictCompKey(Id, Exp, Exp, ArgVals, DictVals, Map) [symbol(dictCompKey)]
                  | dictCompValue(Id, Exp, Exp, ArgVals, DictVals, Map, Val) [symbol(dictCompValue)]
@@ -1098,6 +1099,8 @@ module PYTHON
                 | isBytesSequence(Val) [function, symbol(isBytesSequence)]
                 | isStringVal(Val) [function, symbol(isStringVal)]
                 | isConcreteSequenceVal(Val) [function, symbol(isConcreteSequenceVal)]
+                | sumStartForbidden(Val) [function, symbol(sumStartForbidden)]
+                | sumAddSupported(Val, Val) [function, symbol(sumAddSupported)]
                 | zeroNumeric(Val) [function, symbol(zeroNumeric)]
                 | seqOrderComparable(Val, Val) [function, symbol(seqOrderComparable)]
                 | orderComparable(Val, Val) [function, symbol(orderComparable)]
@@ -4946,6 +4949,16 @@ module PYTHON
   rule isConcreteSequenceVal(()) => true
   rule isConcreteSequenceVal(tupleVal(_:ValItems)) => true
   rule isConcreteSequenceVal(_:Val) => false [owise]
+
+  rule sumStartForbidden(V:Val) => isStringVal(V) orBool isBytesSequence(V)
+
+  rule sumAddSupported(V1:Val, V2:Val) => true
+    requires isComplexLike(V1) andBool isComplexLike(V2)
+  rule sumAddSupported(V1:Val, V2:Val) => true
+    requires isListSequence(V1) andBool isListSequence(V2)
+  rule sumAddSupported(V1:Val, V2:Val) => true
+    requires isTupleSequence(V1) andBool isTupleSequence(V2)
+  rule sumAddSupported(_:Val, _:Val) => false [owise]
 
   rule seqOrderComparable(V1:Val, V2:Val) =>
     (isListSequence(V1) andBool isListSequence(V2))
@@ -10607,51 +10620,87 @@ module PYTHON
   rule #any(rangeVal(Start:Int, Stop:Int, Step:Int)) => boolValue(rangeAnyTruthy(Start, Stop, Step))
     requires Step =/=Int 0
   rule #sum([]) => 0
-  rule #sum(listVal(VS:ValItems)) => sumValItems(VS)
-    requires valItemsAllIntLike(VS)
+  rule <k> #sum(listVal(VS:ValItems)) => 0 ~> sumFold(VS) ... </k>
   rule #sum(()) => 0
-  rule #sum(tupleVal(VS:ValItems)) => sumValItems(VS)
-    requires valItemsAllIntLike(VS)
+  rule <k> #sum(tupleVal(VS:ValItems)) => 0 ~> sumFold(VS) ... </k>
   rule #sum(#bytes()) => 0
-  rule #sum(bytesVal(VS:ValItems)) => sumValItems(VS)
-    requires valItemsAllIntLike(VS)
+  rule <k> #sum(bytesVal(VS:ValItems)) => 0 ~> sumFold(VS) ... </k>
   rule #sum(({}):Val) => 0
-  rule #sum(dictVal(DS:DictItems)) => sumValItems(dictKeysToValItems(DS))
-    requires valItemsAllIntLike(dictKeysToValItems(DS))
+  rule <k> #sum(dictVal(DS:DictItems)) => 0 ~> sumFold(dictKeysToValItems(DS)) ... </k>
   rule #sum(set()) => 0
-  rule #sum(setVal(VS:ValItems)) => sumValItems(VS)
-    requires valItemsAllIntLike(VS)
+  rule <k> #sum(setVal(VS:ValItems)) => 0 ~> sumFold(VS) ... </k>
   rule #sum(rangeVal(Start:Int, Stop:Int)) => rangeSum(Start, Stop, 1)
   rule #sum(rangeVal(Start:Int, Stop:Int, Step:Int)) => rangeSum(Start, Stop, Step)
     requires Step =/=Int 0
+
+  rule <k> #sum([], Seed:Val) => exceptionSignal(#exception(#token("TypeError", "Id"))) ... </k>
+    requires sumStartForbidden(Seed)
   rule #sum([], Seed:Val) => Seed
-    requires isIntLike(Seed)
-  rule #sum(listVal(VS:ValItems), Seed:Val) => intValue(Seed) +Int sumValItems(VS)
-    requires isIntLike(Seed) andBool valItemsAllIntLike(VS)
+    requires notBool sumStartForbidden(Seed)
+  rule <k> #sum(listVal(_:ValItems), Seed:Val) => exceptionSignal(#exception(#token("TypeError", "Id"))) ... </k>
+    requires sumStartForbidden(Seed)
+  rule <k> #sum(listVal(VS:ValItems), Seed:Val) => Seed ~> sumFold(VS) ... </k>
+    requires notBool sumStartForbidden(Seed)
+  rule <k> #sum((), Seed:Val) => exceptionSignal(#exception(#token("TypeError", "Id"))) ... </k>
+    requires sumStartForbidden(Seed)
   rule #sum((), Seed:Val) => Seed
-    requires isIntLike(Seed)
-  rule #sum(tupleVal(VS:ValItems), Seed:Val) => intValue(Seed) +Int sumValItems(VS)
-    requires isIntLike(Seed) andBool valItemsAllIntLike(VS)
+    requires notBool sumStartForbidden(Seed)
+  rule <k> #sum(tupleVal(_:ValItems), Seed:Val) => exceptionSignal(#exception(#token("TypeError", "Id"))) ... </k>
+    requires sumStartForbidden(Seed)
+  rule <k> #sum(tupleVal(VS:ValItems), Seed:Val) => Seed ~> sumFold(VS) ... </k>
+    requires notBool sumStartForbidden(Seed)
+  rule <k> #sum(#bytes(), Seed:Val) => exceptionSignal(#exception(#token("TypeError", "Id"))) ... </k>
+    requires sumStartForbidden(Seed)
   rule #sum(#bytes(), Seed:Val) => Seed
-    requires isIntLike(Seed)
-  rule #sum(bytesVal(VS:ValItems), Seed:Val) => intValue(Seed) +Int sumValItems(VS)
-    requires isIntLike(Seed) andBool valItemsAllIntLike(VS)
+    requires notBool sumStartForbidden(Seed)
+  rule <k> #sum(bytesVal(_:ValItems), Seed:Val) => exceptionSignal(#exception(#token("TypeError", "Id"))) ... </k>
+    requires sumStartForbidden(Seed)
+  rule <k> #sum(bytesVal(VS:ValItems), Seed:Val) => Seed ~> sumFold(VS) ... </k>
+    requires notBool sumStartForbidden(Seed)
+  rule <k> #sum(({}):Val, Seed:Val) => exceptionSignal(#exception(#token("TypeError", "Id"))) ... </k>
+    requires sumStartForbidden(Seed)
   rule #sum(({}):Val, Seed:Val) => Seed
-    requires isIntLike(Seed)
-  rule #sum(dictVal(DS:DictItems), Seed:Val) => intValue(Seed) +Int sumValItems(dictKeysToValItems(DS))
-    requires isIntLike(Seed) andBool valItemsAllIntLike(dictKeysToValItems(DS))
+    requires notBool sumStartForbidden(Seed)
+  rule <k> #sum(dictVal(_:DictItems), Seed:Val) => exceptionSignal(#exception(#token("TypeError", "Id"))) ... </k>
+    requires sumStartForbidden(Seed)
+  rule <k> #sum(dictVal(DS:DictItems), Seed:Val) => Seed ~> sumFold(dictKeysToValItems(DS)) ... </k>
+    requires notBool sumStartForbidden(Seed)
+  rule <k> #sum(set(), Seed:Val) => exceptionSignal(#exception(#token("TypeError", "Id"))) ... </k>
+    requires sumStartForbidden(Seed)
   rule #sum(set(), Seed:Val) => Seed
-    requires isIntLike(Seed)
-  rule #sum(setVal(VS:ValItems), Seed:Val) => intValue(Seed) +Int sumValItems(VS)
-    requires isIntLike(Seed) andBool valItemsAllIntLike(VS)
+    requires notBool sumStartForbidden(Seed)
+  rule <k> #sum(setVal(_:ValItems), Seed:Val) => exceptionSignal(#exception(#token("TypeError", "Id"))) ... </k>
+    requires sumStartForbidden(Seed)
+  rule <k> #sum(setVal(VS:ValItems), Seed:Val) => Seed ~> sumFold(VS) ... </k>
+    requires notBool sumStartForbidden(Seed)
+  rule <k> #sum(rangeVal(_Start:Int, _Stop:Int), Seed:Val) => exceptionSignal(#exception(#token("TypeError", "Id"))) ... </k>
+    requires sumStartForbidden(Seed)
   rule #sum(rangeVal(Start:Int, Stop:Int), Seed:Val) => Seed
-    requires isIntLike(Seed) andBool pyRangeLen(Start, Stop, 1) ==Int 0
-  rule #sum(rangeVal(Start:Int, Stop:Int), Seed:Val) => intValue(Seed) +Int rangeSum(Start, Stop, 1)
-    requires isIntLike(Seed) andBool pyRangeLen(Start, Stop, 1) >Int 0
+    requires notBool sumStartForbidden(Seed) andBool pyRangeLen(Start, Stop, 1) ==Int 0
+  rule <k> #sum(rangeVal(Start:Int, Stop:Int), Seed:Val) => Seed ~> sumFold(rangeToValItems(Start, Stop, 1, 0, pyRangeLen(Start, Stop, 1))) ... </k>
+    requires notBool sumStartForbidden(Seed) andBool pyRangeLen(Start, Stop, 1) >Int 0
+  rule <k> #sum(rangeVal(_Start:Int, _Stop:Int, Step:Int), Seed:Val) => exceptionSignal(#exception(#token("TypeError", "Id"))) ... </k>
+    requires Step =/=Int 0 andBool sumStartForbidden(Seed)
   rule #sum(rangeVal(Start:Int, Stop:Int, Step:Int), Seed:Val) => Seed
-    requires isIntLike(Seed) andBool Step =/=Int 0 andBool pyRangeLen(Start, Stop, Step) ==Int 0
-  rule #sum(rangeVal(Start:Int, Stop:Int, Step:Int), Seed:Val) => intValue(Seed) +Int rangeSum(Start, Stop, Step)
-    requires isIntLike(Seed) andBool Step =/=Int 0 andBool pyRangeLen(Start, Stop, Step) >Int 0
+    requires notBool sumStartForbidden(Seed) andBool Step =/=Int 0 andBool pyRangeLen(Start, Stop, Step) ==Int 0
+  rule <k> #sum(rangeVal(Start:Int, Stop:Int, Step:Int), Seed:Val) => Seed ~> sumFold(rangeToValItems(Start, Stop, Step, 0, pyRangeLen(Start, Stop, Step))) ... </k>
+    requires notBool sumStartForbidden(Seed) andBool Step =/=Int 0 andBool pyRangeLen(Start, Stop, Step) >Int 0
+  rule <k> Acc:Val ~> sumFold(valItemsLast(V:Val)) =>
+           Acc + V
+       ... </k>
+    requires sumAddSupported(Acc, V)
+  rule <k> Acc:Val ~> sumFold(valItemsLast(V:Val)) =>
+           exceptionSignal(#exception(#token("TypeError", "Id")))
+       ... </k>
+    requires notBool sumAddSupported(Acc, V)
+  rule <k> Acc:Val ~> sumFold(valItemsCons(V:Val, VS:ValItems)) =>
+           Acc + V ~> sumFold(VS)
+       ... </k>
+    requires sumAddSupported(Acc, V)
+  rule <k> Acc:Val ~> sumFold(valItemsCons(V:Val, _VS:ValItems)) =>
+           exceptionSignal(#exception(#token("TypeError", "Id")))
+       ... </k>
+    requires notBool sumAddSupported(Acc, V)
   rule #min(listVal(VS:ValItems)) => minValItems(VS)
     requires valItemsAllIntLike(VS)
   rule #min(tupleVal(VS:ValItems)) => minValItems(VS)
@@ -14333,6 +14382,7 @@ module PYTHON
   rule <k> exceptionSignal(V:Val) ~> buildDictCtorMixed(_:Val) => exceptionSignal(V) ... </k>
   rule <k> exceptionSignal(V:Val) ~> buildComplexCtorKw => exceptionSignal(V) ... </k>
   rule <k> exceptionSignal(V:Val) ~> buildComplexCtorMixed(_:Val) => exceptionSignal(V) ... </k>
+  rule <k> exceptionSignal(V:Val) ~> sumFold(_:ValItems) => exceptionSignal(V) ... </k>
   rule <k> exceptionSignal(V:Val) ~> whileStmtBranch(_:Exp, _:Block) => exceptionSignal(V) ... </k>
   rule <k> exceptionSignal(V:Val) ~> whileElseStmtBranch(_:Exp, _:Block, _:Block) => exceptionSignal(V) ... </k>
   rule <k> breakSignal ~> whileStmtAgain(_:Exp, _:Block) => stmtNoResult ... </k>

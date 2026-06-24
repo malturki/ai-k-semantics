@@ -334,6 +334,10 @@ def emit_exp(exp: ast.expr) -> str:
             return f"#repr({emit_exp(arg)})"
         case ast.Call(func=ast.Name(id="ascii"), args=[arg], keywords=[]):
             return f"#ascii({emit_exp(arg)})"
+        case ast.Call(func=ast.Name(id="format"), args=[value], keywords=[]):
+            return f"#format({emit_exp(value)})"
+        case ast.Call(func=ast.Name(id="format"), args=[value, spec], keywords=[]):
+            return f"#format({emit_exp(value)}, {emit_format_spec(exp, spec)})"
         case ast.Call(func=ast.Name(id="chr"), args=[arg], keywords=[]):
             return f"#chr({emit_exp(arg)})"
         case ast.Call(func=ast.Name(id="ord"), args=[arg], keywords=[]):
@@ -989,6 +993,14 @@ def emit_getattr_name(node: ast.AST, name_expr: ast.expr) -> str:
             return emit_id(name_expr.value)
         raise unsupported(node, "getattr currently supports the known current attribute names")
     raise unsupported(node, "getattr currently supports string-literal attribute names")
+
+
+def emit_format_spec(node: ast.AST, spec_expr: ast.expr) -> str:
+    if isinstance(spec_expr, ast.Constant) and isinstance(spec_expr.value, str):
+        if spec_expr.value == "":
+            return emit_exp(spec_expr)
+        raise unsupported(node, "format currently supports only the empty format_spec")
+    raise unsupported(node, "format currently supports string-literal empty format_spec")
 
 
 def ensure_non_async_comprehension(

@@ -79,6 +79,7 @@ run_case "adapter-fstrings-empty-format" "$ROOT/tests/adapter/adapter-fstrings-e
 run_case "adapter-fstrings-current-string-conversion-values" "$ROOT/tests/adapter/adapter-fstrings-current-string-conversion-values.py" "True ~> .K"
 run_case "adapter-string-conversion-builtins" "$ROOT/tests/adapter/adapter-string-conversion-builtins.py" "True ~> .K"
 run_case "adapter-string-repr-ascii-escaping" "$ROOT/tests/adapter/adapter-string-repr-ascii-escaping.py" "True ~> .K"
+run_case "adapter-format-builtin" "$ROOT/tests/adapter/adapter-format-builtin.py" "True ~> .K"
 run_case "adapter-chr-builtin" "$ROOT/tests/adapter/adapter-chr-builtin.py" "True ~> .K"
 run_case "adapter-ord-builtin" "$ROOT/tests/adapter/adapter-ord-builtin.py" "True ~> .K"
 run_case "adapter-bin-oct-hex-builtins" "$ROOT/tests/adapter/adapter-bin-oct-hex-builtins.py" "True ~> .K"

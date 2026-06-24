@@ -391,6 +391,8 @@ module PYTHON-SYNTAX
                | "#strCtor" "(" Exp ")" [symbol(strCtor1Exp), strict]
                | "#repr" "(" Exp ")" [symbol(reprExp), strict]
                | "#ascii" "(" Exp ")" [symbol(asciiExp), strict]
+               | "#format" "(" Exp ")" [symbol(format1Exp)]
+               | "#format" "(" Exp "," Exp ")" [symbol(format2Exp)]
                | "#chr" "(" Exp ")" [symbol(chrExp), strict]
                | "#ord" "(" Exp ")" [symbol(ordExp), strict]
                | "#bin" "(" Exp ")" [symbol(binExp), strict]
@@ -637,6 +639,9 @@ module PYTHON
                  | getattrDefaultObject(Id, Exp) [symbol(getattrDefaultObject)]
                  | getattrDefaultApply(Val, Id) [symbol(getattrDefaultApply)]
                  | hasattrObject(Id) [symbol(hasattrObject)]
+                 | formatDefault() [symbol(formatDefault)]
+                 | formatSpec(Exp) [symbol(formatSpec)]
+                 | formatApply(Val) [symbol(formatApply)]
                  | callArgs(ArgExps) [symbol(callArgs)]
                  | evalArgs(ArgExps, ArgVals) [symbol(evalArgs)]
                  | evalArgNext(ArgExps, ArgVals) [symbol(evalArgNext)]
@@ -11204,6 +11209,28 @@ module PYTHON
     requires pyStringConversionSupported(V)
   rule #ascii(V:Val) => pyReprStr(V)
     requires pyStringConversionSupported(V)
+  rule <k> #format(Obj:Exp) => Obj ~> formatDefault() ... </k>
+  rule <k> V:Val ~> formatDefault()
+        => pyFormatStr(V) ... </k>
+    requires pyStringConversionSupported(V)
+  rule <k> V:Val ~> formatDefault()
+        => exceptionSignal(#exception(#token("TypeError", "Id"))) ... </k>
+    requires notBool pyStringConversionSupported(V)
+  rule <k> #format(Obj:Exp, Spec:Exp) => Obj ~> formatSpec(Spec) ... </k>
+  rule <k> V:Val ~> formatSpec(Spec:Exp)
+        => Spec ~> formatApply(V) ... </k>
+  rule <k> Spec:String ~> formatApply(V:Val)
+        => pyFormatStr(V) ... </k>
+    requires Spec ==String "" andBool pyStringConversionSupported(V)
+  rule <k> Spec:String ~> formatApply(V:Val)
+        => exceptionSignal(#exception(#token("TypeError", "Id"))) ... </k>
+    requires Spec ==String "" andBool notBool pyStringConversionSupported(V)
+  rule <k> Spec:String ~> formatApply(_V:Val)
+        => exceptionSignal(#exception(#token("NotImplementedError", "Id"))) ... </k>
+    requires Spec =/=String ""
+  rule <k> Spec:Val ~> formatApply(_V:Val)
+        => exceptionSignal(#exception(#token("TypeError", "Id"))) ... </k>
+    requires notBool isStringVal(Spec)
   rule #chr(V:Val) => chrChar(intValue(V))
     requires isIntLike(V) andBool intValue(V) >=Int 0 andBool intValue(V) <=Int 255
   rule #ord(S:String) => ordChar(S)
@@ -15505,6 +15532,9 @@ module PYTHON
   rule <k> exceptionSignal(V:Val) ~> getattrDefaultObject(_:Id, _:Exp) => exceptionSignal(V) ... </k>
   rule <k> exceptionSignal(V:Val) ~> getattrDefaultApply(_:Val, _:Id) => exceptionSignal(V) ... </k>
   rule <k> exceptionSignal(V:Val) ~> hasattrObject(_:Id) => exceptionSignal(V) ... </k>
+  rule <k> exceptionSignal(V:Val) ~> formatDefault() => exceptionSignal(V) ... </k>
+  rule <k> exceptionSignal(V:Val) ~> formatSpec(_:Exp) => exceptionSignal(V) ... </k>
+  rule <k> exceptionSignal(V:Val) ~> formatApply(_:Val) => exceptionSignal(V) ... </k>
   rule <k> exceptionSignal(V:Val) ~> callKwArgs(_:KwArgExps) => exceptionSignal(V) ... </k>
   rule <k> exceptionSignal(V:Val) ~> evalKwArgNext(_:Id, _:KwArgExps, _:KwArgVals) => exceptionSignal(V) ... </k>
   rule <k> exceptionSignal(V:Val) ~> evalKwStarArgNext(_:KwArgExps, _:KwArgVals) => exceptionSignal(V) ... </k>

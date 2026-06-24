@@ -134,6 +134,7 @@ module PYTHON-SYNTAX
   syntax AugOp ::= "#augAdd" [symbol(augAddOp)]
                  | "#augSub" [symbol(augSubOp)]
                  | "#augMul" [symbol(augMulOp)]
+                 | "#augMatMul" [symbol(augMatMulOp)]
                  | "#augTrueDiv" [symbol(augTrueDivOp)]
                  | "#augFloorDiv" [symbol(augFloorDivOp)]
                  | "#augMod" [symbol(augModOp)]
@@ -215,6 +216,7 @@ module PYTHON-SYNTAX
                 | Id "+=" Exp [symbol(augAddStmt)]
                 | Id "-=" Exp [symbol(augSubStmt)]
                 | Id "*=" Exp [symbol(augMulStmt)]
+                | Id "@=" Exp [symbol(augMatMulStmt)]
                 | Id "/=" Exp [symbol(augTrueDivStmt)]
                 | Id "%=" Exp [symbol(augModStmt)]
                 | Id "**=" Exp [symbol(augPowStmt)]
@@ -423,6 +425,7 @@ module PYTHON-SYNTAX
                | "~" Exp [symbol(invertExp), strict]
                > Exp "**" Exp [symbol(powExp), right, strict]
                > Exp "*" Exp [symbol(mulExp), left, strict]
+               | Exp "@" Exp [symbol(matMulExp), left, strict]
                | Exp "//" Exp [symbol(floorDivExp), left, strict]
                | Exp "%" Exp [symbol(modExp), left, strict]
                > Exp "+" Exp [symbol(addExp), left, strict]
@@ -1108,6 +1111,8 @@ module PYTHON
                  | bindFunctionPosKwDefaultsKwArgs(Id, IdItems, ArgExps, IdItems, Id, Block) [symbol(bindFunctionPosKwDefaultsKwArgs)]
                  | bindFunctionPosKwDefaultValsKwArgs(Id, IdItems, ArgVals, IdItems, Id, Block) [symbol(bindFunctionPosKwDefaultValsKwArgs)]
                  | assignMany(IdItems, Val) [symbol(assignMany)]
+                 | augMatMulApply(Id) [symbol(augMatMulApply)]
+                 | augMatMulStore(Id) [symbol(augMatMulStore)]
                  | subscriptAssignIndex(Id, Exp) [symbol(subscriptAssignIndex)]
                  | subscriptAssignApply(Id, Val) [symbol(subscriptAssignApply)]
                  | subscriptAssignNestedOuter(Id, Exp, Exp) [symbol(subscriptAssignNestedOuter)]
@@ -1169,6 +1174,7 @@ module PYTHON
                 | isConcreteSequenceVal(Val) [function, symbol(isConcreteSequenceVal)]
                 | sumStartForbidden(Val) [function, symbol(sumStartForbidden)]
                 | sumAddSupported(Val, Val) [function, symbol(sumAddSupported)]
+                | matMulSupported(Val, Val) [function, symbol(matMulSupported)]
                 | zeroNumeric(Val) [function, symbol(zeroNumeric)]
                 | seqOrderComparable(Val, Val) [function, symbol(seqOrderComparable)]
                 | orderComparable(Val, Val) [function, symbol(orderComparable)]
@@ -5069,6 +5075,8 @@ module PYTHON
     requires isTupleSequence(V1) andBool isTupleSequence(V2)
   rule sumAddSupported(_:Val, _:Val) => false [owise]
 
+  rule matMulSupported(_:Val, _:Val) => false [owise]
+
   rule seqOrderComparable(V1:Val, V2:Val) =>
     (isListSequence(V1) andBool isListSequence(V2))
       orBool (isTupleSequence(V1) andBool isTupleSequence(V2))
@@ -5535,6 +5543,10 @@ module PYTHON
        ... </k>
     requires notBool isIntLike(V)
       andBool notBool isConcreteSequenceVal(V)
+  rule <k> V1:Val @ V2:Val =>
+           exceptionSignal(#exception(#token("TypeError", "Id")))
+       ... </k>
+    requires notBool matMulSupported(V1, V2)
   rule #complex(R:Float, I:Float) ** V:Val => complexPowInt(R, I, intValue(V))
     requires isIntLike(V)
       andBool (intValue(V) >=Int 0 orBool (R *Float R) +Float (I *Float I) =/=Float 0.0)
@@ -11643,6 +11655,9 @@ module PYTHON
   rule <k> R:Val ~> subscriptAugApply(X:Id, I:Val, L:Val, #augMul) =>
            L * R ~> subscriptAugStore(X, I)
        ... </k>
+  rule <k> R:Val ~> subscriptAugApply(X:Id, I:Val, L:Val, #augMatMul) =>
+           L @ R ~> subscriptAugStore(X, I)
+       ... </k>
   rule <k> R:Val ~> subscriptAugApply(X:Id, I:Val, L:Val, #augTrueDiv) =>
            #trueDiv(L, R) ~> subscriptAugStore(X, I)
        ... </k>
@@ -11673,6 +11688,7 @@ module PYTHON
   rule <k> V:Val ~> subscriptAugStore(X:Id, I:Val) =>
            I ~> subscriptAssignApply(X, V)
        ... </k>
+  rule <k> exceptionSignal(E:Val) ~> subscriptAugStore(_:Id, _:Val) => exceptionSignal(E) ... </k>
 
   rule <k> sliceAssignStmt(X:Id, Lower:Exp, Upper:Exp, E:Exp) =>
            E ~> sliceAssignLower(X, Lower, Upper)
@@ -11901,6 +11917,16 @@ module PYTHON
   rule <k> augAddStmt(X:Id, E:Exp) => assignStmt(X, X + E) ... </k>
   rule <k> augSubStmt(X:Id, E:Exp) => assignStmt(X, X - E) ... </k>
   rule <k> augMulStmt(X:Id, E:Exp) => assignStmt(X, X * E) ... </k>
+  rule <k> augMatMulStmt(X:Id, E:Exp) => E ~> augMatMulApply(X) ... </k>
+  rule <k> R:Val ~> augMatMulApply(X:Id) =>
+           L @ R ~> augMatMulStore(X)
+       ... </k>
+       <env> ... X |-> L:Val ... </env>
+  rule <k> exceptionSignal(E:Val) ~> augMatMulApply(_:Id) => exceptionSignal(E) ... </k>
+  rule <k> V:Val ~> augMatMulStore(X:Id) => stmtNoResult ... </k>
+       <env> Rho => Rho [ X <- V ] </env>
+       <result> _ => .K </result>
+  rule <k> exceptionSignal(E:Val) ~> augMatMulStore(_:Id) => exceptionSignal(E) ... </k>
   rule <k> augTrueDivStmt(X:Id, E:Exp) => assignStmt(X, #trueDiv(X, E)) ... </k>
   rule <k> augModStmt(X:Id, E:Exp) => assignStmt(X, X % E) ... </k>
   rule <k> augPowStmt(X:Id, E:Exp) => assignStmt(X, X ** E) ... </k>

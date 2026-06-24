@@ -2069,6 +2069,8 @@ def emit_aug_op(op: ast.operator) -> str:
         return "-"
     if isinstance(op, ast.Mult):
         return "*"
+    if isinstance(op, ast.MatMult):
+        return "@"
     if isinstance(op, ast.Div):
         return "/"
     if isinstance(op, ast.Mod):
@@ -2095,6 +2097,8 @@ def emit_aug_op_tag(op: ast.operator) -> str:
         return "#augSub"
     if isinstance(op, ast.Mult):
         return "#augMul"
+    if isinstance(op, ast.MatMult):
+        return "#augMatMul"
     if isinstance(op, ast.Div):
         return "#augTrueDiv"
     if isinstance(op, ast.FloorDiv):
@@ -2123,6 +2127,8 @@ def emit_binary_op(op: ast.operator) -> str:
         return "-"
     if isinstance(op, ast.Mult):
         return "*"
+    if isinstance(op, ast.MatMult):
+        return "@"
     if isinstance(op, ast.Pow):
         return "**"
     if isinstance(op, ast.Mod):

@@ -1710,6 +1710,12 @@ module PYTHON
   rule pyStringConversionSupported(dictVal(DS:DictItems)) => pyStringConversionDictItemsSupported(DS)
   rule pyStringConversionSupported(set()) => true
   rule pyStringConversionSupported(setVal(VS:ValItems)) => pyStringConversionItemsSupported(VS)
+  rule pyStringConversionSupported(rangeVal(_:Int, _:Int)) => true
+  rule pyStringConversionSupported(rangeVal(_:Int, _:Int, _:Int)) => true
+  rule pyStringConversionSupported(sliceVal(Start:Val, Stop:Val, Step:Val)) =>
+    pyStringConversionSupported(Start)
+      andBool pyStringConversionSupported(Stop)
+      andBool pyStringConversionSupported(Step)
   rule pyStringConversionSupported(_:Val) => false [owise]
 
   rule pyStringConversionItemsSupported(valItemsLast(V:Val)) =>
@@ -1738,6 +1744,9 @@ module PYTHON
   rule pyFormatStr(dictVal(DS:DictItems)) => pyReprStr(dictVal(DS))
   rule pyFormatStr(set()) => pyReprStr(set())
   rule pyFormatStr(setVal(VS:ValItems)) => pyReprStr(setVal(VS))
+  rule pyFormatStr(rangeVal(Start:Int, Stop:Int)) => pyReprStr(rangeVal(Start, Stop))
+  rule pyFormatStr(rangeVal(Start:Int, Stop:Int, Step:Int)) => pyReprStr(rangeVal(Start, Stop, Step))
+  rule pyFormatStr(sliceVal(Start:Val, Stop:Val, Step:Val)) => pyReprStr(sliceVal(Start, Stop, Step))
   rule pyReprStr(I:Int) => Int2String(I)
   rule pyReprStr(True) => "True"
   rule pyReprStr(False) => "False"
@@ -1754,6 +1763,16 @@ module PYTHON
   rule pyReprStr(dictVal(DS:DictItems)) => "{" +String pyReprDictItems(DS) +String "}"
   rule pyReprStr(set()) => "set()"
   rule pyReprStr(setVal(VS:ValItems)) => "{" +String pyReprValItems(VS) +String "}"
+  rule pyReprStr(rangeVal(Start:Int, Stop:Int)) =>
+    "range(" +String Int2String(Start) +String ", " +String Int2String(Stop) +String ")"
+  rule pyReprStr(rangeVal(Start:Int, Stop:Int, Step:Int)) =>
+    "range(" +String Int2String(Start) +String ", " +String Int2String(Stop) +String ")"
+    requires Step ==Int 1
+  rule pyReprStr(rangeVal(Start:Int, Stop:Int, Step:Int)) =>
+    "range(" +String Int2String(Start) +String ", " +String Int2String(Stop) +String ", " +String Int2String(Step) +String ")"
+    requires Step =/=Int 1
+  rule pyReprStr(sliceVal(Start:Val, Stop:Val, Step:Val)) =>
+    "slice(" +String pyReprStr(Start) +String ", " +String pyReprStr(Stop) +String ", " +String pyReprStr(Step) +String ")"
 
   rule pyReprValItems(valItemsLast(V:Val)) => pyReprStr(V)
   rule pyReprValItems(valItemsCons(V:Val, VS:ValItems)) =>

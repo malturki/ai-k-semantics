@@ -80,6 +80,7 @@ run_case "adapter-string-conversion-builtins" "$ROOT/tests/adapter/adapter-strin
 run_case "adapter-container-string-conversion-builtins" "$ROOT/tests/adapter/adapter-container-string-conversion-builtins.py" "True ~> .K"
 run_case "adapter-range-slice-string-conversion-builtins" "$ROOT/tests/adapter/adapter-range-slice-string-conversion-builtins.py" "True ~> .K"
 run_case "adapter-bytes-string-conversion-builtins" "$ROOT/tests/adapter/adapter-bytes-string-conversion-builtins.py" "True ~> .K"
+run_case "adapter-float-special-string-conversion-builtins" "$ROOT/tests/adapter/adapter-float-special-string-conversion-builtins.py" "True ~> .K"
 run_case "adapter-bytes-basic" "$ROOT/tests/adapter/adapter-bytes-basic.py" "True ~> .K"
 run_case "adapter-bytes-subsequence-membership" "$ROOT/tests/adapter/adapter-bytes-subsequence-membership.py" "True ~> .K"
 run_case "adapter-bytes-iterable-builtins" "$ROOT/tests/adapter/adapter-bytes-iterable-builtins.py" "True ~> .K"

@@ -1195,6 +1195,7 @@ module PYTHON
                 | sumAddSupported(Val, Val) [function, symbol(sumAddSupported)]
                 | matMulSupported(Val, Val) [function, symbol(matMulSupported)]
                 | fStringFormatSupported(Val) [function, symbol(fStringFormatSupported)]
+                | pyFloatStringConversionSupported(Float) [function, symbol(pyFloatStringConversionSupported)]
                 | pyStringConversionSupported(Val) [function, symbol(pyStringConversionSupported)]
                 | pyStringConversionItemsSupported(ValItems) [function, symbol(pyStringConversionItemsSupported)]
                 | pyStringConversionDictItemsSupported(DictItems) [function, symbol(pyStringConversionDictItemsSupported)]
@@ -1451,6 +1452,7 @@ module PYTHON
                   | bytesReprByte(Val, Int) [function, symbol(bytesReprByte)]
                   | byteHex(Int) [function, symbol(byteHex)]
                   | byteHexDigit(Int) [function, symbol(byteHexDigit)]
+                  | pyFloatReprStr(Float) [function, symbol(pyFloatReprStr)]
                   | pyFormatStr(Val) [function, symbol(pyFormatStr)]
                   | pyReprStr(Val) [function, symbol(pyReprStr)]
                   | pyReprValItems(ValItems) [function, symbol(pyReprValItems)]
@@ -1701,9 +1703,12 @@ module PYTHON
   rule fStringFormatSupported(None) => true
   rule fStringFormatSupported(Ellipsis) => true
   rule fStringFormatSupported(_:String) => true
+  rule fStringFormatSupported(F:Float) => pyFloatStringConversionSupported(F)
   rule fStringFormatSupported(#bytes()) => true
   rule fStringFormatSupported(bytesVal(VS:ValItems)) => valItemsAllByteInts(VS)
   rule fStringFormatSupported(_:Val) => false [owise]
+
+  rule pyFloatStringConversionSupported(F:Float) => isInfinite(F) orBool isNaN(F)
 
   rule pyStringConversionSupported(_:Int) => true
   rule pyStringConversionSupported(True) => true
@@ -1711,6 +1716,7 @@ module PYTHON
   rule pyStringConversionSupported(None) => true
   rule pyStringConversionSupported(Ellipsis) => true
   rule pyStringConversionSupported(_:String) => true
+  rule pyStringConversionSupported(F:Float) => pyFloatStringConversionSupported(F)
   rule pyStringConversionSupported(#bytes()) => true
   rule pyStringConversionSupported(bytesVal(VS:ValItems)) => valItemsAllByteInts(VS)
   rule pyStringConversionSupported([]) => true
@@ -1747,6 +1753,7 @@ module PYTHON
   rule pyFormatStr(None) => "None"
   rule pyFormatStr(Ellipsis) => "Ellipsis"
   rule pyFormatStr(S:String) => S
+  rule pyFormatStr(F:Float) => pyFloatReprStr(F)
   rule pyFormatStr(#bytes()) => pyReprStr(#bytes())
   rule pyFormatStr(bytesVal(VS:ValItems)) => pyReprStr(bytesVal(VS))
   rule pyFormatStr([]) => pyReprStr([])
@@ -1765,6 +1772,7 @@ module PYTHON
   rule pyReprStr(False) => "False"
   rule pyReprStr(None) => "None"
   rule pyReprStr(Ellipsis) => "Ellipsis"
+  rule pyReprStr(F:Float) => pyFloatReprStr(F)
   rule pyReprStr(S:String) => "'" +String S +String "'"
   rule pyReprStr(#bytes()) => "b''"
   rule pyReprStr(bytesVal(VS:ValItems)) =>
@@ -1800,6 +1808,13 @@ module PYTHON
     pyReprStr(K) +String ": " +String pyReprStr(V)
   rule pyReprDictItems(dictItemsCons(K:Val, V:Val, DS:DictItems)) =>
     pyReprStr(K) +String ": " +String pyReprStr(V) +String ", " +String pyReprDictItems(DS)
+
+  rule pyFloatReprStr(F:Float) => "nan"
+    requires isNaN(F)
+  rule pyFloatReprStr(F:Float) => "-inf"
+    requires isInfinite(F) andBool signFloat(F)
+  rule pyFloatReprStr(F:Float) => "inf"
+    requires isInfinite(F) andBool notBool signFloat(F)
 
   rule bytesContainsByte(valItemsLast(V:Val), B:Int) => intValue(V) ==Int B
     requires isIntLike(V) andBool intValue(V) >=Int 0 andBool intValue(V) <=Int 255

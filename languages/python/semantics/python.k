@@ -385,6 +385,8 @@ module PYTHON-SYNTAX
                | "#dictCtorMixed" "(" Exp "," KwArgExps ")" [symbol(dictCtorMixedExp), strict(1)]
                | "#setCtor" "(" ")" [symbol(setCtorExp)]
                | "#setCtor" "(" Exp ")" [symbol(setCtor1Exp), strict]
+               | "#bytesCtor" "(" ")" [symbol(bytesCtorExp)]
+               | "#bytesCtor" "(" Exp ")" [symbol(bytesCtor1Exp), strict]
                | "#boolCtor" "(" ")" [symbol(boolCtor0Exp)]
                | "#boolCtor" "(" Exp ")" [symbol(boolCtor1Exp), strict]
                | "#strCtor" "(" ")" [symbol(strCtor0Exp)]
@@ -1237,6 +1239,7 @@ module PYTHON
                 | orderComparable(Val, Val) [function, symbol(orderComparable)]
                 | concreteIterableExtraNonEmpty(Val) [function, symbol(concreteIterableExtraNonEmpty)]
                 | concreteIterableExtraEmpty(Val) [function, symbol(concreteIterableExtraEmpty)]
+                | bytesCtorSourceSupported(Val) [function, symbol(bytesCtorSourceSupported)]
                 | sliceStepAssignRhsSupported(Val) [function, symbol(sliceStepAssignRhsSupported)]
                 | unpackValueSupported(Val) [function, symbol(unpackValueSupported)]
                 | subscriptIndexInBounds(Val, Int) [function, symbol(subscriptIndexInBounds)]
@@ -1527,6 +1530,7 @@ module PYTHON
                | minNumericItems(ValItems) [function, symbol(minNumericItems)]
                | maxNumericItems(ValItems) [function, symbol(maxNumericItems)]
                | setFromArgVals(ArgVals) [function, symbol(setFromArgVals)]
+               | zeroBytes(Int) [function, symbol(zeroBytes)]
   syntax Val ::= kwExtrasDict(KwArgVals, IdItems) [function, symbol(kwExtrasDict)]
                | kwExtrasEitherDict(KwArgVals, IdItems, IdItems) [function, symbol(kwExtrasEitherDict)]
   syntax KwArgVals ::= "#noKwArgVals" [symbol(noKwArgVals)]
@@ -1589,6 +1593,7 @@ module PYTHON
   syntax ValItems ::= dropValItems(ValItems, Int) [function, symbol(dropValItems)]
   syntax ValItems ::= concatValItems(ValItems, ValItems) [function, symbol(concatValItems)]
   syntax ValItems ::= repeatValItems(ValItems, Int) [function, symbol(repeatValItems)]
+  syntax ValItems ::= byteItems(ValItems) [function, symbol(byteItems)]
   syntax ValItems ::= sliceValItems(ValItems, Int, Int) [function, symbol(sliceValItems)]
   syntax ValItems ::= sliceStepValItems(ValItems, Int, Int, Int) [function, symbol(sliceStepValItems)]
   syntax ValItems ::= listSet(ValItems, Int, Val) [function, symbol(listSet)]
@@ -4943,6 +4948,10 @@ module PYTHON
   rule setFromArgVals(VS:ArgVals) => setVal(argValsToSetItems(VS))
     requires notBool emptyArgVals(VS)
 
+  rule zeroBytes(0) => #bytes()
+  rule zeroBytes(N:Int) => bytesVal(repeatValItems(valItemsLast(0), N))
+    requires N >Int 0
+
   rule argValsToSetItems(argValsCons(V:Val, #noArgVals)) => valItemsLast(V)
   rule argValsToSetItems(argValsCons(V:Val, VS:ArgVals)) => argValsToSetItems(VS)
     requires notBool emptyArgVals(VS)
@@ -4977,6 +4986,22 @@ module PYTHON
     requires Step =/=Int 0
   rule concreteIterableExtraNonEmpty(_:Val) => false [owise]
   rule concreteIterableExtraEmpty(_:Val) => false [owise]
+
+  rule bytesCtorSourceSupported(V:Val) => true
+    requires isIntLike(V)
+  rule bytesCtorSourceSupported(#bytes()) => true
+  rule bytesCtorSourceSupported(bytesVal(_:ValItems)) => true
+  rule bytesCtorSourceSupported([]) => true
+  rule bytesCtorSourceSupported(listVal(_:ValItems)) => true
+  rule bytesCtorSourceSupported(()) => true
+  rule bytesCtorSourceSupported(tupleVal(_:ValItems)) => true
+  rule bytesCtorSourceSupported({}) => true
+  rule bytesCtorSourceSupported(dictVal(_:DictItems)) => true
+  rule bytesCtorSourceSupported(set()) => true
+  rule bytesCtorSourceSupported(setVal(_:ValItems)) => true
+  rule bytesCtorSourceSupported(rangeVal(_:Int, _:Int)) => true
+  rule bytesCtorSourceSupported(rangeVal(_:Int, _:Int, _:Int)) => true
+  rule bytesCtorSourceSupported(_:Val) => false [owise]
 
   rule concreteIterableExtraItems(S:String) => stringToValItems(S, 0, lengthString(S))
     requires lengthString(S) >Int 0
@@ -5075,6 +5100,12 @@ module PYTHON
       andBool intValue(V) >=Int 0
       andBool intValue(V) <=Int 255
       andBool valItemsAllByteInts(VS)
+
+  rule byteItems(valItemsLast(V:Val)) => valItemsLast(intValue(V))
+    requires isIntLike(V)
+  rule byteItems(valItemsCons(V:Val, VS:ValItems)) =>
+    valItemsCons(intValue(V), byteItems(VS))
+    requires isIntLike(V)
 
   rule rangeAllTruthy(Start:Int, Stop:Int, Step:Int) => notBool rangeContains(0, Start, Stop, Step)
     requires Step =/=Int 0
@@ -11173,6 +11204,68 @@ module PYTHON
   rule #dictCtor() => ({}):Val
   rule #setCtor() => set()
   rule #setCtor(V:Val) => setFromArgVals(iterableArgVals(V))
+  rule #bytesCtor() => #bytes()
+  rule #bytesCtor(V:Val) => zeroBytes(intValue(V))
+    requires isIntLike(V) andBool intValue(V) >=Int 0
+  rule <k> #bytesCtor(V:Val) => exceptionSignal(#exception(#token("ValueError", "Id"))) ... </k>
+    requires isIntLike(V) andBool intValue(V) <Int 0
+  rule #bytesCtor(#bytes()) => #bytes()
+  rule #bytesCtor(bytesVal(VS:ValItems)) => bytesVal(VS)
+  rule #bytesCtor([]) => #bytes()
+  rule #bytesCtor(listVal(VS:ValItems)) => bytesVal(byteItems(VS))
+    requires valItemsAllByteInts(VS)
+  rule <k> #bytesCtor(listVal(VS:ValItems)) => exceptionSignal(#exception(#token("TypeError", "Id"))) ... </k>
+    requires notBool valItemsAllIntLike(VS)
+  rule <k> #bytesCtor(listVal(VS:ValItems)) => exceptionSignal(#exception(#token("ValueError", "Id"))) ... </k>
+    requires valItemsAllIntLike(VS) andBool notBool valItemsAllByteInts(VS)
+  rule #bytesCtor(()) => #bytes()
+  rule #bytesCtor(tupleVal(VS:ValItems)) => bytesVal(byteItems(VS))
+    requires valItemsAllByteInts(VS)
+  rule <k> #bytesCtor(tupleVal(VS:ValItems)) => exceptionSignal(#exception(#token("TypeError", "Id"))) ... </k>
+    requires notBool valItemsAllIntLike(VS)
+  rule <k> #bytesCtor(tupleVal(VS:ValItems)) => exceptionSignal(#exception(#token("ValueError", "Id"))) ... </k>
+    requires valItemsAllIntLike(VS) andBool notBool valItemsAllByteInts(VS)
+  rule #bytesCtor(({}):Val) => #bytes()
+  rule #bytesCtor(dictVal(DS:DictItems)) => bytesVal(byteItems(dictKeysToValItems(DS)))
+    requires valItemsAllByteInts(dictKeysToValItems(DS))
+  rule <k> #bytesCtor(dictVal(DS:DictItems)) => exceptionSignal(#exception(#token("TypeError", "Id"))) ... </k>
+    requires notBool valItemsAllIntLike(dictKeysToValItems(DS))
+  rule <k> #bytesCtor(dictVal(DS:DictItems)) => exceptionSignal(#exception(#token("ValueError", "Id"))) ... </k>
+    requires valItemsAllIntLike(dictKeysToValItems(DS))
+      andBool notBool valItemsAllByteInts(dictKeysToValItems(DS))
+  rule #bytesCtor(set()) => #bytes()
+  rule #bytesCtor(setVal(VS:ValItems)) => bytesVal(byteItems(VS))
+    requires valItemsAllByteInts(VS)
+  rule <k> #bytesCtor(setVal(VS:ValItems)) => exceptionSignal(#exception(#token("TypeError", "Id"))) ... </k>
+    requires notBool valItemsAllIntLike(VS)
+  rule <k> #bytesCtor(setVal(VS:ValItems)) => exceptionSignal(#exception(#token("ValueError", "Id"))) ... </k>
+    requires valItemsAllIntLike(VS) andBool notBool valItemsAllByteInts(VS)
+  rule #bytesCtor(rangeVal(Start:Int, Stop:Int)) => #bytes()
+    requires pyRangeLen(Start, Stop, 1) ==Int 0
+  rule #bytesCtor(rangeVal(Start:Int, Stop:Int)) =>
+    bytesVal(rangeToValItems(Start, Stop, 1, 0, pyRangeLen(Start, Stop, 1)))
+    requires pyRangeLen(Start, Stop, 1) >Int 0
+      andBool valItemsAllByteInts(rangeToValItems(Start, Stop, 1, 0, pyRangeLen(Start, Stop, 1)))
+  rule <k> #bytesCtor(rangeVal(Start:Int, Stop:Int)) =>
+           exceptionSignal(#exception(#token("ValueError", "Id")))
+       ... </k>
+    requires pyRangeLen(Start, Stop, 1) >Int 0
+      andBool notBool valItemsAllByteInts(rangeToValItems(Start, Stop, 1, 0, pyRangeLen(Start, Stop, 1)))
+  rule #bytesCtor(rangeVal(Start:Int, Stop:Int, Step:Int)) => #bytes()
+    requires Step =/=Int 0 andBool pyRangeLen(Start, Stop, Step) ==Int 0
+  rule #bytesCtor(rangeVal(Start:Int, Stop:Int, Step:Int)) =>
+    bytesVal(rangeToValItems(Start, Stop, Step, 0, pyRangeLen(Start, Stop, Step)))
+    requires Step =/=Int 0
+      andBool pyRangeLen(Start, Stop, Step) >Int 0
+      andBool valItemsAllByteInts(rangeToValItems(Start, Stop, Step, 0, pyRangeLen(Start, Stop, Step)))
+  rule <k> #bytesCtor(rangeVal(Start:Int, Stop:Int, Step:Int)) =>
+           exceptionSignal(#exception(#token("ValueError", "Id")))
+       ... </k>
+    requires Step =/=Int 0
+      andBool pyRangeLen(Start, Stop, Step) >Int 0
+      andBool notBool valItemsAllByteInts(rangeToValItems(Start, Stop, Step, 0, pyRangeLen(Start, Stop, Step)))
+  rule <k> #bytesCtor(V:Val) => exceptionSignal(#exception(#token("TypeError", "Id"))) ... </k>
+    requires notBool bytesCtorSourceSupported(V)
   rule #dictCtor(({}):Val) => ({}):Val
   rule #dictCtor(dictVal(DS:DictItems)) => dictVal(DS)
   rule #dictCtor([]) => ({}):Val

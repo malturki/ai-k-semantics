@@ -322,6 +322,10 @@ def emit_exp(exp: ast.expr) -> str:
             return "#setCtor()"
         case ast.Call(func=ast.Name(id="set"), args=[arg], keywords=[]):
             return f"#setCtor({emit_exp(arg)})"
+        case ast.Call(func=ast.Name(id="bytes"), args=[], keywords=[]):
+            return "#bytesCtor()"
+        case ast.Call(func=ast.Name(id="bytes"), args=[arg], keywords=[]):
+            return f"#bytesCtor({emit_exp(arg)})"
         case ast.Call(func=ast.Name(id="bool"), args=[], keywords=[]):
             return "#boolCtor()"
         case ast.Call(func=ast.Name(id="bool"), args=[arg], keywords=[]):

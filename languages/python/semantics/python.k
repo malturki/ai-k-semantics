@@ -388,6 +388,7 @@ module PYTHON-SYNTAX
                | "#strCtor" "(" Exp ")" [symbol(strCtor1Exp), strict]
                | "#repr" "(" Exp ")" [symbol(reprExp), strict]
                | "#ascii" "(" Exp ")" [symbol(asciiExp), strict]
+               | "#chr" "(" Exp ")" [symbol(chrExp), strict]
                | "#all" "(" Exp ")" [symbol(allExp), strict]
                | "#any" "(" Exp ")" [symbol(anyExp), strict]
                | "#sum" "(" Exp ")" [symbol(sum1Exp), strict]
@@ -11036,12 +11037,18 @@ module PYTHON
     requires pyStringConversionSupported(V)
   rule #ascii(V:Val) => pyReprStr(V)
     requires pyStringConversionSupported(V)
+  rule #chr(V:Val) => chrChar(intValue(V))
+    requires isIntLike(V) andBool intValue(V) >=Int 0 andBool intValue(V) <=Int 1114111
   rule <k> #strCtor(V:Val) => exceptionSignal(#exception(#token("TypeError", "Id"))) ... </k>
     requires notBool pyStringConversionSupported(V)
   rule <k> #repr(V:Val) => exceptionSignal(#exception(#token("TypeError", "Id"))) ... </k>
     requires notBool pyStringConversionSupported(V)
   rule <k> #ascii(V:Val) => exceptionSignal(#exception(#token("TypeError", "Id"))) ... </k>
     requires notBool pyStringConversionSupported(V)
+  rule <k> #chr(V:Val) => exceptionSignal(#exception(#token("ValueError", "Id"))) ... </k>
+    requires isIntLike(V) andBool (intValue(V) <Int 0 orBool intValue(V) >Int 1114111)
+  rule <k> #chr(V:Val) => exceptionSignal(#exception(#token("TypeError", "Id"))) ... </k>
+    requires notBool isIntLike(V)
   rule #all([]) => True
   rule #all(listVal(VS:ValItems)) => boolValue(allValItems(VS))
   rule #all(()) => True

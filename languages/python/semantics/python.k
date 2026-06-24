@@ -65,6 +65,10 @@ module PYTHON-SYNTAX
                     | "#dictStarItem" "(" Exp ")" [symbol(dictStarExpItem)]
                     | "#dictStarItems" "(" Exp "," DictExps ")" [symbol(dictStarExpsCons)]
 
+  syntax FStringParts ::= "#fstrEnd" [symbol(fstrEnd)]
+                         | "#fstrText" "(" String "," FStringParts ")" [symbol(fstrText)]
+                         | "#fstrExp" "(" Exp "," FStringParts ")" [symbol(fstrExp)]
+
   syntax CompFilters ::= "#filter" "(" Exp ")" [symbol(compFilterLast)]
                        | "#filters" "(" Exp "," CompFilters ")" [symbol(compFiltersCons)]
 
@@ -314,6 +318,7 @@ module PYTHON-SYNTAX
                | "#callMixed" "(" Exp "," ArgExps "," KwArgExps ")" [symbol(callMixedArgsExp)]
                | "#exceptionCall" "(" Id "," ArgExps ")" [symbol(exceptionCallExp)]
                | "#attr" "(" Exp "," Id ")" [symbol(attrExp), strict(1)]
+               | "#fstring" "(" FStringParts ")" [symbol(fstringExp)]
                | "#list" "(" ArgExps ")" [symbol(listDisplayExp)]
                | "#tuple" "(" ArgExps ")" [symbol(tupleDisplayExp)]
                | "#dict" "(" DictExps ")" [symbol(dictDisplayExp)]
@@ -600,6 +605,8 @@ module PYTHON
                  | andThen(Exp) [symbol(andThen)]
                  | orElse(Exp) [symbol(orElse)]
                  | ifThenElse(Exp, Exp) [symbol(ifThenElse)]
+                 | fStringEval(FStringParts, String) [symbol(fStringEval)]
+                 | fStringAppend(FStringParts, String) [symbol(fStringAppend)]
                  | callArg(Exp) [symbol(callArg)]
                  | callApply(Val) [symbol(callApply)]
                  | callArgs(ArgExps) [symbol(callArgs)]
@@ -1175,6 +1182,7 @@ module PYTHON
                 | sumStartForbidden(Val) [function, symbol(sumStartForbidden)]
                 | sumAddSupported(Val, Val) [function, symbol(sumAddSupported)]
                 | matMulSupported(Val, Val) [function, symbol(matMulSupported)]
+                | fStringFormatSupported(Val) [function, symbol(fStringFormatSupported)]
                 | zeroNumeric(Val) [function, symbol(zeroNumeric)]
                 | seqOrderComparable(Val, Val) [function, symbol(seqOrderComparable)]
                 | orderComparable(Val, Val) [function, symbol(orderComparable)]
@@ -1421,6 +1429,7 @@ module PYTHON
                   | lstripPythonStringSpace(String) [function, symbol(lstripPythonStringSpace)]
                   | rstripPythonStringSpace(String) [function, symbol(rstripPythonStringSpace)]
                   | bytesAsciiString(ValItems) [function, symbol(bytesAsciiString)]
+                  | pyFormatStr(Val) [function, symbol(pyFormatStr)]
   syntax ArgVals ::= "#noArgVals" [symbol(noArgVals)]
                    | argValsCons(Val, ArgVals) [symbol(argValsCons)]
                    | appendArgVal(ArgVals, Val) [function, symbol(appendArgVal)]
@@ -1660,6 +1669,21 @@ module PYTHON
   rule truthy(dictArgsVal(_:DictVals)) => true
 
   rule #debug => True
+
+  rule fStringFormatSupported(_:Int) => true
+  rule fStringFormatSupported(True) => true
+  rule fStringFormatSupported(False) => true
+  rule fStringFormatSupported(None) => true
+  rule fStringFormatSupported(Ellipsis) => true
+  rule fStringFormatSupported(_:String) => true
+  rule fStringFormatSupported(_:Val) => false [owise]
+
+  rule pyFormatStr(I:Int) => Int2String(I)
+  rule pyFormatStr(True) => "True"
+  rule pyFormatStr(False) => "False"
+  rule pyFormatStr(None) => "None"
+  rule pyFormatStr(Ellipsis) => "Ellipsis"
+  rule pyFormatStr(S:String) => S
 
   rule isIntLike(_:Int) => true
   rule isIntLike(_:Float) => false
@@ -5398,6 +5422,22 @@ module PYTHON
 
   rule <k> namedExprExp(X:Id, V:Val) => V ... </k>
        <env> Rho => Rho [ X <- V ] </env>
+
+  rule <k> fstringExp(Parts:FStringParts) => fStringEval(Parts, "") ... </k>
+  rule <k> fStringEval(#fstrEnd, Acc:String) => Acc ... </k>
+  rule <k> fStringEval(#fstrText(S:String, Rest:FStringParts), Acc:String) =>
+           fStringEval(Rest, Acc +String S)
+       ... </k>
+  rule <k> fStringEval(#fstrExp(E:Exp, Rest:FStringParts), Acc:String) =>
+           E ~> fStringAppend(Rest, Acc)
+       ... </k>
+  rule <k> V:Val ~> fStringAppend(Rest:FStringParts, Acc:String) =>
+           fStringEval(Rest, Acc +String pyFormatStr(V))
+       ... </k>
+    requires fStringFormatSupported(V)
+  rule <k> exceptionSignal(E:Val) ~> fStringAppend(_:FStringParts, _:String) =>
+           exceptionSignal(E)
+       ... </k>
 
   rule + V:Val => intValue(V) requires isIntLike(V)
   rule + F:Float => F

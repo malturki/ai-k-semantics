@@ -236,6 +236,8 @@ def emit_exp(exp: ast.expr) -> str:
     match exp:
         case ast.Constant(value=value):
             return emit_constant(exp, value)
+        case ast.JoinedStr(values=values):
+            return f"#fstring({emit_fstring_parts(exp, values)})"
         case ast.Name(id="__debug__"):
             return "#debug"
         case ast.Name(id="Ellipsis"):
@@ -430,6 +432,25 @@ def emit_constant(node: ast.AST, value: object) -> str:
     if isinstance(value, bytes):
         return emit_bytes(value)
     raise unsupported(node, f"constant {value!r} is not supported")
+
+
+def emit_fstring_parts(node: ast.AST, values: list[ast.expr]) -> str:
+    if not values:
+        return "#fstrEnd"
+    value = values[0]
+    rest = emit_fstring_parts(node, values[1:])
+    match value:
+        case ast.Constant(value=text) if isinstance(text, str):
+            return f"#fstrText({json.dumps(text)}, {rest})"
+        case ast.FormattedValue(value=formatted, conversion=conversion, format_spec=None):
+            if conversion not in {-1, ord("s")}:
+                raise unsupported(value, "f-strings currently support only default or !s conversion")
+            return f"#fstrExp({emit_exp(formatted)}, {rest})"
+        case ast.FormattedValue(format_spec=format_spec) if format_spec is not None:
+            raise unsupported(value, "f-string format specifications are not supported yet")
+        case ast.FormattedValue():
+            raise unsupported(value, "unsupported f-string formatted value shape")
+    raise unsupported(node, "only literal text and formatted expressions are supported in f-strings")
 
 
 def emit_complex(value: complex) -> str:

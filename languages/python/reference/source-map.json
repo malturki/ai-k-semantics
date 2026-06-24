@@ -88,9 +88,9 @@
               "section": "Literals"
             }
           ],
-          "k_coverage": ["semantics/python.k: integer, simple finite float, adapter-backed imaginary/complex, simple K string, True, False, None, and adapter-backed ellipsis atom subset"],
-          "test_coverage": ["tests/examples/smoke-arithmetic.py", "tests/examples/smoke-bool-constants.py", "tests/examples/smoke-strings.py", "tests/adapter/adapter-true-div.py", "tests/adapter/adapter-complex-literals.py", "tests/adapter/adapter-ellipsis.py"],
-          "gaps": ["Need full Python string prefixes/escapes, bytes, f-strings, t-strings, full float lexical edge cases, and numeric literal separators."]
+          "k_coverage": ["semantics/python.k: integer, simple finite float, adapter-backed imaginary/complex, simple K string, adapter-backed simple f-string text/formatted-expression parts, True, False, None, and adapter-backed ellipsis atom subset"],
+          "test_coverage": ["tests/examples/smoke-arithmetic.py", "tests/examples/smoke-bool-constants.py", "tests/examples/smoke-strings.py", "tests/adapter/adapter-true-div.py", "tests/adapter/adapter-complex-literals.py", "tests/adapter/adapter-ellipsis.py", "tests/adapter/adapter-fstrings-basic.py"],
+          "gaps": ["Need full Python string prefixes/escapes, direct bytes parser syntax and diagnostics, t-strings, f-string conversion/debug/format-spec support, full float lexical edge cases, and numeric literal separators."]
         }
       ]
     },
@@ -335,9 +335,9 @@
               "section": "Atoms"
             }
           ],
-          "k_coverage": ["semantics/python.k: integer, simple string, adapter-backed imaginary/complex values, adapter-backed bytes constants represented as integer byte sequences, trailing-comma list/tuple/dict/set values, adapter-backed expression display forms, True, False, None, Ellipsis, names, and parenthesized expressions", "semantics/python.k: dictionary display construction replaces an existing equal key with the later value in the supported key-equality subset", "harness/python_to_k_input.py: AST adapter for the currently supported atom/display subset, including ordinary Python ellipsis `...`, shadowable `Ellipsis` name escape, imaginary literals, and bytes constants"],
-          "test_coverage": ["tests/examples/smoke-arithmetic.py", "tests/examples/smoke-assignment.py", "tests/examples/smoke-bool-constants.py", "tests/examples/smoke-strings.py", "tests/examples/smoke-lists.py", "tests/examples/smoke-tuples.py", "tests/adapter/adapter-complex-literals.py", "tests/adapter/adapter-ellipsis.py", "tests/adapter/adapter-ellipsis-name.py", "tests/adapter/adapter-bytes-basic.py", "tests/adapter/adapter-bytes-iterable-builtins.py", "tests/adapter/adapter-list-normal.py", "tests/adapter/adapter-list-expressions.py", "tests/adapter/adapter-tuple-normal.py", "tests/adapter/adapter-tuple-expressions.py", "tests/adapter/adapter-dict.py", "tests/adapter/adapter-dict-truthy.py", "tests/adapter/adapter-dict-expressions.py", "tests/adapter/adapter-dict-duplicate-keys.py", "tests/adapter/adapter-set.py", "tests/adapter/adapter-set-expressions.py"],
-          "gaps": ["Need direct bytes parser syntax and diagnostics, full containers, comprehensions, and yield expressions."]
+          "k_coverage": ["semantics/python.k: integer, simple string, adapter-backed imaginary/complex values, adapter-backed bytes constants represented as integer byte sequences, adapter-backed simple f-string interpolation over current int/bool/None/Ellipsis/string values with left-to-right formatted-expression evaluation and exception propagation, trailing-comma list/tuple/dict/set values, adapter-backed expression display forms, True, False, None, Ellipsis, names, and parenthesized expressions", "semantics/python.k: dictionary display construction replaces an existing equal key with the later value in the supported key-equality subset", "harness/python_to_k_input.py: AST adapter for the currently supported atom/display subset, including ordinary Python ellipsis `...`, shadowable `Ellipsis` name escape, imaginary literals, bytes constants, and JoinedStr/FormattedValue f-string nodes without format specs"],
+          "test_coverage": ["tests/examples/smoke-arithmetic.py", "tests/examples/smoke-assignment.py", "tests/examples/smoke-bool-constants.py", "tests/examples/smoke-strings.py", "tests/examples/smoke-lists.py", "tests/examples/smoke-tuples.py", "tests/adapter/adapter-complex-literals.py", "tests/adapter/adapter-ellipsis.py", "tests/adapter/adapter-ellipsis-name.py", "tests/adapter/adapter-fstrings-basic.py", "tests/adapter/adapter-bytes-basic.py", "tests/adapter/adapter-bytes-iterable-builtins.py", "tests/adapter/adapter-list-normal.py", "tests/adapter/adapter-list-expressions.py", "tests/adapter/adapter-tuple-normal.py", "tests/adapter/adapter-tuple-expressions.py", "tests/adapter/adapter-dict.py", "tests/adapter/adapter-dict-truthy.py", "tests/adapter/adapter-dict-expressions.py", "tests/adapter/adapter-dict-duplicate-keys.py", "tests/adapter/adapter-set.py", "tests/adapter/adapter-set-expressions.py"],
+          "gaps": ["Need direct bytes parser syntax and diagnostics, full f-string conversion/debug/format-spec and object __format__ protocol behavior, full containers, comprehensions, and yield expressions."]
         },
         {
           "id": "expr.displays-comprehensions",
@@ -776,8 +776,8 @@
               "url": "https://docs.python.org/3/reference/grammar.html"
             }
           ],
-          "k_coverage": ["semantics/python.k: seed grammar only"],
-          "test_coverage": [],
+          "k_coverage": ["semantics/python.k: seed grammar plus explicit internal #fstring part syntax for adapter-preserved f-string expressions", "harness/python_to_k_input.py: construct-preserving adapter maps CPython AST JoinedStr/FormattedValue nodes for simple f-strings"],
+          "test_coverage": ["tests/adapter/adapter-fstrings-basic.py"],
           "gaps": ["Need construct-preserving parser strategy: native K grammar where feasible, or parser-front-end AST that preserves every documented construct."]
         }
       ]

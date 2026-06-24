@@ -1697,16 +1697,7 @@ module PYTHON
 
   rule #debug => True
 
-  rule fStringFormatSupported(_:Int) => true
-  rule fStringFormatSupported(True) => true
-  rule fStringFormatSupported(False) => true
-  rule fStringFormatSupported(None) => true
-  rule fStringFormatSupported(Ellipsis) => true
-  rule fStringFormatSupported(_:String) => true
-  rule fStringFormatSupported(F:Float) => pyFloatStringConversionSupported(F)
-  rule fStringFormatSupported(#bytes()) => true
-  rule fStringFormatSupported(bytesVal(VS:ValItems)) => valItemsAllByteInts(VS)
-  rule fStringFormatSupported(_:Val) => false [owise]
+  rule fStringFormatSupported(V:Val) => pyStringConversionSupported(V)
 
   rule pyFloatStringConversionSupported(F:Float) => isInfinite(F) orBool isNaN(F)
 

@@ -302,6 +302,14 @@ def emit_exp(exp: ast.expr) -> str:
             return "#boolCtor()"
         case ast.Call(func=ast.Name(id="bool"), args=[arg], keywords=[]):
             return f"#boolCtor({emit_exp(arg)})"
+        case ast.Call(func=ast.Name(id="str"), args=[], keywords=[]):
+            return "#strCtor()"
+        case ast.Call(func=ast.Name(id="str"), args=[arg], keywords=[]):
+            return f"#strCtor({emit_exp(arg)})"
+        case ast.Call(func=ast.Name(id="repr"), args=[arg], keywords=[]):
+            return f"#repr({emit_exp(arg)})"
+        case ast.Call(func=ast.Name(id="ascii"), args=[arg], keywords=[]):
+            return f"#ascii({emit_exp(arg)})"
         case ast.Call(func=ast.Name(id="all"), args=[arg], keywords=[]):
             return f"#all({emit_exp(arg)})"
         case ast.Call(func=ast.Name(id="any"), args=[arg], keywords=[]):

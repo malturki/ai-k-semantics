@@ -384,6 +384,10 @@ module PYTHON-SYNTAX
                | "#setCtor" "(" Exp ")" [symbol(setCtor1Exp), strict]
                | "#boolCtor" "(" ")" [symbol(boolCtor0Exp)]
                | "#boolCtor" "(" Exp ")" [symbol(boolCtor1Exp), strict]
+               | "#strCtor" "(" ")" [symbol(strCtor0Exp)]
+               | "#strCtor" "(" Exp ")" [symbol(strCtor1Exp), strict]
+               | "#repr" "(" Exp ")" [symbol(reprExp), strict]
+               | "#ascii" "(" Exp ")" [symbol(asciiExp), strict]
                | "#all" "(" Exp ")" [symbol(allExp), strict]
                | "#any" "(" Exp ")" [symbol(anyExp), strict]
                | "#sum" "(" Exp ")" [symbol(sum1Exp), strict]
@@ -1191,6 +1195,7 @@ module PYTHON
                 | sumAddSupported(Val, Val) [function, symbol(sumAddSupported)]
                 | matMulSupported(Val, Val) [function, symbol(matMulSupported)]
                 | fStringFormatSupported(Val) [function, symbol(fStringFormatSupported)]
+                | pyStringConversionSupported(Val) [function, symbol(pyStringConversionSupported)]
                 | zeroNumeric(Val) [function, symbol(zeroNumeric)]
                 | seqOrderComparable(Val, Val) [function, symbol(seqOrderComparable)]
                 | orderComparable(Val, Val) [function, symbol(orderComparable)]
@@ -1686,6 +1691,8 @@ module PYTHON
   rule fStringFormatSupported(Ellipsis) => true
   rule fStringFormatSupported(_:String) => true
   rule fStringFormatSupported(_:Val) => false [owise]
+
+  rule pyStringConversionSupported(V:Val) => fStringFormatSupported(V)
 
   rule pyFormatStr(I:Int) => Int2String(I)
   rule pyFormatStr(True) => "True"
@@ -10791,6 +10798,19 @@ module PYTHON
     requires Step =/=Int 0 andBool pyRangeLen(Start, Stop, Step) >Int 0
   rule #boolCtor() => False
   rule #boolCtor(V:Val) => boolValue(truthy(V))
+  rule #strCtor() => ""
+  rule #strCtor(V:Val) => pyFormatStr(V)
+    requires pyStringConversionSupported(V)
+  rule #repr(V:Val) => pyReprStr(V)
+    requires pyStringConversionSupported(V)
+  rule #ascii(V:Val) => pyReprStr(V)
+    requires pyStringConversionSupported(V)
+  rule <k> #strCtor(V:Val) => exceptionSignal(#exception(#token("TypeError", "Id"))) ... </k>
+    requires notBool pyStringConversionSupported(V)
+  rule <k> #repr(V:Val) => exceptionSignal(#exception(#token("TypeError", "Id"))) ... </k>
+    requires notBool pyStringConversionSupported(V)
+  rule <k> #ascii(V:Val) => exceptionSignal(#exception(#token("TypeError", "Id"))) ... </k>
+    requires notBool pyStringConversionSupported(V)
   rule #all([]) => True
   rule #all(listVal(VS:ValItems)) => boolValue(allValItems(VS))
   rule #all(()) => True

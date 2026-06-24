@@ -16,5 +16,6 @@ result = result and isinstance(1, (str, int))
 result = result and not isinstance("x", (bytes, list))
 result = result and isinstance([], (tuple, list))
 result = result and not isinstance(None, (int, str, list))
+result = result and not isinstance(1, ())
 assert result
 result

@@ -396,6 +396,8 @@ module PYTHON-SYNTAX
                | "#callable" "(" Exp ")" [symbol(callableExp), strict]
                | "#isinstance" "(" Exp "," Id ")" [symbol(isinstanceExp), strict(1)]
                | "#isinstanceAny" "(" Exp "," IdItems ")" [symbol(isinstanceAnyExp), strict(1)]
+               | "#issubclass" "(" Id "," Id ")" [symbol(issubclassExp)]
+               | "#issubclassAny" "(" Id "," IdItems ")" [symbol(issubclassAnyExp)]
                | "#all" "(" Exp ")" [symbol(allExp), strict]
                | "#any" "(" Exp ")" [symbol(anyExp), strict]
                | "#sum" "(" Exp ")" [symbol(sum1Exp), strict]
@@ -1176,6 +1178,8 @@ module PYTHON
                 | isinstanceClassSupported(Id) [function, symbol(isinstanceClassSupported)]
                 | isinstanceClassesSupported(IdItems) [function, symbol(isinstanceClassesSupported)]
                 | isinstanceAny(Val, IdItems) [function, symbol(isinstanceAny)]
+                | builtinSubclass(Id, Id) [function, symbol(builtinSubclass)]
+                | builtinSubclassAny(Id, IdItems) [function, symbol(builtinSubclassAny)]
                 | matchBuiltinClassArg(Val, Id, MatchPattern) [function, symbol(matchBuiltinClassArg)]
                 | matchBuiltinClassKw(Val, Id, MatchAttrPatterns) [function, symbol(matchBuiltinClassKw)]
                 | matchBuiltinClassArgKw(Val, Id, MatchPattern, MatchAttrPatterns) [function, symbol(matchBuiltinClassArgKw)]
@@ -3175,13 +3179,27 @@ module PYTHON
       orBool Id2String(C) ==String "tuple"
   rule isinstanceClassSupported(_:Id) => false [owise]
 
+  rule isinstanceClassesSupported(#noIds) => true
   rule isinstanceClassesSupported(idItemsLast(C:Id)) => isinstanceClassSupported(C)
   rule isinstanceClassesSupported(idItemsCons(C:Id, CS:IdItems)) =>
     isinstanceClassSupported(C) andBool isinstanceClassesSupported(CS)
 
+  rule isinstanceAny(_:Val, #noIds) => false
   rule isinstanceAny(V:Val, idItemsLast(C:Id)) => matchBuiltinClass(V, C)
   rule isinstanceAny(V:Val, idItemsCons(C:Id, CS:IdItems)) =>
     matchBuiltinClass(V, C) orBool isinstanceAny(V, CS)
+
+  rule builtinSubclass(C:Id, I:Id) => true
+    requires Id2String(C) ==String Id2String(I)
+      orBool ((Id2String(C) ==String "set" orBool Id2String(C) ==String "kSetClassName")
+        andBool (Id2String(I) ==String "set" orBool Id2String(I) ==String "kSetClassName"))
+      orBool (Id2String(C) ==String "bool" andBool Id2String(I) ==String "int")
+  rule builtinSubclass(_:Id, _:Id) => false [owise]
+
+  rule builtinSubclassAny(_:Id, #noIds) => false
+  rule builtinSubclassAny(C:Id, idItemsLast(I:Id)) => builtinSubclass(C, I)
+  rule builtinSubclassAny(C:Id, idItemsCons(I:Id, IS:IdItems)) =>
+    builtinSubclass(C, I) orBool builtinSubclassAny(C, IS)
 
   rule matchBuiltinClassArg(V:Val, C:Id, P:MatchPattern) =>
     matchBuiltinClass(V, C) andBool matchSimplePattern(V, P)
@@ -11179,6 +11197,10 @@ module PYTHON
     requires isinstanceClassSupported(C)
   rule #isinstanceAny(V:Val, CS:IdItems) => boolValue(isinstanceAny(V, CS))
     requires isinstanceClassesSupported(CS)
+  rule #issubclass(C:Id, I:Id) => boolValue(builtinSubclass(C, I))
+    requires isinstanceClassSupported(C) andBool isinstanceClassSupported(I)
+  rule #issubclassAny(C:Id, IS:IdItems) => boolValue(builtinSubclassAny(C, IS))
+    requires isinstanceClassSupported(C) andBool isinstanceClassesSupported(IS)
   rule <k> #strCtor(V:Val) => exceptionSignal(#exception(#token("TypeError", "Id"))) ... </k>
     requires notBool pyStringConversionSupported(V)
   rule <k> #repr(V:Val) => exceptionSignal(#exception(#token("TypeError", "Id"))) ... </k>
@@ -11208,6 +11230,10 @@ module PYTHON
     requires notBool isinstanceClassSupported(C)
   rule <k> #isinstanceAny(_V:Val, CS:IdItems) => exceptionSignal(#exception(#token("TypeError", "Id"))) ... </k>
     requires notBool isinstanceClassesSupported(CS)
+  rule <k> #issubclass(C:Id, I:Id) => exceptionSignal(#exception(#token("TypeError", "Id"))) ... </k>
+    requires notBool (isinstanceClassSupported(C) andBool isinstanceClassSupported(I))
+  rule <k> #issubclassAny(C:Id, IS:IdItems) => exceptionSignal(#exception(#token("TypeError", "Id"))) ... </k>
+    requires notBool (isinstanceClassSupported(C) andBool isinstanceClassesSupported(IS))
   rule #all([]) => True
   rule #all(listVal(VS:ValItems)) => boolValue(allValItems(VS))
   rule #all(()) => True

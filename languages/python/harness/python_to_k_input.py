@@ -364,6 +364,8 @@ def emit_exp(exp: ast.expr) -> str:
                 f"#getattrDefault({emit_exp(obj)}, "
                 f"{emit_getattr_name(exp, name)}, {emit_exp(default)})"
             )
+        case ast.Call(func=ast.Name(id="hasattr"), args=[obj, name], keywords=[]):
+            return f"#hasattr({emit_exp(obj)}, {emit_getattr_name(exp, name)})"
         case ast.Call(func=ast.Name(id="all"), args=[arg], keywords=[]):
             return f"#all({emit_exp(arg)})"
         case ast.Call(func=ast.Name(id="any"), args=[arg], keywords=[]):

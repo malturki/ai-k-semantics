@@ -327,6 +327,7 @@ module PYTHON-SYNTAX
                | "#attr" "(" Exp "," Id ")" [symbol(attrExp), strict(1)]
                | "#getattr" "(" Exp "," Id ")" [symbol(getattrExp), strict(1)]
                | "#getattrDefault" "(" Exp "," Id "," Exp ")" [symbol(getattrDefaultExp)]
+               | "#hasattr" "(" Exp "," Id ")" [symbol(hasattrExp)]
                | "#fstring" "(" FStringParts ")" [symbol(fstringExp)]
                | "#list" "(" ArgExps ")" [symbol(listDisplayExp)]
                | "#tuple" "(" ArgExps ")" [symbol(tupleDisplayExp)]
@@ -635,6 +636,7 @@ module PYTHON
                  | callApply(Val) [symbol(callApply)]
                  | getattrDefaultObject(Id, Exp) [symbol(getattrDefaultObject)]
                  | getattrDefaultApply(Val, Id) [symbol(getattrDefaultApply)]
+                 | hasattrObject(Id) [symbol(hasattrObject)]
                  | callArgs(ArgExps) [symbol(callArgs)]
                  | evalArgs(ArgExps, ArgVals) [symbol(evalArgs)]
                  | evalArgNext(ArgExps, ArgVals) [symbol(evalArgNext)]
@@ -6339,6 +6341,9 @@ module PYTHON
     requires notBool classHasMatchAttr(V, Attr)
   rule <k> #getattr(V:Val, Attr:Id) => exceptionSignal(#exception(#token("AttributeError", "Id"))) ... </k>
     requires notBool classHasMatchAttr(V, Attr)
+  rule <k> #hasattr(Obj:Exp, Attr:Id) => Obj ~> hasattrObject(Attr) ... </k>
+  rule <k> V:Val ~> hasattrObject(Attr:Id)
+        => boolValue(classHasMatchAttr(V, Attr)) ... </k>
 
   rule V1:Val < V2:Val => boolValue(intValue(V1) <Int intValue(V2))
     requires isIntLike(V1) andBool isIntLike(V2)
@@ -15499,6 +15504,7 @@ module PYTHON
   rule <k> exceptionSignal(V:Val) ~> compareFrom(_:Val, _:CmpChain) => exceptionSignal(V) ... </k>
   rule <k> exceptionSignal(V:Val) ~> getattrDefaultObject(_:Id, _:Exp) => exceptionSignal(V) ... </k>
   rule <k> exceptionSignal(V:Val) ~> getattrDefaultApply(_:Val, _:Id) => exceptionSignal(V) ... </k>
+  rule <k> exceptionSignal(V:Val) ~> hasattrObject(_:Id) => exceptionSignal(V) ... </k>
   rule <k> exceptionSignal(V:Val) ~> callKwArgs(_:KwArgExps) => exceptionSignal(V) ... </k>
   rule <k> exceptionSignal(V:Val) ~> evalKwArgNext(_:Id, _:KwArgExps, _:KwArgVals) => exceptionSignal(V) ... </k>
   rule <k> exceptionSignal(V:Val) ~> evalKwStarArgNext(_:KwArgExps, _:KwArgVals) => exceptionSignal(V) ... </k>

@@ -442,15 +442,26 @@ def emit_fstring_parts(node: ast.AST, values: list[ast.expr]) -> str:
     match value:
         case ast.Constant(value=text) if isinstance(text, str):
             return f"#fstrText({json.dumps(text)}, {rest})"
-        case ast.FormattedValue(value=formatted, conversion=conversion, format_spec=None):
-            if conversion not in {-1, ord("s")}:
-                raise unsupported(value, "f-strings currently support only default or !s conversion")
+        case ast.FormattedValue(value=formatted, conversion=-1, format_spec=None):
             return f"#fstrExp({emit_exp(formatted)}, {rest})"
+        case ast.FormattedValue(value=formatted, conversion=conversion, format_spec=None):
+            emitted_conversion = emit_fstring_conversion(value, conversion)
+            return f"#fstrExpConv({emit_exp(formatted)}, {emitted_conversion}, {rest})"
         case ast.FormattedValue(format_spec=format_spec) if format_spec is not None:
             raise unsupported(value, "f-string format specifications are not supported yet")
         case ast.FormattedValue():
             raise unsupported(value, "unsupported f-string formatted value shape")
     raise unsupported(node, "only literal text and formatted expressions are supported in f-strings")
+
+
+def emit_fstring_conversion(node: ast.AST, conversion: int) -> str:
+    if conversion == ord("s"):
+        return "#fstrConvStr"
+    if conversion == ord("r"):
+        return "#fstrConvRepr"
+    if conversion == ord("a"):
+        return "#fstrConvAscii"
+    raise unsupported(node, "f-strings currently support only !s, !r, and !a conversions")
 
 
 def emit_complex(value: complex) -> str:

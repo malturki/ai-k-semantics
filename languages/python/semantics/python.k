@@ -65,9 +65,14 @@ module PYTHON-SYNTAX
                     | "#dictStarItem" "(" Exp ")" [symbol(dictStarExpItem)]
                     | "#dictStarItems" "(" Exp "," DictExps ")" [symbol(dictStarExpsCons)]
 
+  syntax FStringConversion ::= "#fstrConvStr" [symbol(fstrConvStr)]
+                             | "#fstrConvRepr" [symbol(fstrConvRepr)]
+                             | "#fstrConvAscii" [symbol(fstrConvAscii)]
+
   syntax FStringParts ::= "#fstrEnd" [symbol(fstrEnd)]
                          | "#fstrText" "(" String "," FStringParts ")" [symbol(fstrText)]
                          | "#fstrExp" "(" Exp "," FStringParts ")" [symbol(fstrExp)]
+                         | "#fstrExpConv" "(" Exp "," FStringConversion "," FStringParts ")" [symbol(fstrExpConv)]
 
   syntax CompFilters ::= "#filter" "(" Exp ")" [symbol(compFilterLast)]
                        | "#filters" "(" Exp "," CompFilters ")" [symbol(compFiltersCons)]
@@ -607,6 +612,7 @@ module PYTHON
                  | ifThenElse(Exp, Exp) [symbol(ifThenElse)]
                  | fStringEval(FStringParts, String) [symbol(fStringEval)]
                  | fStringAppend(FStringParts, String) [symbol(fStringAppend)]
+                 | fStringAppendConv(FStringConversion, FStringParts, String) [symbol(fStringAppendConv)]
                  | callArg(Exp) [symbol(callArg)]
                  | callApply(Val) [symbol(callApply)]
                  | callArgs(ArgExps) [symbol(callArgs)]
@@ -1430,6 +1436,7 @@ module PYTHON
                   | rstripPythonStringSpace(String) [function, symbol(rstripPythonStringSpace)]
                   | bytesAsciiString(ValItems) [function, symbol(bytesAsciiString)]
                   | pyFormatStr(Val) [function, symbol(pyFormatStr)]
+                  | pyReprStr(Val) [function, symbol(pyReprStr)]
   syntax ArgVals ::= "#noArgVals" [symbol(noArgVals)]
                    | argValsCons(Val, ArgVals) [symbol(argValsCons)]
                    | appendArgVal(ArgVals, Val) [function, symbol(appendArgVal)]
@@ -1684,6 +1691,12 @@ module PYTHON
   rule pyFormatStr(None) => "None"
   rule pyFormatStr(Ellipsis) => "Ellipsis"
   rule pyFormatStr(S:String) => S
+  rule pyReprStr(I:Int) => Int2String(I)
+  rule pyReprStr(True) => "True"
+  rule pyReprStr(False) => "False"
+  rule pyReprStr(None) => "None"
+  rule pyReprStr(Ellipsis) => "Ellipsis"
+  rule pyReprStr(S:String) => "'" +String S +String "'"
 
   rule isIntLike(_:Int) => true
   rule isIntLike(_:Float) => false
@@ -5431,11 +5444,29 @@ module PYTHON
   rule <k> fStringEval(#fstrExp(E:Exp, Rest:FStringParts), Acc:String) =>
            E ~> fStringAppend(Rest, Acc)
        ... </k>
+  rule <k> fStringEval(#fstrExpConv(E:Exp, Conv:FStringConversion, Rest:FStringParts), Acc:String) =>
+           E ~> fStringAppendConv(Conv, Rest, Acc)
+       ... </k>
   rule <k> V:Val ~> fStringAppend(Rest:FStringParts, Acc:String) =>
            fStringEval(Rest, Acc +String pyFormatStr(V))
        ... </k>
     requires fStringFormatSupported(V)
+  rule <k> V:Val ~> fStringAppendConv(#fstrConvStr, Rest:FStringParts, Acc:String) =>
+           fStringEval(Rest, Acc +String pyFormatStr(V))
+       ... </k>
+    requires fStringFormatSupported(V)
+  rule <k> V:Val ~> fStringAppendConv(#fstrConvRepr, Rest:FStringParts, Acc:String) =>
+           fStringEval(Rest, Acc +String pyReprStr(V))
+       ... </k>
+    requires fStringFormatSupported(V)
+  rule <k> V:Val ~> fStringAppendConv(#fstrConvAscii, Rest:FStringParts, Acc:String) =>
+           fStringEval(Rest, Acc +String pyReprStr(V))
+       ... </k>
+    requires fStringFormatSupported(V)
   rule <k> exceptionSignal(E:Val) ~> fStringAppend(_:FStringParts, _:String) =>
+           exceptionSignal(E)
+       ... </k>
+  rule <k> exceptionSignal(E:Val) ~> fStringAppendConv(_:FStringConversion, _:FStringParts, _:String) =>
            exceptionSignal(E)
        ... </k>
 

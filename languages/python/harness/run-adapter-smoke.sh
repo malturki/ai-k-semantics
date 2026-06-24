@@ -85,6 +85,7 @@ run_case "adapter-bin-oct-hex-builtins" "$ROOT/tests/adapter/adapter-bin-oct-hex
 run_case "adapter-callable-builtin" "$ROOT/tests/adapter/adapter-callable-builtin.py" "True ~> .K"
 run_case "adapter-isinstance-builtin" "$ROOT/tests/adapter/adapter-isinstance-builtin.py" "True ~> .K"
 run_case "adapter-issubclass-builtin" "$ROOT/tests/adapter/adapter-issubclass-builtin.py" "True ~> .K"
+run_case "adapter-getattr-builtin" "$ROOT/tests/adapter/adapter-getattr-builtin.py" "True ~> .K"
 run_case "adapter-container-string-conversion-builtins" "$ROOT/tests/adapter/adapter-container-string-conversion-builtins.py" "True ~> .K"
 run_case "adapter-range-slice-string-conversion-builtins" "$ROOT/tests/adapter/adapter-range-slice-string-conversion-builtins.py" "True ~> .K"
 run_case "adapter-bytes-string-conversion-builtins" "$ROOT/tests/adapter/adapter-bytes-string-conversion-builtins.py" "True ~> .K"

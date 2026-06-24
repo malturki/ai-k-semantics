@@ -270,6 +270,13 @@
       "coverage": ["issubclass-builtin", "builtin-classinfo", "classinfo-tuple", "empty-classinfo-tuple", "bool-subclass-int", "ordinary-python-source-adapter"]
     },
     {
+      "id": "adapter-getattr-builtin",
+      "source": "../adapter/adapter-getattr-builtin.py",
+      "reference": "Python Standard Library Built-in Functions getattr; current K attribute profile for range, slice, and numeric attributes",
+      "expected_result": "True ~> .K",
+      "coverage": ["getattr-builtin", "attribute-access", "default-argument", "missing-attribute", "attribute-error", "ordinary-python-source-adapter"]
+    },
+    {
       "id": "adapter-list-normal",
       "source": "../adapter/adapter-list-normal.py",
       "reference": "Python Language Reference 6.2.4 Displays for lists, sets and dictionaries; 6.3.2 Subscriptions",

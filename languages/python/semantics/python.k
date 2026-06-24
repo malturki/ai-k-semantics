@@ -325,6 +325,8 @@ module PYTHON-SYNTAX
                | "#callMixed" "(" Exp "," ArgExps "," KwArgExps ")" [symbol(callMixedArgsExp)]
                | "#exceptionCall" "(" Id "," ArgExps ")" [symbol(exceptionCallExp)]
                | "#attr" "(" Exp "," Id ")" [symbol(attrExp), strict(1)]
+               | "#getattr" "(" Exp "," Id ")" [symbol(getattrExp), strict(1)]
+               | "#getattrDefault" "(" Exp "," Id "," Exp ")" [symbol(getattrDefaultExp)]
                | "#fstring" "(" FStringParts ")" [symbol(fstringExp)]
                | "#list" "(" ArgExps ")" [symbol(listDisplayExp)]
                | "#tuple" "(" ArgExps ")" [symbol(tupleDisplayExp)]
@@ -631,6 +633,8 @@ module PYTHON
                  | fStringAppendConv(FStringConversion, FStringParts, String) [symbol(fStringAppendConv)]
                  | callArg(Exp) [symbol(callArg)]
                  | callApply(Val) [symbol(callApply)]
+                 | getattrDefaultObject(Id, Exp) [symbol(getattrDefaultObject)]
+                 | getattrDefaultApply(Val, Id) [symbol(getattrDefaultApply)]
                  | callArgs(ArgExps) [symbol(callArgs)]
                  | evalArgs(ArgExps, ArgVals) [symbol(evalArgs)]
                  | evalArgNext(ArgExps, ArgVals) [symbol(evalArgNext)]
@@ -6320,6 +6324,21 @@ module PYTHON
     requires isIntLike(V) andBool Id2String(Attr) ==String "numerator"
   rule attrExp(V:Val, Attr:Id) => 1
     requires isIntLike(V) andBool Id2String(Attr) ==String "denominator"
+
+  rule #getattr(V:Val, Attr:Id) => matchClassAttrVal(V, Attr)
+    requires classHasMatchAttr(V, Attr)
+  rule <k> #getattrDefault(Obj:Exp, Attr:Id, Default:Exp)
+        => Obj ~> getattrDefaultObject(Attr, Default) ... </k>
+  rule <k> V:Val ~> getattrDefaultObject(Attr:Id, Default:Exp)
+        => Default ~> getattrDefaultApply(V, Attr) ... </k>
+  rule <k> _Default:Val ~> getattrDefaultApply(V:Val, Attr:Id)
+        => matchClassAttrVal(V, Attr) ... </k>
+    requires classHasMatchAttr(V, Attr)
+  rule <k> Default:Val ~> getattrDefaultApply(V:Val, Attr:Id)
+        => Default ... </k>
+    requires notBool classHasMatchAttr(V, Attr)
+  rule <k> #getattr(V:Val, Attr:Id) => exceptionSignal(#exception(#token("AttributeError", "Id"))) ... </k>
+    requires notBool classHasMatchAttr(V, Attr)
 
   rule V1:Val < V2:Val => boolValue(intValue(V1) <Int intValue(V2))
     requires isIntLike(V1) andBool isIntLike(V2)
@@ -15478,6 +15497,8 @@ module PYTHON
   rule <k> exceptionSignal(V:Val) ~> compareChainLast(_:CmpOp, _:Val) => exceptionSignal(V) ... </k>
   rule <k> exceptionSignal(V:Val) ~> compareChainNext(_:CmpOp, _:Val, _:CmpChain) => exceptionSignal(V) ... </k>
   rule <k> exceptionSignal(V:Val) ~> compareFrom(_:Val, _:CmpChain) => exceptionSignal(V) ... </k>
+  rule <k> exceptionSignal(V:Val) ~> getattrDefaultObject(_:Id, _:Exp) => exceptionSignal(V) ... </k>
+  rule <k> exceptionSignal(V:Val) ~> getattrDefaultApply(_:Val, _:Id) => exceptionSignal(V) ... </k>
   rule <k> exceptionSignal(V:Val) ~> callKwArgs(_:KwArgExps) => exceptionSignal(V) ... </k>
   rule <k> exceptionSignal(V:Val) ~> evalKwArgNext(_:Id, _:KwArgExps, _:KwArgVals) => exceptionSignal(V) ... </k>
   rule <k> exceptionSignal(V:Val) ~> evalKwStarArgNext(_:KwArgExps, _:KwArgVals) => exceptionSignal(V) ... </k>

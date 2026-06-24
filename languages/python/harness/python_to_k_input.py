@@ -48,6 +48,16 @@ SUPPORTED_SINGLE_ARG_CLASS_PATTERNS = {
 CLASS_PATTERN_ID_ALIASES = {
     "set": "kSetClassName",
 }
+SUPPORTED_GETATTR_NAMES = {
+    "denominator",
+    "imag",
+    "missing",
+    "numerator",
+    "real",
+    "start",
+    "step",
+    "stop",
+}
 SUPPORTED_BUILTIN_CLASS_NAMES = {
     "bool",
     "bytes",
@@ -347,6 +357,13 @@ def emit_exp(exp: ast.expr) -> str:
             if is_tuple:
                 return f"#issubclassAny({emitted_class}, {emitted_classinfo})"
             return f"#issubclass({emitted_class}, {emitted_classinfo})"
+        case ast.Call(func=ast.Name(id="getattr"), args=[obj, name], keywords=[]):
+            return f"#getattr({emit_exp(obj)}, {emit_getattr_name(exp, name)})"
+        case ast.Call(func=ast.Name(id="getattr"), args=[obj, name, default], keywords=[]):
+            return (
+                f"#getattrDefault({emit_exp(obj)}, "
+                f"{emit_getattr_name(exp, name)}, {emit_exp(default)})"
+            )
         case ast.Call(func=ast.Name(id="all"), args=[arg], keywords=[]):
             return f"#all({emit_exp(arg)})"
         case ast.Call(func=ast.Name(id="any"), args=[arg], keywords=[]):
@@ -962,6 +979,14 @@ def emit_builtin_class_name(node: ast.AST, class_expr: ast.expr, role: str) -> s
     if isinstance(class_expr, ast.Name) and class_expr.id in SUPPORTED_BUILTIN_CLASS_NAMES:
         return emit_id(CLASS_PATTERN_ID_ALIASES.get(class_expr.id, class_expr.id))
     raise unsupported(node, f"{role} currently supports known built-in class names")
+
+
+def emit_getattr_name(node: ast.AST, name_expr: ast.expr) -> str:
+    if isinstance(name_expr, ast.Constant) and isinstance(name_expr.value, str):
+        if name_expr.value in SUPPORTED_GETATTR_NAMES:
+            return emit_id(name_expr.value)
+        raise unsupported(node, "getattr currently supports the known current attribute names")
+    raise unsupported(node, "getattr currently supports string-literal attribute names")
 
 
 def ensure_non_async_comprehension(

@@ -1196,6 +1196,8 @@ module PYTHON
                 | matMulSupported(Val, Val) [function, symbol(matMulSupported)]
                 | fStringFormatSupported(Val) [function, symbol(fStringFormatSupported)]
                 | pyStringConversionSupported(Val) [function, symbol(pyStringConversionSupported)]
+                | pyStringConversionItemsSupported(ValItems) [function, symbol(pyStringConversionItemsSupported)]
+                | pyStringConversionDictItemsSupported(DictItems) [function, symbol(pyStringConversionDictItemsSupported)]
                 | zeroNumeric(Val) [function, symbol(zeroNumeric)]
                 | seqOrderComparable(Val, Val) [function, symbol(seqOrderComparable)]
                 | orderComparable(Val, Val) [function, symbol(orderComparable)]
@@ -1444,6 +1446,8 @@ module PYTHON
                   | bytesAsciiString(ValItems) [function, symbol(bytesAsciiString)]
                   | pyFormatStr(Val) [function, symbol(pyFormatStr)]
                   | pyReprStr(Val) [function, symbol(pyReprStr)]
+                  | pyReprValItems(ValItems) [function, symbol(pyReprValItems)]
+                  | pyReprDictItems(DictItems) [function, symbol(pyReprDictItems)]
   syntax ArgVals ::= "#noArgVals" [symbol(noArgVals)]
                    | argValsCons(Val, ArgVals) [symbol(argValsCons)]
                    | appendArgVal(ArgVals, Val) [function, symbol(appendArgVal)]
@@ -1692,7 +1696,33 @@ module PYTHON
   rule fStringFormatSupported(_:String) => true
   rule fStringFormatSupported(_:Val) => false [owise]
 
-  rule pyStringConversionSupported(V:Val) => fStringFormatSupported(V)
+  rule pyStringConversionSupported(_:Int) => true
+  rule pyStringConversionSupported(True) => true
+  rule pyStringConversionSupported(False) => true
+  rule pyStringConversionSupported(None) => true
+  rule pyStringConversionSupported(Ellipsis) => true
+  rule pyStringConversionSupported(_:String) => true
+  rule pyStringConversionSupported([]) => true
+  rule pyStringConversionSupported(listVal(VS:ValItems)) => pyStringConversionItemsSupported(VS)
+  rule pyStringConversionSupported(()) => true
+  rule pyStringConversionSupported(tupleVal(VS:ValItems)) => pyStringConversionItemsSupported(VS)
+  rule pyStringConversionSupported(({}):Val) => true
+  rule pyStringConversionSupported(dictVal(DS:DictItems)) => pyStringConversionDictItemsSupported(DS)
+  rule pyStringConversionSupported(set()) => true
+  rule pyStringConversionSupported(setVal(VS:ValItems)) => pyStringConversionItemsSupported(VS)
+  rule pyStringConversionSupported(_:Val) => false [owise]
+
+  rule pyStringConversionItemsSupported(valItemsLast(V:Val)) =>
+    pyStringConversionSupported(V)
+  rule pyStringConversionItemsSupported(valItemsCons(V:Val, VS:ValItems)) =>
+    pyStringConversionSupported(V) andBool pyStringConversionItemsSupported(VS)
+
+  rule pyStringConversionDictItemsSupported(dictItemsLast(K:Val, V:Val)) =>
+    pyStringConversionSupported(K) andBool pyStringConversionSupported(V)
+  rule pyStringConversionDictItemsSupported(dictItemsCons(K:Val, V:Val, DS:DictItems)) =>
+    pyStringConversionSupported(K)
+      andBool pyStringConversionSupported(V)
+      andBool pyStringConversionDictItemsSupported(DS)
 
   rule pyFormatStr(I:Int) => Int2String(I)
   rule pyFormatStr(True) => "True"
@@ -1700,12 +1730,39 @@ module PYTHON
   rule pyFormatStr(None) => "None"
   rule pyFormatStr(Ellipsis) => "Ellipsis"
   rule pyFormatStr(S:String) => S
+  rule pyFormatStr([]) => pyReprStr([])
+  rule pyFormatStr(listVal(VS:ValItems)) => pyReprStr(listVal(VS))
+  rule pyFormatStr(()) => pyReprStr(())
+  rule pyFormatStr(tupleVal(VS:ValItems)) => pyReprStr(tupleVal(VS))
+  rule pyFormatStr(({}):Val) => pyReprStr(({}):Val)
+  rule pyFormatStr(dictVal(DS:DictItems)) => pyReprStr(dictVal(DS))
+  rule pyFormatStr(set()) => pyReprStr(set())
+  rule pyFormatStr(setVal(VS:ValItems)) => pyReprStr(setVal(VS))
   rule pyReprStr(I:Int) => Int2String(I)
   rule pyReprStr(True) => "True"
   rule pyReprStr(False) => "False"
   rule pyReprStr(None) => "None"
   rule pyReprStr(Ellipsis) => "Ellipsis"
   rule pyReprStr(S:String) => "'" +String S +String "'"
+  rule pyReprStr([]) => "[]"
+  rule pyReprStr(listVal(VS:ValItems)) => "[" +String pyReprValItems(VS) +String "]"
+  rule pyReprStr(()) => "()"
+  rule pyReprStr(tupleVal(valItemsLast(V:Val))) => "(" +String pyReprStr(V) +String ",)"
+  rule pyReprStr(tupleVal(valItemsCons(V:Val, VS:ValItems))) =>
+    "(" +String pyReprStr(V) +String ", " +String pyReprValItems(VS) +String ")"
+  rule pyReprStr(({}):Val) => "{}"
+  rule pyReprStr(dictVal(DS:DictItems)) => "{" +String pyReprDictItems(DS) +String "}"
+  rule pyReprStr(set()) => "set()"
+  rule pyReprStr(setVal(VS:ValItems)) => "{" +String pyReprValItems(VS) +String "}"
+
+  rule pyReprValItems(valItemsLast(V:Val)) => pyReprStr(V)
+  rule pyReprValItems(valItemsCons(V:Val, VS:ValItems)) =>
+    pyReprStr(V) +String ", " +String pyReprValItems(VS)
+
+  rule pyReprDictItems(dictItemsLast(K:Val, V:Val)) =>
+    pyReprStr(K) +String ": " +String pyReprStr(V)
+  rule pyReprDictItems(dictItemsCons(K:Val, V:Val, DS:DictItems)) =>
+    pyReprStr(K) +String ": " +String pyReprStr(V) +String ", " +String pyReprDictItems(DS)
 
   rule isIntLike(_:Int) => true
   rule isIntLike(_:Float) => false

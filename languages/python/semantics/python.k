@@ -1228,6 +1228,7 @@ module PYTHON
                 | sumStartForbidden(Val) [function, symbol(sumStartForbidden)]
                 | sumAddSupported(Val, Val) [function, symbol(sumAddSupported)]
                 | matMulSupported(Val, Val) [function, symbol(matMulSupported)]
+                | absTypeErrorProfile(Val) [function, symbol(absTypeErrorProfile)]
                 | divmodSupported(Val, Val) [function, symbol(divmodSupported)]
                 | fStringFormatSupported(Val) [function, symbol(fStringFormatSupported)]
                 | pyFloatStringConversionSupported(Float) [function, symbol(pyFloatStringConversionSupported)]
@@ -2171,6 +2172,7 @@ module PYTHON
 
   rule isFloatLike(_:Float) => true
   rule isFloatLike(V:Val) => isIntLike(V) [owise]
+  rule absTypeErrorProfile(V:Val) => notBool isComplexLike(V)
   rule divmodSupported(V1:Val, V2:Val) => isFloatLike(V1) andBool isFloatLike(V2)
 
   rule validIntBase(B:Int) => B >=Int 2 andBool B <=Int 36
@@ -12113,6 +12115,10 @@ module PYTHON
     requires F <Float 0.0
   rule #abs(F:Float) => F
     requires F >=Float 0.0
+  rule <k> #abs(V:Val) =>
+           exceptionSignal(#exception(#token("TypeError", "Id")))
+       ... </k>
+    requires absTypeErrorProfile(V)
   rule #divmod(V1:Val, V2:Val) =>
     tupleVal(valItemsCons(pyFloorDiv(intValue(V1), intValue(V2)), valItemsLast(pyModulo(intValue(V1), intValue(V2)))))
     requires isIntLike(V1) andBool isIntLike(V2) andBool intValue(V2) =/=Int 0

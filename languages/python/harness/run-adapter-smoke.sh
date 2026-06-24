@@ -174,6 +174,7 @@ run_case "adapter-float-bytes-constructor" "$ROOT/tests/adapter/adapter-float-by
 run_case "adapter-numeric-string-spaces" "$ROOT/tests/adapter/adapter-numeric-string-spaces.py" "True ~> .K"
 run_case "adapter-numeric-string-nonspace-whitespace" "$ROOT/tests/adapter/adapter-numeric-string-nonspace-whitespace.py" "True ~> .K"
 run_case "adapter-abs-int" "$ROOT/tests/adapter/adapter-abs-int.py" "True ~> .K"
+run_case "adapter-abs-type-errors" "$ROOT/tests/adapter/adapter-abs-type-errors.py" "True ~> .K"
 run_case "adapter-divmod-int" "$ROOT/tests/adapter/adapter-divmod-int.py" "True ~> .K"
 run_case "adapter-division-zero-diagnostics" "$ROOT/tests/adapter/adapter-division-zero-diagnostics.py" "True ~> .K"
 run_case "adapter-divmod-type-errors" "$ROOT/tests/adapter/adapter-divmod-type-errors.py" "True ~> .K"

@@ -767,6 +767,13 @@
       "coverage": ["abs-builtin", "integer-absolute-value", "bool-as-int-absolute-value", "ordinary-python-source-adapter"]
     },
     {
+      "id": "adapter-abs-type-errors",
+      "source": "../adapter/adapter-abs-type-errors.py",
+      "reference": "Python Standard Library Built-in Functions abs",
+      "expected_result": "True ~> .K",
+      "coverage": ["abs-builtin", "unsupported-operands", "type-error", "ordinary-python-source-adapter"]
+    },
+    {
       "id": "adapter-divmod-int",
       "source": "../adapter/adapter-divmod-int.py",
       "reference": "Python Standard Library Built-in Functions divmod; Python Language Reference floor division and modulo",

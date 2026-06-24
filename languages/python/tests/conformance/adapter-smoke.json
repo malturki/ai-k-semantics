@@ -802,6 +802,13 @@
       "coverage": ["pow-builtin", "power-operator", "zero-base-negative-exponent", "modular-exponentiation", "non-invertible-modular-power", "zero-modulus", "zero-division-error", "value-error", "bool-as-int-power", "complex-values", "ordinary-python-source-adapter"]
     },
     {
+      "id": "adapter-round-int-builtin",
+      "source": "../adapter/adapter-round-int-builtin.py",
+      "reference": "Python Standard Library Built-in Functions round; CPython Lib/test/test_builtin.py test_round integer cases",
+      "expected_result": "True ~> .K",
+      "coverage": ["round-builtin", "int-like-argument", "ndigits", "negative-ndigits", "none-ndigits", "half-even-rounding", "ordinary-python-source-adapter"]
+    },
+    {
       "id": "adapter-int-string-constructor",
       "source": "../adapter/adapter-int-string-constructor.py",
       "reference": "Python Standard Library Built-in Types int; Python Standard Library Built-in Functions int",

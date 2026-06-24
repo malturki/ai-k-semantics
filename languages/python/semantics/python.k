@@ -445,6 +445,8 @@ module PYTHON-SYNTAX
                | "#divmod" "(" Exp "," Exp ")" [symbol(divmodExp), strict]
                | "#pow" "(" Exp "," Exp ")" [symbol(powBuiltinExp), strict]
                | "#pow" "(" Exp "," Exp "," Exp ")" [symbol(powModBuiltinExp), strict]
+               | "#round" "(" Exp ")" [symbol(round1Exp)]
+               | "#round" "(" Exp "," Exp ")" [symbol(round2Exp)]
                | "#compareChain" "(" Exp "," CmpChain ")" [symbol(compareChainExp)]
                | "#len" "(" Exp ")" [symbol(lenExp), strict]
                | "#floorDiv" "(" Exp "," Exp ")" [symbol(floorDivInternal), strict]
@@ -642,6 +644,9 @@ module PYTHON
                  | formatDefault() [symbol(formatDefault)]
                  | formatSpec(Exp) [symbol(formatSpec)]
                  | formatApply(Val) [symbol(formatApply)]
+                 | roundDefault() [symbol(roundDefault)]
+                 | roundNdigits(Exp) [symbol(roundNdigits)]
+                 | roundApply(Val) [symbol(roundApply)]
                  | callArgs(ArgExps) [symbol(callArgs)]
                  | evalArgs(ArgExps, ArgVals) [symbol(evalArgs)]
                  | evalArgNext(ArgExps, ArgVals) [symbol(evalArgNext)]
@@ -1404,6 +1409,9 @@ module PYTHON
                | intPrefixedStringValue(String, Int) [function, symbol(intPrefixedStringValue)]
                | intBase0StringValue(String) [function, symbol(intBase0StringValue)]
                | intAbs(Int) [function, symbol(intAbs)]
+               | roundInt(Int, Int) [function, symbol(roundInt)]
+               | roundIntNeg(Int, Int) [function, symbol(roundIntNeg)]
+               | roundIntAbs(Int, Int) [function, symbol(roundIntAbs)]
                | pyGcd(Int, Int) [function, symbol(pyGcd)]
                | pyExtendedGcdX(Int, Int) [function, symbol(pyExtendedGcdX)]
                | pyExtendedGcdY(Int, Int) [function, symbol(pyExtendedGcdY)]
@@ -3086,6 +3094,29 @@ module PYTHON
     requires I <Int 0
   rule intAbs(I:Int) => I
     requires I >=Int 0
+
+  rule roundInt(N:Int, D:Int) => N
+    requires D >=Int 0
+  rule roundInt(N:Int, D:Int) => roundIntNeg(N, 10 ^Int (0 -Int D))
+    requires D <Int 0
+
+  rule roundIntNeg(N:Int, Factor:Int) => roundIntAbs(N, Factor)
+    requires N >=Int 0 andBool Factor >Int 0
+  rule roundIntNeg(N:Int, Factor:Int) => 0 -Int roundIntAbs(0 -Int N, Factor)
+    requires N <Int 0 andBool Factor >Int 0
+
+  rule roundIntAbs(N:Int, Factor:Int) => (N /Int Factor) *Int Factor
+    requires Factor >Int 0 andBool (2 *Int (N %Int Factor)) <Int Factor
+  rule roundIntAbs(N:Int, Factor:Int) => ((N /Int Factor) +Int 1) *Int Factor
+    requires Factor >Int 0 andBool (2 *Int (N %Int Factor)) >Int Factor
+  rule roundIntAbs(N:Int, Factor:Int) => (N /Int Factor) *Int Factor
+    requires Factor >Int 0
+      andBool (2 *Int (N %Int Factor)) ==Int Factor
+      andBool ((N /Int Factor) %Int 2) ==Int 0
+  rule roundIntAbs(N:Int, Factor:Int) => ((N /Int Factor) +Int 1) *Int Factor
+    requires Factor >Int 0
+      andBool (2 *Int (N %Int Factor)) ==Int Factor
+      andBool ((N /Int Factor) %Int 2) =/=Int 0
 
   rule pyGcd(A:Int, B:Int) => pyGcd(intAbs(A), intAbs(B))
     requires A <Int 0 orBool B <Int 0
@@ -12013,6 +12044,22 @@ module PYTHON
       andBool intValue(V2) <Int 0
       andBool intValue(V3) =/=Int 0
       andBool pyGcd(pyModulo(intValue(V1), intAbs(intValue(V3))), intAbs(intValue(V3))) ==Int 1
+  rule <k> #round(Obj:Exp) => Obj ~> roundDefault() ... </k>
+  rule <k> V:Val ~> roundDefault() => intValue(V) ... </k>
+    requires isIntLike(V)
+  rule <k> V:Val ~> roundDefault()
+        => exceptionSignal(#exception(#token("TypeError", "Id"))) ... </k>
+    requires notBool isIntLike(V)
+  rule <k> #round(Obj:Exp, Ndigits:Exp) => Obj ~> roundNdigits(Ndigits) ... </k>
+  rule <k> V:Val ~> roundNdigits(Ndigits:Exp) => Ndigits ~> roundApply(V) ... </k>
+  rule <k> None ~> roundApply(V:Val) => intValue(V) ... </k>
+    requires isIntLike(V)
+  rule <k> D:Val ~> roundApply(V:Val) => roundInt(intValue(V), intValue(D)) ... </k>
+    requires isIntLike(V) andBool isIntLike(D)
+  rule <k> D:Val ~> roundApply(V:Val)
+        => exceptionSignal(#exception(#token("TypeError", "Id"))) ... </k>
+    requires notBool isIntLike(V)
+      orBool (notBool isIntLike(D) andBool notBool valEq(D, None))
   rule <k> #pow(V1:Val, V2:Val) =>
            exceptionSignal(#exception(#token("ZeroDivisionError", "Id")))
        ... </k>
@@ -15535,6 +15582,9 @@ module PYTHON
   rule <k> exceptionSignal(V:Val) ~> formatDefault() => exceptionSignal(V) ... </k>
   rule <k> exceptionSignal(V:Val) ~> formatSpec(_:Exp) => exceptionSignal(V) ... </k>
   rule <k> exceptionSignal(V:Val) ~> formatApply(_:Val) => exceptionSignal(V) ... </k>
+  rule <k> exceptionSignal(V:Val) ~> roundDefault() => exceptionSignal(V) ... </k>
+  rule <k> exceptionSignal(V:Val) ~> roundNdigits(_:Exp) => exceptionSignal(V) ... </k>
+  rule <k> exceptionSignal(V:Val) ~> roundApply(_:Val) => exceptionSignal(V) ... </k>
   rule <k> exceptionSignal(V:Val) ~> callKwArgs(_:KwArgExps) => exceptionSignal(V) ... </k>
   rule <k> exceptionSignal(V:Val) ~> evalKwArgNext(_:Id, _:KwArgExps, _:KwArgVals) => exceptionSignal(V) ... </k>
   rule <k> exceptionSignal(V:Val) ~> evalKwStarArgNext(_:KwArgExps, _:KwArgVals) => exceptionSignal(V) ... </k>

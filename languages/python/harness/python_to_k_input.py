@@ -426,6 +426,10 @@ def emit_exp(exp: ast.expr) -> str:
             return f"#pow({emit_exp(base)}, {emit_exp(exponent)})"
         case ast.Call(func=ast.Name(id="pow"), args=[base, exponent, modulus], keywords=[]):
             return f"#pow({emit_exp(base)}, {emit_exp(exponent)}, {emit_exp(modulus)})"
+        case ast.Call(func=ast.Name(id="round"), args=[number], keywords=[]):
+            return f"#round({emit_exp(number)})"
+        case ast.Call(func=ast.Name(id="round"), args=[number, ndigits], keywords=[]):
+            return f"#round({emit_exp(number)}, {emit_exp(ndigits)})"
         case ast.Call(func=func, args=[], keywords=keywords) if keywords:
             return f"#callKw({emit_exp(func)}, {emit_kw_arg_exps(exp, keywords)})"
         case ast.Call(func=func, args=args, keywords=keywords) if args and keywords:

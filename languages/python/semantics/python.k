@@ -1240,6 +1240,7 @@ module PYTHON
                 | concreteIterableExtraNonEmpty(Val) [function, symbol(concreteIterableExtraNonEmpty)]
                 | concreteIterableExtraEmpty(Val) [function, symbol(concreteIterableExtraEmpty)]
                 | bytesCtorSourceSupported(Val) [function, symbol(bytesCtorSourceSupported)]
+                | lenSupported(Val) [function, symbol(lenSupported)]
                 | sliceStepAssignRhsSupported(Val) [function, symbol(sliceStepAssignRhsSupported)]
                 | unpackValueSupported(Val) [function, symbol(unpackValueSupported)]
                 | subscriptIndexInBounds(Val, Int) [function, symbol(subscriptIndexInBounds)]
@@ -2945,6 +2946,21 @@ module PYTHON
     requires Start >=Int Stop
   rule pyLen(rangeVal(Start:Int, Stop:Int, Step:Int)) => pyRangeLen(Start, Stop, Step)
     requires Step =/=Int 0
+
+  rule lenSupported(_:String) => true
+  rule lenSupported(#bytes()) => true
+  rule lenSupported(bytesVal(_:ValItems)) => true
+  rule lenSupported([]) => true
+  rule lenSupported(listVal(_:ValItems)) => true
+  rule lenSupported(()) => true
+  rule lenSupported(tupleVal(_:ValItems)) => true
+  rule lenSupported({}) => true
+  rule lenSupported(dictVal(_:DictItems)) => true
+  rule lenSupported(set()) => true
+  rule lenSupported(setVal(_:ValItems)) => true
+  rule lenSupported(rangeVal(_:Int, _:Int)) => true
+  rule lenSupported(rangeVal(_:Int, _:Int, Step:Int)) => Step =/=Int 0
+  rule lenSupported(_:Val) => false [owise]
 
   rule pyRangeLen(Start:Int, Stop:Int, Step:Int) => ((Stop -Int Start -Int 1) /Int Step) +Int 1
     requires Step >Int 0 andBool Start <Int Stop
@@ -6296,6 +6312,9 @@ module PYTHON
     requires notBool isTupleSequence(V)
       andBool notBool isConcreteSequenceVal(V)
   rule lenExp(V:Val) => pyLen(V)
+    requires lenSupported(V)
+  rule <k> lenExp(V:Val) => exceptionSignal(#exception(#token("TypeError", "Id"))) ... </k>
+    requires notBool lenSupported(V)
   rule sliceExp(S:String, Lower:Val, Upper:Val) =>
     sliceString(S, pySliceLower(Lower, lengthString(S)), pySliceUpper(Upper, lengthString(S)))
   rule sliceExp(#bytes(), _Lower:Val, _Upper:Val) => #bytes()

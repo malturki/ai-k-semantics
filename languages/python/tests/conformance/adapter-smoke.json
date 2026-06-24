@@ -1887,6 +1887,13 @@
       "coverage": ["len-builtin", "list-length", "tuple-length", "dict-length", "set-length", "ordinary-python-source-adapter"]
     },
     {
+      "id": "adapter-len-type-errors",
+      "source": "../adapter/adapter-len-type-errors.py",
+      "reference": "Python Standard Library Built-in Functions len(); CPython Lib/test/test_builtin.py test_len",
+      "expected_result": "True ~> .K",
+      "coverage": ["len-builtin", "unsupported-len-type-error", "ordinary-python-source-adapter"]
+    },
+    {
       "id": "adapter-empty-container-constructors",
       "source": "../adapter/adapter-empty-container-constructors.py",
       "reference": "Python Standard Library Built-in Types list, tuple, dict, and set constructors",

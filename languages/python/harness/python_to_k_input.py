@@ -314,6 +314,12 @@ def emit_exp(exp: ast.expr) -> str:
             return f"#chr({emit_exp(arg)})"
         case ast.Call(func=ast.Name(id="ord"), args=[arg], keywords=[]):
             return f"#ord({emit_exp(arg)})"
+        case ast.Call(func=ast.Name(id="bin"), args=[arg], keywords=[]):
+            return f"#bin({emit_exp(arg)})"
+        case ast.Call(func=ast.Name(id="oct"), args=[arg], keywords=[]):
+            return f"#oct({emit_exp(arg)})"
+        case ast.Call(func=ast.Name(id="hex"), args=[arg], keywords=[]):
+            return f"#hex({emit_exp(arg)})"
         case ast.Call(func=ast.Name(id="all"), args=[arg], keywords=[]):
             return f"#all({emit_exp(arg)})"
         case ast.Call(func=ast.Name(id="any"), args=[arg], keywords=[]):

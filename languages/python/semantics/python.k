@@ -390,6 +390,9 @@ module PYTHON-SYNTAX
                | "#ascii" "(" Exp ")" [symbol(asciiExp), strict]
                | "#chr" "(" Exp ")" [symbol(chrExp), strict]
                | "#ord" "(" Exp ")" [symbol(ordExp), strict]
+               | "#bin" "(" Exp ")" [symbol(binExp), strict]
+               | "#oct" "(" Exp ")" [symbol(octExp), strict]
+               | "#hex" "(" Exp ")" [symbol(hexExp), strict]
                | "#all" "(" Exp ")" [symbol(allExp), strict]
                | "#any" "(" Exp ")" [symbol(anyExp), strict]
                | "#sum" "(" Exp ")" [symbol(sum1Exp), strict]
@@ -1459,6 +1462,8 @@ module PYTHON
                   | bytesReprByte(Val, Int) [function, symbol(bytesReprByte)]
                   | byteHex(Int) [function, symbol(byteHex)]
                   | byteHexDigit(Int) [function, symbol(byteHexDigit)]
+                  | pyIntBaseString(Int, Int, String) [function, symbol(pyIntBaseString)]
+                  | intBaseDigits(Int, Int) [function, symbol(intBaseDigits)]
                   | pyFloatReprStr(Float) [function, symbol(pyFloatReprStr)]
                   | pyFormatStr(Val) [function, symbol(pyFormatStr)]
                   | pyReprStr(Val) [function, symbol(pyReprStr)]
@@ -1939,6 +1944,18 @@ module PYTHON
   rule byteHexDigit(13) => "d"
   rule byteHexDigit(14) => "e"
   rule byteHexDigit(15) => "f"
+
+  rule pyIntBaseString(0, _Base:Int, Prefix:String) => Prefix +String "0"
+  rule pyIntBaseString(I:Int, Base:Int, Prefix:String) => Prefix +String intBaseDigits(I, Base)
+    requires I >Int 0
+  rule pyIntBaseString(I:Int, Base:Int, Prefix:String) => "-" +String Prefix +String intBaseDigits(0 -Int I, Base)
+    requires I <Int 0
+
+  rule intBaseDigits(I:Int, Base:Int) => byteHexDigit(I)
+    requires I >=Int 0 andBool I <Int Base andBool Base >=Int 2 andBool Base <=Int 16
+  rule intBaseDigits(I:Int, Base:Int) =>
+    intBaseDigits(I /Int Base, Base) +String byteHexDigit(I %Int Base)
+    requires I >=Int Base andBool Base >=Int 2 andBool Base <=Int 16
 
   rule isIntLike(_:Int) => true
   rule isIntLike(_:Float) => false
@@ -11044,6 +11061,12 @@ module PYTHON
     requires lengthString(S) ==Int 1
   rule #ord(bytesVal(valItemsLast(V:Val))) => intValue(V)
     requires isIntLike(V) andBool intValue(V) >=Int 0 andBool intValue(V) <=Int 255
+  rule #bin(V:Val) => pyIntBaseString(intValue(V), 2, "0b")
+    requires isIntLike(V)
+  rule #oct(V:Val) => pyIntBaseString(intValue(V), 8, "0o")
+    requires isIntLike(V)
+  rule #hex(V:Val) => pyIntBaseString(intValue(V), 16, "0x")
+    requires isIntLike(V)
   rule <k> #strCtor(V:Val) => exceptionSignal(#exception(#token("TypeError", "Id"))) ... </k>
     requires notBool pyStringConversionSupported(V)
   rule <k> #repr(V:Val) => exceptionSignal(#exception(#token("TypeError", "Id"))) ... </k>
@@ -11063,6 +11086,12 @@ module PYTHON
     requires valItemsLen(VS) =/=Int 1 orBool notBool valItemsAllByteInts(VS)
   rule <k> #ord(V:Val) => exceptionSignal(#exception(#token("TypeError", "Id"))) ... </k>
     requires notBool isStringVal(V) andBool notBool isBytesSequence(V)
+  rule <k> #bin(V:Val) => exceptionSignal(#exception(#token("TypeError", "Id"))) ... </k>
+    requires notBool isIntLike(V)
+  rule <k> #oct(V:Val) => exceptionSignal(#exception(#token("TypeError", "Id"))) ... </k>
+    requires notBool isIntLike(V)
+  rule <k> #hex(V:Val) => exceptionSignal(#exception(#token("TypeError", "Id"))) ... </k>
+    requires notBool isIntLike(V)
   rule #all([]) => True
   rule #all(listVal(VS:ValItems)) => boolValue(allValItems(VS))
   rule #all(()) => True

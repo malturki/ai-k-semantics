@@ -1198,6 +1198,7 @@ module PYTHON
                 | pyStringConversionSupported(Val) [function, symbol(pyStringConversionSupported)]
                 | pyStringConversionItemsSupported(ValItems) [function, symbol(pyStringConversionItemsSupported)]
                 | pyStringConversionDictItemsSupported(DictItems) [function, symbol(pyStringConversionDictItemsSupported)]
+                | bytesContainsByte(ValItems, Int) [function, symbol(bytesContainsByte)]
                 | zeroNumeric(Val) [function, symbol(zeroNumeric)]
                 | seqOrderComparable(Val, Val) [function, symbol(seqOrderComparable)]
                 | orderComparable(Val, Val) [function, symbol(orderComparable)]
@@ -1416,6 +1417,7 @@ module PYTHON
                | maxArgVals(ArgVals) [function, symbol(maxArgVals)]
                | rangeMin(Int, Int, Int) [function, symbol(rangeMin)]
                | rangeMax(Int, Int, Int) [function, symbol(rangeMax)]
+               | bytesReprQuoteByte(ValItems) [function, symbol(bytesReprQuoteByte)]
   syntax IdItems ::= concatIdItems(IdItems, IdItems) [function, symbol(concatIdItems)]
   syntax Float ::= floatValue(Val) [function, symbol(floatValue)]
                  | floatMantissaStringValue(String) [function, symbol(floatMantissaStringValue)]
@@ -1444,6 +1446,11 @@ module PYTHON
                   | lstripPythonStringSpace(String) [function, symbol(lstripPythonStringSpace)]
                   | rstripPythonStringSpace(String) [function, symbol(rstripPythonStringSpace)]
                   | bytesAsciiString(ValItems) [function, symbol(bytesAsciiString)]
+                  | bytesReprQuoteChar(Int) [function, symbol(bytesReprQuoteChar)]
+                  | bytesReprPayload(ValItems, Int) [function, symbol(bytesReprPayload)]
+                  | bytesReprByte(Val, Int) [function, symbol(bytesReprByte)]
+                  | byteHex(Int) [function, symbol(byteHex)]
+                  | byteHexDigit(Int) [function, symbol(byteHexDigit)]
                   | pyFormatStr(Val) [function, symbol(pyFormatStr)]
                   | pyReprStr(Val) [function, symbol(pyReprStr)]
                   | pyReprValItems(ValItems) [function, symbol(pyReprValItems)]
@@ -1694,6 +1701,8 @@ module PYTHON
   rule fStringFormatSupported(None) => true
   rule fStringFormatSupported(Ellipsis) => true
   rule fStringFormatSupported(_:String) => true
+  rule fStringFormatSupported(#bytes()) => true
+  rule fStringFormatSupported(bytesVal(VS:ValItems)) => valItemsAllByteInts(VS)
   rule fStringFormatSupported(_:Val) => false [owise]
 
   rule pyStringConversionSupported(_:Int) => true
@@ -1702,6 +1711,8 @@ module PYTHON
   rule pyStringConversionSupported(None) => true
   rule pyStringConversionSupported(Ellipsis) => true
   rule pyStringConversionSupported(_:String) => true
+  rule pyStringConversionSupported(#bytes()) => true
+  rule pyStringConversionSupported(bytesVal(VS:ValItems)) => valItemsAllByteInts(VS)
   rule pyStringConversionSupported([]) => true
   rule pyStringConversionSupported(listVal(VS:ValItems)) => pyStringConversionItemsSupported(VS)
   rule pyStringConversionSupported(()) => true
@@ -1736,6 +1747,8 @@ module PYTHON
   rule pyFormatStr(None) => "None"
   rule pyFormatStr(Ellipsis) => "Ellipsis"
   rule pyFormatStr(S:String) => S
+  rule pyFormatStr(#bytes()) => pyReprStr(#bytes())
+  rule pyFormatStr(bytesVal(VS:ValItems)) => pyReprStr(bytesVal(VS))
   rule pyFormatStr([]) => pyReprStr([])
   rule pyFormatStr(listVal(VS:ValItems)) => pyReprStr(listVal(VS))
   rule pyFormatStr(()) => pyReprStr(())
@@ -1753,6 +1766,11 @@ module PYTHON
   rule pyReprStr(None) => "None"
   rule pyReprStr(Ellipsis) => "Ellipsis"
   rule pyReprStr(S:String) => "'" +String S +String "'"
+  rule pyReprStr(#bytes()) => "b''"
+  rule pyReprStr(bytesVal(VS:ValItems)) =>
+    "b" +String bytesReprQuoteChar(bytesReprQuoteByte(VS))
+      +String bytesReprPayload(VS, bytesReprQuoteByte(VS))
+      +String bytesReprQuoteChar(bytesReprQuoteByte(VS))
   rule pyReprStr([]) => "[]"
   rule pyReprStr(listVal(VS:ValItems)) => "[" +String pyReprValItems(VS) +String "]"
   rule pyReprStr(()) => "()"
@@ -1782,6 +1800,63 @@ module PYTHON
     pyReprStr(K) +String ": " +String pyReprStr(V)
   rule pyReprDictItems(dictItemsCons(K:Val, V:Val, DS:DictItems)) =>
     pyReprStr(K) +String ": " +String pyReprStr(V) +String ", " +String pyReprDictItems(DS)
+
+  rule bytesContainsByte(valItemsLast(V:Val), B:Int) => intValue(V) ==Int B
+    requires isIntLike(V) andBool intValue(V) >=Int 0 andBool intValue(V) <=Int 255
+  rule bytesContainsByte(valItemsCons(V:Val, VS:ValItems), B:Int) =>
+    intValue(V) ==Int B orBool bytesContainsByte(VS, B)
+    requires isIntLike(V)
+      andBool intValue(V) >=Int 0
+      andBool intValue(V) <=Int 255
+      andBool valItemsAllByteInts(VS)
+
+  rule bytesReprQuoteByte(VS:ValItems) => 34
+    requires bytesContainsByte(VS, 39) andBool notBool bytesContainsByte(VS, 34)
+  rule bytesReprQuoteByte(VS:ValItems) => 39
+    requires notBool (bytesContainsByte(VS, 39) andBool notBool bytesContainsByte(VS, 34))
+
+  rule bytesReprQuoteChar(Q:Int) => chrChar(Q)
+    requires Q ==Int 34 orBool Q ==Int 39
+
+  rule bytesReprPayload(valItemsLast(V:Val), Quote:Int) => bytesReprByte(V, Quote)
+  rule bytesReprPayload(valItemsCons(V:Val, VS:ValItems), Quote:Int) =>
+    bytesReprByte(V, Quote) +String bytesReprPayload(VS, Quote)
+
+  rule bytesReprByte(V:Val, _Quote:Int) => "\\t"
+    requires isIntLike(V) andBool intValue(V) ==Int 9
+  rule bytesReprByte(V:Val, _Quote:Int) => "\\n"
+    requires isIntLike(V) andBool intValue(V) ==Int 10
+  rule bytesReprByte(V:Val, _Quote:Int) => "\\r"
+    requires isIntLike(V) andBool intValue(V) ==Int 13
+  rule bytesReprByte(V:Val, _Quote:Int) => "\\\\"
+    requires isIntLike(V) andBool intValue(V) ==Int 92
+  rule bytesReprByte(V:Val, Quote:Int) => "\\" +String bytesReprQuoteChar(Quote)
+    requires isIntLike(V) andBool intValue(V) ==Int Quote
+  rule bytesReprByte(V:Val, Quote:Int) => chrChar(intValue(V))
+    requires isIntLike(V)
+      andBool intValue(V) >=Int 32
+      andBool intValue(V) <=Int 126
+      andBool intValue(V) =/=Int 92
+      andBool intValue(V) =/=Int Quote
+  rule bytesReprByte(V:Val, _Quote:Int) => "\\" +String "x" +String byteHex(intValue(V))
+    requires isIntLike(V)
+      andBool intValue(V) >=Int 0
+      andBool intValue(V) <=Int 255
+      andBool (intValue(V) <Int 32 orBool intValue(V) >Int 126)
+      andBool intValue(V) =/=Int 9
+      andBool intValue(V) =/=Int 10
+      andBool intValue(V) =/=Int 13
+
+  rule byteHex(B:Int) => byteHexDigit(B /Int 16) +String byteHexDigit(B %Int 16)
+    requires B >=Int 0 andBool B <=Int 255
+  rule byteHexDigit(I:Int) => Int2String(I)
+    requires I >=Int 0 andBool I <=Int 9
+  rule byteHexDigit(10) => "a"
+  rule byteHexDigit(11) => "b"
+  rule byteHexDigit(12) => "c"
+  rule byteHexDigit(13) => "d"
+  rule byteHexDigit(14) => "e"
+  rule byteHexDigit(15) => "f"
 
   rule isIntLike(_:Int) => true
   rule isIntLike(_:Float) => false

@@ -1228,6 +1228,7 @@ module PYTHON
                 | sumStartForbidden(Val) [function, symbol(sumStartForbidden)]
                 | sumAddSupported(Val, Val) [function, symbol(sumAddSupported)]
                 | matMulSupported(Val, Val) [function, symbol(matMulSupported)]
+                | divmodSupported(Val, Val) [function, symbol(divmodSupported)]
                 | fStringFormatSupported(Val) [function, symbol(fStringFormatSupported)]
                 | pyFloatStringConversionSupported(Float) [function, symbol(pyFloatStringConversionSupported)]
                 | pyStringConversionSupported(Val) [function, symbol(pyStringConversionSupported)]
@@ -2170,6 +2171,7 @@ module PYTHON
 
   rule isFloatLike(_:Float) => true
   rule isFloatLike(V:Val) => isIntLike(V) [owise]
+  rule divmodSupported(V1:Val, V2:Val) => isFloatLike(V1) andBool isFloatLike(V2)
 
   rule validIntBase(B:Int) => B >=Int 2 andBool B <=Int 36
 
@@ -12129,6 +12131,10 @@ module PYTHON
     requires isFloatLike(V1)
       andBool isFloatLike(V2)
       andBool zeroNumeric(V2)
+  rule <k> #divmod(V1:Val, V2:Val) =>
+           exceptionSignal(#exception(#token("TypeError", "Id")))
+       ... </k>
+    requires notBool divmodSupported(V1, V2)
   rule #pow(V1:Val, V2:Val) => intValue(V1) ^Int intValue(V2)
     requires isIntLike(V1) andBool isIntLike(V2) andBool intValue(V2) >=Int 0
   rule #pow(V1:Val, V2:Val) => Int2Float(intValue(V1), 53, 11) ^Float Int2Float(intValue(V2), 53, 11)

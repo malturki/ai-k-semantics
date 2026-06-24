@@ -781,6 +781,13 @@
       "coverage": ["true-division", "floor-division", "modulo", "divmod-builtin", "zero-divisor", "zero-division-error", "bool-as-int-division", "complex-values", "ordinary-python-source-adapter"]
     },
     {
+      "id": "adapter-divmod-type-errors",
+      "source": "../adapter/adapter-divmod-type-errors.py",
+      "reference": "Python Standard Library Built-in Functions divmod",
+      "expected_result": "True ~> .K",
+      "coverage": ["divmod-builtin", "unsupported-operands", "type-error", "complex-values", "ordinary-python-source-adapter"]
+    },
+    {
       "id": "adapter-pow-int",
       "source": "../adapter/adapter-pow-int.py",
       "reference": "Python Standard Library Built-in Functions pow; Python Language Reference power operator",

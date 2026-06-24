@@ -312,6 +312,8 @@ def emit_exp(exp: ast.expr) -> str:
             return f"#ascii({emit_exp(arg)})"
         case ast.Call(func=ast.Name(id="chr"), args=[arg], keywords=[]):
             return f"#chr({emit_exp(arg)})"
+        case ast.Call(func=ast.Name(id="ord"), args=[arg], keywords=[]):
+            return f"#ord({emit_exp(arg)})"
         case ast.Call(func=ast.Name(id="all"), args=[arg], keywords=[]):
             return f"#all({emit_exp(arg)})"
         case ast.Call(func=ast.Name(id="any"), args=[arg], keywords=[]):

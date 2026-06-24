@@ -235,6 +235,13 @@
       "coverage": ["bytes-literal", "bytes-iteration-yields-int", "bytes-starred-display-unpacking", "bytes-all-any", "bytes-sum", "bytes-min-max", "ordinary-python-source-adapter"]
     },
     {
+      "id": "adapter-ord-builtin",
+      "source": "../adapter/adapter-ord-builtin.py",
+      "reference": "Python Standard Library Built-in Functions ord; CPython Lib/test/test_builtin.py test_ord",
+      "expected_result": "True ~> .K",
+      "coverage": ["ord-builtin", "byte-range-string-code-point", "bytes-single-byte-value", "type-error", "ordinary-python-source-adapter"]
+    },
+    {
       "id": "adapter-list-normal",
       "source": "../adapter/adapter-list-normal.py",
       "reference": "Python Language Reference 6.2.4 Displays for lists, sets and dictionaries; 6.3.2 Subscriptions",

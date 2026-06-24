@@ -389,6 +389,7 @@ module PYTHON-SYNTAX
                | "#repr" "(" Exp ")" [symbol(reprExp), strict]
                | "#ascii" "(" Exp ")" [symbol(asciiExp), strict]
                | "#chr" "(" Exp ")" [symbol(chrExp), strict]
+               | "#ord" "(" Exp ")" [symbol(ordExp), strict]
                | "#all" "(" Exp ")" [symbol(allExp), strict]
                | "#any" "(" Exp ")" [symbol(anyExp), strict]
                | "#sum" "(" Exp ")" [symbol(sum1Exp), strict]
@@ -11038,17 +11039,30 @@ module PYTHON
   rule #ascii(V:Val) => pyReprStr(V)
     requires pyStringConversionSupported(V)
   rule #chr(V:Val) => chrChar(intValue(V))
-    requires isIntLike(V) andBool intValue(V) >=Int 0 andBool intValue(V) <=Int 1114111
+    requires isIntLike(V) andBool intValue(V) >=Int 0 andBool intValue(V) <=Int 255
+  rule #ord(S:String) => ordChar(S)
+    requires lengthString(S) ==Int 1
+  rule #ord(bytesVal(valItemsLast(V:Val))) => intValue(V)
+    requires isIntLike(V) andBool intValue(V) >=Int 0 andBool intValue(V) <=Int 255
   rule <k> #strCtor(V:Val) => exceptionSignal(#exception(#token("TypeError", "Id"))) ... </k>
     requires notBool pyStringConversionSupported(V)
   rule <k> #repr(V:Val) => exceptionSignal(#exception(#token("TypeError", "Id"))) ... </k>
     requires notBool pyStringConversionSupported(V)
   rule <k> #ascii(V:Val) => exceptionSignal(#exception(#token("TypeError", "Id"))) ... </k>
     requires notBool pyStringConversionSupported(V)
+  rule <k> #chr(V:Val) => exceptionSignal(#exception(#token("NotImplementedError", "Id"))) ... </k>
+    requires isIntLike(V) andBool intValue(V) >Int 255 andBool intValue(V) <=Int 1114111
   rule <k> #chr(V:Val) => exceptionSignal(#exception(#token("ValueError", "Id"))) ... </k>
     requires isIntLike(V) andBool (intValue(V) <Int 0 orBool intValue(V) >Int 1114111)
   rule <k> #chr(V:Val) => exceptionSignal(#exception(#token("TypeError", "Id"))) ... </k>
     requires notBool isIntLike(V)
+  rule <k> #ord(S:String) => exceptionSignal(#exception(#token("TypeError", "Id"))) ... </k>
+    requires lengthString(S) =/=Int 1
+  rule <k> #ord(#bytes()) => exceptionSignal(#exception(#token("TypeError", "Id"))) ... </k>
+  rule <k> #ord(bytesVal(VS:ValItems)) => exceptionSignal(#exception(#token("TypeError", "Id"))) ... </k>
+    requires valItemsLen(VS) =/=Int 1 orBool notBool valItemsAllByteInts(VS)
+  rule <k> #ord(V:Val) => exceptionSignal(#exception(#token("TypeError", "Id"))) ... </k>
+    requires notBool isStringVal(V) andBool notBool isBytesSequence(V)
   rule #all([]) => True
   rule #all(listVal(VS:ValItems)) => boolValue(allValItems(VS))
   rule #all(()) => True

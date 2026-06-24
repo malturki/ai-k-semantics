@@ -1418,6 +1418,8 @@ module PYTHON
                | maxArgVals(ArgVals) [function, symbol(maxArgVals)]
                | rangeMin(Int, Int, Int) [function, symbol(rangeMin)]
                | rangeMax(Int, Int, Int) [function, symbol(rangeMax)]
+               | stringReprQuoteByte(String) [function, symbol(stringReprQuoteByte)]
+               | stringAsciiControlCode(String) [function, symbol(stringAsciiControlCode)]
                | bytesReprQuoteByte(ValItems) [function, symbol(bytesReprQuoteByte)]
   syntax IdItems ::= concatIdItems(IdItems, IdItems) [function, symbol(concatIdItems)]
   syntax Float ::= floatValue(Val) [function, symbol(floatValue)]
@@ -1447,6 +1449,9 @@ module PYTHON
                   | lstripPythonStringSpace(String) [function, symbol(lstripPythonStringSpace)]
                   | rstripPythonStringSpace(String) [function, symbol(rstripPythonStringSpace)]
                   | bytesAsciiString(ValItems) [function, symbol(bytesAsciiString)]
+                  | stringReprQuoteChar(Int) [function, symbol(stringReprQuoteChar)]
+                  | stringReprPayload(String, Int, Int) [function, symbol(stringReprPayload)]
+                  | stringReprChar(String, Int) [function, symbol(stringReprChar)]
                   | bytesReprQuoteChar(Int) [function, symbol(bytesReprQuoteChar)]
                   | bytesReprPayload(ValItems, Int) [function, symbol(bytesReprPayload)]
                   | bytesReprByte(Val, Int) [function, symbol(bytesReprByte)]
@@ -1764,7 +1769,10 @@ module PYTHON
   rule pyReprStr(None) => "None"
   rule pyReprStr(Ellipsis) => "Ellipsis"
   rule pyReprStr(F:Float) => pyFloatReprStr(F)
-  rule pyReprStr(S:String) => "'" +String S +String "'"
+  rule pyReprStr(S:String) =>
+    stringReprQuoteChar(stringReprQuoteByte(S))
+      +String stringReprPayload(S, stringReprQuoteByte(S), 0)
+      +String stringReprQuoteChar(stringReprQuoteByte(S))
   rule pyReprStr(#bytes()) => "b''"
   rule pyReprStr(bytesVal(VS:ValItems)) =>
     "b" +String bytesReprQuoteChar(bytesReprQuoteByte(VS))
@@ -1815,6 +1823,72 @@ module PYTHON
       andBool intValue(V) >=Int 0
       andBool intValue(V) <=Int 255
       andBool valItemsAllByteInts(VS)
+
+  rule stringReprQuoteByte(S:String) => 34
+    requires findString(S, chrChar(39), 0) >=Int 0 andBool findString(S, chrChar(34), 0) <Int 0
+  rule stringReprQuoteByte(S:String) => 39
+    requires notBool (findString(S, chrChar(39), 0) >=Int 0 andBool findString(S, chrChar(34), 0) <Int 0)
+
+  rule stringReprQuoteChar(Q:Int) => chrChar(Q)
+    requires Q ==Int 34 orBool Q ==Int 39
+
+  rule stringReprPayload(S:String, _Quote:Int, I:Int) => ""
+    requires I >=Int lengthString(S)
+  rule stringReprPayload(S:String, Quote:Int, I:Int) =>
+    stringReprChar(substrString(S, I, I +Int 1), Quote)
+      +String stringReprPayload(S, Quote, I +Int 1)
+    requires I <Int lengthString(S)
+
+  rule stringReprChar(C:String, _Quote:Int) => "\\t"
+    requires C ==String chrChar(9)
+  rule stringReprChar(C:String, _Quote:Int) => "\\n"
+    requires C ==String chrChar(10)
+  rule stringReprChar(C:String, _Quote:Int) => "\\r"
+    requires C ==String chrChar(13)
+  rule stringReprChar(C:String, _Quote:Int) => "\\\\"
+    requires C ==String chrChar(92)
+  rule stringReprChar(C:String, Quote:Int) => "\\" +String stringReprQuoteChar(Quote)
+    requires C ==String stringReprQuoteChar(Quote)
+  rule stringReprChar(C:String, _Quote:Int) => "\\" +String "x" +String byteHex(stringAsciiControlCode(C))
+    requires (C <String chrChar(32) orBool C ==String chrChar(127))
+      andBool C =/=String chrChar(9)
+      andBool C =/=String chrChar(10)
+      andBool C =/=String chrChar(13)
+  rule stringReprChar(C:String, Quote:Int) => C
+    requires notBool ((C <String chrChar(32) orBool C ==String chrChar(127))
+      orBool C ==String chrChar(92)
+      orBool C ==String stringReprQuoteChar(Quote))
+
+  rule stringAsciiControlCode(C:String) => 0 requires C ==String chrChar(0)
+  rule stringAsciiControlCode(C:String) => 1 requires C ==String chrChar(1)
+  rule stringAsciiControlCode(C:String) => 2 requires C ==String chrChar(2)
+  rule stringAsciiControlCode(C:String) => 3 requires C ==String chrChar(3)
+  rule stringAsciiControlCode(C:String) => 4 requires C ==String chrChar(4)
+  rule stringAsciiControlCode(C:String) => 5 requires C ==String chrChar(5)
+  rule stringAsciiControlCode(C:String) => 6 requires C ==String chrChar(6)
+  rule stringAsciiControlCode(C:String) => 7 requires C ==String chrChar(7)
+  rule stringAsciiControlCode(C:String) => 8 requires C ==String chrChar(8)
+  rule stringAsciiControlCode(C:String) => 11 requires C ==String chrChar(11)
+  rule stringAsciiControlCode(C:String) => 12 requires C ==String chrChar(12)
+  rule stringAsciiControlCode(C:String) => 14 requires C ==String chrChar(14)
+  rule stringAsciiControlCode(C:String) => 15 requires C ==String chrChar(15)
+  rule stringAsciiControlCode(C:String) => 16 requires C ==String chrChar(16)
+  rule stringAsciiControlCode(C:String) => 17 requires C ==String chrChar(17)
+  rule stringAsciiControlCode(C:String) => 18 requires C ==String chrChar(18)
+  rule stringAsciiControlCode(C:String) => 19 requires C ==String chrChar(19)
+  rule stringAsciiControlCode(C:String) => 20 requires C ==String chrChar(20)
+  rule stringAsciiControlCode(C:String) => 21 requires C ==String chrChar(21)
+  rule stringAsciiControlCode(C:String) => 22 requires C ==String chrChar(22)
+  rule stringAsciiControlCode(C:String) => 23 requires C ==String chrChar(23)
+  rule stringAsciiControlCode(C:String) => 24 requires C ==String chrChar(24)
+  rule stringAsciiControlCode(C:String) => 25 requires C ==String chrChar(25)
+  rule stringAsciiControlCode(C:String) => 26 requires C ==String chrChar(26)
+  rule stringAsciiControlCode(C:String) => 27 requires C ==String chrChar(27)
+  rule stringAsciiControlCode(C:String) => 28 requires C ==String chrChar(28)
+  rule stringAsciiControlCode(C:String) => 29 requires C ==String chrChar(29)
+  rule stringAsciiControlCode(C:String) => 30 requires C ==String chrChar(30)
+  rule stringAsciiControlCode(C:String) => 31 requires C ==String chrChar(31)
+  rule stringAsciiControlCode(C:String) => 127 requires C ==String chrChar(127)
 
   rule bytesReprQuoteByte(VS:ValItems) => 34
     requires bytesContainsByte(VS, 39) andBool notBool bytesContainsByte(VS, 34)

@@ -1474,6 +1474,7 @@ module PYTHON
                  | floatScale10(Float, Int) [function, symbol(floatScale10)]
                  | complexReal(Val) [function, symbol(complexReal)]
                  | complexImag(Val) [function, symbol(complexImag)]
+                 | complexAbsFinite(Float, Float) [function, symbol(complexAbsFinite)]
                  | pyFloatFloorDiv(Float, Float) [function, symbol(pyFloatFloorDiv)]
                  | pyFloatModulo(Float, Float) [function, symbol(pyFloatModulo)]
   syntax String ::= repeatString(String, Int) [function, symbol(repeatString)]
@@ -3168,6 +3169,7 @@ module PYTHON
 
   rule pyFloatModulo(F1:Float, F2:Float) => F1 -Float (F2 *Float pyFloatFloorDiv(F1, F2))
     requires F2 =/=Float 0.0
+  rule complexAbsFinite(R:Float, I:Float) => ((R *Float R) +Float (I *Float I)) ^Float 0.5
 
   rule boolValue(true) => True
   rule boolValue(false) => False
@@ -12119,6 +12121,14 @@ module PYTHON
     requires F >Float 0.0
   rule #abs(F:Float) => F
     requires isNaN(F)
+  rule #abs(#complex(R:Float, I:Float)) => complexAbsFinite(R, I)
+    requires notBool isInfinite(R)
+      andBool notBool isInfinite(I)
+      andBool notBool isNaN(R)
+      andBool notBool isNaN(I)
+      andBool notBool isInfinite(R *Float R)
+      andBool notBool isInfinite(I *Float I)
+      andBool notBool isInfinite((R *Float R) +Float (I *Float I))
   rule <k> #abs(V:Val) =>
            exceptionSignal(#exception(#token("TypeError", "Id")))
        ... </k>

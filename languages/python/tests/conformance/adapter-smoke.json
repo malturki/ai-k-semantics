@@ -767,6 +767,13 @@
       "coverage": ["abs-builtin", "integer-absolute-value", "bool-as-int-absolute-value", "ordinary-python-source-adapter"]
     },
     {
+      "id": "adapter-abs-complex-finite",
+      "source": "../adapter/adapter-abs-complex-finite.py",
+      "reference": "Python Standard Library Built-in Functions abs",
+      "expected_result": "True ~> .K",
+      "coverage": ["abs-builtin", "complex-magnitude", "finite-complex-values", "ordinary-python-source-adapter"]
+    },
+    {
       "id": "adapter-abs-special-floats",
       "source": "../adapter/adapter-abs-special-floats.py",
       "reference": "Python Standard Library Built-in Functions abs",

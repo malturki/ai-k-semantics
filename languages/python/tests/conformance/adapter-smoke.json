@@ -249,6 +249,13 @@
       "coverage": ["bin-builtin", "oct-builtin", "hex-builtin", "int-like-argument", "bool-as-int", "signed-base-prefix", "large-int", "type-error", "ordinary-python-source-adapter"]
     },
     {
+      "id": "adapter-callable-builtin",
+      "source": "../adapter/adapter-callable-builtin.py",
+      "reference": "Python Standard Library Built-in Functions callable; CPython Lib/test/test_builtin.py test_callable",
+      "expected_result": "True ~> .K",
+      "coverage": ["callable-builtin", "function-value", "lambda-value", "non-callable-values", "ordinary-python-source-adapter"]
+    },
+    {
       "id": "adapter-list-normal",
       "source": "../adapter/adapter-list-normal.py",
       "reference": "Python Language Reference 6.2.4 Displays for lists, sets and dictionaries; 6.3.2 Subscriptions",

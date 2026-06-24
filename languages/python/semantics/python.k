@@ -393,6 +393,7 @@ module PYTHON-SYNTAX
                | "#bin" "(" Exp ")" [symbol(binExp), strict]
                | "#oct" "(" Exp ")" [symbol(octExp), strict]
                | "#hex" "(" Exp ")" [symbol(hexExp), strict]
+               | "#callable" "(" Exp ")" [symbol(callableExp), strict]
                | "#all" "(" Exp ")" [symbol(allExp), strict]
                | "#any" "(" Exp ")" [symbol(anyExp), strict]
                | "#sum" "(" Exp ")" [symbol(sum1Exp), strict]
@@ -1162,6 +1163,7 @@ module PYTHON
                  | delSliceStepApply(Id, Val, Val) [symbol(delSliceStepApply)]
 
   syntax Bool ::= truthy(Val) [function, symbol(truthy)]
+                | callableVal(Val) [function, symbol(callableVal)]
                 | isIntLike(Val) [function, symbol(isIntLike)]
                 | isFloatLike(Val) [function, symbol(isFloatLike)]
                 | isComplexLike(Val) [function, symbol(isComplexLike)]
@@ -1706,6 +1708,82 @@ module PYTHON
   rule truthy(sliceVal(_:Val, _:Val, _:Val)) => true
   rule truthy(argsVal(_:ArgVals)) => true
   rule truthy(dictArgsVal(_:DictVals)) => true
+
+  rule callableVal(closure(_:Id, _:Exp)) => true
+  rule callableVal(closureArgs(_:IdItems, _:Exp)) => true
+  rule callableVal(closureDefaults(_:IdItems, _:ArgVals, _:Exp)) => true
+  rule callableVal(closureVarArgs(_:IdItems, _:Id, _:Exp)) => true
+  rule callableVal(closureVarArgsDefaults(_:IdItems, _:ArgVals, _:Id, _:Exp)) => true
+  rule callableVal(closureVarArgsKwOnly(_:IdItems, _:Id, _:IdItems, _:Exp)) => true
+  rule callableVal(closureVarArgsKwDefaults(_:IdItems, _:ArgVals, _:Id, _:IdItems, _:ArgVals, _:Exp)) => true
+  rule callableVal(closureVarArgsKwOnlyKwArgs(_:IdItems, _:Id, _:IdItems, _:Id, _:Exp)) => true
+  rule callableVal(closureVarArgsKwDefaultsKwArgs(_:IdItems, _:ArgVals, _:Id, _:IdItems, _:ArgVals, _:Id, _:Exp)) => true
+  rule callableVal(closureVarKwArgs(_:IdItems, _:Id, _:Id, _:Exp)) => true
+  rule callableVal(closureVarKwArgsDefaults(_:IdItems, _:ArgVals, _:Id, _:Id, _:Exp)) => true
+  rule callableVal(closureKwArgs(_:IdItems, _:Id, _:Exp)) => true
+  rule callableVal(closureKwArgsDefaults(_:IdItems, _:ArgVals, _:Id, _:Exp)) => true
+  rule callableVal(closurePosOnly(_:IdItems, _:IdItems, _:Exp)) => true
+  rule callableVal(closurePosOnlyDefaults(_:IdItems, _:IdItems, _:ArgVals, _:Exp)) => true
+  rule callableVal(closurePosOnlyVarArgs(_:IdItems, _:IdItems, _:Id, _:Exp)) => true
+  rule callableVal(closurePosOnlyVarArgsDefaults(_:IdItems, _:IdItems, _:ArgVals, _:Id, _:Exp)) => true
+  rule callableVal(closurePosOnlyKwArgs(_:IdItems, _:IdItems, _:Id, _:Exp)) => true
+  rule callableVal(closurePosOnlyKwArgsDefaults(_:IdItems, _:IdItems, _:ArgVals, _:Id, _:Exp)) => true
+  rule callableVal(closurePosOnlyVarKwArgs(_:IdItems, _:IdItems, _:Id, _:Id, _:Exp)) => true
+  rule callableVal(closurePosOnlyVarKwArgsDefaults(_:IdItems, _:IdItems, _:ArgVals, _:Id, _:Id, _:Exp)) => true
+  rule callableVal(closurePosOnlyVarArgsKwOnly(_:IdItems, _:IdItems, _:Id, _:IdItems, _:Exp)) => true
+  rule callableVal(closurePosOnlyVarArgsKwDefaults(_:IdItems, _:IdItems, _:ArgVals, _:Id, _:IdItems, _:ArgVals, _:Exp)) => true
+  rule callableVal(closurePosOnlyVarArgsKwOnlyKwArgs(_:IdItems, _:IdItems, _:Id, _:IdItems, _:Id, _:Exp)) => true
+  rule callableVal(closurePosOnlyVarArgsKwDefaultsKwArgs(_:IdItems, _:IdItems, _:ArgVals, _:Id, _:IdItems, _:ArgVals, _:Id, _:Exp)) => true
+  rule callableVal(closurePosOnlyKwOnly(_:IdItems, _:IdItems, _:IdItems, _:Exp)) => true
+  rule callableVal(closurePosOnlyKwOnlyDefaults(_:IdItems, _:IdItems, _:ArgVals, _:IdItems, _:ArgVals, _:Exp)) => true
+  rule callableVal(closurePosOnlyKwOnlyKwArgs(_:IdItems, _:IdItems, _:IdItems, _:Id, _:Exp)) => true
+  rule callableVal(closurePosOnlyKwDefaultsKwArgs(_:IdItems, _:IdItems, _:ArgVals, _:IdItems, _:ArgVals, _:Id, _:Exp)) => true
+  rule callableVal(closureKwOnly(_:IdItems, _:Exp)) => true
+  rule callableVal(closureKwDefaults(_:IdItems, _:ArgVals, _:Exp)) => true
+  rule callableVal(closureKwOnlyKwArgs(_:IdItems, _:Id, _:Exp)) => true
+  rule callableVal(closureKwDefaultsKwArgs(_:IdItems, _:ArgVals, _:Id, _:Exp)) => true
+  rule callableVal(closurePosKwOnly(_:IdItems, _:IdItems, _:Exp)) => true
+  rule callableVal(closurePosKwDefaults(_:IdItems, _:ArgVals, _:IdItems, _:ArgVals, _:Exp)) => true
+  rule callableVal(closurePosKwOnlyKwArgs(_:IdItems, _:IdItems, _:Id, _:Exp)) => true
+  rule callableVal(closurePosKwDefaultsKwArgs(_:IdItems, _:ArgVals, _:IdItems, _:ArgVals, _:Id, _:Exp)) => true
+  rule callableVal(functionVal(_:Id, _:Block)) => true
+  rule callableVal(functionValArgs(_:IdItems, _:Block)) => true
+  rule callableVal(functionValDefaults(_:IdItems, _:ArgVals, _:Block)) => true
+  rule callableVal(functionValVarArgs(_:IdItems, _:Id, _:Block)) => true
+  rule callableVal(functionValVarArgsDefaults(_:IdItems, _:ArgVals, _:Id, _:Block)) => true
+  rule callableVal(functionValVarArgsKwOnly(_:IdItems, _:Id, _:IdItems, _:Block)) => true
+  rule callableVal(functionValVarArgsKwDefaults(_:IdItems, _:ArgVals, _:Id, _:IdItems, _:ArgVals, _:Block)) => true
+  rule callableVal(functionValVarArgsKwOnlyKwArgs(_:IdItems, _:Id, _:IdItems, _:Id, _:Block)) => true
+  rule callableVal(functionValVarArgsKwDefaultsKwArgs(_:IdItems, _:ArgVals, _:Id, _:IdItems, _:ArgVals, _:Id, _:Block)) => true
+  rule callableVal(functionValVarKwArgs(_:IdItems, _:Id, _:Id, _:Block)) => true
+  rule callableVal(functionValVarKwArgsDefaults(_:IdItems, _:ArgVals, _:Id, _:Id, _:Block)) => true
+  rule callableVal(functionValKwArgs(_:IdItems, _:Id, _:Block)) => true
+  rule callableVal(functionValKwArgsDefaults(_:IdItems, _:ArgVals, _:Id, _:Block)) => true
+  rule callableVal(functionValPosOnly(_:IdItems, _:IdItems, _:Block)) => true
+  rule callableVal(functionValPosOnlyDefaults(_:IdItems, _:IdItems, _:ArgVals, _:Block)) => true
+  rule callableVal(functionValPosOnlyVarArgs(_:IdItems, _:IdItems, _:Id, _:Block)) => true
+  rule callableVal(functionValPosOnlyVarArgsDefaults(_:IdItems, _:IdItems, _:ArgVals, _:Id, _:Block)) => true
+  rule callableVal(functionValPosOnlyKwArgs(_:IdItems, _:IdItems, _:Id, _:Block)) => true
+  rule callableVal(functionValPosOnlyKwArgsDefaults(_:IdItems, _:IdItems, _:ArgVals, _:Id, _:Block)) => true
+  rule callableVal(functionValPosOnlyVarKwArgs(_:IdItems, _:IdItems, _:Id, _:Id, _:Block)) => true
+  rule callableVal(functionValPosOnlyVarKwArgsDefaults(_:IdItems, _:IdItems, _:ArgVals, _:Id, _:Id, _:Block)) => true
+  rule callableVal(functionValPosOnlyVarArgsKwOnly(_:IdItems, _:IdItems, _:Id, _:IdItems, _:Block)) => true
+  rule callableVal(functionValPosOnlyVarArgsKwDefaults(_:IdItems, _:IdItems, _:ArgVals, _:Id, _:IdItems, _:ArgVals, _:Block)) => true
+  rule callableVal(functionValPosOnlyVarArgsKwOnlyKwArgs(_:IdItems, _:IdItems, _:Id, _:IdItems, _:Id, _:Block)) => true
+  rule callableVal(functionValPosOnlyVarArgsKwDefaultsKwArgs(_:IdItems, _:IdItems, _:ArgVals, _:Id, _:IdItems, _:ArgVals, _:Id, _:Block)) => true
+  rule callableVal(functionValPosOnlyKwOnly(_:IdItems, _:IdItems, _:IdItems, _:Block)) => true
+  rule callableVal(functionValPosOnlyKwOnlyDefaults(_:IdItems, _:IdItems, _:ArgVals, _:IdItems, _:ArgVals, _:Block)) => true
+  rule callableVal(functionValPosOnlyKwOnlyKwArgs(_:IdItems, _:IdItems, _:IdItems, _:Id, _:Block)) => true
+  rule callableVal(functionValPosOnlyKwDefaultsKwArgs(_:IdItems, _:IdItems, _:ArgVals, _:IdItems, _:ArgVals, _:Id, _:Block)) => true
+  rule callableVal(functionValKwOnly(_:IdItems, _:Block)) => true
+  rule callableVal(functionValKwDefaults(_:IdItems, _:ArgVals, _:Block)) => true
+  rule callableVal(functionValKwOnlyKwArgs(_:IdItems, _:Id, _:Block)) => true
+  rule callableVal(functionValKwDefaultsKwArgs(_:IdItems, _:ArgVals, _:Id, _:Block)) => true
+  rule callableVal(functionValPosKwOnly(_:IdItems, _:IdItems, _:Block)) => true
+  rule callableVal(functionValPosKwDefaults(_:IdItems, _:ArgVals, _:IdItems, _:ArgVals, _:Block)) => true
+  rule callableVal(functionValPosKwOnlyKwArgs(_:IdItems, _:IdItems, _:Id, _:Block)) => true
+  rule callableVal(functionValPosKwDefaultsKwArgs(_:IdItems, _:ArgVals, _:IdItems, _:ArgVals, _:Id, _:Block)) => true
+  rule callableVal(_:Val) => false [owise]
 
   rule #debug => True
 
@@ -11067,6 +11145,7 @@ module PYTHON
     requires isIntLike(V)
   rule #hex(V:Val) => pyIntBaseString(intValue(V), 16, "0x")
     requires isIntLike(V)
+  rule #callable(V:Val) => boolValue(callableVal(V))
   rule <k> #strCtor(V:Val) => exceptionSignal(#exception(#token("TypeError", "Id"))) ... </k>
     requires notBool pyStringConversionSupported(V)
   rule <k> #repr(V:Val) => exceptionSignal(#exception(#token("TypeError", "Id"))) ... </k>

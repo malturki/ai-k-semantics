@@ -256,6 +256,13 @@
       "coverage": ["callable-builtin", "function-value", "lambda-value", "non-callable-values", "ordinary-python-source-adapter"]
     },
     {
+      "id": "adapter-isinstance-builtin",
+      "source": "../adapter/adapter-isinstance-builtin.py",
+      "reference": "Python Standard Library Built-in Functions isinstance; Python Language Reference 8.6 Class Patterns built-in class matching profile",
+      "expected_result": "True ~> .K",
+      "coverage": ["isinstance-builtin", "builtin-classinfo", "classinfo-tuple", "bool-is-int", "ordinary-python-source-adapter"]
+    },
+    {
       "id": "adapter-list-normal",
       "source": "../adapter/adapter-list-normal.py",
       "reference": "Python Language Reference 6.2.4 Displays for lists, sets and dictionaries; 6.3.2 Subscriptions",

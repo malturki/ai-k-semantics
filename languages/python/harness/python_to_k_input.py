@@ -48,6 +48,20 @@ SUPPORTED_SINGLE_ARG_CLASS_PATTERNS = {
 CLASS_PATTERN_ID_ALIASES = {
     "set": "kSetClassName",
 }
+SUPPORTED_ISINSTANCE_CLASSINFO = {
+    "bool",
+    "bytes",
+    "complex",
+    "dict",
+    "float",
+    "int",
+    "list",
+    "range",
+    "set",
+    "slice",
+    "str",
+    "tuple",
+}
 
 
 def emit_id(name: str) -> str:
@@ -322,6 +336,11 @@ def emit_exp(exp: ast.expr) -> str:
             return f"#hex({emit_exp(arg)})"
         case ast.Call(func=ast.Name(id="callable"), args=[arg], keywords=[]):
             return f"#callable({emit_exp(arg)})"
+        case ast.Call(func=ast.Name(id="isinstance"), args=[obj, classinfo], keywords=[]):
+            emitted_classinfo, is_tuple = emit_builtin_classinfo(exp, classinfo)
+            if is_tuple:
+                return f"#isinstanceAny({emit_exp(obj)}, {emitted_classinfo})"
+            return f"#isinstance({emit_exp(obj)}, {emitted_classinfo})"
         case ast.Call(func=ast.Name(id="all"), args=[arg], keywords=[]):
             return f"#all({emit_exp(arg)})"
         case ast.Call(func=ast.Name(id="any"), args=[arg], keywords=[]):
@@ -917,6 +936,27 @@ def emit_except_type(node: ast.AST, type_expr: ast.expr) -> tuple[str, bool]:
             names.append(elt.id)
         return emit_id_items(names), True
     raise unsupported(node, "only named except handlers and named exception tuples are supported")
+
+
+def emit_builtin_classinfo(node: ast.AST, classinfo: ast.expr) -> tuple[str, bool]:
+    if isinstance(classinfo, ast.Name):
+        if classinfo.id not in SUPPORTED_ISINSTANCE_CLASSINFO:
+            raise unsupported(node, "isinstance currently supports known built-in class names")
+        return emit_id(CLASS_PATTERN_ID_ALIASES.get(classinfo.id, classinfo.id)), False
+    if isinstance(classinfo, ast.Tuple) and classinfo.elts:
+        names = []
+        for elt in classinfo.elts:
+            if not isinstance(elt, ast.Name) or elt.id not in SUPPORTED_ISINSTANCE_CLASSINFO:
+                raise unsupported(
+                    node,
+                    "isinstance currently supports non-empty tuples of known built-in class names",
+                )
+            names.append(CLASS_PATTERN_ID_ALIASES.get(elt.id, elt.id))
+        return emit_id_items(names), True
+    raise unsupported(
+        node,
+        "isinstance currently supports known built-in class names and non-empty tuples of them",
+    )
 
 
 def ensure_non_async_comprehension(

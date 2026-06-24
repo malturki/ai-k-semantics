@@ -394,6 +394,8 @@ module PYTHON-SYNTAX
                | "#oct" "(" Exp ")" [symbol(octExp), strict]
                | "#hex" "(" Exp ")" [symbol(hexExp), strict]
                | "#callable" "(" Exp ")" [symbol(callableExp), strict]
+               | "#isinstance" "(" Exp "," Id ")" [symbol(isinstanceExp), strict(1)]
+               | "#isinstanceAny" "(" Exp "," IdItems ")" [symbol(isinstanceAnyExp), strict(1)]
                | "#all" "(" Exp ")" [symbol(allExp), strict]
                | "#any" "(" Exp ")" [symbol(anyExp), strict]
                | "#sum" "(" Exp ")" [symbol(sum1Exp), strict]
@@ -1171,6 +1173,9 @@ module PYTHON
                 | singletonPatternEq(Val, Val) [function, symbol(singletonPatternEq)]
                 | matchBuiltinClass(Val, Id) [function, symbol(matchBuiltinClass)]
                 | builtinClassWholeArg(Id) [function, symbol(builtinClassWholeArg)]
+                | isinstanceClassSupported(Id) [function, symbol(isinstanceClassSupported)]
+                | isinstanceClassesSupported(IdItems) [function, symbol(isinstanceClassesSupported)]
+                | isinstanceAny(Val, IdItems) [function, symbol(isinstanceAny)]
                 | matchBuiltinClassArg(Val, Id, MatchPattern) [function, symbol(matchBuiltinClassArg)]
                 | matchBuiltinClassKw(Val, Id, MatchAttrPatterns) [function, symbol(matchBuiltinClassKw)]
                 | matchBuiltinClassArgKw(Val, Id, MatchPattern, MatchAttrPatterns) [function, symbol(matchBuiltinClassArgKw)]
@@ -3153,6 +3158,30 @@ module PYTHON
       orBool Id2String(C) ==String "str"
       orBool Id2String(C) ==String "tuple"
   rule builtinClassWholeArg(_:Id) => false [owise]
+
+  rule isinstanceClassSupported(C:Id) => true
+    requires Id2String(C) ==String "bool"
+      orBool Id2String(C) ==String "bytes"
+      orBool Id2String(C) ==String "complex"
+      orBool Id2String(C) ==String "dict"
+      orBool Id2String(C) ==String "float"
+      orBool Id2String(C) ==String "int"
+      orBool Id2String(C) ==String "list"
+      orBool Id2String(C) ==String "range"
+      orBool Id2String(C) ==String "kSetClassName"
+      orBool Id2String(C) ==String "set"
+      orBool Id2String(C) ==String "slice"
+      orBool Id2String(C) ==String "str"
+      orBool Id2String(C) ==String "tuple"
+  rule isinstanceClassSupported(_:Id) => false [owise]
+
+  rule isinstanceClassesSupported(idItemsLast(C:Id)) => isinstanceClassSupported(C)
+  rule isinstanceClassesSupported(idItemsCons(C:Id, CS:IdItems)) =>
+    isinstanceClassSupported(C) andBool isinstanceClassesSupported(CS)
+
+  rule isinstanceAny(V:Val, idItemsLast(C:Id)) => matchBuiltinClass(V, C)
+  rule isinstanceAny(V:Val, idItemsCons(C:Id, CS:IdItems)) =>
+    matchBuiltinClass(V, C) orBool isinstanceAny(V, CS)
 
   rule matchBuiltinClassArg(V:Val, C:Id, P:MatchPattern) =>
     matchBuiltinClass(V, C) andBool matchSimplePattern(V, P)
@@ -11146,6 +11175,10 @@ module PYTHON
   rule #hex(V:Val) => pyIntBaseString(intValue(V), 16, "0x")
     requires isIntLike(V)
   rule #callable(V:Val) => boolValue(callableVal(V))
+  rule #isinstance(V:Val, C:Id) => boolValue(matchBuiltinClass(V, C))
+    requires isinstanceClassSupported(C)
+  rule #isinstanceAny(V:Val, CS:IdItems) => boolValue(isinstanceAny(V, CS))
+    requires isinstanceClassesSupported(CS)
   rule <k> #strCtor(V:Val) => exceptionSignal(#exception(#token("TypeError", "Id"))) ... </k>
     requires notBool pyStringConversionSupported(V)
   rule <k> #repr(V:Val) => exceptionSignal(#exception(#token("TypeError", "Id"))) ... </k>
@@ -11171,6 +11204,10 @@ module PYTHON
     requires notBool isIntLike(V)
   rule <k> #hex(V:Val) => exceptionSignal(#exception(#token("TypeError", "Id"))) ... </k>
     requires notBool isIntLike(V)
+  rule <k> #isinstance(_V:Val, C:Id) => exceptionSignal(#exception(#token("TypeError", "Id"))) ... </k>
+    requires notBool isinstanceClassSupported(C)
+  rule <k> #isinstanceAny(_V:Val, CS:IdItems) => exceptionSignal(#exception(#token("TypeError", "Id"))) ... </k>
+    requires notBool isinstanceClassesSupported(CS)
   rule #all([]) => True
   rule #all(listVal(VS:ValItems)) => boolValue(allValItems(VS))
   rule #all(()) => True

@@ -447,11 +447,20 @@ def emit_fstring_parts(node: ast.AST, values: list[ast.expr]) -> str:
         case ast.FormattedValue(value=formatted, conversion=conversion, format_spec=None):
             emitted_conversion = emit_fstring_conversion(value, conversion)
             return f"#fstrExpConv({emit_exp(formatted)}, {emitted_conversion}, {rest})"
+        case ast.FormattedValue(value=formatted, conversion=-1, format_spec=format_spec) if is_empty_fstring_format_spec(format_spec):
+            return f"#fstrExpFormatEmpty({emit_exp(formatted)}, {rest})"
+        case ast.FormattedValue(value=formatted, conversion=conversion, format_spec=format_spec) if is_empty_fstring_format_spec(format_spec):
+            emitted_conversion = emit_fstring_conversion(value, conversion)
+            return f"#fstrExpConvFormatEmpty({emit_exp(formatted)}, {emitted_conversion}, {rest})"
         case ast.FormattedValue(format_spec=format_spec) if format_spec is not None:
             raise unsupported(value, "f-string format specifications are not supported yet")
         case ast.FormattedValue():
             raise unsupported(value, "unsupported f-string formatted value shape")
     raise unsupported(node, "only literal text and formatted expressions are supported in f-strings")
+
+
+def is_empty_fstring_format_spec(format_spec: ast.expr | None) -> bool:
+    return isinstance(format_spec, ast.JoinedStr) and not format_spec.values
 
 
 def emit_fstring_conversion(node: ast.AST, conversion: int) -> str:

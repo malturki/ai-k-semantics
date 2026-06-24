@@ -73,6 +73,8 @@ module PYTHON-SYNTAX
                          | "#fstrText" "(" String "," FStringParts ")" [symbol(fstrText)]
                          | "#fstrExp" "(" Exp "," FStringParts ")" [symbol(fstrExp)]
                          | "#fstrExpConv" "(" Exp "," FStringConversion "," FStringParts ")" [symbol(fstrExpConv)]
+                         | "#fstrExpFormatEmpty" "(" Exp "," FStringParts ")" [symbol(fstrExpFormatEmpty)]
+                         | "#fstrExpConvFormatEmpty" "(" Exp "," FStringConversion "," FStringParts ")" [symbol(fstrExpConvFormatEmpty)]
 
   syntax CompFilters ::= "#filter" "(" Exp ")" [symbol(compFilterLast)]
                        | "#filters" "(" Exp "," CompFilters ")" [symbol(compFiltersCons)]
@@ -5445,6 +5447,12 @@ module PYTHON
            E ~> fStringAppend(Rest, Acc)
        ... </k>
   rule <k> fStringEval(#fstrExpConv(E:Exp, Conv:FStringConversion, Rest:FStringParts), Acc:String) =>
+           E ~> fStringAppendConv(Conv, Rest, Acc)
+       ... </k>
+  rule <k> fStringEval(#fstrExpFormatEmpty(E:Exp, Rest:FStringParts), Acc:String) =>
+           E ~> fStringAppend(Rest, Acc)
+       ... </k>
+  rule <k> fStringEval(#fstrExpConvFormatEmpty(E:Exp, Conv:FStringConversion, Rest:FStringParts), Acc:String) =>
            E ~> fStringAppendConv(Conv, Rest, Acc)
        ... </k>
   rule <k> V:Val ~> fStringAppend(Rest:FStringParts, Acc:String) =>

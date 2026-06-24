@@ -767,6 +767,13 @@
       "coverage": ["abs-builtin", "integer-absolute-value", "bool-as-int-absolute-value", "ordinary-python-source-adapter"]
     },
     {
+      "id": "adapter-abs-special-floats",
+      "source": "../adapter/adapter-abs-special-floats.py",
+      "reference": "Python Standard Library Built-in Functions abs",
+      "expected_result": "True ~> .K",
+      "coverage": ["abs-builtin", "floating-point-absolute-value", "special-float-values", "ordinary-python-source-adapter"]
+    },
+    {
       "id": "adapter-abs-type-errors",
       "source": "../adapter/adapter-abs-type-errors.py",
       "reference": "Python Standard Library Built-in Functions abs",

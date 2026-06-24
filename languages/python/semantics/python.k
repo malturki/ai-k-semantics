@@ -12111,10 +12111,14 @@ module PYTHON
     requires isIntLike(V) andBool intValue(V) <Int 0
   rule #abs(V:Val) => intValue(V)
     requires isIntLike(V) andBool intValue(V) >=Int 0
+  rule #abs(F:Float) => 0.0
+    requires F ==Float 0.0
   rule #abs(F:Float) => --Float F
     requires F <Float 0.0
   rule #abs(F:Float) => F
-    requires F >=Float 0.0
+    requires F >Float 0.0
+  rule #abs(F:Float) => F
+    requires isNaN(F)
   rule <k> #abs(V:Val) =>
            exceptionSignal(#exception(#token("TypeError", "Id")))
        ... </k>

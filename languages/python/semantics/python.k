@@ -1237,6 +1237,7 @@ module PYTHON
                 | roundNdigitsSpecialFloat(Val, Val) [function, symbol(roundNdigitsSpecialFloat)]
                 | formatIntSpecSupported(String) [function, symbol(formatIntSpecSupported)]
                 | formatIntWidthSpecSupported(String) [function, symbol(formatIntWidthSpecSupported)]
+                | formatIntPrecisionSpecSupported(String) [function, symbol(formatIntPrecisionSpecSupported)]
                 | formatStringSpecSupported(String) [function, symbol(formatStringSpecSupported)]
                 | formatAlignChar(String) [function, symbol(formatAlignChar)]
                 | formatSignChar(String) [function, symbol(formatSignChar)]
@@ -1248,6 +1249,8 @@ module PYTHON
                 | formatHasZero(String) [function, symbol(formatHasZero)]
                 | formatHasGrouping(String) [function, symbol(formatHasGrouping)]
                 | formatGroupingAllowed(String) [function, symbol(formatGroupingAllowed)]
+                | formatHasIntPrecision(String) [function, symbol(formatHasIntPrecision)]
+                | formatIntPrecisionMissing(String) [function, symbol(formatIntPrecisionMissing)]
                 | formatHasStringPrecision(String) [function, symbol(formatHasStringPrecision)]
                 | formatStringPrecisionMissing(String) [function, symbol(formatStringPrecisionMissing)]
                 | formatDecimalDigits(String, Int, Int) [function, symbol(formatDecimalDigits)]
@@ -1450,6 +1453,7 @@ module PYTHON
                | formatWidthStart(String) [function, symbol(formatWidthStart)]
                | formatIntWidthEnd(String) [function, symbol(formatIntWidthEnd)]
                | formatIntWidthDigitsEnd(String) [function, symbol(formatIntWidthDigitsEnd)]
+               | formatIntPrecisionDot(String) [function, symbol(formatIntPrecisionDot)]
                | formatStringWidthEnd(String) [function, symbol(formatStringWidthEnd)]
                | formatStringPrecisionDot(String) [function, symbol(formatStringPrecisionDot)]
                | formatStringWidthDigitsEnd(String) [function, symbol(formatStringWidthDigitsEnd)]
@@ -2321,6 +2325,27 @@ module PYTHON
   rule formatGroupingSize(_S:String) => 3
     [owise]
 
+  rule formatIntPrecisionDot(S:String) => findString(S, ".", formatWidthStart(S))
+    requires findString(S, ".", formatWidthStart(S)) >=Int formatWidthStart(S)
+      andBool findString(S, ".", formatWidthStart(S)) <Int formatIntWidthDigitsEnd(S)
+  rule formatIntPrecisionDot(S:String) => -1
+    requires findString(S, ".", formatWidthStart(S)) <Int 0
+      orBool findString(S, ".", formatWidthStart(S)) >=Int formatIntWidthDigitsEnd(S)
+
+  rule formatHasIntPrecision(S:String) => true
+    requires formatIntPrecisionDot(S) >=Int 0
+  rule formatHasIntPrecision(S:String) => false
+    requires formatIntPrecisionDot(S) <Int 0
+
+  rule formatIntPrecisionMissing(S:String) => true
+    requires formatHasIntPrecision(S)
+      andBool formatIntPrecisionDot(S) +Int 1 >=Int formatIntWidthDigitsEnd(S)
+  rule formatIntPrecisionMissing(S:String) => false
+    requires notBool formatHasIntPrecision(S)
+  rule formatIntPrecisionMissing(S:String) => false
+    requires formatHasIntPrecision(S)
+      andBool formatIntPrecisionDot(S) +Int 1 <Int formatIntWidthDigitsEnd(S)
+
   rule formatStringWidthEnd(S:String) => lengthString(S) -Int 1
     requires lengthString(S) >Int formatWidthStart(S)
       andBool formatStringTypeChar(substrString(S, lengthString(S) -Int 1, lengthString(S)))
@@ -2706,6 +2731,15 @@ module PYTHON
       andBool formatIntWidthDigitsEnd(S) >=Int formatWidthStart(S)
       andBool formatDecimalDigits(S, formatWidthStart(S), formatIntWidthDigitsEnd(S))
   rule formatIntWidthSpecSupported(_:String) => false [owise]
+
+  rule formatIntPrecisionSpecSupported(S:String) => true
+    requires S =/=String ""
+      andBool formatHasIntPrecision(S)
+      andBool notBool (formatIntPrecisionMissing(S) andBool formatHasGrouping(S))
+      andBool formatDecimalDigits(S, formatWidthStart(S), formatIntPrecisionDot(S))
+      andBool (formatIntPrecisionMissing(S)
+        orBool formatDecimalDigits(S, formatIntPrecisionDot(S) +Int 1, formatIntWidthDigitsEnd(S)))
+  rule formatIntPrecisionSpecSupported(_:String) => false [owise]
 
   rule formatStringSpecSupported(S:String) => true
     requires S =/=String ""
@@ -11944,6 +11978,10 @@ module PYTHON
     requires formatStringSpecSupported(Spec)
   rule <k> Spec:String ~> formatApply(V:Val)
         => exceptionSignal(#exception(#token("ValueError", "Id"))) ... </k>
+    requires formatIntPrecisionSpecSupported(Spec)
+      andBool isIntLike(V)
+  rule <k> Spec:String ~> formatApply(V:Val)
+        => exceptionSignal(#exception(#token("ValueError", "Id"))) ... </k>
     requires formatIntWidthSpecSupported(Spec)
       andBool isIntLike(V)
       andBool formatHasGrouping(Spec)
@@ -12142,10 +12180,12 @@ module PYTHON
     requires formatStringSpecSupported(Spec)
       andBool notBool isStringVal(V)
       andBool notBool formatIntSpecSupported(Spec)
+      andBool notBool formatIntPrecisionSpecSupported(Spec)
   rule <k> Spec:String ~> formatApply(_V:Val)
         => exceptionSignal(#exception(#token("NotImplementedError", "Id"))) ... </k>
     requires Spec =/=String ""
       andBool notBool formatIntSpecSupported(Spec)
+      andBool notBool formatIntPrecisionSpecSupported(Spec)
       andBool notBool formatStringSpecSupported(Spec)
       andBool notBool formatStringPrecisionMissing(Spec)
   rule <k> Spec:Val ~> formatApply(_V:Val)

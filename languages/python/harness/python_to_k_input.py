@@ -161,6 +161,38 @@ def parse_supported_format_spec(spec: str, type_chars: str) -> tuple[int, bool, 
     return align_index, has_sign, has_alt, grouping, width
 
 
+def parse_supported_int_precision_format_spec(spec: str) -> tuple[bool, str, str] | None:
+    if any(ord(ch) >= 128 for ch in spec):
+        return None
+    align_index = format_align_index(spec)
+    index = align_index + 1 if align_index >= 0 else 0
+    if index < len(spec) and spec[index] in FORMAT_SIGN_CHARS:
+        index += 1
+    if index < len(spec) and spec[index] == "#":
+        index += 1
+    if index < len(spec) and spec[index] == "0":
+        index += 1
+    end = len(spec)
+    if index < len(spec) and spec[-1] in FORMAT_INT_TYPE_CHARS:
+        end -= 1
+    grouping = ""
+    if end > index and spec[end - 1] in ",_":
+        grouping = spec[end - 1]
+        end -= 1
+    body = spec[index:end]
+    if "." not in body:
+        return None
+    width, precision = body.split(".", 1)
+    precision_missing = precision == ""
+    if precision_missing and grouping:
+        return None
+    if width and not width.isdecimal():
+        return None
+    if precision and not precision.isdecimal():
+        return None
+    return precision_missing, grouping, width
+
+
 def parse_supported_string_format_spec(spec: str) -> tuple[int, bool, bool, bool, str] | None:
     if any(ord(ch) >= 128 for ch in spec):
         return None
@@ -201,6 +233,10 @@ def format_int_spec_supported(spec: str) -> bool:
     return parse_supported_format_spec(spec, FORMAT_INT_TYPE_CHARS) is not None
 
 
+def format_int_precision_spec_supported(spec: str) -> bool:
+    return parse_supported_int_precision_format_spec(spec) is not None
+
+
 def format_string_spec_supported(spec: str) -> bool:
     if spec == "":
         return True
@@ -226,6 +262,7 @@ def format_string_precision_missing_supported(spec: str) -> bool:
 def format_spec_supported(spec: str) -> bool:
     return (
         format_int_spec_supported(spec)
+        or format_int_precision_spec_supported(spec)
         or format_string_spec_supported(spec)
         or format_string_precision_missing_supported(spec)
     )

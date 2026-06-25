@@ -1005,7 +1005,7 @@ def emit_getattr_name(node: ast.AST, name_expr: ast.expr) -> str:
 
 def emit_format_spec(node: ast.AST, spec_expr: ast.expr) -> str:
     if isinstance(spec_expr, ast.Constant) and isinstance(spec_expr.value, str):
-        if spec_expr.value in {"", "b", "c", "d", "o", "x", "X"}:
+        if spec_expr.value in {"", "b", "c", "d", "o", "x", "X", "#b", "#d", "#o", "#x", "#X"}:
             return emit_exp(spec_expr)
         raise unsupported(node, "format currently supports only empty or current integer presentation format_spec")
     raise unsupported(node, "format currently supports string-literal format_spec")

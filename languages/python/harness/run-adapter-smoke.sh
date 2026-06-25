@@ -81,6 +81,7 @@ run_case "adapter-string-conversion-builtins" "$ROOT/tests/adapter/adapter-strin
 run_case "adapter-string-repr-ascii-escaping" "$ROOT/tests/adapter/adapter-string-repr-ascii-escaping.py" "True ~> .K"
 run_case "adapter-format-builtin" "$ROOT/tests/adapter/adapter-format-builtin.py" "True ~> .K"
 run_case "adapter-format-int-spec" "$ROOT/tests/adapter/adapter-format-int-spec.py" "True ~> .K"
+run_case "adapter-format-int-alternate-spec" "$ROOT/tests/adapter/adapter-format-int-alternate-spec.py" "True ~> .K"
 run_case "adapter-chr-builtin" "$ROOT/tests/adapter/adapter-chr-builtin.py" "True ~> .K"
 run_case "adapter-ord-builtin" "$ROOT/tests/adapter/adapter-ord-builtin.py" "True ~> .K"
 run_case "adapter-bin-oct-hex-builtins" "$ROOT/tests/adapter/adapter-bin-oct-hex-builtins.py" "True ~> .K"

@@ -13,6 +13,7 @@ import ast
 import json
 import sys
 from pathlib import Path
+from typing import TypeGuard
 
 
 class UnsupportedPythonSubset(ValueError):
@@ -963,6 +964,13 @@ def emit_fstring_parts(node: ast.AST, values: list[ast.expr]) -> str:
             emitted_conversion = emit_fstring_conversion(value, conversion)
             emitted_spec = json.dumps(fstring_literal_format_spec_value(format_spec))
             return f"#fstrExpConvFormat({emit_exp(formatted)}, {emitted_conversion}, {emitted_spec}, {rest})"
+        case ast.FormattedValue(value=formatted, conversion=-1, format_spec=format_spec) if fstring_dynamic_format_spec(format_spec):
+            emitted_spec_parts = emit_fstring_parts(format_spec, format_spec.values)
+            return f"#fstrExpFormatParts({emit_exp(formatted)}, {emitted_spec_parts}, {rest})"
+        case ast.FormattedValue(value=formatted, conversion=conversion, format_spec=format_spec) if fstring_dynamic_format_spec(format_spec):
+            emitted_conversion = emit_fstring_conversion(value, conversion)
+            emitted_spec_parts = emit_fstring_parts(format_spec, format_spec.values)
+            return f"#fstrExpConvFormatParts({emit_exp(formatted)}, {emitted_conversion}, {emitted_spec_parts}, {rest})"
         case ast.FormattedValue(format_spec=format_spec) if format_spec is not None:
             raise unsupported(value, "f-string format specifications are not supported yet")
         case ast.FormattedValue():
@@ -992,6 +1000,15 @@ def fstring_literal_format_spec_supported(format_spec: ast.expr | None) -> bool:
         if not isinstance(value, ast.Constant) or not isinstance(value.value, str):
             return False
     return format_spec_supported(fstring_literal_format_spec_value(format_spec))
+
+
+def fstring_dynamic_format_spec(format_spec: ast.expr | None) -> TypeGuard[ast.JoinedStr]:
+    if not isinstance(format_spec, ast.JoinedStr):
+        return False
+    return any(
+        not isinstance(value, ast.Constant) or not isinstance(value.value, str)
+        for value in format_spec.values
+    )
 
 
 def emit_fstring_conversion(node: ast.AST, conversion: int) -> str:

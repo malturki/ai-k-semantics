@@ -77,6 +77,8 @@ module PYTHON-SYNTAX
                          | "#fstrExpConvFormatEmpty" "(" Exp "," FStringConversion "," FStringParts ")" [symbol(fstrExpConvFormatEmpty)]
                          | "#fstrExpFormat" "(" Exp "," String "," FStringParts ")" [symbol(fstrExpFormat)]
                          | "#fstrExpConvFormat" "(" Exp "," FStringConversion "," String "," FStringParts ")" [symbol(fstrExpConvFormat)]
+                         | "#fstrExpFormatParts" "(" Exp "," FStringParts "," FStringParts ")" [symbol(fstrExpFormatParts)]
+                         | "#fstrExpConvFormatParts" "(" Exp "," FStringConversion "," FStringParts "," FStringParts ")" [symbol(fstrExpConvFormatParts)]
 
   syntax CompFilters ::= "#filter" "(" Exp ")" [symbol(compFilterLast)]
                        | "#filters" "(" Exp "," CompFilters ")" [symbol(compFiltersCons)]
@@ -642,6 +644,9 @@ module PYTHON
                  | fStringAppendConv(FStringConversion, FStringParts, String) [symbol(fStringAppendConv)]
                  | fStringAppendFormat(String, FStringParts, String) [symbol(fStringAppendFormat)]
                  | fStringAppendConvFormat(FStringConversion, String, FStringParts, String) [symbol(fStringAppendConvFormat)]
+                 | fStringAppendFormatParts(FStringParts, FStringParts, String) [symbol(fStringAppendFormatParts)]
+                 | fStringAppendConvFormatParts(FStringConversion, FStringParts, FStringParts, String) [symbol(fStringAppendConvFormatParts)]
+                 | fStringApplyDynamicFormat(Val, FStringParts, String) [symbol(fStringApplyDynamicFormat)]
                  | fStringAppendFormatted(FStringParts, String) [symbol(fStringAppendFormatted)]
                  | callArg(Exp) [symbol(callArg)]
                  | callApply(Val) [symbol(callApply)]
@@ -6979,6 +6984,12 @@ module PYTHON
   rule <k> fStringEval(#fstrExpConvFormat(E:Exp, Conv:FStringConversion, Spec:String, Rest:FStringParts), Acc:String) =>
            E ~> fStringAppendConvFormat(Conv, Spec, Rest, Acc)
        ... </k>
+  rule <k> fStringEval(#fstrExpFormatParts(E:Exp, SpecParts:FStringParts, Rest:FStringParts), Acc:String) =>
+           E ~> fStringAppendFormatParts(SpecParts, Rest, Acc)
+       ... </k>
+  rule <k> fStringEval(#fstrExpConvFormatParts(E:Exp, Conv:FStringConversion, SpecParts:FStringParts, Rest:FStringParts), Acc:String) =>
+           E ~> fStringAppendConvFormatParts(Conv, SpecParts, Rest, Acc)
+       ... </k>
   rule <k> V:Val ~> fStringAppend(Rest:FStringParts, Acc:String) =>
            fStringEval(Rest, Acc +String pyFormatStr(V))
        ... </k>
@@ -7010,6 +7021,24 @@ module PYTHON
            Spec ~> formatApply(pyReprStr(V)) ~> fStringAppendFormatted(Rest, Acc)
        ... </k>
     requires fStringFormatSupported(V)
+  rule <k> V:Val ~> fStringAppendFormatParts(SpecParts:FStringParts, Rest:FStringParts, Acc:String) =>
+           fStringEval(SpecParts, "") ~> fStringApplyDynamicFormat(V, Rest, Acc)
+       ... </k>
+  rule <k> V:Val ~> fStringAppendConvFormatParts(#fstrConvStr, SpecParts:FStringParts, Rest:FStringParts, Acc:String) =>
+           fStringEval(SpecParts, "") ~> fStringApplyDynamicFormat(pyFormatStr(V), Rest, Acc)
+       ... </k>
+    requires fStringFormatSupported(V)
+  rule <k> V:Val ~> fStringAppendConvFormatParts(#fstrConvRepr, SpecParts:FStringParts, Rest:FStringParts, Acc:String) =>
+           fStringEval(SpecParts, "") ~> fStringApplyDynamicFormat(pyReprStr(V), Rest, Acc)
+       ... </k>
+    requires fStringFormatSupported(V)
+  rule <k> V:Val ~> fStringAppendConvFormatParts(#fstrConvAscii, SpecParts:FStringParts, Rest:FStringParts, Acc:String) =>
+           fStringEval(SpecParts, "") ~> fStringApplyDynamicFormat(pyReprStr(V), Rest, Acc)
+       ... </k>
+    requires fStringFormatSupported(V)
+  rule <k> Spec:String ~> fStringApplyDynamicFormat(V:Val, Rest:FStringParts, Acc:String) =>
+           Spec ~> formatApply(V) ~> fStringAppendFormatted(Rest, Acc)
+       ... </k>
   rule <k> S:String ~> fStringAppendFormatted(Rest:FStringParts, Acc:String) =>
            fStringEval(Rest, Acc +String S)
        ... </k>
@@ -7023,6 +7052,15 @@ module PYTHON
            exceptionSignal(E)
        ... </k>
   rule <k> exceptionSignal(E:Val) ~> fStringAppendConvFormat(_:FStringConversion, _:String, _:FStringParts, _:String) =>
+           exceptionSignal(E)
+       ... </k>
+  rule <k> exceptionSignal(E:Val) ~> fStringAppendFormatParts(_:FStringParts, _:FStringParts, _:String) =>
+           exceptionSignal(E)
+       ... </k>
+  rule <k> exceptionSignal(E:Val) ~> fStringAppendConvFormatParts(_:FStringConversion, _:FStringParts, _:FStringParts, _:String) =>
+           exceptionSignal(E)
+       ... </k>
+  rule <k> exceptionSignal(E:Val) ~> fStringApplyDynamicFormat(_:Val, _:FStringParts, _:String) =>
            exceptionSignal(E)
        ... </k>
   rule <k> exceptionSignal(E:Val) ~> fStringAppendFormatted(_:FStringParts, _:String) =>

@@ -263,6 +263,13 @@
       "coverage": ["formatted-string-literal", "format-spec-mini-language", "conversion-field", "string-presentation-type", "integer-presentation-types", "value-error", "ordinary-python-source-adapter"]
     },
     {
+      "id": "adapter-fstrings-dynamic-format-spec",
+      "source": "../adapter/adapter-fstrings-dynamic-format-spec.py",
+      "reference": "Python Language Reference formatted string literals nested replacement fields in format specifiers; Python Format Specification Mini-Language",
+      "expected_result": "True ~> .K",
+      "coverage": ["formatted-string-literal", "dynamic-format-spec", "nested-replacement-field", "conversion-field", "string-presentation-type", "integer-presentation-types", "evaluation-order", "exception-propagation", "ordinary-python-source-adapter"]
+    },
+    {
       "id": "adapter-format-int-spec",
       "source": "../adapter/adapter-format-int-spec.py",
       "reference": "Python Standard Library Built-in Functions format; Format Specification Mini-Language integer presentation types",

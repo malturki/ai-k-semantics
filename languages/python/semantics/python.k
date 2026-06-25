@@ -1511,6 +1511,7 @@ module PYTHON
                   | pyIntBaseStringUpper(Int, Int, String) [function, symbol(pyIntBaseStringUpper)]
                   | intBaseDigitsUpper(Int, Int) [function, symbol(intBaseDigitsUpper)]
                   | byteHexDigitUpper(Int) [function, symbol(byteHexDigitUpper)]
+                  | formatSignPrefix(String, Int) [function, symbol(formatSignPrefix)]
                   | pyFloatReprStr(Float) [function, symbol(pyFloatReprStr)]
                   | pyFormatStr(Val) [function, symbol(pyFormatStr)]
                   | pyReprStr(Val) [function, symbol(pyReprStr)]
@@ -2103,6 +2104,16 @@ module PYTHON
   rule byteHexDigitUpper(14) => "E"
   rule byteHexDigitUpper(15) => "F"
 
+  rule formatSignPrefix("+", I:Int) => "+"
+    requires I >=Int 0
+  rule formatSignPrefix("+", I:Int) => ""
+    requires I <Int 0
+  rule formatSignPrefix(" ", I:Int) => " "
+    requires I >=Int 0
+  rule formatSignPrefix(" ", I:Int) => ""
+    requires I <Int 0
+  rule formatSignPrefix("-", _I:Int) => ""
+
   rule isIntLike(_:Int) => true
   rule isIntLike(_:Float) => false
   rule isIntLike(#complex(_:Float, _:Float)) => false
@@ -2226,9 +2237,39 @@ module PYTHON
   rule formatIntSpecSupported("#o") => true
   rule formatIntSpecSupported("#x") => true
   rule formatIntSpecSupported("#X") => true
+  rule formatIntSpecSupported("+b") => true
+  rule formatIntSpecSupported("+c") => true
   rule formatIntSpecSupported("+d") => true
+  rule formatIntSpecSupported("+o") => true
+  rule formatIntSpecSupported("+x") => true
+  rule formatIntSpecSupported("+X") => true
+  rule formatIntSpecSupported(" b") => true
+  rule formatIntSpecSupported(" c") => true
   rule formatIntSpecSupported(" d") => true
+  rule formatIntSpecSupported(" o") => true
+  rule formatIntSpecSupported(" x") => true
+  rule formatIntSpecSupported(" X") => true
+  rule formatIntSpecSupported("-b") => true
+  rule formatIntSpecSupported("-c") => true
   rule formatIntSpecSupported("-d") => true
+  rule formatIntSpecSupported("-o") => true
+  rule formatIntSpecSupported("-x") => true
+  rule formatIntSpecSupported("-X") => true
+  rule formatIntSpecSupported("+#b") => true
+  rule formatIntSpecSupported("+#d") => true
+  rule formatIntSpecSupported("+#o") => true
+  rule formatIntSpecSupported("+#x") => true
+  rule formatIntSpecSupported("+#X") => true
+  rule formatIntSpecSupported(" #b") => true
+  rule formatIntSpecSupported(" #d") => true
+  rule formatIntSpecSupported(" #o") => true
+  rule formatIntSpecSupported(" #x") => true
+  rule formatIntSpecSupported(" #X") => true
+  rule formatIntSpecSupported("-#b") => true
+  rule formatIntSpecSupported("-#d") => true
+  rule formatIntSpecSupported("-#o") => true
+  rule formatIntSpecSupported("-#x") => true
+  rule formatIntSpecSupported("-#X") => true
   rule formatIntSpecSupported(_:String) => false [owise]
 
   rule validIntBase(B:Int) => B >=Int 2 andBool B <=Int 36
@@ -11498,6 +11539,46 @@ module PYTHON
         => Int2String(intValue(V)) ... </k>
     requires Spec ==String "-d" andBool isIntLike(V)
   rule <k> Spec:String ~> formatApply(V:Val)
+        => formatSignPrefix("+", intValue(V)) +String pyIntBaseString(intValue(V), 2, "") ... </k>
+    requires Spec ==String "+b" andBool isIntLike(V)
+  rule <k> Spec:String ~> formatApply(V:Val)
+        => formatSignPrefix(" ", intValue(V)) +String pyIntBaseString(intValue(V), 2, "") ... </k>
+    requires Spec ==String " b" andBool isIntLike(V)
+  rule <k> Spec:String ~> formatApply(V:Val)
+        => pyIntBaseString(intValue(V), 2, "") ... </k>
+    requires Spec ==String "-b" andBool isIntLike(V)
+  rule <k> Spec:String ~> formatApply(V:Val)
+        => exceptionSignal(#exception(#token("ValueError", "Id"))) ... </k>
+    requires (Spec ==String "+c" orBool Spec ==String " c" orBool Spec ==String "-c")
+      andBool isIntLike(V)
+  rule <k> Spec:String ~> formatApply(V:Val)
+        => formatSignPrefix("+", intValue(V)) +String pyIntBaseString(intValue(V), 8, "") ... </k>
+    requires Spec ==String "+o" andBool isIntLike(V)
+  rule <k> Spec:String ~> formatApply(V:Val)
+        => formatSignPrefix(" ", intValue(V)) +String pyIntBaseString(intValue(V), 8, "") ... </k>
+    requires Spec ==String " o" andBool isIntLike(V)
+  rule <k> Spec:String ~> formatApply(V:Val)
+        => pyIntBaseString(intValue(V), 8, "") ... </k>
+    requires Spec ==String "-o" andBool isIntLike(V)
+  rule <k> Spec:String ~> formatApply(V:Val)
+        => formatSignPrefix("+", intValue(V)) +String pyIntBaseString(intValue(V), 16, "") ... </k>
+    requires Spec ==String "+x" andBool isIntLike(V)
+  rule <k> Spec:String ~> formatApply(V:Val)
+        => formatSignPrefix(" ", intValue(V)) +String pyIntBaseString(intValue(V), 16, "") ... </k>
+    requires Spec ==String " x" andBool isIntLike(V)
+  rule <k> Spec:String ~> formatApply(V:Val)
+        => pyIntBaseString(intValue(V), 16, "") ... </k>
+    requires Spec ==String "-x" andBool isIntLike(V)
+  rule <k> Spec:String ~> formatApply(V:Val)
+        => formatSignPrefix("+", intValue(V)) +String pyIntBaseStringUpper(intValue(V), 16, "") ... </k>
+    requires Spec ==String "+X" andBool isIntLike(V)
+  rule <k> Spec:String ~> formatApply(V:Val)
+        => formatSignPrefix(" ", intValue(V)) +String pyIntBaseStringUpper(intValue(V), 16, "") ... </k>
+    requires Spec ==String " X" andBool isIntLike(V)
+  rule <k> Spec:String ~> formatApply(V:Val)
+        => pyIntBaseStringUpper(intValue(V), 16, "") ... </k>
+    requires Spec ==String "-X" andBool isIntLike(V)
+  rule <k> Spec:String ~> formatApply(V:Val)
         => pyIntBaseString(intValue(V), 8, "0o") ... </k>
     requires Spec ==String "#o" andBool isIntLike(V)
   rule <k> Spec:String ~> formatApply(V:Val)
@@ -11506,6 +11587,51 @@ module PYTHON
   rule <k> Spec:String ~> formatApply(V:Val)
         => pyIntBaseStringUpper(intValue(V), 16, "0X") ... </k>
     requires Spec ==String "#X" andBool isIntLike(V)
+  rule <k> Spec:String ~> formatApply(V:Val)
+        => formatSignPrefix("+", intValue(V)) +String pyIntBaseString(intValue(V), 2, "0b") ... </k>
+    requires Spec ==String "+#b" andBool isIntLike(V)
+  rule <k> Spec:String ~> formatApply(V:Val)
+        => formatSignPrefix(" ", intValue(V)) +String pyIntBaseString(intValue(V), 2, "0b") ... </k>
+    requires Spec ==String " #b" andBool isIntLike(V)
+  rule <k> Spec:String ~> formatApply(V:Val)
+        => pyIntBaseString(intValue(V), 2, "0b") ... </k>
+    requires Spec ==String "-#b" andBool isIntLike(V)
+  rule <k> Spec:String ~> formatApply(V:Val)
+        => formatSignPrefix("+", intValue(V)) +String Int2String(intValue(V)) ... </k>
+    requires Spec ==String "+#d" andBool isIntLike(V)
+  rule <k> Spec:String ~> formatApply(V:Val)
+        => formatSignPrefix(" ", intValue(V)) +String Int2String(intValue(V)) ... </k>
+    requires Spec ==String " #d" andBool isIntLike(V)
+  rule <k> Spec:String ~> formatApply(V:Val)
+        => Int2String(intValue(V)) ... </k>
+    requires Spec ==String "-#d" andBool isIntLike(V)
+  rule <k> Spec:String ~> formatApply(V:Val)
+        => formatSignPrefix("+", intValue(V)) +String pyIntBaseString(intValue(V), 8, "0o") ... </k>
+    requires Spec ==String "+#o" andBool isIntLike(V)
+  rule <k> Spec:String ~> formatApply(V:Val)
+        => formatSignPrefix(" ", intValue(V)) +String pyIntBaseString(intValue(V), 8, "0o") ... </k>
+    requires Spec ==String " #o" andBool isIntLike(V)
+  rule <k> Spec:String ~> formatApply(V:Val)
+        => pyIntBaseString(intValue(V), 8, "0o") ... </k>
+    requires Spec ==String "-#o" andBool isIntLike(V)
+  rule <k> Spec:String ~> formatApply(V:Val)
+        => formatSignPrefix("+", intValue(V)) +String pyIntBaseString(intValue(V), 16, "0x") ... </k>
+    requires Spec ==String "+#x" andBool isIntLike(V)
+  rule <k> Spec:String ~> formatApply(V:Val)
+        => formatSignPrefix(" ", intValue(V)) +String pyIntBaseString(intValue(V), 16, "0x") ... </k>
+    requires Spec ==String " #x" andBool isIntLike(V)
+  rule <k> Spec:String ~> formatApply(V:Val)
+        => pyIntBaseString(intValue(V), 16, "0x") ... </k>
+    requires Spec ==String "-#x" andBool isIntLike(V)
+  rule <k> Spec:String ~> formatApply(V:Val)
+        => formatSignPrefix("+", intValue(V)) +String pyIntBaseStringUpper(intValue(V), 16, "0X") ... </k>
+    requires Spec ==String "+#X" andBool isIntLike(V)
+  rule <k> Spec:String ~> formatApply(V:Val)
+        => formatSignPrefix(" ", intValue(V)) +String pyIntBaseStringUpper(intValue(V), 16, "0X") ... </k>
+    requires Spec ==String " #X" andBool isIntLike(V)
+  rule <k> Spec:String ~> formatApply(V:Val)
+        => pyIntBaseStringUpper(intValue(V), 16, "0X") ... </k>
+    requires Spec ==String "-#X" andBool isIntLike(V)
   rule <k> Spec:String ~> formatApply(V:Val)
         => exceptionSignal(#exception(#token("NotImplementedError", "Id"))) ... </k>
     requires formatIntSpecSupported(Spec)

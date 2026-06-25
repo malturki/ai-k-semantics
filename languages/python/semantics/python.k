@@ -1235,6 +1235,7 @@ module PYTHON
                 | isIntegralFloat(Float) [function, symbol(isIntegralFloat)]
                 | roundDefaultSpecialFloat(Val) [function, symbol(roundDefaultSpecialFloat)]
                 | roundNdigitsSpecialFloat(Val, Val) [function, symbol(roundNdigitsSpecialFloat)]
+                | formatIntSpecSupported(String) [function, symbol(formatIntSpecSupported)]
                 | fStringFormatSupported(Val) [function, symbol(fStringFormatSupported)]
                 | pyFloatStringConversionSupported(Float) [function, symbol(pyFloatStringConversionSupported)]
                 | pyStringConversionSupported(Val) [function, symbol(pyStringConversionSupported)]
@@ -1507,6 +1508,9 @@ module PYTHON
                   | byteHexDigit(Int) [function, symbol(byteHexDigit)]
                   | pyIntBaseString(Int, Int, String) [function, symbol(pyIntBaseString)]
                   | intBaseDigits(Int, Int) [function, symbol(intBaseDigits)]
+                  | pyIntBaseStringUpper(Int, Int, String) [function, symbol(pyIntBaseStringUpper)]
+                  | intBaseDigitsUpper(Int, Int) [function, symbol(intBaseDigitsUpper)]
+                  | byteHexDigitUpper(Int) [function, symbol(byteHexDigitUpper)]
                   | pyFloatReprStr(Float) [function, symbol(pyFloatReprStr)]
                   | pyFormatStr(Val) [function, symbol(pyFormatStr)]
                   | pyReprStr(Val) [function, symbol(pyReprStr)]
@@ -2078,6 +2082,27 @@ module PYTHON
     intBaseDigits(I /Int Base, Base) +String byteHexDigit(I %Int Base)
     requires I >=Int Base andBool Base >=Int 2 andBool Base <=Int 16
 
+  rule pyIntBaseStringUpper(0, _Base:Int, Prefix:String) => Prefix +String "0"
+  rule pyIntBaseStringUpper(I:Int, Base:Int, Prefix:String) => Prefix +String intBaseDigitsUpper(I, Base)
+    requires I >Int 0
+  rule pyIntBaseStringUpper(I:Int, Base:Int, Prefix:String) => "-" +String Prefix +String intBaseDigitsUpper(0 -Int I, Base)
+    requires I <Int 0
+
+  rule intBaseDigitsUpper(I:Int, Base:Int) => byteHexDigitUpper(I)
+    requires I >=Int 0 andBool I <Int Base andBool Base >=Int 2 andBool Base <=Int 16
+  rule intBaseDigitsUpper(I:Int, Base:Int) =>
+    intBaseDigitsUpper(I /Int Base, Base) +String byteHexDigitUpper(I %Int Base)
+    requires I >=Int Base andBool Base >=Int 2 andBool Base <=Int 16
+
+  rule byteHexDigitUpper(I:Int) => Int2String(I)
+    requires I >=Int 0 andBool I <=Int 9
+  rule byteHexDigitUpper(10) => "A"
+  rule byteHexDigitUpper(11) => "B"
+  rule byteHexDigitUpper(12) => "C"
+  rule byteHexDigitUpper(13) => "D"
+  rule byteHexDigitUpper(14) => "E"
+  rule byteHexDigitUpper(15) => "F"
+
   rule isIntLike(_:Int) => true
   rule isIntLike(_:Float) => false
   rule isIntLike(#complex(_:Float, _:Float)) => false
@@ -2190,6 +2215,13 @@ module PYTHON
   rule roundNdigitsSpecialFloat(F:Float, D:Val) =>
     (isInfinite(F) orBool isNaN(F)) andBool (isIntLike(D) orBool valEq(D, None))
   rule roundNdigitsSpecialFloat(_:Val, _:Val) => false [owise]
+  rule formatIntSpecSupported("b") => true
+  rule formatIntSpecSupported("c") => true
+  rule formatIntSpecSupported("d") => true
+  rule formatIntSpecSupported("o") => true
+  rule formatIntSpecSupported("x") => true
+  rule formatIntSpecSupported("X") => true
+  rule formatIntSpecSupported(_:String) => false [owise]
 
   rule validIntBase(B:Int) => B >=Int 2 andBool B <=Int 36
 
@@ -11404,9 +11436,46 @@ module PYTHON
   rule <k> Spec:String ~> formatApply(V:Val)
         => exceptionSignal(#exception(#token("TypeError", "Id"))) ... </k>
     requires Spec ==String "" andBool notBool pyStringConversionSupported(V)
+  rule <k> Spec:String ~> formatApply(V:Val)
+        => pyIntBaseString(intValue(V), 2, "") ... </k>
+    requires Spec ==String "b" andBool isIntLike(V)
+  rule <k> Spec:String ~> formatApply(V:Val)
+        => chrChar(intValue(V)) ... </k>
+    requires Spec ==String "c"
+      andBool isIntLike(V)
+      andBool intValue(V) >=Int 0
+      andBool intValue(V) <=Int 255
+  rule <k> Spec:String ~> formatApply(V:Val)
+        => exceptionSignal(#exception(#token("NotImplementedError", "Id"))) ... </k>
+    requires Spec ==String "c"
+      andBool isIntLike(V)
+      andBool intValue(V) >Int 255
+      andBool intValue(V) <=Int 1114111
+  rule <k> Spec:String ~> formatApply(V:Val)
+        => exceptionSignal(#exception(#token("OverflowError", "Id"))) ... </k>
+    requires Spec ==String "c"
+      andBool isIntLike(V)
+      andBool (intValue(V) <Int 0 orBool intValue(V) >Int 1114111)
+  rule <k> Spec:String ~> formatApply(V:Val)
+        => Int2String(intValue(V)) ... </k>
+    requires Spec ==String "d" andBool isIntLike(V)
+  rule <k> Spec:String ~> formatApply(V:Val)
+        => pyIntBaseString(intValue(V), 8, "") ... </k>
+    requires Spec ==String "o" andBool isIntLike(V)
+  rule <k> Spec:String ~> formatApply(V:Val)
+        => pyIntBaseString(intValue(V), 16, "") ... </k>
+    requires Spec ==String "x" andBool isIntLike(V)
+  rule <k> Spec:String ~> formatApply(V:Val)
+        => pyIntBaseStringUpper(intValue(V), 16, "") ... </k>
+    requires Spec ==String "X" andBool isIntLike(V)
+  rule <k> Spec:String ~> formatApply(V:Val)
+        => exceptionSignal(#exception(#token("NotImplementedError", "Id"))) ... </k>
+    requires formatIntSpecSupported(Spec)
+      andBool notBool isIntLike(V)
   rule <k> Spec:String ~> formatApply(_V:Val)
         => exceptionSignal(#exception(#token("NotImplementedError", "Id"))) ... </k>
     requires Spec =/=String ""
+      andBool notBool formatIntSpecSupported(Spec)
   rule <k> Spec:Val ~> formatApply(_V:Val)
         => exceptionSignal(#exception(#token("TypeError", "Id"))) ... </k>
     requires notBool isStringVal(Spec)

@@ -1230,6 +1230,8 @@ module PYTHON
                 | matMulSupported(Val, Val) [function, symbol(matMulSupported)]
                 | absTypeErrorProfile(Val) [function, symbol(absTypeErrorProfile)]
                 | divmodSupported(Val, Val) [function, symbol(divmodSupported)]
+                | powTypeErrorProfile(Val, Val) [function, symbol(powTypeErrorProfile)]
+                | powModTypeErrorProfile(Val, Val, Val) [function, symbol(powModTypeErrorProfile)]
                 | fStringFormatSupported(Val) [function, symbol(fStringFormatSupported)]
                 | pyFloatStringConversionSupported(Float) [function, symbol(pyFloatStringConversionSupported)]
                 | pyStringConversionSupported(Val) [function, symbol(pyStringConversionSupported)]
@@ -2175,6 +2177,9 @@ module PYTHON
   rule isFloatLike(V:Val) => isIntLike(V) [owise]
   rule absTypeErrorProfile(V:Val) => notBool isComplexLike(V)
   rule divmodSupported(V1:Val, V2:Val) => isFloatLike(V1) andBool isFloatLike(V2)
+  rule powTypeErrorProfile(V1:Val, V2:Val) => (notBool isComplexLike(V1)) orBool (notBool isComplexLike(V2))
+  rule powModTypeErrorProfile(V1:Val, V2:Val, V3:Val) =>
+    (notBool isIntLike(V1)) orBool (notBool isIntLike(V2)) orBool (notBool isIntLike(V3))
 
   rule validIntBase(B:Int) => B >=Int 2 andBool B <=Int 36
 
@@ -6146,6 +6151,10 @@ module PYTHON
     requires isIntLike(V)
       andBool intValue(V) <Int 0
       andBool (R *Float R) +Float (I *Float I) ==Float 0.0
+  rule <k> V1:Val ** V2:Val =>
+           exceptionSignal(#exception(#token("TypeError", "Id")))
+       ... </k>
+    requires powTypeErrorProfile(V1, V2)
   rule floorDivExp(V1:Val, V2:Val) => pyFloorDiv(intValue(V1), intValue(V2))
     requires isIntLike(V1) andBool isIntLike(V2) andBool intValue(V2) =/=Int 0
   rule floorDivExp(F1:Float, F2:Float) => pyFloatFloorDiv(F1, F2)
@@ -12250,6 +12259,14 @@ module PYTHON
       andBool intValue(V2) <Int 0
       andBool intValue(V3) =/=Int 0
       andBool pyGcd(pyModulo(intValue(V1), intAbs(intValue(V3))), intAbs(intValue(V3))) =/=Int 1
+  rule <k> #pow(V1:Val, V2:Val) =>
+           exceptionSignal(#exception(#token("TypeError", "Id")))
+       ... </k>
+    requires powTypeErrorProfile(V1, V2)
+  rule <k> #pow(V1:Val, V2:Val, V3:Val) =>
+           exceptionSignal(#exception(#token("TypeError", "Id")))
+       ... </k>
+    requires powModTypeErrorProfile(V1, V2, V3)
 
   rule range1Exp(N:Val) => rangeVal(0, intValue(N))
     requires isIntLike(N)

@@ -851,6 +851,13 @@
       "coverage": ["pow-builtin", "power-operator", "zero-base-negative-exponent", "modular-exponentiation", "non-invertible-modular-power", "zero-modulus", "zero-division-error", "value-error", "bool-as-int-power", "complex-values", "ordinary-python-source-adapter"]
     },
     {
+      "id": "adapter-pow-type-errors",
+      "source": "../adapter/adapter-pow-type-errors.py",
+      "reference": "Python Language Reference 6.5 The power operator; Python Standard Library Built-in Functions pow",
+      "expected_result": "True ~> .K",
+      "coverage": ["pow-builtin", "power-operator", "three-argument-form", "unsupported-operands", "type-error", "ordinary-python-source-adapter"]
+    },
+    {
       "id": "adapter-round-int-builtin",
       "source": "../adapter/adapter-round-int-builtin.py",
       "reference": "Python Standard Library Built-in Functions round; CPython Lib/test/test_builtin.py test_round integer cases",

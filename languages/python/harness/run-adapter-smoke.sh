@@ -190,6 +190,7 @@ run_case "adapter-pow-mod-negative" "$ROOT/tests/adapter/adapter-pow-mod-negativ
 run_case "adapter-pow-error-diagnostics" "$ROOT/tests/adapter/adapter-pow-error-diagnostics.py" "True ~> .K"
 run_case "adapter-pow-type-errors" "$ROOT/tests/adapter/adapter-pow-type-errors.py" "True ~> .K"
 run_case "adapter-round-int-builtin" "$ROOT/tests/adapter/adapter-round-int-builtin.py" "True ~> .K"
+run_case "adapter-round-special-floats" "$ROOT/tests/adapter/adapter-round-special-floats.py" "True ~> .K"
 run_case "adapter-int-string-constructor" "$ROOT/tests/adapter/adapter-int-string-constructor.py" "True ~> .K"
 run_case "adapter-int-string-underscores" "$ROOT/tests/adapter/adapter-int-string-underscores.py" "True ~> .K"
 run_case "adapter-int-prefix-base-constructor" "$ROOT/tests/adapter/adapter-int-prefix-base-constructor.py" "True ~> .K"

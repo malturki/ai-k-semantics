@@ -1233,6 +1233,8 @@ module PYTHON
                 | powTypeErrorProfile(Val, Val) [function, symbol(powTypeErrorProfile)]
                 | powModTypeErrorProfile(Val, Val, Val) [function, symbol(powModTypeErrorProfile)]
                 | isIntegralFloat(Float) [function, symbol(isIntegralFloat)]
+                | roundDefaultSpecialFloat(Val) [function, symbol(roundDefaultSpecialFloat)]
+                | roundNdigitsSpecialFloat(Val, Val) [function, symbol(roundNdigitsSpecialFloat)]
                 | fStringFormatSupported(Val) [function, symbol(fStringFormatSupported)]
                 | pyFloatStringConversionSupported(Float) [function, symbol(pyFloatStringConversionSupported)]
                 | pyStringConversionSupported(Val) [function, symbol(pyStringConversionSupported)]
@@ -2183,6 +2185,11 @@ module PYTHON
   rule powModTypeErrorProfile(V1:Val, V2:Val, V3:Val) =>
     (notBool isIntLike(V1)) orBool (notBool isIntLike(V2)) orBool (notBool isIntLike(V3))
   rule isIntegralFloat(F:Float) => (notBool isNaN(F)) andBool (notBool isInfinite(F)) andBool F ==Float floorFloat(F)
+  rule roundDefaultSpecialFloat(F:Float) => isInfinite(F) orBool isNaN(F)
+  rule roundDefaultSpecialFloat(_:Val) => false [owise]
+  rule roundNdigitsSpecialFloat(F:Float, D:Val) =>
+    (isInfinite(F) orBool isNaN(F)) andBool (isIntLike(D) orBool valEq(D, None))
+  rule roundNdigitsSpecialFloat(_:Val, _:Val) => false [owise]
 
   rule validIntBase(B:Int) => B >=Int 2 andBool B <=Int 36
 
@@ -12220,18 +12227,33 @@ module PYTHON
   rule <k> #round(Obj:Exp) => Obj ~> roundDefault() ... </k>
   rule <k> V:Val ~> roundDefault() => intValue(V) ... </k>
     requires isIntLike(V)
+  rule <k> F:Float ~> roundDefault()
+        => exceptionSignal(#exception(#token("OverflowError", "Id"))) ... </k>
+    requires isInfinite(F)
+  rule <k> F:Float ~> roundDefault()
+        => exceptionSignal(#exception(#token("ValueError", "Id"))) ... </k>
+    requires isNaN(F)
   rule <k> V:Val ~> roundDefault()
         => exceptionSignal(#exception(#token("TypeError", "Id"))) ... </k>
     requires notBool isIntLike(V)
+      andBool notBool roundDefaultSpecialFloat(V)
   rule <k> #round(Obj:Exp, Ndigits:Exp) => Obj ~> roundNdigits(Ndigits) ... </k>
   rule <k> V:Val ~> roundNdigits(Ndigits:Exp) => Ndigits ~> roundApply(V) ... </k>
   rule <k> None ~> roundApply(V:Val) => intValue(V) ... </k>
     requires isIntLike(V)
+  rule <k> None ~> roundApply(F:Float)
+        => exceptionSignal(#exception(#token("OverflowError", "Id"))) ... </k>
+    requires isInfinite(F)
+  rule <k> None ~> roundApply(F:Float)
+        => exceptionSignal(#exception(#token("ValueError", "Id"))) ... </k>
+    requires isNaN(F)
+  rule <k> D:Val ~> roundApply(F:Float) => F ... </k>
+    requires isIntLike(D) andBool (isInfinite(F) orBool isNaN(F))
   rule <k> D:Val ~> roundApply(V:Val) => roundInt(intValue(V), intValue(D)) ... </k>
     requires isIntLike(V) andBool isIntLike(D)
   rule <k> D:Val ~> roundApply(V:Val)
         => exceptionSignal(#exception(#token("TypeError", "Id"))) ... </k>
-    requires notBool isIntLike(V)
+    requires (notBool isIntLike(V) andBool notBool roundNdigitsSpecialFloat(V, D))
       orBool (notBool isIntLike(D) andBool notBool valEq(D, None))
   rule <k> #pow(V1:Val, V2:Val) =>
            exceptionSignal(#exception(#token("ZeroDivisionError", "Id")))

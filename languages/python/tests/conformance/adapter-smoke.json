@@ -879,6 +879,13 @@
       "coverage": ["round-builtin", "int-like-argument", "ndigits", "negative-ndigits", "none-ndigits", "half-even-rounding", "ordinary-python-source-adapter"]
     },
     {
+      "id": "adapter-round-special-floats",
+      "source": "../adapter/adapter-round-special-floats.py",
+      "reference": "Python Standard Library Built-in Functions round",
+      "expected_result": "True ~> .K",
+      "coverage": ["round-builtin", "special-float-values", "overflow-error", "value-error", "ordinary-python-source-adapter"]
+    },
+    {
       "id": "adapter-int-string-constructor",
       "source": "../adapter/adapter-int-string-constructor.py",
       "reference": "Python Standard Library Built-in Types int; Python Standard Library Built-in Functions int",

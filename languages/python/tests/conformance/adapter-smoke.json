@@ -312,6 +312,13 @@
       "coverage": ["format-builtin", "format-spec-mini-language", "precision-option", "integer-presentation-types", "value-error", "ordinary-python-source-adapter"]
     },
     {
+      "id": "adapter-format-string-option-diagnostics",
+      "source": "../adapter/adapter-format-string-option-diagnostics.py",
+      "reference": "Python Format Specification Mini-Language sign, alternate form, and '=' alignment options are not allowed for string presentation types",
+      "expected_result": "True ~> .K",
+      "coverage": ["format-builtin", "format-spec-mini-language", "sign-option", "alternate-form", "fill-and-alignment", "string-presentation-type", "value-error", "ordinary-python-source-adapter"]
+    },
+    {
       "id": "adapter-ord-builtin",
       "source": "../adapter/adapter-ord-builtin.py",
       "reference": "Python Standard Library Built-in Functions ord; CPython Lib/test/test_builtin.py test_ord",

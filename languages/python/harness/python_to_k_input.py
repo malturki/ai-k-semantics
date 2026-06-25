@@ -259,11 +259,23 @@ def format_string_precision_missing_supported(spec: str) -> bool:
     return align_index < 0 or spec[align_index] != "="
 
 
+def format_string_diagnostic_spec_supported(spec: str) -> bool:
+    parsed = parse_supported_string_format_spec(spec)
+    if parsed is None:
+        return False
+    align_index, has_sign, has_alt, precision_missing, _width = parsed
+    if precision_missing:
+        return False
+    has_equal_align = align_index >= 0 and spec[align_index] == "="
+    return has_sign or has_alt or has_equal_align
+
+
 def format_spec_supported(spec: str) -> bool:
     return (
         format_int_spec_supported(spec)
         or format_int_precision_spec_supported(spec)
         or format_string_spec_supported(spec)
+        or format_string_diagnostic_spec_supported(spec)
         or format_string_precision_missing_supported(spec)
     )
 

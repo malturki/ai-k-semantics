@@ -1239,6 +1239,7 @@ module PYTHON
                 | formatIntWidthSpecSupported(String) [function, symbol(formatIntWidthSpecSupported)]
                 | formatIntPrecisionSpecSupported(String) [function, symbol(formatIntPrecisionSpecSupported)]
                 | formatStringSpecSupported(String) [function, symbol(formatStringSpecSupported)]
+                | formatStringDiagnosticSpecSupported(String) [function, symbol(formatStringDiagnosticSpecSupported)]
                 | formatAlignChar(String) [function, symbol(formatAlignChar)]
                 | formatSignChar(String) [function, symbol(formatSignChar)]
                 | formatIntTypeChar(String) [function, symbol(formatIntTypeChar)]
@@ -2752,6 +2753,16 @@ module PYTHON
       andBool (notBool formatHasStringPrecision(S)
         orBool formatDecimalDigits(S, formatStringPrecisionDot(S) +Int 1, formatStringWidthEnd(S)))
   rule formatStringSpecSupported(_:String) => false [owise]
+
+  rule formatStringDiagnosticSpecSupported(S:String) => true
+    requires S =/=String ""
+      andBool (formatHasSign(S) orBool formatHasAlt(S) orBool formatAlign(S, "<") ==String "=")
+      andBool notBool formatStringPrecisionMissing(S)
+      andBool formatStringWidthDigitsEnd(S) >=Int formatWidthStart(S)
+      andBool formatDecimalDigits(S, formatWidthStart(S), formatStringWidthDigitsEnd(S))
+      andBool (notBool formatHasStringPrecision(S)
+        orBool formatDecimalDigits(S, formatStringPrecisionDot(S) +Int 1, formatStringWidthEnd(S)))
+  rule formatStringDiagnosticSpecSupported(_:String) => false [owise]
 
   rule validIntBase(B:Int) => B >=Int 2 andBool B <=Int 36
 
@@ -11969,6 +11980,9 @@ module PYTHON
   rule <k> Spec:String ~> formatApply(_S:String)
         => exceptionSignal(#exception(#token("ValueError", "Id"))) ... </k>
     requires formatStringPrecisionMissing(Spec)
+  rule <k> Spec:String ~> formatApply(_S:String)
+        => exceptionSignal(#exception(#token("ValueError", "Id"))) ... </k>
+    requires formatStringDiagnosticSpecSupported(Spec)
   rule <k> Spec:String ~> formatApply(S:String)
         => formatPad(
              formatAlign(Spec, "<"),
@@ -12175,18 +12189,21 @@ module PYTHON
     requires formatIntSpecSupported(Spec)
       andBool notBool isIntLike(V)
       andBool notBool (isStringVal(V) andBool formatStringSpecSupported(Spec))
+      andBool notBool (isStringVal(V) andBool formatStringDiagnosticSpecSupported(Spec))
   rule <k> Spec:String ~> formatApply(V:Val)
         => exceptionSignal(#exception(#token("NotImplementedError", "Id"))) ... </k>
     requires formatStringSpecSupported(Spec)
       andBool notBool isStringVal(V)
       andBool notBool formatIntSpecSupported(Spec)
       andBool notBool formatIntPrecisionSpecSupported(Spec)
+      andBool notBool formatStringDiagnosticSpecSupported(Spec)
   rule <k> Spec:String ~> formatApply(_V:Val)
         => exceptionSignal(#exception(#token("NotImplementedError", "Id"))) ... </k>
     requires Spec =/=String ""
       andBool notBool formatIntSpecSupported(Spec)
       andBool notBool formatIntPrecisionSpecSupported(Spec)
       andBool notBool formatStringSpecSupported(Spec)
+      andBool notBool formatStringDiagnosticSpecSupported(Spec)
       andBool notBool formatStringPrecisionMissing(Spec)
   rule <k> Spec:Val ~> formatApply(_V:Val)
         => exceptionSignal(#exception(#token("TypeError", "Id"))) ... </k>

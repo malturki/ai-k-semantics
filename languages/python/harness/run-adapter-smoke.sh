@@ -88,6 +88,7 @@ run_case "adapter-format-width-align-spec" "$ROOT/tests/adapter/adapter-format-w
 run_case "adapter-format-int-grouping-spec" "$ROOT/tests/adapter/adapter-format-int-grouping-spec.py" "True ~> .K"
 run_case "adapter-format-string-precision-spec" "$ROOT/tests/adapter/adapter-format-string-precision-spec.py" "True ~> .K"
 run_case "adapter-format-int-precision-spec" "$ROOT/tests/adapter/adapter-format-int-precision-spec.py" "True ~> .K"
+run_case "adapter-format-string-option-diagnostics" "$ROOT/tests/adapter/adapter-format-string-option-diagnostics.py" "True ~> .K"
 run_case "adapter-chr-builtin" "$ROOT/tests/adapter/adapter-chr-builtin.py" "True ~> .K"
 run_case "adapter-ord-builtin" "$ROOT/tests/adapter/adapter-ord-builtin.py" "True ~> .K"
 run_case "adapter-bin-oct-hex-builtins" "$ROOT/tests/adapter/adapter-bin-oct-hex-builtins.py" "True ~> .K"

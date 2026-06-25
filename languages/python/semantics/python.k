@@ -1235,6 +1235,7 @@ module PYTHON
                 | isIntegralFloat(Float) [function, symbol(isIntegralFloat)]
                 | roundDefaultSpecialFloat(Val) [function, symbol(roundDefaultSpecialFloat)]
                 | roundNdigitsSpecialFloat(Val, Val) [function, symbol(roundNdigitsSpecialFloat)]
+                | isSpecialFloatVal(Val) [function, symbol(isSpecialFloatVal)]
                 | formatIntSpecSupported(String) [function, symbol(formatIntSpecSupported)]
                 | formatIntWidthSpecSupported(String) [function, symbol(formatIntWidthSpecSupported)]
                 | formatIntPrecisionSpecSupported(String) [function, symbol(formatIntPrecisionSpecSupported)]
@@ -1245,12 +1246,16 @@ module PYTHON
                 | formatIntStringTypeSpecSupported(String) [function, symbol(formatIntStringTypeSpecSupported)]
                 | formatIntNDiagnosticSpecSupported(String) [function, symbol(formatIntNDiagnosticSpecSupported)]
                 | formatStringNumericTypeSpecSupported(String) [function, symbol(formatStringNumericTypeSpecSupported)]
+                | formatFloatSpecialSpecSupported(String) [function, symbol(formatFloatSpecialSpecSupported)]
+                | formatFloatSpecialTypeAllowed(String) [function, symbol(formatFloatSpecialTypeAllowed)]
                 | formatAlignChar(String) [function, symbol(formatAlignChar)]
                 | formatSignChar(String) [function, symbol(formatSignChar)]
                 | formatIntTypeChar(String) [function, symbol(formatIntTypeChar)]
                 | formatStringTypeChar(String) [function, symbol(formatStringTypeChar)]
                 | formatNumericTypeChar(String) [function, symbol(formatNumericTypeChar)]
+                | formatFloatTypeChar(String) [function, symbol(formatFloatTypeChar)]
                 | formatGroupingChar(String) [function, symbol(formatGroupingChar)]
+                | formatFloatSpecialUppercase(String) [function, symbol(formatFloatSpecialUppercase)]
                 | formatHasSign(String) [function, symbol(formatHasSign)]
                 | formatHasZ(String) [function, symbol(formatHasZ)]
                 | formatHasAlt(String) [function, symbol(formatHasAlt)]
@@ -1568,10 +1573,18 @@ module PYTHON
                   | formatGrouping(String) [function, symbol(formatGrouping)]
                   | formatIntType(String) [function, symbol(formatIntType)]
                   | formatStringType(String) [function, symbol(formatStringType)]
+                  | formatFloatType(String) [function, symbol(formatFloatType)]
+                  | formatFloatSpecialAlign(String) [function, symbol(formatFloatSpecialAlign)]
                   | formatStringPayload(String, String) [function, symbol(formatStringPayload)]
                   | formatPad(String, String, String, Int) [function, symbol(formatPad)]
                   | formatPadEqual(String, String, String, Int) [function, symbol(formatPadEqual)]
                   | formatIntSign(String, Int) [function, symbol(formatIntSign)]
+                  | formatFloatSpecialSign(String, Float) [function, symbol(formatFloatSpecialSign)]
+                  | formatFloatSpecialSuffix(String) [function, symbol(formatFloatSpecialSuffix)]
+                  | formatFloatSpecialBase(Float, String) [function, symbol(formatFloatSpecialBase)]
+                  | formatFloatSpecialBody(Float, String) [function, symbol(formatFloatSpecialBody)]
+                  | formatFloatSpecialText(Float, String) [function, symbol(formatFloatSpecialText)]
+                  | formatFloatSpecialRender(Float, String) [function, symbol(formatFloatSpecialRender)]
                   | formatIntAltPrefix(String, String) [function, symbol(formatIntAltPrefix)]
                   | formatIntDigits(Int, String) [function, symbol(formatIntDigits)]
                   | formatIntGroupedDigits(Int, String) [function, symbol(formatIntGroupedDigits)]
@@ -2219,6 +2232,25 @@ module PYTHON
   rule formatNumericTypeChar("%") => true
   rule formatNumericTypeChar(_:String) => false [owise]
 
+  rule formatFloatTypeChar("e") => true
+  rule formatFloatTypeChar("E") => true
+  rule formatFloatTypeChar("f") => true
+  rule formatFloatTypeChar("F") => true
+  rule formatFloatTypeChar("g") => true
+  rule formatFloatTypeChar("G") => true
+  rule formatFloatTypeChar("n") => true
+  rule formatFloatTypeChar("%") => true
+  rule formatFloatTypeChar(_:String) => false [owise]
+
+  rule formatFloatSpecialUppercase(S:String) => true
+    requires formatFloatType(S) ==String "E"
+      orBool formatFloatType(S) ==String "F"
+      orBool formatFloatType(S) ==String "G"
+  rule formatFloatSpecialUppercase(S:String) => false
+    requires formatFloatType(S) =/=String "E"
+      andBool formatFloatType(S) =/=String "F"
+      andBool formatFloatType(S) =/=String "G"
+
   rule formatGroupingChar(",") => true
   rule formatGroupingChar("_") => true
   rule formatGroupingChar(_:String) => false [owise]
@@ -2543,6 +2575,20 @@ module PYTHON
     requires lengthString(S) >Int formatWidthStart(S)
       andBool notBool formatStringTypeChar(substrString(S, lengthString(S) -Int 1, lengthString(S)))
 
+  rule formatFloatType(S:String) => substrString(S, lengthString(S) -Int 1, lengthString(S))
+    requires lengthString(S) >Int formatWidthStart(S)
+      andBool formatFloatTypeChar(substrString(S, lengthString(S) -Int 1, lengthString(S)))
+  rule formatFloatType(S:String) => ""
+    requires lengthString(S) <=Int formatWidthStart(S)
+  rule formatFloatType(S:String) => ""
+    requires lengthString(S) >Int formatWidthStart(S)
+      andBool notBool formatFloatTypeChar(substrString(S, lengthString(S) -Int 1, lengthString(S)))
+
+  rule formatFloatSpecialAlign(S:String) => "="
+    requires formatAlignIndex(S) <Int 0 andBool formatHasZero(S)
+  rule formatFloatSpecialAlign(S:String) => formatAlign(S, ">")
+    requires formatAlignIndex(S) >=Int 0 orBool notBool formatHasZero(S)
+
   rule formatStringPayload(Text:String, Spec:String) => substrString(Text, 0, formatStringPrecision(Spec))
     requires formatHasStringPrecision(Spec)
       andBool notBool formatStringPrecisionMissing(Spec)
@@ -2580,6 +2626,54 @@ module PYTHON
     requires I >=Int 0
       andBool formatSign(Spec) =/=String "+"
       andBool formatSign(Spec) =/=String " "
+
+  rule formatFloatSpecialSign(_Spec:String, F:Float) => "-"
+    requires isInfinite(F) andBool signFloat(F)
+  rule formatFloatSpecialSign(Spec:String, F:Float) => "+"
+    requires notBool (isInfinite(F) andBool signFloat(F))
+      andBool formatSign(Spec) ==String "+"
+  rule formatFloatSpecialSign(Spec:String, F:Float) => " "
+    requires notBool (isInfinite(F) andBool signFloat(F))
+      andBool formatSign(Spec) ==String " "
+  rule formatFloatSpecialSign(Spec:String, F:Float) => ""
+    requires notBool (isInfinite(F) andBool signFloat(F))
+      andBool formatSign(Spec) =/=String "+"
+      andBool formatSign(Spec) =/=String " "
+
+  rule formatFloatSpecialSuffix(Spec:String) => "%"
+    requires formatFloatType(Spec) ==String "%"
+  rule formatFloatSpecialSuffix(Spec:String) => ""
+    requires formatFloatType(Spec) =/=String "%"
+
+  rule formatFloatSpecialBase(F:Float, Spec:String) => "NAN"
+    requires isNaN(F) andBool formatFloatSpecialUppercase(Spec)
+  rule formatFloatSpecialBase(F:Float, Spec:String) => "nan"
+    requires isNaN(F) andBool notBool formatFloatSpecialUppercase(Spec)
+  rule formatFloatSpecialBase(F:Float, Spec:String) => "INF"
+    requires isInfinite(F) andBool formatFloatSpecialUppercase(Spec)
+  rule formatFloatSpecialBase(F:Float, Spec:String) => "inf"
+    requires isInfinite(F) andBool notBool formatFloatSpecialUppercase(Spec)
+
+  rule formatFloatSpecialBody(F:Float, Spec:String) =>
+    formatFloatSpecialBase(F, Spec) +String formatFloatSpecialSuffix(Spec)
+
+  rule formatFloatSpecialText(F:Float, Spec:String) =>
+    formatFloatSpecialSign(Spec, F) +String formatFloatSpecialBody(F, Spec)
+
+  rule formatFloatSpecialRender(F:Float, Spec:String) =>
+    formatPadEqual(
+      formatFill(Spec),
+      formatFloatSpecialSign(Spec, F),
+      formatFloatSpecialBody(F, Spec),
+      formatWidth(Spec, formatWidthStart(Spec), formatNumericWidthDigitsPrefixEnd(Spec)))
+    requires formatFloatSpecialAlign(Spec) ==String "="
+  rule formatFloatSpecialRender(F:Float, Spec:String) =>
+    formatPad(
+      formatFloatSpecialAlign(Spec),
+      formatFill(Spec),
+      formatFloatSpecialText(F, Spec),
+      formatWidth(Spec, formatWidthStart(Spec), formatNumericWidthDigitsPrefixEnd(Spec)))
+    requires formatFloatSpecialAlign(Spec) =/=String "="
 
   rule formatIntAltPrefix(Spec:String, "b") => "0b"
     requires formatHasAlt(Spec)
@@ -2773,6 +2867,10 @@ module PYTHON
   rule roundNdigitsSpecialFloat(F:Float, D:Val) =>
     (isInfinite(F) orBool isNaN(F)) andBool (isIntLike(D) orBool valEq(D, None))
   rule roundNdigitsSpecialFloat(_:Val, _:Val) => false [owise]
+
+  rule isSpecialFloatVal(F:Float) => isInfinite(F) orBool isNaN(F)
+  rule isSpecialFloatVal(_:Val) => false [owise]
+
   rule formatIntSpecSupported("b") => true
   rule formatIntSpecSupported("c") => true
   rule formatIntSpecSupported("d") => true
@@ -2919,6 +3017,27 @@ module PYTHON
       andBool (notBool formatHasNumericPrecision(S)
         orBool formatDecimalDigits(S, formatNumericPrecisionDot(S) +Int 1, formatNumericWidthEnd(S)))
   rule formatStringNumericTypeSpecSupported(_:String) => false [owise]
+
+  rule formatFloatSpecialTypeAllowed(S:String) => true
+    requires formatNumericWidthEnd(S) ==Int lengthString(S)
+  rule formatFloatSpecialTypeAllowed(S:String) => true
+    requires formatNumericWidthEnd(S) ==Int lengthString(S) -Int 1
+      andBool formatFloatTypeChar(substrString(S, lengthString(S) -Int 1, lengthString(S)))
+  rule formatFloatSpecialTypeAllowed(S:String) => false
+    requires formatNumericWidthEnd(S) =/=Int lengthString(S)
+      andBool notBool (formatNumericWidthEnd(S) ==Int lengthString(S) -Int 1
+        andBool formatFloatTypeChar(substrString(S, lengthString(S) -Int 1, lengthString(S))))
+
+  rule formatFloatSpecialSpecSupported(S:String) => true
+    requires S =/=String ""
+      andBool formatFloatSpecialTypeAllowed(S)
+      andBool notBool formatNumericHasGrouping(S)
+      andBool notBool formatNumericPrecisionMissing(S)
+      andBool formatNumericWidthDigitsEnd(S) >=Int formatWidthStart(S)
+      andBool formatDecimalDigits(S, formatWidthStart(S), formatNumericWidthDigitsPrefixEnd(S))
+      andBool (notBool formatHasNumericPrecision(S)
+        orBool formatDecimalDigits(S, formatNumericPrecisionDot(S) +Int 1, formatNumericWidthEnd(S)))
+  rule formatFloatSpecialSpecSupported(_:String) => false [owise]
 
   rule validIntBase(B:Int) => B >=Int 2 andBool B <=Int 36
 
@@ -12152,6 +12271,14 @@ module PYTHON
              formatStringPayload(S, Spec),
              formatWidth(Spec, formatWidthStart(Spec), formatStringWidthDigitsEnd(Spec))) ... </k>
     requires formatStringSpecSupported(Spec)
+  rule <k> Spec:String ~> formatApply(F:Float)
+        => formatFloatSpecialRender(F, Spec) ... </k>
+    requires formatFloatSpecialSpecSupported(Spec)
+      andBool isSpecialFloatVal(F)
+  rule <k> Spec:String ~> formatApply(F:Float)
+        => exceptionSignal(#exception(#token("NotImplementedError", "Id"))) ... </k>
+    requires formatFloatSpecialSpecSupported(Spec)
+      andBool notBool isSpecialFloatVal(F)
   rule <k> Spec:String ~> formatApply(V:Val)
         => exceptionSignal(#exception(#token("ValueError", "Id"))) ... </k>
     requires formatIntStringTypeSpecSupported(Spec)
@@ -12362,6 +12489,7 @@ module PYTHON
         => exceptionSignal(#exception(#token("NotImplementedError", "Id"))) ... </k>
     requires formatIntSpecSupported(Spec)
       andBool notBool isIntLike(V)
+      andBool notBool isSpecialFloatVal(V)
       andBool notBool (isStringVal(V) andBool formatStringSpecSupported(Spec))
       andBool notBool (isStringVal(V) andBool formatStringDiagnosticSpecSupported(Spec))
       andBool notBool (isStringVal(V) andBool formatStringZSpecSupported(Spec))
@@ -12378,7 +12506,7 @@ module PYTHON
       andBool notBool formatIntStringTypeSpecSupported(Spec)
       andBool notBool formatIntNDiagnosticSpecSupported(Spec)
       andBool notBool formatStringNumericTypeSpecSupported(Spec)
-  rule <k> Spec:String ~> formatApply(_V:Val)
+  rule <k> Spec:String ~> formatApply(V:Val)
         => exceptionSignal(#exception(#token("NotImplementedError", "Id"))) ... </k>
     requires Spec =/=String ""
       andBool notBool formatIntSpecSupported(Spec)
@@ -12390,6 +12518,7 @@ module PYTHON
       andBool notBool formatIntStringTypeSpecSupported(Spec)
       andBool notBool formatIntNDiagnosticSpecSupported(Spec)
       andBool notBool formatStringNumericTypeSpecSupported(Spec)
+      andBool notBool (formatFloatSpecialSpecSupported(Spec) andBool isSpecialFloatVal(V))
       andBool notBool formatStringPrecisionMissing(Spec)
   rule <k> Spec:Val ~> formatApply(_V:Val)
         => exceptionSignal(#exception(#token("TypeError", "Id"))) ... </k>

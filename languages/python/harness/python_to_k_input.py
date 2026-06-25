@@ -124,6 +124,7 @@ FORMAT_SIGN_CHARS = "+- "
 FORMAT_INT_TYPE_CHARS = "bcdoxX"
 FORMAT_STRING_TYPE_CHARS = "s"
 FORMAT_NUMERIC_TYPE_CHARS = "bcdoxXeEfFgGn%"
+FORMAT_FLOAT_SPECIAL_TYPE_CHARS = "eEfFgGn%"
 
 
 def format_align_index(spec: str) -> int:
@@ -273,6 +274,42 @@ def parse_supported_typed_format_spec(
     return align_index, has_sign, has_z, has_alt, has_grouping, has_precision, precision_missing
 
 
+def parse_supported_float_special_format_spec(spec: str) -> tuple[bool, bool] | None:
+    if any(ord(ch) >= 128 for ch in spec):
+        return None
+    align_index = format_align_index(spec)
+    index = align_index + 1 if align_index >= 0 else 0
+    if index < len(spec) and spec[index] in FORMAT_SIGN_CHARS:
+        index += 1
+    if index < len(spec) and spec[index] == "z":
+        index += 1
+    if index < len(spec) and spec[index] == "#":
+        index += 1
+    if index < len(spec) and spec[index] == "0":
+        index += 1
+    end = len(spec)
+    if index < len(spec) and spec[-1] in FORMAT_NUMERIC_TYPE_CHARS:
+        if spec[-1] not in FORMAT_FLOAT_SPECIAL_TYPE_CHARS:
+            return None
+        end -= 1
+    has_grouping = end > index and spec[end - 1] in ",_"
+    if has_grouping:
+        return None
+    body = spec[index:end]
+    has_precision = "." in body
+    precision_missing = False
+    if has_precision:
+        width, precision = body.split(".", 1)
+        precision_missing = precision == ""
+        if precision and not precision.isdecimal():
+            return None
+    else:
+        width = body
+    if width and not width.isdecimal():
+        return None
+    return has_precision, precision_missing
+
+
 def parse_supported_string_format_spec(spec: str) -> tuple[int, bool, bool, bool, str] | None:
     if any(ord(ch) >= 128 for ch in spec):
         return None
@@ -410,6 +447,16 @@ def format_string_numeric_type_spec_supported(spec: str) -> bool:
     return align_index < 0 or spec[align_index] != "="
 
 
+def format_float_special_spec_supported(spec: str) -> bool:
+    if spec == "":
+        return False
+    parsed = parse_supported_float_special_format_spec(spec)
+    if parsed is None:
+        return False
+    _has_precision, precision_missing = parsed
+    return not precision_missing
+
+
 def format_spec_supported(spec: str) -> bool:
     return (
         format_int_spec_supported(spec)
@@ -421,6 +468,7 @@ def format_spec_supported(spec: str) -> bool:
         or format_string_diagnostic_spec_supported(spec)
         or format_string_z_spec_supported(spec)
         or format_string_numeric_type_spec_supported(spec)
+        or format_float_special_spec_supported(spec)
         or format_string_precision_missing_supported(spec)
     )
 
@@ -1358,7 +1406,7 @@ def emit_format_spec(node: ast.AST, spec_expr: ast.expr) -> str:
     if isinstance(spec_expr, ast.Constant) and isinstance(spec_expr.value, str):
         if format_spec_supported(spec_expr.value):
             return emit_exp(spec_expr)
-        raise unsupported(node, "format currently supports only the current string/integer format_spec subset")
+        raise unsupported(node, "format currently supports only the current string/integer/special-float format_spec subset")
     raise unsupported(node, "format currently supports string-literal format_spec")
 
 

@@ -340,6 +340,13 @@
       "coverage": ["format-builtin", "format-spec-mini-language", "integer-presentation-types", "number-presentation-type", "grouping-option", "precision-option", "negative-zero-coercion", "value-error", "ordinary-python-source-adapter"]
     },
     {
+      "id": "adapter-format-float-special-spec",
+      "source": "../adapter/adapter-format-float-special-spec.py",
+      "reference": "Python Format Specification Mini-Language floating-point presentation types format infinities and NaNs as inf/-inf/nan or uppercase variants regardless of precision",
+      "expected_result": "True ~> .K",
+      "coverage": ["format-builtin", "format-spec-mini-language", "floating-point-presentation-types", "infinity-values", "nan-values", "sign-option", "fill-and-alignment", "precision-option", "negative-zero-coercion", "ordinary-python-source-adapter"]
+    },
+    {
       "id": "adapter-ord-builtin",
       "source": "../adapter/adapter-ord-builtin.py",
       "reference": "Python Standard Library Built-in Functions ord; CPython Lib/test/test_builtin.py test_ord",

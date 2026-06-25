@@ -1232,6 +1232,7 @@ module PYTHON
                 | divmodSupported(Val, Val) [function, symbol(divmodSupported)]
                 | powTypeErrorProfile(Val, Val) [function, symbol(powTypeErrorProfile)]
                 | powModTypeErrorProfile(Val, Val, Val) [function, symbol(powModTypeErrorProfile)]
+                | isIntegralFloat(Float) [function, symbol(isIntegralFloat)]
                 | fStringFormatSupported(Val) [function, symbol(fStringFormatSupported)]
                 | pyFloatStringConversionSupported(Float) [function, symbol(pyFloatStringConversionSupported)]
                 | pyStringConversionSupported(Val) [function, symbol(pyStringConversionSupported)]
@@ -2181,6 +2182,7 @@ module PYTHON
   rule powTypeErrorProfile(V1:Val, V2:Val) => (notBool isComplexLike(V1)) orBool (notBool isComplexLike(V2))
   rule powModTypeErrorProfile(V1:Val, V2:Val, V3:Val) =>
     (notBool isIntLike(V1)) orBool (notBool isIntLike(V2)) orBool (notBool isIntLike(V3))
+  rule isIntegralFloat(F:Float) => (notBool isNaN(F)) andBool (notBool isInfinite(F)) andBool F ==Float floorFloat(F)
 
   rule validIntBase(B:Int) => B >=Int 2 andBool B <=Int 36
 
@@ -6123,10 +6125,14 @@ module PYTHON
     requires isIntLike(V1) andBool isIntLike(V2) andBool intValue(V1) =/=Int 0 andBool intValue(V2) <Int 0
   rule F1:Float ** F2:Float => F1 ^Float F2
     requires F1 >=Float 0.0 andBool (F1 =/=Float 0.0 orBool F2 >=Float 0.0)
+  rule F1:Float ** F2:Float => F1 ^Float F2
+    requires F1 <Float 0.0 andBool isIntegralFloat(F2)
   rule F:Float ** V:Val => pyFloatPowInt(F, intValue(V))
     requires isIntLike(V) andBool F <Float 0.0
   rule F:Float ** V:Val => F ^Float floatValue(V)
     requires isIntLike(V) andBool F >=Float 0.0 andBool (F =/=Float 0.0 orBool intValue(V) >=Int 0)
+  rule V:Val ** F:Float => floatValue(V) ^Float F
+    requires isIntLike(V) andBool floatValue(V) <Float 0.0 andBool isIntegralFloat(F)
   rule V:Val ** F:Float => floatValue(V) ^Float F
     requires isIntLike(V) andBool floatValue(V) >=Float 0.0 andBool (intValue(V) =/=Int 0 orBool F >=Float 0.0)
   rule <k> V1:Val ** V2:Val =>
@@ -12184,10 +12190,14 @@ module PYTHON
     requires isIntLike(V1) andBool isIntLike(V2) andBool intValue(V1) =/=Int 0 andBool intValue(V2) <Int 0
   rule #pow(F1:Float, F2:Float) => F1 ^Float F2
     requires F1 >=Float 0.0 andBool (F1 =/=Float 0.0 orBool F2 >=Float 0.0)
+  rule #pow(F1:Float, F2:Float) => F1 ^Float F2
+    requires F1 <Float 0.0 andBool isIntegralFloat(F2)
   rule #pow(F:Float, V:Val) => pyFloatPowInt(F, intValue(V))
     requires isIntLike(V) andBool F <Float 0.0
   rule #pow(F:Float, V:Val) => F ^Float floatValue(V)
     requires isIntLike(V) andBool F >=Float 0.0 andBool (F =/=Float 0.0 orBool intValue(V) >=Int 0)
+  rule #pow(V:Val, F:Float) => floatValue(V) ^Float F
+    requires isIntLike(V) andBool floatValue(V) <Float 0.0 andBool isIntegralFloat(F)
   rule #pow(V:Val, F:Float) => floatValue(V) ^Float F
     requires isIntLike(V) andBool floatValue(V) >=Float 0.0 andBool (intValue(V) =/=Int 0 orBool F >=Float 0.0)
   rule #pow(#complex(R:Float, I:Float), V:Val) => complexPowInt(R, I, intValue(V))

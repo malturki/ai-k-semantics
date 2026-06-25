@@ -467,6 +467,14 @@ def format_float_n_grouping_diagnostic_spec_supported(spec: str) -> bool:
     return not precision_missing and has_grouping and type_char == "n"
 
 
+def format_float_precision_missing_spec_supported(spec: str) -> bool:
+    parsed = parse_supported_float_special_format_spec(spec)
+    if parsed is None:
+        return False
+    _type_char, has_grouping, precision_missing = parsed
+    return precision_missing and not has_grouping
+
+
 def format_spec_supported(spec: str) -> bool:
     return (
         format_int_spec_supported(spec)
@@ -480,6 +488,7 @@ def format_spec_supported(spec: str) -> bool:
         or format_string_numeric_type_spec_supported(spec)
         or format_float_special_spec_supported(spec)
         or format_float_n_grouping_diagnostic_spec_supported(spec)
+        or format_float_precision_missing_spec_supported(spec)
         or format_string_precision_missing_supported(spec)
     )
 

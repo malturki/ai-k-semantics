@@ -354,6 +354,13 @@
       "coverage": ["format-builtin", "format-spec-mini-language", "floating-point-presentation-types", "infinity-values", "nan-values", "grouping-option", "number-presentation-type", "value-error", "ordinary-python-source-adapter"]
     },
     {
+      "id": "adapter-format-float-precision-missing",
+      "source": "../adapter/adapter-format-float-precision-missing.py",
+      "reference": "Python Format Specification Mini-Language precision option requires decimal digits for floating-point presentation types",
+      "expected_result": "True ~> .K",
+      "coverage": ["format-builtin", "format-spec-mini-language", "floating-point-presentation-types", "precision-option", "infinity-values", "nan-values", "value-error", "ordinary-python-source-adapter"]
+    },
+    {
       "id": "adapter-ord-builtin",
       "source": "../adapter/adapter-ord-builtin.py",
       "reference": "Python Standard Library Built-in Functions ord; CPython Lib/test/test_builtin.py test_ord",

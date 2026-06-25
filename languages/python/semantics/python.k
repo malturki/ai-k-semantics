@@ -1248,6 +1248,7 @@ module PYTHON
                 | formatStringNumericTypeSpecSupported(String) [function, symbol(formatStringNumericTypeSpecSupported)]
                 | formatFloatSpecialSpecSupported(String) [function, symbol(formatFloatSpecialSpecSupported)]
                 | formatFloatNGroupingDiagnosticSpecSupported(String) [function, symbol(formatFloatNGroupingDiagnosticSpecSupported)]
+                | formatFloatPrecisionMissingSpecSupported(String) [function, symbol(formatFloatPrecisionMissingSpecSupported)]
                 | formatFloatSpecialTypeAllowed(String) [function, symbol(formatFloatSpecialTypeAllowed)]
                 | formatFloatGroupingAllowed(String) [function, symbol(formatFloatGroupingAllowed)]
                 | formatAlignChar(String) [function, symbol(formatAlignChar)]
@@ -3061,6 +3062,15 @@ module PYTHON
       andBool (notBool formatHasNumericPrecision(S)
         orBool formatDecimalDigits(S, formatNumericPrecisionDot(S) +Int 1, formatNumericWidthEnd(S)))
   rule formatFloatNGroupingDiagnosticSpecSupported(_:String) => false [owise]
+
+  rule formatFloatPrecisionMissingSpecSupported(S:String) => true
+    requires S =/=String ""
+      andBool formatFloatSpecialTypeAllowed(S)
+      andBool notBool formatNumericHasGrouping(S)
+      andBool formatNumericPrecisionMissing(S)
+      andBool formatNumericWidthDigitsEnd(S) >=Int formatWidthStart(S)
+      andBool formatDecimalDigits(S, formatWidthStart(S), formatNumericWidthDigitsPrefixEnd(S))
+  rule formatFloatPrecisionMissingSpecSupported(_:String) => false [owise]
 
   rule validIntBase(B:Int) => B >=Int 2 andBool B <=Int 36
 
@@ -12297,6 +12307,9 @@ module PYTHON
   rule <k> Spec:String ~> formatApply(_F:Float)
         => exceptionSignal(#exception(#token("ValueError", "Id"))) ... </k>
     requires formatFloatNGroupingDiagnosticSpecSupported(Spec)
+  rule <k> Spec:String ~> formatApply(_F:Float)
+        => exceptionSignal(#exception(#token("ValueError", "Id"))) ... </k>
+    requires formatFloatPrecisionMissingSpecSupported(Spec)
   rule <k> Spec:String ~> formatApply(F:Float)
         => formatFloatSpecialRender(F, Spec) ... </k>
     requires formatFloatSpecialSpecSupported(Spec)
@@ -12545,6 +12558,7 @@ module PYTHON
       andBool notBool formatIntNDiagnosticSpecSupported(Spec)
       andBool notBool formatStringNumericTypeSpecSupported(Spec)
       andBool notBool (formatFloatSpecialSpecSupported(Spec) andBool isSpecialFloatVal(V))
+      andBool notBool formatFloatPrecisionMissingSpecSupported(Spec)
       andBool notBool formatStringPrecisionMissing(Spec)
   rule <k> Spec:Val ~> formatApply(_V:Val)
         => exceptionSignal(#exception(#token("TypeError", "Id"))) ... </k>

@@ -119,6 +119,66 @@ SUPPORTED_FORMAT_SPECS = {
     "-#x",
     "-#X",
 }
+FORMAT_ALIGN_CHARS = "<>=^"
+FORMAT_SIGN_CHARS = "+- "
+FORMAT_INT_TYPE_CHARS = "bcdoxX"
+FORMAT_STRING_TYPE_CHARS = "s"
+
+
+def format_align_index(spec: str) -> int:
+    if len(spec) >= 2 and spec[1] in FORMAT_ALIGN_CHARS:
+        return 1
+    if len(spec) >= 1 and spec[0] in FORMAT_ALIGN_CHARS:
+        return 0
+    return -1
+
+
+def parse_supported_format_spec(spec: str, type_chars: str) -> tuple[int, bool, bool, str] | None:
+    if any(ord(ch) >= 128 for ch in spec):
+        return None
+    align_index = format_align_index(spec)
+    index = align_index + 1 if align_index >= 0 else 0
+    has_sign = index < len(spec) and spec[index] in FORMAT_SIGN_CHARS
+    if has_sign:
+        index += 1
+    has_alt = index < len(spec) and spec[index] == "#"
+    if has_alt:
+        index += 1
+    if index < len(spec) and spec[index] == "0":
+        index += 1
+    end = len(spec)
+    if index < len(spec) and spec[-1] in type_chars:
+        end -= 1
+    if end < index:
+        return None
+    width = spec[index:end]
+    if width and not width.isdecimal():
+        return None
+    return align_index, has_sign, has_alt, width
+
+
+def format_int_spec_supported(spec: str) -> bool:
+    if spec in SUPPORTED_FORMAT_SPECS:
+        return True
+    if not spec:
+        return False
+    return parse_supported_format_spec(spec, FORMAT_INT_TYPE_CHARS) is not None
+
+
+def format_string_spec_supported(spec: str) -> bool:
+    if spec == "":
+        return True
+    parsed = parse_supported_format_spec(spec, FORMAT_STRING_TYPE_CHARS)
+    if parsed is None:
+        return False
+    align_index, has_sign, has_alt, _width = parsed
+    if has_sign or has_alt:
+        return False
+    return align_index < 0 or spec[align_index] != "="
+
+
+def format_spec_supported(spec: str) -> bool:
+    return format_int_spec_supported(spec) or format_string_spec_supported(spec)
 
 
 def emit_id(name: str) -> str:
@@ -1052,9 +1112,9 @@ def emit_getattr_name(node: ast.AST, name_expr: ast.expr) -> str:
 
 def emit_format_spec(node: ast.AST, spec_expr: ast.expr) -> str:
     if isinstance(spec_expr, ast.Constant) and isinstance(spec_expr.value, str):
-        if spec_expr.value in SUPPORTED_FORMAT_SPECS:
+        if format_spec_supported(spec_expr.value):
             return emit_exp(spec_expr)
-        raise unsupported(node, "format currently supports only empty or current integer presentation format_spec")
+        raise unsupported(node, "format currently supports only the current string/integer format_spec subset")
     raise unsupported(node, "format currently supports string-literal format_spec")
 
 

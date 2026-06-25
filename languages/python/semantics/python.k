@@ -1236,6 +1236,16 @@ module PYTHON
                 | roundDefaultSpecialFloat(Val) [function, symbol(roundDefaultSpecialFloat)]
                 | roundNdigitsSpecialFloat(Val, Val) [function, symbol(roundNdigitsSpecialFloat)]
                 | formatIntSpecSupported(String) [function, symbol(formatIntSpecSupported)]
+                | formatIntWidthSpecSupported(String) [function, symbol(formatIntWidthSpecSupported)]
+                | formatStringSpecSupported(String) [function, symbol(formatStringSpecSupported)]
+                | formatAlignChar(String) [function, symbol(formatAlignChar)]
+                | formatSignChar(String) [function, symbol(formatSignChar)]
+                | formatIntTypeChar(String) [function, symbol(formatIntTypeChar)]
+                | formatStringTypeChar(String) [function, symbol(formatStringTypeChar)]
+                | formatHasSign(String) [function, symbol(formatHasSign)]
+                | formatHasAlt(String) [function, symbol(formatHasAlt)]
+                | formatHasZero(String) [function, symbol(formatHasZero)]
+                | formatDecimalDigits(String, Int, Int) [function, symbol(formatDecimalDigits)]
                 | fStringFormatSupported(Val) [function, symbol(fStringFormatSupported)]
                 | pyFloatStringConversionSupported(Float) [function, symbol(pyFloatStringConversionSupported)]
                 | pyStringConversionSupported(Val) [function, symbol(pyStringConversionSupported)]
@@ -1428,6 +1438,15 @@ module PYTHON
                | pyExtendedGcdX(Int, Int) [function, symbol(pyExtendedGcdX)]
                | pyExtendedGcdY(Int, Int) [function, symbol(pyExtendedGcdY)]
                | pyModInverse(Int, Int) [function, symbol(pyModInverse)]
+               | formatAlignIndex(String) [function, symbol(formatAlignIndex)]
+               | formatOptionsStart(String) [function, symbol(formatOptionsStart)]
+               | formatAfterSignIndex(String) [function, symbol(formatAfterSignIndex)]
+               | formatAfterAltIndex(String) [function, symbol(formatAfterAltIndex)]
+               | formatWidthStart(String) [function, symbol(formatWidthStart)]
+               | formatIntWidthEnd(String) [function, symbol(formatIntWidthEnd)]
+               | formatStringWidthEnd(String) [function, symbol(formatStringWidthEnd)]
+               | formatWidth(String, Int, Int) [function, symbol(formatWidth)]
+               | formatDecimalDigitsValue(String, Int, Int, Int) [function, symbol(formatDecimalDigitsValue)]
                | floatDecimalDigitsValue(String, Int, Int) [function, symbol(floatDecimalDigitsValue)]
                | floatDecimalFractionDigits(String, Int, Int, Bool) [function, symbol(floatDecimalFractionDigits)]
                | floatDecimalPow10(Int) [function, symbol(floatDecimalPow10)]
@@ -1512,6 +1531,19 @@ module PYTHON
                   | intBaseDigitsUpper(Int, Int) [function, symbol(intBaseDigitsUpper)]
                   | byteHexDigitUpper(Int) [function, symbol(byteHexDigitUpper)]
                   | formatSignPrefix(String, Int) [function, symbol(formatSignPrefix)]
+                  | formatAlign(String, String) [function, symbol(formatAlign)]
+                  | formatIntAlign(String) [function, symbol(formatIntAlign)]
+                  | formatFill(String) [function, symbol(formatFill)]
+                  | formatSign(String) [function, symbol(formatSign)]
+                  | formatIntType(String) [function, symbol(formatIntType)]
+                  | formatStringType(String) [function, symbol(formatStringType)]
+                  | formatPad(String, String, String, Int) [function, symbol(formatPad)]
+                  | formatPadEqual(String, String, String, Int) [function, symbol(formatPadEqual)]
+                  | formatIntSign(String, Int) [function, symbol(formatIntSign)]
+                  | formatIntAltPrefix(String, String) [function, symbol(formatIntAltPrefix)]
+                  | formatIntDigits(Int, String) [function, symbol(formatIntDigits)]
+                  | formatIntText(Int, String) [function, symbol(formatIntText)]
+                  | formatIntRender(Int, String) [function, symbol(formatIntRender)]
                   | pyFloatReprStr(Float) [function, symbol(pyFloatReprStr)]
                   | pyFormatStr(Val) [function, symbol(pyFormatStr)]
                   | pyReprStr(Val) [function, symbol(pyReprStr)]
@@ -2114,6 +2146,246 @@ module PYTHON
     requires I <Int 0
   rule formatSignPrefix("-", _I:Int) => ""
 
+  rule formatAlignChar("<") => true
+  rule formatAlignChar(">") => true
+  rule formatAlignChar("=") => true
+  rule formatAlignChar("^") => true
+  rule formatAlignChar(_:String) => false [owise]
+
+  rule formatSignChar("+") => true
+  rule formatSignChar("-") => true
+  rule formatSignChar(" ") => true
+  rule formatSignChar(_:String) => false [owise]
+
+  rule formatIntTypeChar("b") => true
+  rule formatIntTypeChar("c") => true
+  rule formatIntTypeChar("d") => true
+  rule formatIntTypeChar("o") => true
+  rule formatIntTypeChar("x") => true
+  rule formatIntTypeChar("X") => true
+  rule formatIntTypeChar(_:String) => false [owise]
+
+  rule formatStringTypeChar("s") => true
+  rule formatStringTypeChar(_:String) => false [owise]
+
+  rule formatAlignIndex(S:String) => 1
+    requires lengthString(S) >=Int 2
+      andBool formatAlignChar(substrString(S, 1, 2))
+  rule formatAlignIndex(S:String) => 0
+    requires lengthString(S) ==Int 1
+      andBool formatAlignChar(substrString(S, 0, 1))
+  rule formatAlignIndex(S:String) => 0
+    requires lengthString(S) >=Int 2
+      andBool notBool formatAlignChar(substrString(S, 1, 2))
+      andBool formatAlignChar(substrString(S, 0, 1))
+  rule formatAlignIndex(S:String) => -1
+    requires lengthString(S) ==Int 0
+  rule formatAlignIndex(S:String) => -1
+    requires lengthString(S) ==Int 1
+      andBool notBool formatAlignChar(substrString(S, 0, 1))
+  rule formatAlignIndex(S:String) => -1
+    requires lengthString(S) >=Int 2
+      andBool notBool formatAlignChar(substrString(S, 1, 2))
+      andBool notBool formatAlignChar(substrString(S, 0, 1))
+
+  rule formatOptionsStart(S:String) => 2
+    requires formatAlignIndex(S) ==Int 1
+  rule formatOptionsStart(S:String) => 1
+    requires formatAlignIndex(S) ==Int 0
+  rule formatOptionsStart(S:String) => 0
+    requires formatAlignIndex(S) ==Int -1
+
+  rule formatHasSign(S:String) => true
+    requires formatOptionsStart(S) <Int lengthString(S)
+      andBool formatSignChar(substrString(S, formatOptionsStart(S), formatOptionsStart(S) +Int 1))
+  rule formatHasSign(S:String) => false
+    requires formatOptionsStart(S) >=Int lengthString(S)
+  rule formatHasSign(S:String) => false
+    requires formatOptionsStart(S) <Int lengthString(S)
+      andBool notBool formatSignChar(substrString(S, formatOptionsStart(S), formatOptionsStart(S) +Int 1))
+
+  rule formatSign(S:String) => substrString(S, formatOptionsStart(S), formatOptionsStart(S) +Int 1)
+    requires formatHasSign(S)
+  rule formatSign(S:String) => "-"
+    requires notBool formatHasSign(S)
+
+  rule formatAfterSignIndex(S:String) => formatOptionsStart(S) +Int 1
+    requires formatHasSign(S)
+  rule formatAfterSignIndex(S:String) => formatOptionsStart(S)
+    requires notBool formatHasSign(S)
+
+  rule formatHasAlt(S:String) => true
+    requires formatAfterSignIndex(S) <Int lengthString(S)
+      andBool substrString(S, formatAfterSignIndex(S), formatAfterSignIndex(S) +Int 1) ==String "#"
+  rule formatHasAlt(S:String) => false
+    requires formatAfterSignIndex(S) >=Int lengthString(S)
+  rule formatHasAlt(S:String) => false
+    requires formatAfterSignIndex(S) <Int lengthString(S)
+      andBool substrString(S, formatAfterSignIndex(S), formatAfterSignIndex(S) +Int 1) =/=String "#"
+
+  rule formatAfterAltIndex(S:String) => formatAfterSignIndex(S) +Int 1
+    requires formatHasAlt(S)
+  rule formatAfterAltIndex(S:String) => formatAfterSignIndex(S)
+    requires notBool formatHasAlt(S)
+
+  rule formatHasZero(S:String) => true
+    requires formatAfterAltIndex(S) <Int lengthString(S)
+      andBool substrString(S, formatAfterAltIndex(S), formatAfterAltIndex(S) +Int 1) ==String "0"
+  rule formatHasZero(S:String) => false
+    requires formatAfterAltIndex(S) >=Int lengthString(S)
+  rule formatHasZero(S:String) => false
+    requires formatAfterAltIndex(S) <Int lengthString(S)
+      andBool substrString(S, formatAfterAltIndex(S), formatAfterAltIndex(S) +Int 1) =/=String "0"
+
+  rule formatWidthStart(S:String) => formatAfterAltIndex(S) +Int 1
+    requires formatHasZero(S)
+  rule formatWidthStart(S:String) => formatAfterAltIndex(S)
+    requires notBool formatHasZero(S)
+
+  rule formatIntWidthEnd(S:String) => lengthString(S) -Int 1
+    requires lengthString(S) >Int formatWidthStart(S)
+      andBool formatIntTypeChar(substrString(S, lengthString(S) -Int 1, lengthString(S)))
+  rule formatIntWidthEnd(S:String) => lengthString(S)
+    requires lengthString(S) <=Int formatWidthStart(S)
+  rule formatIntWidthEnd(S:String) => lengthString(S)
+    requires lengthString(S) >Int formatWidthStart(S)
+      andBool notBool formatIntTypeChar(substrString(S, lengthString(S) -Int 1, lengthString(S)))
+
+  rule formatStringWidthEnd(S:String) => lengthString(S) -Int 1
+    requires lengthString(S) >Int formatWidthStart(S)
+      andBool formatStringTypeChar(substrString(S, lengthString(S) -Int 1, lengthString(S)))
+  rule formatStringWidthEnd(S:String) => lengthString(S)
+    requires lengthString(S) <=Int formatWidthStart(S)
+  rule formatStringWidthEnd(S:String) => lengthString(S)
+    requires lengthString(S) >Int formatWidthStart(S)
+      andBool notBool formatStringTypeChar(substrString(S, lengthString(S) -Int 1, lengthString(S)))
+
+  rule formatDecimalDigits(_S:String, I:Int, End:Int) => true
+    requires I >=Int End
+  rule formatDecimalDigits(S:String, I:Int, End:Int) =>
+    formatDecimalDigits(S, I +Int 1, End)
+    requires I <Int End
+      andBool digitValue(substrString(S, I, I +Int 1)) >=Int 0
+      andBool digitValue(substrString(S, I, I +Int 1)) <=Int 9
+  rule formatDecimalDigits(S:String, I:Int, End:Int) => false
+    requires I <Int End
+      andBool (digitValue(substrString(S, I, I +Int 1)) <Int 0
+        orBool digitValue(substrString(S, I, I +Int 1)) >Int 9)
+
+  rule formatDecimalDigitsValue(_S:String, I:Int, End:Int, Acc:Int) => Acc
+    requires I >=Int End
+  rule formatDecimalDigitsValue(S:String, I:Int, End:Int, Acc:Int) =>
+    formatDecimalDigitsValue(S, I +Int 1, End, (Acc *Int 10) +Int digitValue(substrString(S, I, I +Int 1)))
+    requires I <Int End
+      andBool digitValue(substrString(S, I, I +Int 1)) >=Int 0
+      andBool digitValue(substrString(S, I, I +Int 1)) <=Int 9
+
+  rule formatWidth(_S:String, Start:Int, End:Int) => 0
+    requires Start >=Int End
+  rule formatWidth(S:String, Start:Int, End:Int) => formatDecimalDigitsValue(S, Start, End, 0)
+    requires Start <Int End
+
+  rule formatAlign(S:String, _Default:String) => substrString(S, formatAlignIndex(S), formatAlignIndex(S) +Int 1)
+    requires formatAlignIndex(S) >=Int 0
+  rule formatAlign(S:String, Default:String) => Default
+    requires formatAlignIndex(S) <Int 0
+
+  rule formatIntAlign(S:String) => "="
+    requires formatAlignIndex(S) <Int 0 andBool formatHasZero(S)
+  rule formatIntAlign(S:String) => formatAlign(S, ">")
+    requires formatAlignIndex(S) >=Int 0 orBool notBool formatHasZero(S)
+
+  rule formatFill(S:String) => substrString(S, 0, 1)
+    requires formatAlignIndex(S) ==Int 1
+  rule formatFill(S:String) => "0"
+    requires formatAlignIndex(S) =/=Int 1 andBool formatHasZero(S)
+  rule formatFill(S:String) => " "
+    requires formatAlignIndex(S) =/=Int 1 andBool notBool formatHasZero(S)
+
+  rule formatIntType(S:String) => substrString(S, lengthString(S) -Int 1, lengthString(S))
+    requires lengthString(S) >Int formatWidthStart(S)
+      andBool formatIntTypeChar(substrString(S, lengthString(S) -Int 1, lengthString(S)))
+  rule formatIntType(S:String) => "d"
+    requires lengthString(S) <=Int formatWidthStart(S)
+  rule formatIntType(S:String) => "d"
+    requires lengthString(S) >Int formatWidthStart(S)
+      andBool notBool formatIntTypeChar(substrString(S, lengthString(S) -Int 1, lengthString(S)))
+
+  rule formatStringType(S:String) => "s"
+    requires lengthString(S) >Int formatWidthStart(S)
+      andBool formatStringTypeChar(substrString(S, lengthString(S) -Int 1, lengthString(S)))
+  rule formatStringType(S:String) => "s"
+    requires lengthString(S) <=Int formatWidthStart(S)
+  rule formatStringType(S:String) => "s"
+    requires lengthString(S) >Int formatWidthStart(S)
+      andBool notBool formatStringTypeChar(substrString(S, lengthString(S) -Int 1, lengthString(S)))
+
+  rule formatPad(_Align:String, _Fill:String, Text:String, Width:Int) => Text
+    requires Width <=Int lengthString(Text)
+  rule formatPad("<", Fill:String, Text:String, Width:Int) => Text +String repeatString(Fill, Width -Int lengthString(Text))
+    requires Width >Int lengthString(Text)
+  rule formatPad(">", Fill:String, Text:String, Width:Int) => repeatString(Fill, Width -Int lengthString(Text)) +String Text
+    requires Width >Int lengthString(Text)
+  rule formatPad("^", Fill:String, Text:String, Width:Int) =>
+    repeatString(Fill, (Width -Int lengthString(Text)) /Int 2)
+      +String Text
+      +String repeatString(Fill, (Width -Int lengthString(Text)) -Int ((Width -Int lengthString(Text)) /Int 2))
+    requires Width >Int lengthString(Text)
+
+  rule formatPadEqual(_Fill:String, Prefix:String, Digits:String, Width:Int) => Prefix +String Digits
+    requires Width <=Int lengthString(Prefix) +Int lengthString(Digits)
+  rule formatPadEqual(Fill:String, Prefix:String, Digits:String, Width:Int) =>
+    Prefix +String repeatString(Fill, Width -Int lengthString(Prefix) -Int lengthString(Digits)) +String Digits
+    requires Width >Int lengthString(Prefix) +Int lengthString(Digits)
+
+  rule formatIntSign(_Spec:String, I:Int) => "-"
+    requires I <Int 0
+  rule formatIntSign(Spec:String, I:Int) => "+"
+    requires I >=Int 0 andBool formatSign(Spec) ==String "+"
+  rule formatIntSign(Spec:String, I:Int) => " "
+    requires I >=Int 0 andBool formatSign(Spec) ==String " "
+  rule formatIntSign(Spec:String, I:Int) => ""
+    requires I >=Int 0
+      andBool formatSign(Spec) =/=String "+"
+      andBool formatSign(Spec) =/=String " "
+
+  rule formatIntAltPrefix(Spec:String, "b") => "0b"
+    requires formatHasAlt(Spec)
+  rule formatIntAltPrefix(Spec:String, "o") => "0o"
+    requires formatHasAlt(Spec)
+  rule formatIntAltPrefix(Spec:String, "x") => "0x"
+    requires formatHasAlt(Spec)
+  rule formatIntAltPrefix(Spec:String, "X") => "0X"
+    requires formatHasAlt(Spec)
+  rule formatIntAltPrefix(_Spec:String, _Type:String) => ""
+    [owise]
+
+  rule formatIntDigits(I:Int, "b") => intBaseDigits(intAbs(I), 2)
+  rule formatIntDigits(I:Int, "c") => chrChar(I)
+    requires I >=Int 0 andBool I <=Int 255
+  rule formatIntDigits(I:Int, "d") => Int2String(intAbs(I))
+  rule formatIntDigits(I:Int, "o") => intBaseDigits(intAbs(I), 8)
+  rule formatIntDigits(I:Int, "x") => intBaseDigits(intAbs(I), 16)
+  rule formatIntDigits(I:Int, "X") => intBaseDigitsUpper(intAbs(I), 16)
+
+  rule formatIntText(I:Int, Spec:String) =>
+    formatIntSign(Spec, I) +String formatIntAltPrefix(Spec, formatIntType(Spec)) +String formatIntDigits(I, formatIntType(Spec))
+
+  rule formatIntRender(I:Int, Spec:String) =>
+    formatPadEqual(
+      formatFill(Spec),
+      formatIntSign(Spec, I) +String formatIntAltPrefix(Spec, formatIntType(Spec)),
+      formatIntDigits(I, formatIntType(Spec)),
+      formatWidth(Spec, formatWidthStart(Spec), formatIntWidthEnd(Spec)))
+    requires formatIntAlign(Spec) ==String "="
+  rule formatIntRender(I:Int, Spec:String) =>
+    formatPad(
+      formatIntAlign(Spec),
+      formatFill(Spec),
+      formatIntText(I, Spec),
+      formatWidth(Spec, formatWidthStart(Spec), formatIntWidthEnd(Spec)))
+    requires formatIntAlign(Spec) =/=String "="
+
   rule isIntLike(_:Int) => true
   rule isIntLike(_:Float) => false
   rule isIntLike(#complex(_:Float, _:Float)) => false
@@ -2270,7 +2542,24 @@ module PYTHON
   rule formatIntSpecSupported("-#o") => true
   rule formatIntSpecSupported("-#x") => true
   rule formatIntSpecSupported("-#X") => true
+  rule formatIntSpecSupported(S:String) => true
+    requires formatIntWidthSpecSupported(S)
   rule formatIntSpecSupported(_:String) => false [owise]
+
+  rule formatIntWidthSpecSupported(S:String) => true
+    requires S =/=String ""
+      andBool formatIntWidthEnd(S) >=Int formatWidthStart(S)
+      andBool formatDecimalDigits(S, formatWidthStart(S), formatIntWidthEnd(S))
+  rule formatIntWidthSpecSupported(_:String) => false [owise]
+
+  rule formatStringSpecSupported(S:String) => true
+    requires S =/=String ""
+      andBool notBool formatHasSign(S)
+      andBool notBool formatHasAlt(S)
+      andBool formatAlign(S, "<") =/=String "="
+      andBool formatStringWidthEnd(S) >=Int formatWidthStart(S)
+      andBool formatDecimalDigits(S, formatWidthStart(S), formatStringWidthEnd(S))
+  rule formatStringSpecSupported(_:String) => false [owise]
 
   rule validIntBase(B:Int) => B >=Int 2 andBool B <=Int 36
 
@@ -11485,6 +11774,45 @@ module PYTHON
   rule <k> Spec:String ~> formatApply(V:Val)
         => exceptionSignal(#exception(#token("TypeError", "Id"))) ... </k>
     requires Spec ==String "" andBool notBool pyStringConversionSupported(V)
+  rule <k> Spec:String ~> formatApply(S:String)
+        => formatPad(formatAlign(Spec, "<"), formatFill(Spec), S, formatWidth(Spec, formatWidthStart(Spec), formatStringWidthEnd(Spec))) ... </k>
+    requires formatStringSpecSupported(Spec)
+  rule <k> Spec:String ~> formatApply(V:Val)
+        => exceptionSignal(#exception(#token("ValueError", "Id"))) ... </k>
+    requires formatIntWidthSpecSupported(Spec)
+      andBool isIntLike(V)
+      andBool formatIntType(Spec) ==String "c"
+      andBool formatHasSign(Spec)
+  rule <k> Spec:String ~> formatApply(V:Val)
+        => exceptionSignal(#exception(#token("ValueError", "Id"))) ... </k>
+    requires formatIntWidthSpecSupported(Spec)
+      andBool isIntLike(V)
+      andBool formatIntType(Spec) ==String "c"
+      andBool notBool formatHasSign(Spec)
+      andBool formatHasAlt(Spec)
+  rule <k> Spec:String ~> formatApply(V:Val)
+        => exceptionSignal(#exception(#token("NotImplementedError", "Id"))) ... </k>
+    requires formatIntWidthSpecSupported(Spec)
+      andBool isIntLike(V)
+      andBool formatIntType(Spec) ==String "c"
+      andBool notBool formatHasSign(Spec)
+      andBool notBool formatHasAlt(Spec)
+      andBool intValue(V) >Int 255
+      andBool intValue(V) <=Int 1114111
+  rule <k> Spec:String ~> formatApply(V:Val)
+        => exceptionSignal(#exception(#token("OverflowError", "Id"))) ... </k>
+    requires formatIntWidthSpecSupported(Spec)
+      andBool isIntLike(V)
+      andBool formatIntType(Spec) ==String "c"
+      andBool notBool formatHasSign(Spec)
+      andBool notBool formatHasAlt(Spec)
+      andBool (intValue(V) <Int 0 orBool intValue(V) >Int 1114111)
+  rule <k> Spec:String ~> formatApply(V:Val)
+        => formatIntRender(intValue(V), Spec) ... </k>
+    requires formatIntWidthSpecSupported(Spec)
+      andBool isIntLike(V)
+      andBool notBool (formatIntType(Spec) ==String "c" andBool (formatHasSign(Spec) orBool formatHasAlt(Spec)))
+      andBool (formatIntType(Spec) =/=String "c" orBool (intValue(V) >=Int 0 andBool intValue(V) <=Int 255))
   rule <k> Spec:String ~> formatApply(V:Val)
         => pyIntBaseString(intValue(V), 2, "") ... </k>
     requires Spec ==String "b" andBool isIntLike(V)
@@ -11636,10 +11964,17 @@ module PYTHON
         => exceptionSignal(#exception(#token("NotImplementedError", "Id"))) ... </k>
     requires formatIntSpecSupported(Spec)
       andBool notBool isIntLike(V)
+      andBool notBool (isStringVal(V) andBool formatStringSpecSupported(Spec))
+  rule <k> Spec:String ~> formatApply(V:Val)
+        => exceptionSignal(#exception(#token("NotImplementedError", "Id"))) ... </k>
+    requires formatStringSpecSupported(Spec)
+      andBool notBool isStringVal(V)
+      andBool notBool formatIntSpecSupported(Spec)
   rule <k> Spec:String ~> formatApply(_V:Val)
         => exceptionSignal(#exception(#token("NotImplementedError", "Id"))) ... </k>
     requires Spec =/=String ""
       andBool notBool formatIntSpecSupported(Spec)
+      andBool notBool formatStringSpecSupported(Spec)
   rule <k> Spec:Val ~> formatApply(_V:Val)
         => exceptionSignal(#exception(#token("TypeError", "Id"))) ... </k>
     requires notBool isStringVal(Spec)

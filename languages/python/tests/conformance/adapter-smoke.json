@@ -284,6 +284,13 @@
       "coverage": ["format-builtin", "format-spec-mini-language", "sign-option", "alternate-form", "integer-presentation-types", "ordinary-python-source-adapter"]
     },
     {
+      "id": "adapter-format-width-align-spec",
+      "source": "../adapter/adapter-format-width-align-spec.py",
+      "reference": "Python Format Specification Mini-Language fill, alignment, zero-padding, width, string presentation, and integer presentation types",
+      "expected_result": "True ~> .K",
+      "coverage": ["format-builtin", "format-spec-mini-language", "fill-and-alignment", "zero-padding", "width", "string-presentation-type", "integer-presentation-types", "ordinary-python-source-adapter"]
+    },
+    {
       "id": "adapter-ord-builtin",
       "source": "../adapter/adapter-ord-builtin.py",
       "reference": "Python Standard Library Built-in Functions ord; CPython Lib/test/test_builtin.py test_ord",

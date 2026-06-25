@@ -294,22 +294,31 @@ def parse_supported_float_special_format_spec(spec: str) -> tuple[str, bool, boo
             return None
         type_char = spec[-1]
         end -= 1
-    has_grouping = end > index and spec[end - 1] in ",_"
-    if has_grouping:
-        end -= 1
     body = spec[index:end]
-    has_precision = "." in body
+    has_width_grouping = False
+    has_precision_grouping = False
     precision_missing = False
-    if has_precision:
+    if "." in body:
         width, precision = body.split(".", 1)
-        precision_missing = precision == ""
+        has_width_grouping = bool(width) and width[-1] in ",_"
+        if has_width_grouping:
+            width = width[:-1]
+        has_precision_grouping = bool(precision) and precision[-1] in ",_"
+        if has_precision_grouping:
+            precision = precision[:-1]
+        precision_missing = precision == "" and not has_precision_grouping
+        if width and not width.isdecimal():
+            return None
         if precision and not precision.isdecimal():
             return None
     else:
         width = body
+        has_width_grouping = bool(width) and width[-1] in ",_"
+        if has_width_grouping:
+            width = width[:-1]
     if width and not width.isdecimal():
         return None
-    return type_char, has_grouping, precision_missing
+    return type_char, has_width_grouping or has_precision_grouping, precision_missing
 
 
 def parse_supported_string_format_spec(spec: str) -> tuple[int, bool, bool, bool, str] | None:
@@ -471,8 +480,8 @@ def format_float_precision_missing_spec_supported(spec: str) -> bool:
     parsed = parse_supported_float_special_format_spec(spec)
     if parsed is None:
         return False
-    _type_char, has_grouping, precision_missing = parsed
-    return precision_missing and not has_grouping
+    _type_char, _has_grouping, precision_missing = parsed
+    return precision_missing
 
 
 def format_spec_supported(spec: str) -> bool:

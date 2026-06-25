@@ -1242,9 +1242,12 @@ module PYTHON
                 | formatSignChar(String) [function, symbol(formatSignChar)]
                 | formatIntTypeChar(String) [function, symbol(formatIntTypeChar)]
                 | formatStringTypeChar(String) [function, symbol(formatStringTypeChar)]
+                | formatGroupingChar(String) [function, symbol(formatGroupingChar)]
                 | formatHasSign(String) [function, symbol(formatHasSign)]
                 | formatHasAlt(String) [function, symbol(formatHasAlt)]
                 | formatHasZero(String) [function, symbol(formatHasZero)]
+                | formatHasGrouping(String) [function, symbol(formatHasGrouping)]
+                | formatGroupingAllowed(String) [function, symbol(formatGroupingAllowed)]
                 | formatDecimalDigits(String, Int, Int) [function, symbol(formatDecimalDigits)]
                 | fStringFormatSupported(Val) [function, symbol(fStringFormatSupported)]
                 | pyFloatStringConversionSupported(Float) [function, symbol(pyFloatStringConversionSupported)]
@@ -1444,9 +1447,11 @@ module PYTHON
                | formatAfterAltIndex(String) [function, symbol(formatAfterAltIndex)]
                | formatWidthStart(String) [function, symbol(formatWidthStart)]
                | formatIntWidthEnd(String) [function, symbol(formatIntWidthEnd)]
+               | formatIntWidthDigitsEnd(String) [function, symbol(formatIntWidthDigitsEnd)]
                | formatStringWidthEnd(String) [function, symbol(formatStringWidthEnd)]
                | formatWidth(String, Int, Int) [function, symbol(formatWidth)]
                | formatDecimalDigitsValue(String, Int, Int, Int) [function, symbol(formatDecimalDigitsValue)]
+               | formatGroupingSize(String) [function, symbol(formatGroupingSize)]
                | floatDecimalDigitsValue(String, Int, Int) [function, symbol(floatDecimalDigitsValue)]
                | floatDecimalFractionDigits(String, Int, Int, Bool) [function, symbol(floatDecimalFractionDigits)]
                | floatDecimalPow10(Int) [function, symbol(floatDecimalPow10)]
@@ -1535,6 +1540,7 @@ module PYTHON
                   | formatIntAlign(String) [function, symbol(formatIntAlign)]
                   | formatFill(String) [function, symbol(formatFill)]
                   | formatSign(String) [function, symbol(formatSign)]
+                  | formatGrouping(String) [function, symbol(formatGrouping)]
                   | formatIntType(String) [function, symbol(formatIntType)]
                   | formatStringType(String) [function, symbol(formatStringType)]
                   | formatPad(String, String, String, Int) [function, symbol(formatPad)]
@@ -1542,6 +1548,9 @@ module PYTHON
                   | formatIntSign(String, Int) [function, symbol(formatIntSign)]
                   | formatIntAltPrefix(String, String) [function, symbol(formatIntAltPrefix)]
                   | formatIntDigits(Int, String) [function, symbol(formatIntDigits)]
+                  | formatIntGroupedDigits(Int, String) [function, symbol(formatIntGroupedDigits)]
+                  | formatGroupDigits(String, String, Int) [function, symbol(formatGroupDigits)]
+                  | formatZeroPaddedGroupedDigits(String, String, Int, Int) [function, symbol(formatZeroPaddedGroupedDigits)]
                   | formatIntText(Int, String) [function, symbol(formatIntText)]
                   | formatIntRender(Int, String) [function, symbol(formatIntRender)]
                   | pyFloatReprStr(Float) [function, symbol(pyFloatReprStr)]
@@ -2168,6 +2177,10 @@ module PYTHON
   rule formatStringTypeChar("s") => true
   rule formatStringTypeChar(_:String) => false [owise]
 
+  rule formatGroupingChar(",") => true
+  rule formatGroupingChar("_") => true
+  rule formatGroupingChar(_:String) => false [owise]
+
   rule formatAlignIndex(S:String) => 1
     requires lengthString(S) >=Int 2
       andBool formatAlignChar(substrString(S, 1, 2))
@@ -2250,6 +2263,57 @@ module PYTHON
   rule formatIntWidthEnd(S:String) => lengthString(S)
     requires lengthString(S) >Int formatWidthStart(S)
       andBool notBool formatIntTypeChar(substrString(S, lengthString(S) -Int 1, lengthString(S)))
+
+  rule formatHasGrouping(S:String) => true
+    requires formatIntWidthEnd(S) >Int formatWidthStart(S)
+      andBool formatGroupingChar(substrString(S, formatIntWidthEnd(S) -Int 1, formatIntWidthEnd(S)))
+  rule formatHasGrouping(S:String) => false
+    requires formatIntWidthEnd(S) <=Int formatWidthStart(S)
+  rule formatHasGrouping(S:String) => false
+    requires formatIntWidthEnd(S) >Int formatWidthStart(S)
+      andBool notBool formatGroupingChar(substrString(S, formatIntWidthEnd(S) -Int 1, formatIntWidthEnd(S)))
+
+  rule formatGrouping(S:String) => substrString(S, formatIntWidthEnd(S) -Int 1, formatIntWidthEnd(S))
+    requires formatHasGrouping(S)
+  rule formatGrouping(_S:String) => ""
+    [owise]
+
+  rule formatIntWidthDigitsEnd(S:String) => formatIntWidthEnd(S) -Int 1
+    requires formatHasGrouping(S)
+  rule formatIntWidthDigitsEnd(S:String) => formatIntWidthEnd(S)
+    requires notBool formatHasGrouping(S)
+
+  rule formatGroupingAllowed(S:String) => true
+    requires notBool formatHasGrouping(S)
+  rule formatGroupingAllowed(S:String) => true
+    requires formatHasGrouping(S)
+      andBool formatGrouping(S) ==String ","
+      andBool formatIntType(S) ==String "d"
+  rule formatGroupingAllowed(S:String) => true
+    requires formatHasGrouping(S)
+      andBool formatGrouping(S) ==String "_"
+      andBool formatIntType(S) =/=String "c"
+  rule formatGroupingAllowed(S:String) => false
+    requires formatHasGrouping(S)
+      andBool notBool (formatGrouping(S) ==String "," andBool formatIntType(S) ==String "d")
+      andBool notBool (formatGrouping(S) ==String "_" andBool formatIntType(S) =/=String "c")
+
+  rule formatGroupingSize(S:String) => 4
+    requires formatHasGrouping(S)
+      andBool formatGrouping(S) ==String "_"
+      andBool (formatIntType(S) ==String "b"
+        orBool formatIntType(S) ==String "o"
+        orBool formatIntType(S) ==String "x"
+        orBool formatIntType(S) ==String "X")
+  rule formatGroupingSize(S:String) => 3
+    requires formatHasGrouping(S)
+      andBool notBool (formatGrouping(S) ==String "_"
+        andBool (formatIntType(S) ==String "b"
+          orBool formatIntType(S) ==String "o"
+          orBool formatIntType(S) ==String "x"
+          orBool formatIntType(S) ==String "X"))
+  rule formatGroupingSize(_S:String) => 3
+    [owise]
 
   rule formatStringWidthEnd(S:String) => lengthString(S) -Int 1
     requires lengthString(S) >Int formatWidthStart(S)
@@ -2368,22 +2432,65 @@ module PYTHON
   rule formatIntDigits(I:Int, "x") => intBaseDigits(intAbs(I), 16)
   rule formatIntDigits(I:Int, "X") => intBaseDigitsUpper(intAbs(I), 16)
 
-  rule formatIntText(I:Int, Spec:String) =>
-    formatIntSign(Spec, I) +String formatIntAltPrefix(Spec, formatIntType(Spec)) +String formatIntDigits(I, formatIntType(Spec))
+  rule formatGroupDigits(Digits:String, _Sep:String, Size:Int) => Digits
+    requires lengthString(Digits) <=Int Size
+  rule formatGroupDigits(Digits:String, Sep:String, Size:Int) =>
+    formatGroupDigits(substrString(Digits, 0, lengthString(Digits) -Int Size), Sep, Size)
+      +String Sep
+      +String substrString(Digits, lengthString(Digits) -Int Size, lengthString(Digits))
+    requires lengthString(Digits) >Int Size
 
+  rule formatIntGroupedDigits(I:Int, Spec:String) =>
+    formatGroupDigits(formatIntDigits(I, formatIntType(Spec)), formatGrouping(Spec), formatGroupingSize(Spec))
+    requires formatHasGrouping(Spec)
+  rule formatIntGroupedDigits(I:Int, Spec:String) => formatIntDigits(I, formatIntType(Spec))
+    requires notBool formatHasGrouping(Spec)
+
+  rule formatZeroPaddedGroupedDigits(Digits:String, Sep:String, Size:Int, TargetLen:Int) =>
+    formatGroupDigits(Digits, Sep, Size)
+    requires lengthString(formatGroupDigits(Digits, Sep, Size)) >=Int TargetLen
+  rule formatZeroPaddedGroupedDigits(Digits:String, Sep:String, Size:Int, TargetLen:Int) =>
+    formatZeroPaddedGroupedDigits("0" +String Digits, Sep, Size, TargetLen)
+    requires lengthString(formatGroupDigits(Digits, Sep, Size)) <Int TargetLen
+
+  rule formatIntText(I:Int, Spec:String) =>
+    formatIntSign(Spec, I) +String formatIntAltPrefix(Spec, formatIntType(Spec)) +String formatIntGroupedDigits(I, Spec)
+
+  rule formatIntRender(I:Int, Spec:String) =>
+    formatIntSign(Spec, I)
+      +String formatIntAltPrefix(Spec, formatIntType(Spec))
+      +String formatZeroPaddedGroupedDigits(
+        formatIntDigits(I, formatIntType(Spec)),
+        formatGrouping(Spec),
+        formatGroupingSize(Spec),
+        formatWidth(Spec, formatWidthStart(Spec), formatIntWidthDigitsEnd(Spec))
+          -Int lengthString(formatIntSign(Spec, I) +String formatIntAltPrefix(Spec, formatIntType(Spec))))
+    requires formatIntAlign(Spec) ==String "="
+      andBool formatHasGrouping(Spec)
+      andBool formatFill(Spec) ==String "0"
+  rule formatIntRender(I:Int, Spec:String) =>
+    formatPadEqual(
+      formatFill(Spec),
+      formatIntSign(Spec, I) +String formatIntAltPrefix(Spec, formatIntType(Spec)),
+      formatIntGroupedDigits(I, Spec),
+      formatWidth(Spec, formatWidthStart(Spec), formatIntWidthDigitsEnd(Spec)))
+    requires formatIntAlign(Spec) ==String "="
+      andBool formatHasGrouping(Spec)
+      andBool formatFill(Spec) =/=String "0"
   rule formatIntRender(I:Int, Spec:String) =>
     formatPadEqual(
       formatFill(Spec),
       formatIntSign(Spec, I) +String formatIntAltPrefix(Spec, formatIntType(Spec)),
       formatIntDigits(I, formatIntType(Spec)),
-      formatWidth(Spec, formatWidthStart(Spec), formatIntWidthEnd(Spec)))
+      formatWidth(Spec, formatWidthStart(Spec), formatIntWidthDigitsEnd(Spec)))
     requires formatIntAlign(Spec) ==String "="
+      andBool notBool formatHasGrouping(Spec)
   rule formatIntRender(I:Int, Spec:String) =>
     formatPad(
       formatIntAlign(Spec),
       formatFill(Spec),
       formatIntText(I, Spec),
-      formatWidth(Spec, formatWidthStart(Spec), formatIntWidthEnd(Spec)))
+      formatWidth(Spec, formatWidthStart(Spec), formatIntWidthDigitsEnd(Spec)))
     requires formatIntAlign(Spec) =/=String "="
 
   rule isIntLike(_:Int) => true
@@ -2548,8 +2655,8 @@ module PYTHON
 
   rule formatIntWidthSpecSupported(S:String) => true
     requires S =/=String ""
-      andBool formatIntWidthEnd(S) >=Int formatWidthStart(S)
-      andBool formatDecimalDigits(S, formatWidthStart(S), formatIntWidthEnd(S))
+      andBool formatIntWidthDigitsEnd(S) >=Int formatWidthStart(S)
+      andBool formatDecimalDigits(S, formatWidthStart(S), formatIntWidthDigitsEnd(S))
   rule formatIntWidthSpecSupported(_:String) => false [owise]
 
   rule formatStringSpecSupported(S:String) => true
@@ -11781,6 +11888,12 @@ module PYTHON
         => exceptionSignal(#exception(#token("ValueError", "Id"))) ... </k>
     requires formatIntWidthSpecSupported(Spec)
       andBool isIntLike(V)
+      andBool formatHasGrouping(Spec)
+      andBool notBool formatGroupingAllowed(Spec)
+  rule <k> Spec:String ~> formatApply(V:Val)
+        => exceptionSignal(#exception(#token("ValueError", "Id"))) ... </k>
+    requires formatIntWidthSpecSupported(Spec)
+      andBool isIntLike(V)
       andBool formatIntType(Spec) ==String "c"
       andBool formatHasSign(Spec)
   rule <k> Spec:String ~> formatApply(V:Val)
@@ -11811,6 +11924,7 @@ module PYTHON
         => formatIntRender(intValue(V), Spec) ... </k>
     requires formatIntWidthSpecSupported(Spec)
       andBool isIntLike(V)
+      andBool formatGroupingAllowed(Spec)
       andBool notBool (formatIntType(Spec) ==String "c" andBool (formatHasSign(Spec) orBool formatHasAlt(Spec)))
       andBool (formatIntType(Spec) =/=String "c" orBool (intValue(V) >=Int 0 andBool intValue(V) <=Int 255))
   rule <k> Spec:String ~> formatApply(V:Val)

@@ -133,7 +133,7 @@ def format_align_index(spec: str) -> int:
     return -1
 
 
-def parse_supported_format_spec(spec: str, type_chars: str) -> tuple[int, bool, bool, str] | None:
+def parse_supported_format_spec(spec: str, type_chars: str) -> tuple[int, bool, bool, str, str] | None:
     if any(ord(ch) >= 128 for ch in spec):
         return None
     align_index = format_align_index(spec)
@@ -149,12 +149,16 @@ def parse_supported_format_spec(spec: str, type_chars: str) -> tuple[int, bool, 
     end = len(spec)
     if index < len(spec) and spec[-1] in type_chars:
         end -= 1
+    grouping = ""
+    if end > index and spec[end - 1] in ",_":
+        grouping = spec[end - 1]
+        end -= 1
     if end < index:
         return None
     width = spec[index:end]
     if width and not width.isdecimal():
         return None
-    return align_index, has_sign, has_alt, width
+    return align_index, has_sign, has_alt, grouping, width
 
 
 def format_int_spec_supported(spec: str) -> bool:
@@ -171,8 +175,8 @@ def format_string_spec_supported(spec: str) -> bool:
     parsed = parse_supported_format_spec(spec, FORMAT_STRING_TYPE_CHARS)
     if parsed is None:
         return False
-    align_index, has_sign, has_alt, _width = parsed
-    if has_sign or has_alt:
+    align_index, has_sign, has_alt, grouping, _width = parsed
+    if has_sign or has_alt or grouping:
         return False
     return align_index < 0 or spec[align_index] != "="
 

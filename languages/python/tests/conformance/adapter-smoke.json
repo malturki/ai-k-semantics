@@ -774,6 +774,13 @@
       "coverage": ["abs-builtin", "complex-magnitude", "finite-complex-values", "ordinary-python-source-adapter"]
     },
     {
+      "id": "adapter-abs-complex-special",
+      "source": "../adapter/adapter-abs-complex-special.py",
+      "reference": "Python Standard Library Built-in Functions abs; CPython Lib/test/test_cmath.py complex abs special values",
+      "expected_result": "True ~> .K",
+      "coverage": ["abs-builtin", "complex-magnitude", "special-float-values", "ordinary-python-source-adapter"]
+    },
+    {
       "id": "adapter-abs-special-floats",
       "source": "../adapter/adapter-abs-special-floats.py",
       "reference": "Python Standard Library Built-in Functions abs",

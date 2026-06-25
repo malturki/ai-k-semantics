@@ -175,6 +175,7 @@ run_case "adapter-numeric-string-spaces" "$ROOT/tests/adapter/adapter-numeric-st
 run_case "adapter-numeric-string-nonspace-whitespace" "$ROOT/tests/adapter/adapter-numeric-string-nonspace-whitespace.py" "True ~> .K"
 run_case "adapter-abs-int" "$ROOT/tests/adapter/adapter-abs-int.py" "True ~> .K"
 run_case "adapter-abs-complex-finite" "$ROOT/tests/adapter/adapter-abs-complex-finite.py" "True ~> .K"
+run_case "adapter-abs-complex-special" "$ROOT/tests/adapter/adapter-abs-complex-special.py" "True ~> .K"
 run_case "adapter-abs-special-floats" "$ROOT/tests/adapter/adapter-abs-special-floats.py" "True ~> .K"
 run_case "adapter-abs-type-errors" "$ROOT/tests/adapter/adapter-abs-type-errors.py" "True ~> .K"
 run_case "adapter-divmod-int" "$ROOT/tests/adapter/adapter-divmod-int.py" "True ~> .K"

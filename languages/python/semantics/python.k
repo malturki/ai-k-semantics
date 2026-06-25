@@ -12121,6 +12121,12 @@ module PYTHON
     requires F >Float 0.0
   rule #abs(F:Float) => F
     requires isNaN(F)
+  rule #abs(#complex(R:Float, I:Float)) => Infinity
+    requires isInfinite(R) orBool isInfinite(I)
+  rule #abs(#complex(R:Float, I:Float)) => NaN
+    requires notBool isInfinite(R)
+      andBool notBool isInfinite(I)
+      andBool (isNaN(R) orBool isNaN(I))
   rule #abs(#complex(R:Float, I:Float)) => complexAbsFinite(R, I)
     requires notBool isInfinite(R)
       andBool notBool isInfinite(I)

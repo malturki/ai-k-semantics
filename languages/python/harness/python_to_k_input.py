@@ -234,7 +234,7 @@ def parse_supported_z_format_spec(
 
 def parse_supported_typed_format_spec(
     spec: str, type_chars: str, *, allow_grouping: bool
-) -> tuple[int, bool, bool, bool, bool, bool] | None:
+) -> tuple[int, bool, bool, bool, bool, bool, bool] | None:
     if any(ord(ch) >= 128 for ch in spec):
         return None
     align_index = format_align_index(spec)
@@ -259,8 +259,9 @@ def parse_supported_typed_format_spec(
             return None
         end -= 1
     body = spec[index:end]
+    has_precision = "." in body
     precision_missing = False
-    if "." in body:
+    if has_precision:
         width, precision = body.split(".", 1)
         precision_missing = precision == ""
         if precision and not precision.isdecimal():
@@ -269,7 +270,7 @@ def parse_supported_typed_format_spec(
         width = body
     if width and not width.isdecimal():
         return None
-    return align_index, has_sign, has_z, has_alt, has_grouping, precision_missing
+    return align_index, has_sign, has_z, has_alt, has_grouping, has_precision, precision_missing
 
 
 def parse_supported_string_format_spec(spec: str) -> tuple[int, bool, bool, bool, str] | None:
@@ -334,8 +335,24 @@ def format_int_string_type_spec_supported(spec: str) -> bool:
     )
     if parsed is None:
         return False
-    *_rest, precision_missing = parsed
+    *_rest, _has_precision, precision_missing = parsed
     return not precision_missing
+
+
+def format_int_n_diagnostic_spec_supported(spec: str) -> bool:
+    parsed = parse_supported_typed_format_spec(spec, "n", allow_grouping=True)
+    if parsed is None:
+        return False
+    (
+        _align_index,
+        _has_sign,
+        has_z,
+        _has_alt,
+        has_grouping,
+        has_precision,
+        _precision_missing,
+    ) = parsed
+    return has_z or has_grouping or has_precision
 
 
 def format_string_spec_supported(spec: str) -> bool:
@@ -387,7 +404,7 @@ def format_string_numeric_type_spec_supported(spec: str) -> bool:
     )
     if parsed is None:
         return False
-    align_index, has_sign, has_z, has_alt, _has_grouping, precision_missing = parsed
+    align_index, has_sign, has_z, has_alt, _has_grouping, _has_precision, precision_missing = parsed
     if has_sign or has_z or has_alt or precision_missing:
         return False
     return align_index < 0 or spec[align_index] != "="
@@ -399,6 +416,7 @@ def format_spec_supported(spec: str) -> bool:
         or format_int_precision_spec_supported(spec)
         or format_int_z_spec_supported(spec)
         or format_int_string_type_spec_supported(spec)
+        or format_int_n_diagnostic_spec_supported(spec)
         or format_string_spec_supported(spec)
         or format_string_diagnostic_spec_supported(spec)
         or format_string_z_spec_supported(spec)

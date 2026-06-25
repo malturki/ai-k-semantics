@@ -333,6 +333,13 @@
       "coverage": ["format-builtin", "format-spec-mini-language", "presentation-type", "integer-presentation-types", "string-presentation-type", "value-error", "ordinary-python-source-adapter"]
     },
     {
+      "id": "adapter-format-int-n-diagnostics",
+      "source": "../adapter/adapter-format-int-n-diagnostics.py",
+      "reference": "Python Format Specification Mini-Language integer presentation type 'n' uses locale-aware separators; grouping, precision, and 'z' diagnostics are independent of locale rendering",
+      "expected_result": "True ~> .K",
+      "coverage": ["format-builtin", "format-spec-mini-language", "integer-presentation-types", "number-presentation-type", "grouping-option", "precision-option", "negative-zero-coercion", "value-error", "ordinary-python-source-adapter"]
+    },
+    {
       "id": "adapter-ord-builtin",
       "source": "../adapter/adapter-ord-builtin.py",
       "reference": "Python Standard Library Built-in Functions ord; CPython Lib/test/test_builtin.py test_ord",

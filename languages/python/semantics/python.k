@@ -1243,6 +1243,7 @@ module PYTHON
                 | formatIntZSpecSupported(String) [function, symbol(formatIntZSpecSupported)]
                 | formatStringZSpecSupported(String) [function, symbol(formatStringZSpecSupported)]
                 | formatIntStringTypeSpecSupported(String) [function, symbol(formatIntStringTypeSpecSupported)]
+                | formatIntNDiagnosticSpecSupported(String) [function, symbol(formatIntNDiagnosticSpecSupported)]
                 | formatStringNumericTypeSpecSupported(String) [function, symbol(formatStringNumericTypeSpecSupported)]
                 | formatAlignChar(String) [function, symbol(formatAlignChar)]
                 | formatSignChar(String) [function, symbol(formatSignChar)]
@@ -2891,6 +2892,18 @@ module PYTHON
       andBool (notBool formatHasStringPrecision(S)
         orBool formatDecimalDigits(S, formatStringPrecisionDot(S) +Int 1, formatStringWidthEnd(S)))
   rule formatIntStringTypeSpecSupported(_:String) => false [owise]
+
+  rule formatIntNDiagnosticSpecSupported(S:String) => true
+    requires S =/=String ""
+      andBool lengthString(S) >Int formatWidthStart(S)
+      andBool substrString(S, lengthString(S) -Int 1, lengthString(S)) ==String "n"
+      andBool (formatHasZ(S) orBool formatNumericHasGrouping(S) orBool formatHasNumericPrecision(S))
+      andBool formatNumericWidthDigitsEnd(S) >=Int formatWidthStart(S)
+      andBool formatDecimalDigits(S, formatWidthStart(S), formatNumericWidthDigitsPrefixEnd(S))
+      andBool (notBool formatHasNumericPrecision(S)
+        orBool formatNumericPrecisionMissing(S)
+        orBool formatDecimalDigits(S, formatNumericPrecisionDot(S) +Int 1, formatNumericWidthEnd(S)))
+  rule formatIntNDiagnosticSpecSupported(_:String) => false [owise]
 
   rule formatStringNumericTypeSpecSupported(S:String) => true
     requires S =/=String ""
@@ -12145,6 +12158,10 @@ module PYTHON
       andBool isIntLike(V)
   rule <k> Spec:String ~> formatApply(V:Val)
         => exceptionSignal(#exception(#token("ValueError", "Id"))) ... </k>
+    requires formatIntNDiagnosticSpecSupported(Spec)
+      andBool isIntLike(V)
+  rule <k> Spec:String ~> formatApply(V:Val)
+        => exceptionSignal(#exception(#token("ValueError", "Id"))) ... </k>
     requires formatIntZSpecSupported(Spec)
       andBool isIntLike(V)
   rule <k> Spec:String ~> formatApply(V:Val)
@@ -12359,6 +12376,7 @@ module PYTHON
       andBool notBool formatIntZSpecSupported(Spec)
       andBool notBool formatStringZSpecSupported(Spec)
       andBool notBool formatIntStringTypeSpecSupported(Spec)
+      andBool notBool formatIntNDiagnosticSpecSupported(Spec)
       andBool notBool formatStringNumericTypeSpecSupported(Spec)
   rule <k> Spec:String ~> formatApply(_V:Val)
         => exceptionSignal(#exception(#token("NotImplementedError", "Id"))) ... </k>
@@ -12370,6 +12388,7 @@ module PYTHON
       andBool notBool formatIntZSpecSupported(Spec)
       andBool notBool formatStringZSpecSupported(Spec)
       andBool notBool formatIntStringTypeSpecSupported(Spec)
+      andBool notBool formatIntNDiagnosticSpecSupported(Spec)
       andBool notBool formatStringNumericTypeSpecSupported(Spec)
       andBool notBool formatStringPrecisionMissing(Spec)
   rule <k> Spec:Val ~> formatApply(_V:Val)

@@ -830,6 +830,13 @@
       "coverage": ["pow-builtin", "power-operator", "negative-integer-exponent", "float-result", "bool-as-int-power", "ordinary-python-source-adapter"]
     },
     {
+      "id": "adapter-pow-negative-float-base",
+      "source": "../adapter/adapter-pow-negative-float-base.py",
+      "reference": "Python Standard Library Built-in Functions pow; Python Language Reference power operator",
+      "expected_result": "True ~> .K",
+      "coverage": ["pow-builtin", "power-operator", "negative-float-base", "integer-exponent", "bool-as-int-power", "ordinary-python-source-adapter"]
+    },
+    {
       "id": "adapter-pow-mod",
       "source": "../adapter/adapter-pow-mod.py",
       "reference": "Python Standard Library Built-in Functions pow",

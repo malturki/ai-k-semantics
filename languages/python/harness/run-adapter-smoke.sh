@@ -183,6 +183,7 @@ run_case "adapter-division-zero-diagnostics" "$ROOT/tests/adapter/adapter-divisi
 run_case "adapter-divmod-type-errors" "$ROOT/tests/adapter/adapter-divmod-type-errors.py" "True ~> .K"
 run_case "adapter-pow-int" "$ROOT/tests/adapter/adapter-pow-int.py" "True ~> .K"
 run_case "adapter-pow-negative" "$ROOT/tests/adapter/adapter-pow-negative.py" "True ~> .K"
+run_case "adapter-pow-negative-float-base" "$ROOT/tests/adapter/adapter-pow-negative-float-base.py" "True ~> .K"
 run_case "adapter-pow-mod" "$ROOT/tests/adapter/adapter-pow-mod.py" "True ~> .K"
 run_case "adapter-pow-mod-negative" "$ROOT/tests/adapter/adapter-pow-mod-negative.py" "True ~> .K"
 run_case "adapter-pow-error-diagnostics" "$ROOT/tests/adapter/adapter-pow-error-diagnostics.py" "True ~> .K"

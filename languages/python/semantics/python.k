@@ -2226,6 +2226,9 @@ module PYTHON
   rule formatIntSpecSupported("#o") => true
   rule formatIntSpecSupported("#x") => true
   rule formatIntSpecSupported("#X") => true
+  rule formatIntSpecSupported("+d") => true
+  rule formatIntSpecSupported(" d") => true
+  rule formatIntSpecSupported("-d") => true
   rule formatIntSpecSupported(_:String) => false [owise]
 
   rule validIntBase(B:Int) => B >=Int 2 andBool B <=Int 36
@@ -11479,6 +11482,21 @@ module PYTHON
   rule <k> Spec:String ~> formatApply(V:Val)
         => Int2String(intValue(V)) ... </k>
     requires Spec ==String "#d" andBool isIntLike(V)
+  rule <k> Spec:String ~> formatApply(V:Val)
+        => "+" +String Int2String(intValue(V)) ... </k>
+    requires Spec ==String "+d" andBool isIntLike(V) andBool intValue(V) >=Int 0
+  rule <k> Spec:String ~> formatApply(V:Val)
+        => Int2String(intValue(V)) ... </k>
+    requires Spec ==String "+d" andBool isIntLike(V) andBool intValue(V) <Int 0
+  rule <k> Spec:String ~> formatApply(V:Val)
+        => " " +String Int2String(intValue(V)) ... </k>
+    requires Spec ==String " d" andBool isIntLike(V) andBool intValue(V) >=Int 0
+  rule <k> Spec:String ~> formatApply(V:Val)
+        => Int2String(intValue(V)) ... </k>
+    requires Spec ==String " d" andBool isIntLike(V) andBool intValue(V) <Int 0
+  rule <k> Spec:String ~> formatApply(V:Val)
+        => Int2String(intValue(V)) ... </k>
+    requires Spec ==String "-d" andBool isIntLike(V)
   rule <k> Spec:String ~> formatApply(V:Val)
         => pyIntBaseString(intValue(V), 8, "0o") ... </k>
     requires Spec ==String "#o" andBool isIntLike(V)

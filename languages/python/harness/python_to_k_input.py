@@ -161,6 +161,38 @@ def parse_supported_format_spec(spec: str, type_chars: str) -> tuple[int, bool, 
     return align_index, has_sign, has_alt, grouping, width
 
 
+def parse_supported_string_format_spec(spec: str) -> tuple[int, bool, bool, bool, str] | None:
+    if any(ord(ch) >= 128 for ch in spec):
+        return None
+    align_index = format_align_index(spec)
+    index = align_index + 1 if align_index >= 0 else 0
+    has_sign = index < len(spec) and spec[index] in FORMAT_SIGN_CHARS
+    if has_sign:
+        index += 1
+    has_alt = index < len(spec) and spec[index] == "#"
+    if has_alt:
+        index += 1
+    if index < len(spec) and spec[index] == "0":
+        index += 1
+    end = len(spec)
+    if index < len(spec) and spec[-1] in FORMAT_STRING_TYPE_CHARS:
+        end -= 1
+    body = spec[index:end]
+    if "," in body or "_" in body:
+        return None
+    precision_missing = False
+    if "." in body:
+        width, precision = body.split(".", 1)
+        precision_missing = precision == ""
+        if precision and not precision.isdecimal():
+            return None
+    else:
+        width = body
+    if width and not width.isdecimal():
+        return None
+    return align_index, has_sign, has_alt, precision_missing, width
+
+
 def format_int_spec_supported(spec: str) -> bool:
     if spec in SUPPORTED_FORMAT_SPECS:
         return True
@@ -172,17 +204,31 @@ def format_int_spec_supported(spec: str) -> bool:
 def format_string_spec_supported(spec: str) -> bool:
     if spec == "":
         return True
-    parsed = parse_supported_format_spec(spec, FORMAT_STRING_TYPE_CHARS)
+    parsed = parse_supported_string_format_spec(spec)
     if parsed is None:
         return False
-    align_index, has_sign, has_alt, grouping, _width = parsed
-    if has_sign or has_alt or grouping:
+    align_index, has_sign, has_alt, precision_missing, _width = parsed
+    if has_sign or has_alt or precision_missing:
+        return False
+    return align_index < 0 or spec[align_index] != "="
+
+
+def format_string_precision_missing_supported(spec: str) -> bool:
+    parsed = parse_supported_string_format_spec(spec)
+    if parsed is None:
+        return False
+    align_index, has_sign, has_alt, precision_missing, _width = parsed
+    if has_sign or has_alt or not precision_missing:
         return False
     return align_index < 0 or spec[align_index] != "="
 
 
 def format_spec_supported(spec: str) -> bool:
-    return format_int_spec_supported(spec) or format_string_spec_supported(spec)
+    return (
+        format_int_spec_supported(spec)
+        or format_string_spec_supported(spec)
+        or format_string_precision_missing_supported(spec)
+    )
 
 
 def emit_id(name: str) -> str:

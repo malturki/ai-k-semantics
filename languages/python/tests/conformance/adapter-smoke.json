@@ -298,6 +298,13 @@
       "coverage": ["format-builtin", "format-spec-mini-language", "grouping-option", "integer-presentation-types", "ordinary-python-source-adapter"]
     },
     {
+      "id": "adapter-format-string-precision-spec",
+      "source": "../adapter/adapter-format-string-precision-spec.py",
+      "reference": "Python Format Specification Mini-Language precision option for string presentation types",
+      "expected_result": "True ~> .K",
+      "coverage": ["format-builtin", "format-spec-mini-language", "precision-option", "string-presentation-type", "ordinary-python-source-adapter"]
+    },
+    {
       "id": "adapter-ord-builtin",
       "source": "../adapter/adapter-ord-builtin.py",
       "reference": "Python Standard Library Built-in Functions ord; CPython Lib/test/test_builtin.py test_ord",

@@ -347,6 +347,13 @@
       "coverage": ["format-builtin", "format-spec-mini-language", "floating-point-presentation-types", "infinity-values", "nan-values", "sign-option", "fill-and-alignment", "precision-option", "negative-zero-coercion", "ordinary-python-source-adapter"]
     },
     {
+      "id": "adapter-format-float-special-grouping-spec",
+      "source": "../adapter/adapter-format-float-special-grouping-spec.py",
+      "reference": "Python Format Specification Mini-Language grouping option is accepted for floating-point presentation types except that ',' and '_' cannot be specified with 'n'",
+      "expected_result": "True ~> .K",
+      "coverage": ["format-builtin", "format-spec-mini-language", "floating-point-presentation-types", "infinity-values", "nan-values", "grouping-option", "number-presentation-type", "value-error", "ordinary-python-source-adapter"]
+    },
+    {
       "id": "adapter-ord-builtin",
       "source": "../adapter/adapter-ord-builtin.py",
       "reference": "Python Standard Library Built-in Functions ord; CPython Lib/test/test_builtin.py test_ord",

@@ -274,7 +274,7 @@ def parse_supported_typed_format_spec(
     return align_index, has_sign, has_z, has_alt, has_grouping, has_precision, precision_missing
 
 
-def parse_supported_float_special_format_spec(spec: str) -> tuple[bool, bool] | None:
+def parse_supported_float_special_format_spec(spec: str) -> tuple[str, bool, bool] | None:
     if any(ord(ch) >= 128 for ch in spec):
         return None
     align_index = format_align_index(spec)
@@ -288,13 +288,15 @@ def parse_supported_float_special_format_spec(spec: str) -> tuple[bool, bool] | 
     if index < len(spec) and spec[index] == "0":
         index += 1
     end = len(spec)
+    type_char = ""
     if index < len(spec) and spec[-1] in FORMAT_NUMERIC_TYPE_CHARS:
         if spec[-1] not in FORMAT_FLOAT_SPECIAL_TYPE_CHARS:
             return None
+        type_char = spec[-1]
         end -= 1
     has_grouping = end > index and spec[end - 1] in ",_"
     if has_grouping:
-        return None
+        end -= 1
     body = spec[index:end]
     has_precision = "." in body
     precision_missing = False
@@ -307,7 +309,7 @@ def parse_supported_float_special_format_spec(spec: str) -> tuple[bool, bool] | 
         width = body
     if width and not width.isdecimal():
         return None
-    return has_precision, precision_missing
+    return type_char, has_grouping, precision_missing
 
 
 def parse_supported_string_format_spec(spec: str) -> tuple[int, bool, bool, bool, str] | None:
@@ -453,8 +455,16 @@ def format_float_special_spec_supported(spec: str) -> bool:
     parsed = parse_supported_float_special_format_spec(spec)
     if parsed is None:
         return False
-    _has_precision, precision_missing = parsed
-    return not precision_missing
+    type_char, has_grouping, precision_missing = parsed
+    return not precision_missing and not (has_grouping and type_char == "n")
+
+
+def format_float_n_grouping_diagnostic_spec_supported(spec: str) -> bool:
+    parsed = parse_supported_float_special_format_spec(spec)
+    if parsed is None:
+        return False
+    type_char, has_grouping, precision_missing = parsed
+    return not precision_missing and has_grouping and type_char == "n"
 
 
 def format_spec_supported(spec: str) -> bool:
@@ -469,6 +479,7 @@ def format_spec_supported(spec: str) -> bool:
         or format_string_z_spec_supported(spec)
         or format_string_numeric_type_spec_supported(spec)
         or format_float_special_spec_supported(spec)
+        or format_float_n_grouping_diagnostic_spec_supported(spec)
         or format_string_precision_missing_supported(spec)
     )
 

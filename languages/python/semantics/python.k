@@ -1247,7 +1247,9 @@ module PYTHON
                 | formatIntNDiagnosticSpecSupported(String) [function, symbol(formatIntNDiagnosticSpecSupported)]
                 | formatStringNumericTypeSpecSupported(String) [function, symbol(formatStringNumericTypeSpecSupported)]
                 | formatFloatSpecialSpecSupported(String) [function, symbol(formatFloatSpecialSpecSupported)]
+                | formatFloatNGroupingDiagnosticSpecSupported(String) [function, symbol(formatFloatNGroupingDiagnosticSpecSupported)]
                 | formatFloatSpecialTypeAllowed(String) [function, symbol(formatFloatSpecialTypeAllowed)]
+                | formatFloatGroupingAllowed(String) [function, symbol(formatFloatGroupingAllowed)]
                 | formatAlignChar(String) [function, symbol(formatAlignChar)]
                 | formatSignChar(String) [function, symbol(formatSignChar)]
                 | formatIntTypeChar(String) [function, symbol(formatIntTypeChar)]
@@ -3028,16 +3030,37 @@ module PYTHON
       andBool notBool (formatNumericWidthEnd(S) ==Int lengthString(S) -Int 1
         andBool formatFloatTypeChar(substrString(S, lengthString(S) -Int 1, lengthString(S))))
 
+  rule formatFloatGroupingAllowed(S:String) => true
+    requires notBool formatNumericHasGrouping(S)
+  rule formatFloatGroupingAllowed(S:String) => true
+    requires formatNumericHasGrouping(S)
+      andBool formatFloatType(S) =/=String "n"
+  rule formatFloatGroupingAllowed(S:String) => false
+    requires formatNumericHasGrouping(S)
+      andBool formatFloatType(S) ==String "n"
+
   rule formatFloatSpecialSpecSupported(S:String) => true
     requires S =/=String ""
       andBool formatFloatSpecialTypeAllowed(S)
-      andBool notBool formatNumericHasGrouping(S)
+      andBool formatFloatGroupingAllowed(S)
       andBool notBool formatNumericPrecisionMissing(S)
       andBool formatNumericWidthDigitsEnd(S) >=Int formatWidthStart(S)
       andBool formatDecimalDigits(S, formatWidthStart(S), formatNumericWidthDigitsPrefixEnd(S))
       andBool (notBool formatHasNumericPrecision(S)
         orBool formatDecimalDigits(S, formatNumericPrecisionDot(S) +Int 1, formatNumericWidthEnd(S)))
   rule formatFloatSpecialSpecSupported(_:String) => false [owise]
+
+  rule formatFloatNGroupingDiagnosticSpecSupported(S:String) => true
+    requires S =/=String ""
+      andBool formatFloatSpecialTypeAllowed(S)
+      andBool formatNumericHasGrouping(S)
+      andBool formatFloatType(S) ==String "n"
+      andBool notBool formatNumericPrecisionMissing(S)
+      andBool formatNumericWidthDigitsEnd(S) >=Int formatWidthStart(S)
+      andBool formatDecimalDigits(S, formatWidthStart(S), formatNumericWidthDigitsPrefixEnd(S))
+      andBool (notBool formatHasNumericPrecision(S)
+        orBool formatDecimalDigits(S, formatNumericPrecisionDot(S) +Int 1, formatNumericWidthEnd(S)))
+  rule formatFloatNGroupingDiagnosticSpecSupported(_:String) => false [owise]
 
   rule validIntBase(B:Int) => B >=Int 2 andBool B <=Int 36
 
@@ -12271,6 +12294,9 @@ module PYTHON
              formatStringPayload(S, Spec),
              formatWidth(Spec, formatWidthStart(Spec), formatStringWidthDigitsEnd(Spec))) ... </k>
     requires formatStringSpecSupported(Spec)
+  rule <k> Spec:String ~> formatApply(_F:Float)
+        => exceptionSignal(#exception(#token("ValueError", "Id"))) ... </k>
+    requires formatFloatNGroupingDiagnosticSpecSupported(Spec)
   rule <k> Spec:String ~> formatApply(F:Float)
         => formatFloatSpecialRender(F, Spec) ... </k>
     requires formatFloatSpecialSpecSupported(Spec)

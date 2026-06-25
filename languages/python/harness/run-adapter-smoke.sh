@@ -76,6 +76,7 @@ run_case "adapter-string-slice-negative-step" "$ROOT/tests/adapter/adapter-strin
 run_case "adapter-fstrings-basic" "$ROOT/tests/adapter/adapter-fstrings-basic.py" "True ~> .K"
 run_case "adapter-fstrings-conversions" "$ROOT/tests/adapter/adapter-fstrings-conversions.py" "True ~> .K"
 run_case "adapter-fstrings-empty-format" "$ROOT/tests/adapter/adapter-fstrings-empty-format.py" "True ~> .K"
+run_case "adapter-fstrings-format-spec" "$ROOT/tests/adapter/adapter-fstrings-format-spec.py" "True ~> .K"
 run_case "adapter-fstrings-current-string-conversion-values" "$ROOT/tests/adapter/adapter-fstrings-current-string-conversion-values.py" "True ~> .K"
 run_case "adapter-string-conversion-builtins" "$ROOT/tests/adapter/adapter-string-conversion-builtins.py" "True ~> .K"
 run_case "adapter-string-repr-ascii-escaping" "$ROOT/tests/adapter/adapter-string-repr-ascii-escaping.py" "True ~> .K"

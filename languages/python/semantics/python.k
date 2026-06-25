@@ -75,6 +75,8 @@ module PYTHON-SYNTAX
                          | "#fstrExpConv" "(" Exp "," FStringConversion "," FStringParts ")" [symbol(fstrExpConv)]
                          | "#fstrExpFormatEmpty" "(" Exp "," FStringParts ")" [symbol(fstrExpFormatEmpty)]
                          | "#fstrExpConvFormatEmpty" "(" Exp "," FStringConversion "," FStringParts ")" [symbol(fstrExpConvFormatEmpty)]
+                         | "#fstrExpFormat" "(" Exp "," String "," FStringParts ")" [symbol(fstrExpFormat)]
+                         | "#fstrExpConvFormat" "(" Exp "," FStringConversion "," String "," FStringParts ")" [symbol(fstrExpConvFormat)]
 
   syntax CompFilters ::= "#filter" "(" Exp ")" [symbol(compFilterLast)]
                        | "#filters" "(" Exp "," CompFilters ")" [symbol(compFiltersCons)]
@@ -638,6 +640,9 @@ module PYTHON
                  | fStringEval(FStringParts, String) [symbol(fStringEval)]
                  | fStringAppend(FStringParts, String) [symbol(fStringAppend)]
                  | fStringAppendConv(FStringConversion, FStringParts, String) [symbol(fStringAppendConv)]
+                 | fStringAppendFormat(String, FStringParts, String) [symbol(fStringAppendFormat)]
+                 | fStringAppendConvFormat(FStringConversion, String, FStringParts, String) [symbol(fStringAppendConvFormat)]
+                 | fStringAppendFormatted(FStringParts, String) [symbol(fStringAppendFormatted)]
                  | callArg(Exp) [symbol(callArg)]
                  | callApply(Val) [symbol(callApply)]
                  | getattrDefaultObject(Id, Exp) [symbol(getattrDefaultObject)]
@@ -6968,6 +6973,12 @@ module PYTHON
   rule <k> fStringEval(#fstrExpConvFormatEmpty(E:Exp, Conv:FStringConversion, Rest:FStringParts), Acc:String) =>
            E ~> fStringAppendConv(Conv, Rest, Acc)
        ... </k>
+  rule <k> fStringEval(#fstrExpFormat(E:Exp, Spec:String, Rest:FStringParts), Acc:String) =>
+           E ~> fStringAppendFormat(Spec, Rest, Acc)
+       ... </k>
+  rule <k> fStringEval(#fstrExpConvFormat(E:Exp, Conv:FStringConversion, Spec:String, Rest:FStringParts), Acc:String) =>
+           E ~> fStringAppendConvFormat(Conv, Spec, Rest, Acc)
+       ... </k>
   rule <k> V:Val ~> fStringAppend(Rest:FStringParts, Acc:String) =>
            fStringEval(Rest, Acc +String pyFormatStr(V))
        ... </k>
@@ -6984,10 +6995,37 @@ module PYTHON
            fStringEval(Rest, Acc +String pyReprStr(V))
        ... </k>
     requires fStringFormatSupported(V)
+  rule <k> V:Val ~> fStringAppendFormat(Spec:String, Rest:FStringParts, Acc:String) =>
+           Spec ~> formatApply(V) ~> fStringAppendFormatted(Rest, Acc)
+       ... </k>
+  rule <k> V:Val ~> fStringAppendConvFormat(#fstrConvStr, Spec:String, Rest:FStringParts, Acc:String) =>
+           Spec ~> formatApply(pyFormatStr(V)) ~> fStringAppendFormatted(Rest, Acc)
+       ... </k>
+    requires fStringFormatSupported(V)
+  rule <k> V:Val ~> fStringAppendConvFormat(#fstrConvRepr, Spec:String, Rest:FStringParts, Acc:String) =>
+           Spec ~> formatApply(pyReprStr(V)) ~> fStringAppendFormatted(Rest, Acc)
+       ... </k>
+    requires fStringFormatSupported(V)
+  rule <k> V:Val ~> fStringAppendConvFormat(#fstrConvAscii, Spec:String, Rest:FStringParts, Acc:String) =>
+           Spec ~> formatApply(pyReprStr(V)) ~> fStringAppendFormatted(Rest, Acc)
+       ... </k>
+    requires fStringFormatSupported(V)
+  rule <k> S:String ~> fStringAppendFormatted(Rest:FStringParts, Acc:String) =>
+           fStringEval(Rest, Acc +String S)
+       ... </k>
   rule <k> exceptionSignal(E:Val) ~> fStringAppend(_:FStringParts, _:String) =>
            exceptionSignal(E)
        ... </k>
   rule <k> exceptionSignal(E:Val) ~> fStringAppendConv(_:FStringConversion, _:FStringParts, _:String) =>
+           exceptionSignal(E)
+       ... </k>
+  rule <k> exceptionSignal(E:Val) ~> fStringAppendFormat(_:String, _:FStringParts, _:String) =>
+           exceptionSignal(E)
+       ... </k>
+  rule <k> exceptionSignal(E:Val) ~> fStringAppendConvFormat(_:FStringConversion, _:String, _:FStringParts, _:String) =>
+           exceptionSignal(E)
+       ... </k>
+  rule <k> exceptionSignal(E:Val) ~> fStringAppendFormatted(_:FStringParts, _:String) =>
            exceptionSignal(E)
        ... </k>
 

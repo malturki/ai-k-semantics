@@ -956,6 +956,13 @@ def emit_fstring_parts(node: ast.AST, values: list[ast.expr]) -> str:
         case ast.FormattedValue(value=formatted, conversion=conversion, format_spec=format_spec) if is_empty_fstring_format_spec(format_spec):
             emitted_conversion = emit_fstring_conversion(value, conversion)
             return f"#fstrExpConvFormatEmpty({emit_exp(formatted)}, {emitted_conversion}, {rest})"
+        case ast.FormattedValue(value=formatted, conversion=-1, format_spec=format_spec) if fstring_literal_format_spec_supported(format_spec):
+            emitted_spec = json.dumps(fstring_literal_format_spec_value(format_spec))
+            return f"#fstrExpFormat({emit_exp(formatted)}, {emitted_spec}, {rest})"
+        case ast.FormattedValue(value=formatted, conversion=conversion, format_spec=format_spec) if fstring_literal_format_spec_supported(format_spec):
+            emitted_conversion = emit_fstring_conversion(value, conversion)
+            emitted_spec = json.dumps(fstring_literal_format_spec_value(format_spec))
+            return f"#fstrExpConvFormat({emit_exp(formatted)}, {emitted_conversion}, {emitted_spec}, {rest})"
         case ast.FormattedValue(format_spec=format_spec) if format_spec is not None:
             raise unsupported(value, "f-string format specifications are not supported yet")
         case ast.FormattedValue():
@@ -965,6 +972,26 @@ def emit_fstring_parts(node: ast.AST, values: list[ast.expr]) -> str:
 
 def is_empty_fstring_format_spec(format_spec: ast.expr | None) -> bool:
     return isinstance(format_spec, ast.JoinedStr) and not format_spec.values
+
+
+def fstring_literal_format_spec_value(format_spec: ast.expr | None) -> str:
+    if not isinstance(format_spec, ast.JoinedStr):
+        raise AssertionError("expected JoinedStr format_spec")
+    parts: list[str] = []
+    for value in format_spec.values:
+        if not isinstance(value, ast.Constant) or not isinstance(value.value, str):
+            raise AssertionError("expected literal string format_spec part")
+        parts.append(value.value)
+    return "".join(parts)
+
+
+def fstring_literal_format_spec_supported(format_spec: ast.expr | None) -> bool:
+    if not isinstance(format_spec, ast.JoinedStr) or not format_spec.values:
+        return False
+    for value in format_spec.values:
+        if not isinstance(value, ast.Constant) or not isinstance(value.value, str):
+            return False
+    return format_spec_supported(fstring_literal_format_spec_value(format_spec))
 
 
 def emit_fstring_conversion(node: ast.AST, conversion: int) -> str:

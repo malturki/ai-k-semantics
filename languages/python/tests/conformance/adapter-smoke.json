@@ -256,6 +256,13 @@
       "coverage": ["format-builtin", "empty-format-spec", "string-conversion-domain", "ordinary-python-source-adapter"]
     },
     {
+      "id": "adapter-fstrings-format-spec",
+      "source": "../adapter/adapter-fstrings-format-spec.py",
+      "reference": "Python Language Reference formatted string literals and Python Format Specification Mini-Language literal format_spec",
+      "expected_result": "True ~> .K",
+      "coverage": ["formatted-string-literal", "format-spec-mini-language", "conversion-field", "string-presentation-type", "integer-presentation-types", "value-error", "ordinary-python-source-adapter"]
+    },
+    {
       "id": "adapter-format-int-spec",
       "source": "../adapter/adapter-format-int-spec.py",
       "reference": "Python Standard Library Built-in Functions format; Format Specification Mini-Language integer presentation types",

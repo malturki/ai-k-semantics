@@ -221,6 +221,13 @@
       "coverage": ["bytes-literal", "bytes-truthiness", "bytes-length", "bytes-equality", "bytes-ordering", "bytes-indexing", "bytes-slicing", "bytes-membership", "bytes-concatenation", "bytes-repetition", "bytes-list-tuple-conversion", "ordinary-python-source-adapter"]
     },
     {
+      "id": "adapter-string-bytes-escape-literals",
+      "source": "../adapter/adapter-string-bytes-escape-literals.py",
+      "reference": "Python Language Reference 2.5.4 String and bytes literals; 2.5.4.7 Escape sequences; 2.5.4.1 Ignored end of line; 2.5.4.6 Raw string literals",
+      "expected_result": "True ~> .K",
+      "coverage": ["string-literal", "bytes-literal", "escape-sequences", "raw-string-literal", "raw-bytes-literal", "ignored-end-of-line", "adjacent-literal-concatenation", "named-character-escape", "hex-escape", "octal-escape", "ordinary-python-source-adapter"]
+    },
+    {
       "id": "adapter-bytes-subsequence-membership",
       "source": "../adapter/adapter-bytes-subsequence-membership.py",
       "reference": "Python Language Reference 6.10.2 Membership test operations; Standard Library binary sequence types",

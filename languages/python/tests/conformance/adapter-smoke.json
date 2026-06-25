@@ -319,6 +319,13 @@
       "coverage": ["format-builtin", "format-spec-mini-language", "sign-option", "alternate-form", "fill-and-alignment", "string-presentation-type", "value-error", "ordinary-python-source-adapter"]
     },
     {
+      "id": "adapter-format-z-option-diagnostics",
+      "source": "../adapter/adapter-format-z-option-diagnostics.py",
+      "reference": "Python Format Specification Mini-Language 'z' option is only valid for floating-point presentation types",
+      "expected_result": "True ~> .K",
+      "coverage": ["format-builtin", "format-spec-mini-language", "negative-zero-coercion", "integer-presentation-types", "string-presentation-type", "value-error", "ordinary-python-source-adapter"]
+    },
+    {
       "id": "adapter-ord-builtin",
       "source": "../adapter/adapter-ord-builtin.py",
       "reference": "Python Standard Library Built-in Functions ord; CPython Lib/test/test_builtin.py test_ord",

@@ -193,6 +193,44 @@ def parse_supported_int_precision_format_spec(spec: str) -> tuple[bool, str, str
     return precision_missing, grouping, width
 
 
+def parse_supported_z_format_spec(
+    spec: str, type_chars: str, *, allow_precision: bool
+) -> tuple[int, bool, bool, str] | None:
+    if any(ord(ch) >= 128 for ch in spec):
+        return None
+    align_index = format_align_index(spec)
+    index = align_index + 1 if align_index >= 0 else 0
+    if index < len(spec) and spec[index] in FORMAT_SIGN_CHARS:
+        index += 1
+    if index >= len(spec) or spec[index] != "z":
+        return None
+    index += 1
+    has_alt = index < len(spec) and spec[index] == "#"
+    if has_alt:
+        index += 1
+    if index < len(spec) and spec[index] == "0":
+        index += 1
+    end = len(spec)
+    if index < len(spec) and spec[-1] in type_chars:
+        end -= 1
+    grouping = ""
+    if end > index and spec[end - 1] in ",_":
+        grouping = spec[end - 1]
+        end -= 1
+    body = spec[index:end]
+    if "." in body:
+        if not allow_precision:
+            return None
+        width, precision = body.split(".", 1)
+        if precision == "" or not precision.isdecimal():
+            return None
+    else:
+        width = body
+    if width and not width.isdecimal():
+        return None
+    return align_index, has_alt, grouping != "", width
+
+
 def parse_supported_string_format_spec(spec: str) -> tuple[int, bool, bool, bool, str] | None:
     if any(ord(ch) >= 128 for ch in spec):
         return None
@@ -237,6 +275,18 @@ def format_int_precision_spec_supported(spec: str) -> bool:
     return parse_supported_int_precision_format_spec(spec) is not None
 
 
+def format_int_z_spec_supported(spec: str) -> bool:
+    parsed = parse_supported_z_format_spec(spec, FORMAT_INT_TYPE_CHARS, allow_precision=False)
+    if parsed is None:
+        return False
+    _align_index, _has_alt, has_grouping, _width = parsed
+    if not has_grouping:
+        return True
+    return spec.endswith(",d") or (
+        "_" in spec and not spec.endswith("_c")
+    )
+
+
 def format_string_spec_supported(spec: str) -> bool:
     if spec == "":
         return True
@@ -270,12 +320,24 @@ def format_string_diagnostic_spec_supported(spec: str) -> bool:
     return has_sign or has_alt or has_equal_align
 
 
+def format_string_z_spec_supported(spec: str) -> bool:
+    parsed = parse_supported_z_format_spec(spec, FORMAT_STRING_TYPE_CHARS, allow_precision=True)
+    if parsed is None:
+        return False
+    align_index, has_alt, has_grouping, _width = parsed
+    if has_alt or has_grouping:
+        return False
+    return align_index < 0 or spec[align_index] != "="
+
+
 def format_spec_supported(spec: str) -> bool:
     return (
         format_int_spec_supported(spec)
         or format_int_precision_spec_supported(spec)
+        or format_int_z_spec_supported(spec)
         or format_string_spec_supported(spec)
         or format_string_diagnostic_spec_supported(spec)
+        or format_string_z_spec_supported(spec)
         or format_string_precision_missing_supported(spec)
     )
 

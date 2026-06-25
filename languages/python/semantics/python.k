@@ -1240,12 +1240,15 @@ module PYTHON
                 | formatIntPrecisionSpecSupported(String) [function, symbol(formatIntPrecisionSpecSupported)]
                 | formatStringSpecSupported(String) [function, symbol(formatStringSpecSupported)]
                 | formatStringDiagnosticSpecSupported(String) [function, symbol(formatStringDiagnosticSpecSupported)]
+                | formatIntZSpecSupported(String) [function, symbol(formatIntZSpecSupported)]
+                | formatStringZSpecSupported(String) [function, symbol(formatStringZSpecSupported)]
                 | formatAlignChar(String) [function, symbol(formatAlignChar)]
                 | formatSignChar(String) [function, symbol(formatSignChar)]
                 | formatIntTypeChar(String) [function, symbol(formatIntTypeChar)]
                 | formatStringTypeChar(String) [function, symbol(formatStringTypeChar)]
                 | formatGroupingChar(String) [function, symbol(formatGroupingChar)]
                 | formatHasSign(String) [function, symbol(formatHasSign)]
+                | formatHasZ(String) [function, symbol(formatHasZ)]
                 | formatHasAlt(String) [function, symbol(formatHasAlt)]
                 | formatHasZero(String) [function, symbol(formatHasZero)]
                 | formatHasGrouping(String) [function, symbol(formatHasGrouping)]
@@ -1450,6 +1453,7 @@ module PYTHON
                | formatAlignIndex(String) [function, symbol(formatAlignIndex)]
                | formatOptionsStart(String) [function, symbol(formatOptionsStart)]
                | formatAfterSignIndex(String) [function, symbol(formatAfterSignIndex)]
+               | formatAfterZIndex(String) [function, symbol(formatAfterZIndex)]
                | formatAfterAltIndex(String) [function, symbol(formatAfterAltIndex)]
                | formatWidthStart(String) [function, symbol(formatWidthStart)]
                | formatIntWidthEnd(String) [function, symbol(formatIntWidthEnd)]
@@ -2238,18 +2242,32 @@ module PYTHON
   rule formatAfterSignIndex(S:String) => formatOptionsStart(S)
     requires notBool formatHasSign(S)
 
-  rule formatHasAlt(S:String) => true
+  rule formatHasZ(S:String) => true
     requires formatAfterSignIndex(S) <Int lengthString(S)
-      andBool substrString(S, formatAfterSignIndex(S), formatAfterSignIndex(S) +Int 1) ==String "#"
-  rule formatHasAlt(S:String) => false
+      andBool substrString(S, formatAfterSignIndex(S), formatAfterSignIndex(S) +Int 1) ==String "z"
+  rule formatHasZ(S:String) => false
     requires formatAfterSignIndex(S) >=Int lengthString(S)
-  rule formatHasAlt(S:String) => false
+  rule formatHasZ(S:String) => false
     requires formatAfterSignIndex(S) <Int lengthString(S)
-      andBool substrString(S, formatAfterSignIndex(S), formatAfterSignIndex(S) +Int 1) =/=String "#"
+      andBool substrString(S, formatAfterSignIndex(S), formatAfterSignIndex(S) +Int 1) =/=String "z"
 
-  rule formatAfterAltIndex(S:String) => formatAfterSignIndex(S) +Int 1
+  rule formatAfterZIndex(S:String) => formatAfterSignIndex(S) +Int 1
+    requires formatHasZ(S)
+  rule formatAfterZIndex(S:String) => formatAfterSignIndex(S)
+    requires notBool formatHasZ(S)
+
+  rule formatHasAlt(S:String) => true
+    requires formatAfterZIndex(S) <Int lengthString(S)
+      andBool substrString(S, formatAfterZIndex(S), formatAfterZIndex(S) +Int 1) ==String "#"
+  rule formatHasAlt(S:String) => false
+    requires formatAfterZIndex(S) >=Int lengthString(S)
+  rule formatHasAlt(S:String) => false
+    requires formatAfterZIndex(S) <Int lengthString(S)
+      andBool substrString(S, formatAfterZIndex(S), formatAfterZIndex(S) +Int 1) =/=String "#"
+
+  rule formatAfterAltIndex(S:String) => formatAfterZIndex(S) +Int 1
     requires formatHasAlt(S)
-  rule formatAfterAltIndex(S:String) => formatAfterSignIndex(S)
+  rule formatAfterAltIndex(S:String) => formatAfterZIndex(S)
     requires notBool formatHasAlt(S)
 
   rule formatHasZero(S:String) => true
@@ -2729,6 +2747,7 @@ module PYTHON
 
   rule formatIntWidthSpecSupported(S:String) => true
     requires S =/=String ""
+      andBool notBool formatHasZ(S)
       andBool formatIntWidthDigitsEnd(S) >=Int formatWidthStart(S)
       andBool formatDecimalDigits(S, formatWidthStart(S), formatIntWidthDigitsEnd(S))
   rule formatIntWidthSpecSupported(_:String) => false [owise]
@@ -2744,6 +2763,7 @@ module PYTHON
 
   rule formatStringSpecSupported(S:String) => true
     requires S =/=String ""
+      andBool notBool formatHasZ(S)
       andBool notBool formatHasSign(S)
       andBool notBool formatHasAlt(S)
       andBool formatAlign(S, "<") =/=String "="
@@ -2763,6 +2783,28 @@ module PYTHON
       andBool (notBool formatHasStringPrecision(S)
         orBool formatDecimalDigits(S, formatStringPrecisionDot(S) +Int 1, formatStringWidthEnd(S)))
   rule formatStringDiagnosticSpecSupported(_:String) => false [owise]
+
+  rule formatIntZSpecSupported(S:String) => true
+    requires S =/=String ""
+      andBool formatHasZ(S)
+      andBool notBool formatHasIntPrecision(S)
+      andBool formatIntWidthDigitsEnd(S) >=Int formatWidthStart(S)
+      andBool formatDecimalDigits(S, formatWidthStart(S), formatIntWidthDigitsEnd(S))
+      andBool formatGroupingAllowed(S)
+  rule formatIntZSpecSupported(_:String) => false [owise]
+
+  rule formatStringZSpecSupported(S:String) => true
+    requires S =/=String ""
+      andBool formatHasZ(S)
+      andBool notBool formatHasSign(S)
+      andBool notBool formatHasAlt(S)
+      andBool formatAlign(S, "<") =/=String "="
+      andBool notBool formatStringPrecisionMissing(S)
+      andBool formatStringWidthDigitsEnd(S) >=Int formatWidthStart(S)
+      andBool formatDecimalDigits(S, formatWidthStart(S), formatStringWidthDigitsEnd(S))
+      andBool (notBool formatHasStringPrecision(S)
+        orBool formatDecimalDigits(S, formatStringPrecisionDot(S) +Int 1, formatStringWidthEnd(S)))
+  rule formatStringZSpecSupported(_:String) => false [owise]
 
   rule validIntBase(B:Int) => B >=Int 2 andBool B <=Int 36
 
@@ -11983,6 +12025,9 @@ module PYTHON
   rule <k> Spec:String ~> formatApply(_S:String)
         => exceptionSignal(#exception(#token("ValueError", "Id"))) ... </k>
     requires formatStringDiagnosticSpecSupported(Spec)
+  rule <k> Spec:String ~> formatApply(_S:String)
+        => exceptionSignal(#exception(#token("ValueError", "Id"))) ... </k>
+    requires formatStringZSpecSupported(Spec)
   rule <k> Spec:String ~> formatApply(S:String)
         => formatPad(
              formatAlign(Spec, "<"),
@@ -11990,6 +12035,10 @@ module PYTHON
              formatStringPayload(S, Spec),
              formatWidth(Spec, formatWidthStart(Spec), formatStringWidthDigitsEnd(Spec))) ... </k>
     requires formatStringSpecSupported(Spec)
+  rule <k> Spec:String ~> formatApply(V:Val)
+        => exceptionSignal(#exception(#token("ValueError", "Id"))) ... </k>
+    requires formatIntZSpecSupported(Spec)
+      andBool isIntLike(V)
   rule <k> Spec:String ~> formatApply(V:Val)
         => exceptionSignal(#exception(#token("ValueError", "Id"))) ... </k>
     requires formatIntPrecisionSpecSupported(Spec)
@@ -12190,6 +12239,7 @@ module PYTHON
       andBool notBool isIntLike(V)
       andBool notBool (isStringVal(V) andBool formatStringSpecSupported(Spec))
       andBool notBool (isStringVal(V) andBool formatStringDiagnosticSpecSupported(Spec))
+      andBool notBool (isStringVal(V) andBool formatStringZSpecSupported(Spec))
   rule <k> Spec:String ~> formatApply(V:Val)
         => exceptionSignal(#exception(#token("NotImplementedError", "Id"))) ... </k>
     requires formatStringSpecSupported(Spec)
@@ -12197,6 +12247,8 @@ module PYTHON
       andBool notBool formatIntSpecSupported(Spec)
       andBool notBool formatIntPrecisionSpecSupported(Spec)
       andBool notBool formatStringDiagnosticSpecSupported(Spec)
+      andBool notBool formatIntZSpecSupported(Spec)
+      andBool notBool formatStringZSpecSupported(Spec)
   rule <k> Spec:String ~> formatApply(_V:Val)
         => exceptionSignal(#exception(#token("NotImplementedError", "Id"))) ... </k>
     requires Spec =/=String ""
@@ -12204,6 +12256,8 @@ module PYTHON
       andBool notBool formatIntPrecisionSpecSupported(Spec)
       andBool notBool formatStringSpecSupported(Spec)
       andBool notBool formatStringDiagnosticSpecSupported(Spec)
+      andBool notBool formatIntZSpecSupported(Spec)
+      andBool notBool formatStringZSpecSupported(Spec)
       andBool notBool formatStringPrecisionMissing(Spec)
   rule <k> Spec:Val ~> formatApply(_V:Val)
         => exceptionSignal(#exception(#token("TypeError", "Id"))) ... </k>

@@ -225,6 +225,7 @@ run_case "adapter-int-string-constructor" "$ROOT/tests/adapter/adapter-int-strin
 run_case "adapter-int-string-underscores" "$ROOT/tests/adapter/adapter-int-string-underscores.py" "True ~> .K"
 run_case "adapter-int-prefix-base-constructor" "$ROOT/tests/adapter/adapter-int-prefix-base-constructor.py" "True ~> .K"
 run_case "adapter-int-bytes-constructor" "$ROOT/tests/adapter/adapter-int-bytes-constructor.py" "True ~> .K"
+run_case "adapter-numeric-bytearray-constructors" "$ROOT/tests/adapter/adapter-numeric-bytearray-constructors.py" "True ~> .K"
 run_case "adapter-chained-comparison" "$ROOT/tests/adapter/adapter-chained-comparison.py" "True ~> .K"
 run_case "adapter-chained-comparison-short-circuit" "$ROOT/tests/adapter/adapter-chained-comparison-short-circuit.py" "False ~> .K"
 run_case "adapter-chained-identity" "$ROOT/tests/adapter/adapter-chained-identity.py" "True ~> .K"

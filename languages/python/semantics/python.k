@@ -14512,6 +14512,8 @@ module PYTHON
     requires isIntLike(V)
   rule #intCtor(bytesVal(VS:ValItems)) => #intCtor(bytesAsciiString(VS))
     requires valItemsAllByteInts(VS)
+  rule #intCtor(bytearrayVal(VS:ValItems)) => #intCtor(bytesAsciiString(VS))
+    requires valItemsAllByteInts(VS)
   rule #intCtor(S:String) => intStringValue(stripAsciiSpace(S), 10)
     requires stripAsciiSpace(S) =/=String S
       andBool intStringOk(stripAsciiSpace(S), 10)
@@ -14541,11 +14543,15 @@ module PYTHON
     requires isIntLike(B) andBool intStringOk(S, intValue(B))
   rule #intCtor(bytesVal(VS:ValItems), B:Val) => #intCtor(bytesAsciiString(VS), B)
     requires valItemsAllByteInts(VS)
+  rule #intCtor(bytearrayVal(VS:ValItems), B:Val) => #intCtor(bytesAsciiString(VS), B)
+    requires valItemsAllByteInts(VS)
   rule #floatCtor() => 0.0
   rule #floatCtor(F:Float) => F
   rule #floatCtor(V:Val) => floatValue(V)
     requires isIntLike(V)
   rule #floatCtor(bytesVal(VS:ValItems)) => #floatCtor(bytesAsciiString(VS))
+    requires valItemsAllByteInts(VS)
+  rule #floatCtor(bytearrayVal(VS:ValItems)) => #floatCtor(bytesAsciiString(VS))
     requires valItemsAllByteInts(VS)
   rule #floatCtor(S:String) => #floatCtor(stripAsciiSpace(S))
     requires stripAsciiSpace(S) =/=String S

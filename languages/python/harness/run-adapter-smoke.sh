@@ -86,6 +86,7 @@ run_case "adapter-string-repr-ascii-escaping" "$ROOT/tests/adapter/adapter-strin
 run_case "adapter-string-ascii-unicode" "$ROOT/tests/adapter/adapter-string-ascii-unicode.py" "True ~> .K"
 run_case "adapter-string-bytes-escape-literals" "$ROOT/tests/adapter/adapter-string-bytes-escape-literals.py" "True ~> .K"
 run_case "adapter-format-builtin" "$ROOT/tests/adapter/adapter-format-builtin.py" "True ~> .K"
+run_case "adapter-dynamic-format-builtin" "$ROOT/tests/adapter/adapter-dynamic-format-builtin.py" "True ~> .K"
 run_case "adapter-format-int-spec" "$ROOT/tests/adapter/adapter-format-int-spec.py" "True ~> .K"
 run_case "adapter-format-int-alternate-spec" "$ROOT/tests/adapter/adapter-format-int-alternate-spec.py" "True ~> .K"
 run_case "adapter-format-int-sign-spec" "$ROOT/tests/adapter/adapter-format-int-sign-spec.py" "True ~> .K"

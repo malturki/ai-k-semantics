@@ -787,7 +787,10 @@ def emit_exp(exp: ast.expr) -> str:
         case ast.Call(func=ast.Name(id="format"), args=[value], keywords=[]):
             return f"#format({emit_exp(value)})"
         case ast.Call(func=ast.Name(id="format"), args=[value, spec], keywords=[]):
-            return f"#format({emit_exp(value)}, {emit_format_spec(exp, spec)})"
+            emitted_spec = emit_format_spec(exp, spec)
+            if emitted_spec is not None:
+                return f"#format({emit_exp(value)}, {emitted_spec})"
+            return f"#format({emit_exp(value)}, {emit_exp(spec)})"
         case ast.Call(func=ast.Name(id="chr"), args=[arg], keywords=[]):
             return f"#chr({emit_exp(arg)})"
         case ast.Call(func=ast.Name(id="ord"), args=[arg], keywords=[]):
@@ -1511,12 +1514,12 @@ def emit_getattr_name(name_expr: ast.expr) -> str | None:
     return None
 
 
-def emit_format_spec(node: ast.AST, spec_expr: ast.expr) -> str:
+def emit_format_spec(node: ast.AST, spec_expr: ast.expr) -> str | None:
     if isinstance(spec_expr, ast.Constant) and isinstance(spec_expr.value, str):
         if format_spec_supported(spec_expr.value):
             return emit_exp(spec_expr)
         raise unsupported(node, "format currently supports only the current string/integer/special-float format_spec subset")
-    raise unsupported(node, "format currently supports string-literal format_spec")
+    return None
 
 
 def ensure_non_async_comprehension(

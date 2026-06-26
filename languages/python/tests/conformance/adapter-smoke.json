@@ -970,6 +970,13 @@
       "coverage": ["int-constructor", "float-constructor", "ascii-whitespace-padded-numeric-strings", "ordinary-python-source-adapter"]
     },
     {
+      "id": "adapter-numeric-string-unicode-whitespace",
+      "source": "../adapter/adapter-numeric-string-unicode-whitespace.py",
+      "reference": "Python Standard Library Built-in Functions int and float; CPython numeric string parser whitespace profile",
+      "expected_result": "True ~> .K",
+      "coverage": ["int-constructor", "float-constructor", "unicode-whitespace-padded-numeric-strings", "bytes-ascii-whitespace-profile", "value-error", "ordinary-python-source-adapter"]
+    },
+    {
       "id": "adapter-abs-int",
       "source": "../adapter/adapter-abs-int.py",
       "reference": "Python Standard Library Built-in Functions abs",

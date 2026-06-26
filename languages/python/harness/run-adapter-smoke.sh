@@ -203,6 +203,7 @@ run_case "adapter-float-special-string-constructor" "$ROOT/tests/adapter/adapter
 run_case "adapter-float-bytes-constructor" "$ROOT/tests/adapter/adapter-float-bytes-constructor.py" "True ~> .K"
 run_case "adapter-numeric-string-spaces" "$ROOT/tests/adapter/adapter-numeric-string-spaces.py" "True ~> .K"
 run_case "adapter-numeric-string-nonspace-whitespace" "$ROOT/tests/adapter/adapter-numeric-string-nonspace-whitespace.py" "True ~> .K"
+run_case "adapter-numeric-string-unicode-whitespace" "$ROOT/tests/adapter/adapter-numeric-string-unicode-whitespace.py" "True ~> .K"
 run_case "adapter-abs-int" "$ROOT/tests/adapter/adapter-abs-int.py" "True ~> .K"
 run_case "adapter-abs-complex-finite" "$ROOT/tests/adapter/adapter-abs-complex-finite.py" "True ~> .K"
 run_case "adapter-abs-complex-special" "$ROOT/tests/adapter/adapter-abs-complex-special.py" "True ~> .K"

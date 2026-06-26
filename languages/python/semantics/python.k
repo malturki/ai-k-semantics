@@ -447,8 +447,11 @@ module PYTHON-SYNTAX
                | "#intCtor" "(" ")" [symbol(intCtor0Exp)]
                | "#intCtor" "(" Exp ")" [symbol(intCtor1Exp), strict]
                | "#intCtor" "(" Exp "," Exp ")" [symbol(intCtor2Exp), strict]
+               | "#intBytesCtor" "(" String ")" [symbol(intBytesCtor1Exp)]
+               | "#intBytesCtor" "(" String "," Exp ")" [symbol(intBytesCtor2Exp), strict(2)]
                | "#floatCtor" "(" ")" [symbol(floatCtor0Exp)]
                | "#floatCtor" "(" Exp ")" [symbol(floatCtor1Exp), strict]
+               | "#floatBytesCtor" "(" String ")" [symbol(floatBytesCtor1Exp)]
                | "#complexCtor" "(" ")" [symbol(complexCtor0Exp)]
                | "#complexCtor" "(" Exp ")" [symbol(complexCtor1Exp), strict]
                | "#complexCtor" "(" Exp "," Exp ")" [symbol(complexCtor2Exp), strict]
@@ -14558,46 +14561,77 @@ module PYTHON
   rule #intCtor() => 0
   rule #intCtor(V:Val) => intValue(V)
     requires isIntLike(V)
-  rule #intCtor(#bytes()) => #intCtor("")
-  rule #intCtor(bytesVal(VS:ValItems)) => #intCtor(bytesAsciiString(VS))
+  rule #intCtor(#bytes()) => #intBytesCtor("")
+  rule #intCtor(bytesVal(VS:ValItems)) => #intBytesCtor(bytesAsciiString(VS))
     requires valItemsAllByteInts(VS)
-  rule #intCtor(#bytearray()) => #intCtor("")
-  rule #intCtor(bytearrayVal(VS:ValItems)) => #intCtor(bytesAsciiString(VS))
+  rule #intCtor(#bytearray()) => #intBytesCtor("")
+  rule #intCtor(bytearrayVal(VS:ValItems)) => #intBytesCtor(bytesAsciiString(VS))
     requires valItemsAllByteInts(VS)
-  rule #intCtor(S:String) => intStringValue(stripAsciiSpace(S), 10)
-    requires stripAsciiSpace(S) =/=String S
-      andBool intStringOk(stripAsciiSpace(S), 10)
+  rule #intCtor(S:String) => intStringValue(stripPythonStringSpace(S), 10)
+    requires stripPythonStringSpace(S) =/=String S
+      andBool intStringOk(stripPythonStringSpace(S), 10)
   rule #intCtor(S:String) => intStringValue(S, 10)
     requires intStringOk(S, 10)
-  rule #intCtor(S:String, B:Val) => intBase0StringValue(stripAsciiSpace(S))
-    requires stripAsciiSpace(S) =/=String S
+  rule #intCtor(S:String, B:Val) => intBase0StringValue(stripPythonStringSpace(S))
+    requires stripPythonStringSpace(S) =/=String S
       andBool isIntLike(B)
       andBool intValue(B) ==Int 0
-      andBool intBase0StringOk(stripAsciiSpace(S))
+      andBool intBase0StringOk(stripPythonStringSpace(S))
   rule #intCtor(S:String, B:Val) => intBase0StringValue(S)
     requires isIntLike(B)
       andBool intValue(B) ==Int 0
       andBool intBase0StringOk(S)
-  rule #intCtor(S:String, B:Val) => intPrefixedStringValue(stripAsciiSpace(S), intValue(B))
-    requires stripAsciiSpace(S) =/=String S
+  rule #intCtor(S:String, B:Val) => intPrefixedStringValue(stripPythonStringSpace(S), intValue(B))
+    requires stripPythonStringSpace(S) =/=String S
       andBool isIntLike(B)
-      andBool intPrefixedStringOk(stripAsciiSpace(S), intValue(B))
+      andBool intPrefixedStringOk(stripPythonStringSpace(S), intValue(B))
   rule #intCtor(S:String, B:Val) => intPrefixedStringValue(S, intValue(B))
     requires isIntLike(B)
       andBool intPrefixedStringOk(S, intValue(B))
-  rule #intCtor(S:String, B:Val) => intStringValue(stripAsciiSpace(S), intValue(B))
+  rule #intCtor(S:String, B:Val) => intStringValue(stripPythonStringSpace(S), intValue(B))
+    requires stripPythonStringSpace(S) =/=String S
+      andBool isIntLike(B)
+      andBool intStringOk(stripPythonStringSpace(S), intValue(B))
+  rule #intCtor(S:String, B:Val) => intStringValue(S, intValue(B))
+    requires isIntLike(B) andBool intStringOk(S, intValue(B))
+  rule #intCtor(#bytes(), B:Val) => #intBytesCtor("", B)
+  rule #intCtor(#bytearray(), B:Val) => #intBytesCtor("", B)
+  rule #intCtor(bytesVal(VS:ValItems), B:Val) => #intBytesCtor(bytesAsciiString(VS), B)
+    requires valItemsAllByteInts(VS)
+  rule #intCtor(bytearrayVal(VS:ValItems), B:Val) => #intBytesCtor(bytesAsciiString(VS), B)
+    requires valItemsAllByteInts(VS)
+  rule #intBytesCtor(S:String) => intStringValue(stripAsciiSpace(S), 10)
+    requires stripAsciiSpace(S) =/=String S
+      andBool intStringOk(stripAsciiSpace(S), 10)
+  rule #intBytesCtor(S:String) => intStringValue(S, 10)
+    requires intStringOk(S, 10)
+  rule #intBytesCtor(S:String, B:Val) => intBase0StringValue(stripAsciiSpace(S))
+    requires stripAsciiSpace(S) =/=String S
+      andBool isIntLike(B)
+      andBool intValue(B) ==Int 0
+      andBool intBase0StringOk(stripAsciiSpace(S))
+  rule #intBytesCtor(S:String, B:Val) => intBase0StringValue(S)
+    requires isIntLike(B)
+      andBool intValue(B) ==Int 0
+      andBool intBase0StringOk(S)
+  rule #intBytesCtor(S:String, B:Val) => intPrefixedStringValue(stripAsciiSpace(S), intValue(B))
+    requires stripAsciiSpace(S) =/=String S
+      andBool isIntLike(B)
+      andBool intPrefixedStringOk(stripAsciiSpace(S), intValue(B))
+  rule #intBytesCtor(S:String, B:Val) => intPrefixedStringValue(S, intValue(B))
+    requires isIntLike(B)
+      andBool intPrefixedStringOk(S, intValue(B))
+  rule #intBytesCtor(S:String, B:Val) => intStringValue(stripAsciiSpace(S), intValue(B))
     requires stripAsciiSpace(S) =/=String S
       andBool isIntLike(B)
       andBool intStringOk(stripAsciiSpace(S), intValue(B))
-  rule #intCtor(S:String, B:Val) => intStringValue(S, intValue(B))
+  rule #intBytesCtor(S:String, B:Val) => intStringValue(S, intValue(B))
     requires isIntLike(B) andBool intStringOk(S, intValue(B))
-  rule #intCtor(#bytes(), B:Val) => #intCtor("", B)
-  rule #intCtor(#bytearray(), B:Val) => #intCtor("", B)
-  rule #intCtor(bytesVal(VS:ValItems), B:Val) => #intCtor(bytesAsciiString(VS), B)
-    requires valItemsAllByteInts(VS)
-  rule #intCtor(bytearrayVal(VS:ValItems), B:Val) => #intCtor(bytesAsciiString(VS), B)
-    requires valItemsAllByteInts(VS)
   rule <k> #intCtor(S:String) =>
+           exceptionSignal(#exception(#token("ValueError", "Id")))
+       ... </k>
+    requires notBool intStringOk(stripPythonStringSpace(S), 10)
+  rule <k> #intBytesCtor(S:String) =>
            exceptionSignal(#exception(#token("ValueError", "Id")))
        ... </k>
     requires notBool intStringOk(stripAsciiSpace(S), 10)
@@ -14605,7 +14639,17 @@ module PYTHON
            exceptionSignal(#exception(#token("TypeError", "Id")))
        ... </k>
     requires notBool isIntLike(B)
+  rule <k> #intBytesCtor(_S:String, B:Val) =>
+           exceptionSignal(#exception(#token("TypeError", "Id")))
+       ... </k>
+    requires notBool isIntLike(B)
   rule <k> #intCtor(_S:String, B:Val) =>
+           exceptionSignal(#exception(#token("ValueError", "Id")))
+       ... </k>
+    requires isIntLike(B)
+      andBool intValue(B) =/=Int 0
+      andBool notBool validIntBase(intValue(B))
+  rule <k> #intBytesCtor(_S:String, B:Val) =>
            exceptionSignal(#exception(#token("ValueError", "Id")))
        ... </k>
     requires isIntLike(B)
@@ -14616,8 +14660,21 @@ module PYTHON
        ... </k>
     requires isIntLike(B)
       andBool intValue(B) ==Int 0
+      andBool notBool intBase0StringOk(stripPythonStringSpace(S))
+  rule <k> #intBytesCtor(S:String, B:Val) =>
+           exceptionSignal(#exception(#token("ValueError", "Id")))
+       ... </k>
+    requires isIntLike(B)
+      andBool intValue(B) ==Int 0
       andBool notBool intBase0StringOk(stripAsciiSpace(S))
   rule <k> #intCtor(S:String, B:Val) =>
+           exceptionSignal(#exception(#token("ValueError", "Id")))
+       ... </k>
+    requires isIntLike(B)
+      andBool validIntBase(intValue(B))
+      andBool notBool intPrefixedStringOk(stripPythonStringSpace(S), intValue(B))
+      andBool notBool intStringOk(stripPythonStringSpace(S), intValue(B))
+  rule <k> #intBytesCtor(S:String, B:Val) =>
            exceptionSignal(#exception(#token("ValueError", "Id")))
        ... </k>
     requires isIntLike(B)
@@ -14632,18 +14689,18 @@ module PYTHON
   rule #floatCtor(F:Float) => F
   rule #floatCtor(V:Val) => floatValue(V)
     requires isIntLike(V)
-  rule #floatCtor(#bytes()) => #floatCtor("")
-  rule #floatCtor(bytesVal(VS:ValItems)) => #floatCtor(bytesAsciiString(VS))
+  rule #floatCtor(#bytes()) => #floatBytesCtor("")
+  rule #floatCtor(bytesVal(VS:ValItems)) => #floatBytesCtor(bytesAsciiString(VS))
     requires valItemsAllByteInts(VS)
-  rule #floatCtor(#bytearray()) => #floatCtor("")
-  rule #floatCtor(bytearrayVal(VS:ValItems)) => #floatCtor(bytesAsciiString(VS))
+  rule #floatCtor(#bytearray()) => #floatBytesCtor("")
+  rule #floatCtor(bytearrayVal(VS:ValItems)) => #floatBytesCtor(bytesAsciiString(VS))
     requires valItemsAllByteInts(VS)
-  rule #floatCtor(S:String) => #floatCtor(stripAsciiSpace(S))
-    requires stripAsciiSpace(S) =/=String S
-      andBool (intStringOk(stripAsciiSpace(S), 10)
-        orBool floatDecimalStringOk(stripAsciiSpace(S))
-        orBool floatExponentStringOk(stripAsciiSpace(S))
-        orBool floatSpecialStringOk(stripAsciiSpace(S)))
+  rule #floatCtor(S:String) => #floatCtor(stripPythonStringSpace(S))
+    requires stripPythonStringSpace(S) =/=String S
+      andBool (intStringOk(stripPythonStringSpace(S), 10)
+        orBool floatDecimalStringOk(stripPythonStringSpace(S))
+        orBool floatExponentStringOk(stripPythonStringSpace(S))
+        orBool floatSpecialStringOk(stripPythonStringSpace(S)))
   rule #floatCtor(S:String) => Int2Float(intStringValue(S, 10), 53, 11)
     requires intStringOk(S, 10)
   rule #floatCtor(S:String) => floatDecimalStringValue(S)
@@ -14652,7 +14709,25 @@ module PYTHON
     requires floatExponentStringOk(S)
   rule #floatCtor(S:String) => floatSpecialStringValue(S)
     requires floatSpecialStringOk(S)
+  rule #floatBytesCtor(S:String) => #floatBytesCtor(stripAsciiSpace(S))
+    requires stripAsciiSpace(S) =/=String S
+      andBool (intStringOk(stripAsciiSpace(S), 10)
+        orBool floatDecimalStringOk(stripAsciiSpace(S))
+        orBool floatExponentStringOk(stripAsciiSpace(S))
+        orBool floatSpecialStringOk(stripAsciiSpace(S)))
+  rule #floatBytesCtor(S:String) => Int2Float(intStringValue(S, 10), 53, 11)
+    requires intStringOk(S, 10)
+  rule #floatBytesCtor(S:String) => floatDecimalStringValue(S)
+    requires floatDecimalStringOk(S)
+  rule #floatBytesCtor(S:String) => floatExponentStringValue(S)
+    requires floatExponentStringOk(S)
+  rule #floatBytesCtor(S:String) => floatSpecialStringValue(S)
+    requires floatSpecialStringOk(S)
   rule <k> #floatCtor(S:String) =>
+           exceptionSignal(#exception(#token("ValueError", "Id")))
+       ... </k>
+    requires notBool floatStringOk(stripPythonStringSpace(S))
+  rule <k> #floatBytesCtor(S:String) =>
            exceptionSignal(#exception(#token("ValueError", "Id")))
        ... </k>
     requires notBool floatStringOk(stripAsciiSpace(S))

@@ -1316,6 +1316,10 @@ module PYTHON
                 | bytesEncodingLatin1(String) [function, symbol(bytesEncodingLatin1)]
                 | bytesEncodingSupported(String) [function, symbol(bytesEncodingSupported)]
                 | bytesErrorsStrict(String) [function, symbol(bytesErrorsStrict)]
+                | bytesErrorsIgnore(String) [function, symbol(bytesErrorsIgnore)]
+                | bytesErrorsReplace(String) [function, symbol(bytesErrorsReplace)]
+                | bytesErrorsUnicodeRaise(String) [function, symbol(bytesErrorsUnicodeRaise)]
+                | bytesErrorsKnown(String) [function, symbol(bytesErrorsKnown)]
                 | stringAsciiEncodable(String, Int) [function, symbol(stringAsciiEncodable)]
                 | stringLatin1Encodable(String, Int) [function, symbol(stringLatin1Encodable)]
                 | lenSupported(Val) [function, symbol(lenSupported)]
@@ -1784,6 +1788,15 @@ module PYTHON
                | bytesStringUtf8(String) [function, symbol(bytesStringUtf8)]
                | bytesStringAscii(String) [function, symbol(bytesStringAscii)]
                | bytesStringLatin1(String) [function, symbol(bytesStringLatin1)]
+               | bytesPrependByte(Int, Val) [function, symbol(bytesPrependByte)]
+               | bytesStringAsciiIgnore(String) [function, symbol(bytesStringAsciiIgnore)]
+               | bytesStringAsciiIgnoreFrom(String, Int, Int) [function, symbol(bytesStringAsciiIgnoreFrom)]
+               | bytesStringAsciiReplace(String) [function, symbol(bytesStringAsciiReplace)]
+               | bytesStringAsciiReplaceFrom(String, Int, Int) [function, symbol(bytesStringAsciiReplaceFrom)]
+               | bytesStringLatin1Ignore(String) [function, symbol(bytesStringLatin1Ignore)]
+               | bytesStringLatin1IgnoreFrom(String, Int, Int) [function, symbol(bytesStringLatin1IgnoreFrom)]
+               | bytesStringLatin1Replace(String) [function, symbol(bytesStringLatin1Replace)]
+               | bytesStringLatin1ReplaceFrom(String, Int, Int) [function, symbol(bytesStringLatin1ReplaceFrom)]
                | listSliceStep(ValItems, Int, Int, Int) [function, symbol(listSliceStep)]
                | tupleSliceStep(ValItems, Int, Int, Int) [function, symbol(tupleSliceStep)]
                | bytesSliceStep(ValItems, Int, Int, Int) [function, symbol(bytesSliceStep)]
@@ -6363,8 +6376,28 @@ module PYTHON
     bytesEncodingUtf8(Enc) orBool bytesEncodingAscii(Enc) orBool bytesEncodingLatin1(Enc)
 
   rule bytesErrorsStrict("strict") => true
-  rule bytesErrorsStrict("STRICT") => true
   rule bytesErrorsStrict(_:String) => false [owise]
+
+  rule bytesErrorsIgnore("ignore") => true
+  rule bytesErrorsIgnore(_:String) => false [owise]
+
+  rule bytesErrorsReplace("replace") => true
+  rule bytesErrorsReplace(_:String) => false [owise]
+
+  rule bytesErrorsUnicodeRaise("strict") => true
+  rule bytesErrorsUnicodeRaise("surrogateescape") => true
+  rule bytesErrorsUnicodeRaise("surrogatepass") => true
+  rule bytesErrorsUnicodeRaise(_:String) => false [owise]
+
+  rule bytesErrorsKnown("strict") => true
+  rule bytesErrorsKnown("ignore") => true
+  rule bytesErrorsKnown("replace") => true
+  rule bytesErrorsKnown("backslashreplace") => true
+  rule bytesErrorsKnown("surrogateescape") => true
+  rule bytesErrorsKnown("xmlcharrefreplace") => true
+  rule bytesErrorsKnown("namereplace") => true
+  rule bytesErrorsKnown("surrogatepass") => true
+  rule bytesErrorsKnown(_:String) => false [owise]
 
   rule stringAsciiEncodable(S:String, I:Int) => true
     requires I >=Int lengthString(S)
@@ -12707,6 +12740,44 @@ module PYTHON
     requires lengthString(S) ==Int 0
   rule bytesStringLatin1(S:String) => bytesVal(stringLatin1BytesToValItems(S, 0, lengthString(S)))
     requires lengthString(S) >Int 0 andBool stringLatin1Encodable(S, 0)
+  rule bytesPrependByte(B:Int, #bytes()) => bytesVal(valItemsLast(B))
+  rule bytesPrependByte(B:Int, bytesVal(VS:ValItems)) => bytesVal(valItemsCons(B, VS))
+  rule bytesStringAsciiIgnore(S:String) => bytesStringAsciiIgnoreFrom(S, 0, lengthString(S))
+  rule bytesStringAsciiIgnoreFrom(_S:String, I:Int, Len:Int) => #bytes()
+    requires I >=Int Len
+  rule bytesStringAsciiIgnoreFrom(S:String, I:Int, Len:Int) =>
+    bytesPrependByte(stringCodePointAt(S, I), bytesStringAsciiIgnoreFrom(S, I +Int stringCodePointByteLenAt(S, I), Len))
+    requires I <Int Len andBool stringCodePointAt(S, I) <Int 128
+  rule bytesStringAsciiIgnoreFrom(S:String, I:Int, Len:Int) =>
+    bytesStringAsciiIgnoreFrom(S, I +Int stringCodePointByteLenAt(S, I), Len)
+    requires I <Int Len andBool stringCodePointAt(S, I) >=Int 128
+  rule bytesStringAsciiReplace(S:String) => bytesStringAsciiReplaceFrom(S, 0, lengthString(S))
+  rule bytesStringAsciiReplaceFrom(_S:String, I:Int, Len:Int) => #bytes()
+    requires I >=Int Len
+  rule bytesStringAsciiReplaceFrom(S:String, I:Int, Len:Int) =>
+    bytesPrependByte(stringCodePointAt(S, I), bytesStringAsciiReplaceFrom(S, I +Int stringCodePointByteLenAt(S, I), Len))
+    requires I <Int Len andBool stringCodePointAt(S, I) <Int 128
+  rule bytesStringAsciiReplaceFrom(S:String, I:Int, Len:Int) =>
+    bytesPrependByte(63, bytesStringAsciiReplaceFrom(S, I +Int stringCodePointByteLenAt(S, I), Len))
+    requires I <Int Len andBool stringCodePointAt(S, I) >=Int 128
+  rule bytesStringLatin1Ignore(S:String) => bytesStringLatin1IgnoreFrom(S, 0, lengthString(S))
+  rule bytesStringLatin1IgnoreFrom(_S:String, I:Int, Len:Int) => #bytes()
+    requires I >=Int Len
+  rule bytesStringLatin1IgnoreFrom(S:String, I:Int, Len:Int) =>
+    bytesPrependByte(stringCodePointAt(S, I), bytesStringLatin1IgnoreFrom(S, I +Int stringCodePointByteLenAt(S, I), Len))
+    requires I <Int Len andBool stringCodePointAt(S, I) <=Int 255
+  rule bytesStringLatin1IgnoreFrom(S:String, I:Int, Len:Int) =>
+    bytesStringLatin1IgnoreFrom(S, I +Int stringCodePointByteLenAt(S, I), Len)
+    requires I <Int Len andBool stringCodePointAt(S, I) >Int 255
+  rule bytesStringLatin1Replace(S:String) => bytesStringLatin1ReplaceFrom(S, 0, lengthString(S))
+  rule bytesStringLatin1ReplaceFrom(_S:String, I:Int, Len:Int) => #bytes()
+    requires I >=Int Len
+  rule bytesStringLatin1ReplaceFrom(S:String, I:Int, Len:Int) =>
+    bytesPrependByte(stringCodePointAt(S, I), bytesStringLatin1ReplaceFrom(S, I +Int stringCodePointByteLenAt(S, I), Len))
+    requires I <Int Len andBool stringCodePointAt(S, I) <=Int 255
+  rule bytesStringLatin1ReplaceFrom(S:String, I:Int, Len:Int) =>
+    bytesPrependByte(63, bytesStringLatin1ReplaceFrom(S, I +Int stringCodePointByteLenAt(S, I), Len))
+    requires I <Int Len andBool stringCodePointAt(S, I) >Int 255
   rule #bytesCtor() => #bytes()
   rule #bytesCtor(V:Val) => zeroBytes(intValue(V))
     requires isIntLike(V) andBool intValue(V) >=Int 0
@@ -12784,12 +12855,47 @@ module PYTHON
     requires notBool isStringVal(Enc)
   rule <k> #bytesCtor(V:Val, _Enc:Val) => exceptionSignal(#exception(#token("TypeError", "Id"))) ... </k>
     requires notBool isStringVal(V)
-  rule #bytesCtor(S:String, Enc:String, Errors:String) => #bytesCtor(S, Enc)
-    requires bytesErrorsStrict(Errors)
-  rule <k> #bytesCtor(_S:String, _Enc:String, Errors:String) =>
+  rule #bytesCtor(S:String, Enc:String, _Errors:String) => #bytesCtor(S, Enc)
+    requires bytesEncodingUtf8(Enc)
+      orBool (bytesEncodingAscii(Enc) andBool stringAsciiEncodable(S, 0))
+      orBool (bytesEncodingLatin1(Enc) andBool stringLatin1Encodable(S, 0))
+  rule #bytesCtor(S:String, Enc:String, Errors:String) => bytesStringAsciiIgnore(S)
+    requires bytesEncodingAscii(Enc) andBool notBool stringAsciiEncodable(S, 0)
+      andBool bytesErrorsIgnore(Errors)
+  rule #bytesCtor(S:String, Enc:String, Errors:String) => bytesStringLatin1Ignore(S)
+    requires bytesEncodingLatin1(Enc) andBool notBool stringLatin1Encodable(S, 0)
+      andBool bytesErrorsIgnore(Errors)
+  rule #bytesCtor(S:String, Enc:String, Errors:String) => bytesStringAsciiReplace(S)
+    requires bytesEncodingAscii(Enc) andBool notBool stringAsciiEncodable(S, 0)
+      andBool bytesErrorsReplace(Errors)
+  rule #bytesCtor(S:String, Enc:String, Errors:String) => bytesStringLatin1Replace(S)
+    requires bytesEncodingLatin1(Enc) andBool notBool stringLatin1Encodable(S, 0)
+      andBool bytesErrorsReplace(Errors)
+  rule <k> #bytesCtor(S:String, Enc:String, Errors:String) =>
+           exceptionSignal(#exception(#token("UnicodeEncodeError", "Id")))
+       ... </k>
+    requires ((bytesEncodingAscii(Enc) andBool notBool stringAsciiEncodable(S, 0))
+      orBool (bytesEncodingLatin1(Enc) andBool notBool stringLatin1Encodable(S, 0)))
+      andBool bytesErrorsUnicodeRaise(Errors)
+  rule <k> #bytesCtor(S:String, Enc:String, Errors:String) =>
            exceptionSignal(#exception(#token("NotImplementedError", "Id")))
        ... </k>
-    requires notBool bytesErrorsStrict(Errors)
+    requires ((bytesEncodingAscii(Enc) andBool notBool stringAsciiEncodable(S, 0))
+      orBool (bytesEncodingLatin1(Enc) andBool notBool stringLatin1Encodable(S, 0)))
+      andBool bytesErrorsKnown(Errors)
+      andBool notBool bytesErrorsIgnore(Errors)
+      andBool notBool bytesErrorsReplace(Errors)
+      andBool notBool bytesErrorsUnicodeRaise(Errors)
+  rule <k> #bytesCtor(_S:String, Enc:String, _Errors:String) =>
+           exceptionSignal(#exception(#token("LookupError", "Id")))
+       ... </k>
+    requires notBool bytesEncodingSupported(Enc)
+  rule <k> #bytesCtor(S:String, Enc:String, Errors:String) =>
+           exceptionSignal(#exception(#token("LookupError", "Id")))
+       ... </k>
+    requires ((bytesEncodingAscii(Enc) andBool notBool stringAsciiEncodable(S, 0))
+      orBool (bytesEncodingLatin1(Enc) andBool notBool stringLatin1Encodable(S, 0)))
+      andBool notBool bytesErrorsKnown(Errors)
   rule <k> #bytesCtor(_S:String, Enc:Val, _Errors:Val) =>
            exceptionSignal(#exception(#token("TypeError", "Id")))
        ... </k>

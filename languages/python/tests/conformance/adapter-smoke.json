@@ -277,6 +277,13 @@
       "coverage": ["bytes-constructor", "string-source", "encoding-argument", "utf-8-encoding", "ascii-encoding", "latin-1-encoding", "strict-errors", "unicode-encode-error", "lookup-error", "type-error", "ordinary-python-source-adapter"]
     },
     {
+      "id": "adapter-bytes-string-error-handlers",
+      "source": "../adapter/adapter-bytes-string-error-handlers.py",
+      "reference": "Python Standard Library Built-in Functions bytes constructor; Python Standard Library codecs error handlers",
+      "expected_result": "True ~> .K",
+      "coverage": ["bytes-constructor", "string-source", "encoding-argument", "errors-argument", "ignore-errors", "replace-errors", "lazy-error-handler-lookup", "surrogate-error-handler", "lookup-error", "unicode-encode-error", "type-error", "ordinary-python-source-adapter"]
+    },
+    {
       "id": "adapter-format-builtin",
       "source": "../adapter/adapter-format-builtin.py",
       "reference": "Python Standard Library Built-in Functions format; empty format_spec over current K string-conversion values",

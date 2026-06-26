@@ -120,6 +120,7 @@ run_case "adapter-bytes-subsequence-membership" "$ROOT/tests/adapter/adapter-byt
 run_case "adapter-bytes-iterable-builtins" "$ROOT/tests/adapter/adapter-bytes-iterable-builtins.py" "True ~> .K"
 run_case "adapter-bytes-constructor" "$ROOT/tests/adapter/adapter-bytes-constructor.py" "True ~> .K"
 run_case "adapter-bytes-constructor-errors" "$ROOT/tests/adapter/adapter-bytes-constructor-errors.py" "True ~> .K"
+run_case "adapter-bytes-string-encoding-constructor" "$ROOT/tests/adapter/adapter-bytes-string-encoding-constructor.py" "True ~> .K"
 run_case "adapter-list-normal" "$ROOT/tests/adapter/adapter-list-normal.py" "True ~> .K"
 run_case "adapter-list-expressions" "$ROOT/tests/adapter/adapter-list-expressions.py" "True ~> .K"
 run_case "adapter-list-comprehension" "$ROOT/tests/adapter/adapter-list-comprehension.py" "True ~> .K"

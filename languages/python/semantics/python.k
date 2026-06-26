@@ -391,6 +391,8 @@ module PYTHON-SYNTAX
                | "#setCtor" "(" Exp ")" [symbol(setCtor1Exp), strict]
                | "#bytesCtor" "(" ")" [symbol(bytesCtorExp)]
                | "#bytesCtor" "(" Exp ")" [symbol(bytesCtor1Exp), strict]
+               | "#bytesCtor" "(" Exp "," Exp ")" [symbol(bytesCtor2Exp), strict]
+               | "#bytesCtor" "(" Exp "," Exp "," Exp ")" [symbol(bytesCtor3Exp), strict]
                | "#boolCtor" "(" ")" [symbol(boolCtor0Exp)]
                | "#boolCtor" "(" Exp ")" [symbol(boolCtor1Exp), strict]
                | "#strCtor" "(" ")" [symbol(strCtor0Exp)]
@@ -1309,6 +1311,13 @@ module PYTHON
                 | concreteIterableExtraNonEmpty(Val) [function, symbol(concreteIterableExtraNonEmpty)]
                 | concreteIterableExtraEmpty(Val) [function, symbol(concreteIterableExtraEmpty)]
                 | bytesCtorSourceSupported(Val) [function, symbol(bytesCtorSourceSupported)]
+                | bytesEncodingUtf8(String) [function, symbol(bytesEncodingUtf8)]
+                | bytesEncodingAscii(String) [function, symbol(bytesEncodingAscii)]
+                | bytesEncodingLatin1(String) [function, symbol(bytesEncodingLatin1)]
+                | bytesEncodingSupported(String) [function, symbol(bytesEncodingSupported)]
+                | bytesErrorsStrict(String) [function, symbol(bytesErrorsStrict)]
+                | stringAsciiEncodable(String, Int) [function, symbol(stringAsciiEncodable)]
+                | stringLatin1Encodable(String, Int) [function, symbol(stringLatin1Encodable)]
                 | lenSupported(Val) [function, symbol(lenSupported)]
                 | sliceStepAssignRhsSupported(Val) [function, symbol(sliceStepAssignRhsSupported)]
                 | unpackValueSupported(Val) [function, symbol(unpackValueSupported)]
@@ -1732,6 +1741,8 @@ module PYTHON
   syntax ValItems ::= argValsToSetItems(ArgVals) [function, symbol(argValsToSetItems)]
   syntax ValItems ::= concreteIterableExtraItems(Val) [function, symbol(concreteIterableExtraItems)]
   syntax ValItems ::= stringToValItems(String, Int, Int) [function, symbol(stringToValItems)]
+  syntax ValItems ::= stringBytesToValItems(String, Int, Int) [function, symbol(stringBytesToValItems)]
+  syntax ValItems ::= stringLatin1BytesToValItems(String, Int, Int) [function, symbol(stringLatin1BytesToValItems)]
   syntax ValItems ::= dictKeysToValItems(DictItems) [function, symbol(dictKeysToValItems)]
   syntax ValItems ::= rangeToValItems(Int, Int, Int, Int, Int) [function, symbol(rangeToValItems)]
   syntax ValItems ::= dropValItems(ValItems, Int) [function, symbol(dropValItems)]
@@ -1770,6 +1781,9 @@ module PYTHON
   syntax Val ::= listSlice(ValItems, Int, Int) [function, symbol(listSlice)]
                | tupleSlice(ValItems, Int, Int) [function, symbol(tupleSlice)]
                | bytesSlice(ValItems, Int, Int) [function, symbol(bytesSlice)]
+               | bytesStringUtf8(String) [function, symbol(bytesStringUtf8)]
+               | bytesStringAscii(String) [function, symbol(bytesStringAscii)]
+               | bytesStringLatin1(String) [function, symbol(bytesStringLatin1)]
                | listSliceStep(ValItems, Int, Int, Int) [function, symbol(listSliceStep)]
                | tupleSliceStep(ValItems, Int, Int, Int) [function, symbol(tupleSliceStep)]
                | bytesSliceStep(ValItems, Int, Int, Int) [function, symbol(bytesSliceStep)]
@@ -6327,6 +6341,45 @@ module PYTHON
   rule bytesCtorSourceSupported(rangeVal(_:Int, _:Int, _:Int)) => true
   rule bytesCtorSourceSupported(_:Val) => false [owise]
 
+  rule bytesEncodingUtf8("utf-8") => true
+  rule bytesEncodingUtf8("utf8") => true
+  rule bytesEncodingUtf8("UTF-8") => true
+  rule bytesEncodingUtf8("UTF8") => true
+  rule bytesEncodingUtf8(_:String) => false [owise]
+
+  rule bytesEncodingAscii("ascii") => true
+  rule bytesEncodingAscii("ASCII") => true
+  rule bytesEncodingAscii(_:String) => false [owise]
+
+  rule bytesEncodingLatin1("latin-1") => true
+  rule bytesEncodingLatin1("latin_1") => true
+  rule bytesEncodingLatin1("iso-8859-1") => true
+  rule bytesEncodingLatin1("LATIN-1") => true
+  rule bytesEncodingLatin1("LATIN_1") => true
+  rule bytesEncodingLatin1("ISO-8859-1") => true
+  rule bytesEncodingLatin1(_:String) => false [owise]
+
+  rule bytesEncodingSupported(Enc:String) =>
+    bytesEncodingUtf8(Enc) orBool bytesEncodingAscii(Enc) orBool bytesEncodingLatin1(Enc)
+
+  rule bytesErrorsStrict("strict") => true
+  rule bytesErrorsStrict("STRICT") => true
+  rule bytesErrorsStrict(_:String) => false [owise]
+
+  rule stringAsciiEncodable(S:String, I:Int) => true
+    requires I >=Int lengthString(S)
+  rule stringAsciiEncodable(S:String, I:Int) => stringAsciiEncodable(S, I +Int stringCodePointByteLenAt(S, I))
+    requires I <Int lengthString(S) andBool stringCodePointAt(S, I) <Int 128
+  rule stringAsciiEncodable(S:String, I:Int) => false
+    requires I <Int lengthString(S) andBool stringCodePointAt(S, I) >=Int 128
+
+  rule stringLatin1Encodable(S:String, I:Int) => true
+    requires I >=Int lengthString(S)
+  rule stringLatin1Encodable(S:String, I:Int) => stringLatin1Encodable(S, I +Int stringCodePointByteLenAt(S, I))
+    requires I <Int lengthString(S) andBool stringCodePointAt(S, I) <=Int 255
+  rule stringLatin1Encodable(S:String, I:Int) => false
+    requires I <Int lengthString(S) andBool stringCodePointAt(S, I) >Int 255
+
   rule concreteIterableExtraItems(S:String) => stringToValItems(S, 0, lengthString(S))
     requires lengthString(S) >Int 0
   rule concreteIterableExtraItems(bytesVal(VS:ValItems)) => VS
@@ -6394,6 +6447,22 @@ module PYTHON
     valItemsCons(
       substrString(S, I, I +Int stringCodePointByteLenAt(S, I)),
       stringToValItems(S, I +Int stringCodePointByteLenAt(S, I), Len))
+    requires I +Int stringCodePointByteLenAt(S, I) <Int Len
+
+  rule stringBytesToValItems(S:String, I:Int, Len:Int) =>
+    valItemsLast(stringByte(S, I))
+    requires I +Int 1 >=Int Len
+  rule stringBytesToValItems(S:String, I:Int, Len:Int) =>
+    valItemsCons(stringByte(S, I), stringBytesToValItems(S, I +Int 1, Len))
+    requires I +Int 1 <Int Len
+
+  rule stringLatin1BytesToValItems(S:String, I:Int, Len:Int) =>
+    valItemsLast(stringCodePointAt(S, I))
+    requires I +Int stringCodePointByteLenAt(S, I) >=Int Len
+  rule stringLatin1BytesToValItems(S:String, I:Int, Len:Int) =>
+    valItemsCons(
+      stringCodePointAt(S, I),
+      stringLatin1BytesToValItems(S, I +Int stringCodePointByteLenAt(S, I), Len))
     requires I +Int stringCodePointByteLenAt(S, I) <Int Len
 
   rule dictKeysToValItems(dictItemsLast(K:Val, _:Val)) => valItemsLast(K)
@@ -12628,6 +12697,16 @@ module PYTHON
   rule #dictCtor() => ({}):Val
   rule #setCtor() => set()
   rule #setCtor(V:Val) => setFromArgVals(iterableArgVals(V))
+  rule bytesStringUtf8(S:String) => #bytes()
+    requires lengthString(S) ==Int 0
+  rule bytesStringUtf8(S:String) => bytesVal(stringBytesToValItems(S, 0, lengthString(S)))
+    requires lengthString(S) >Int 0
+  rule bytesStringAscii(S:String) => bytesStringUtf8(S)
+    requires stringAsciiEncodable(S, 0)
+  rule bytesStringLatin1(S:String) => #bytes()
+    requires lengthString(S) ==Int 0
+  rule bytesStringLatin1(S:String) => bytesVal(stringLatin1BytesToValItems(S, 0, lengthString(S)))
+    requires lengthString(S) >Int 0 andBool stringLatin1Encodable(S, 0)
   rule #bytesCtor() => #bytes()
   rule #bytesCtor(V:Val) => zeroBytes(intValue(V))
     requires isIntLike(V) andBool intValue(V) >=Int 0
@@ -12690,6 +12769,39 @@ module PYTHON
       andBool notBool valItemsAllByteInts(rangeToValItems(Start, Stop, Step, 0, pyRangeLen(Start, Stop, Step)))
   rule <k> #bytesCtor(V:Val) => exceptionSignal(#exception(#token("TypeError", "Id"))) ... </k>
     requires notBool bytesCtorSourceSupported(V)
+  rule #bytesCtor(S:String, Enc:String) => bytesStringUtf8(S)
+    requires bytesEncodingUtf8(Enc)
+  rule #bytesCtor(S:String, Enc:String) => bytesStringAscii(S)
+    requires bytesEncodingAscii(Enc) andBool stringAsciiEncodable(S, 0)
+  rule #bytesCtor(S:String, Enc:String) => bytesStringLatin1(S)
+    requires bytesEncodingLatin1(Enc) andBool stringLatin1Encodable(S, 0)
+  rule <k> #bytesCtor(S:String, Enc:String) => exceptionSignal(#exception(#token("UnicodeEncodeError", "Id"))) ... </k>
+    requires (bytesEncodingAscii(Enc) andBool notBool stringAsciiEncodable(S, 0))
+      orBool (bytesEncodingLatin1(Enc) andBool notBool stringLatin1Encodable(S, 0))
+  rule <k> #bytesCtor(_S:String, Enc:String) => exceptionSignal(#exception(#token("LookupError", "Id"))) ... </k>
+    requires notBool bytesEncodingSupported(Enc)
+  rule <k> #bytesCtor(_S:String, Enc:Val) => exceptionSignal(#exception(#token("TypeError", "Id"))) ... </k>
+    requires notBool isStringVal(Enc)
+  rule <k> #bytesCtor(V:Val, _Enc:Val) => exceptionSignal(#exception(#token("TypeError", "Id"))) ... </k>
+    requires notBool isStringVal(V)
+  rule #bytesCtor(S:String, Enc:String, Errors:String) => #bytesCtor(S, Enc)
+    requires bytesErrorsStrict(Errors)
+  rule <k> #bytesCtor(_S:String, _Enc:String, Errors:String) =>
+           exceptionSignal(#exception(#token("NotImplementedError", "Id")))
+       ... </k>
+    requires notBool bytesErrorsStrict(Errors)
+  rule <k> #bytesCtor(_S:String, Enc:Val, _Errors:Val) =>
+           exceptionSignal(#exception(#token("TypeError", "Id")))
+       ... </k>
+    requires notBool isStringVal(Enc)
+  rule <k> #bytesCtor(_S:String, _Enc:String, Errors:Val) =>
+           exceptionSignal(#exception(#token("TypeError", "Id")))
+       ... </k>
+    requires notBool isStringVal(Errors)
+  rule <k> #bytesCtor(V:Val, _Enc:Val, _Errors:Val) =>
+           exceptionSignal(#exception(#token("TypeError", "Id")))
+       ... </k>
+    requires notBool isStringVal(V)
   rule #dictCtor(({}):Val) => ({}):Val
   rule #dictCtor(dictVal(DS:DictItems)) => dictVal(DS)
   rule #dictCtor([]) => ({}):Val

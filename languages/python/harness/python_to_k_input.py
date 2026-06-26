@@ -757,6 +757,10 @@ def emit_exp(exp: ast.expr) -> str:
             return "#bytesCtor()"
         case ast.Call(func=ast.Name(id="bytes"), args=[arg], keywords=[]):
             return f"#bytesCtor({emit_exp(arg)})"
+        case ast.Call(func=ast.Name(id="bytes"), args=[source, encoding], keywords=[]):
+            return f"#bytesCtor({emit_exp(source)}, {emit_exp(encoding)})"
+        case ast.Call(func=ast.Name(id="bytes"), args=[source, encoding, errors], keywords=[]):
+            return f"#bytesCtor({emit_exp(source)}, {emit_exp(encoding)}, {emit_exp(errors)})"
         case ast.Call(func=ast.Name(id="bool"), args=[], keywords=[]):
             return "#boolCtor()"
         case ast.Call(func=ast.Name(id="bool"), args=[arg], keywords=[]):

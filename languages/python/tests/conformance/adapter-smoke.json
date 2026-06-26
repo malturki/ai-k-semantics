@@ -270,6 +270,13 @@
       "coverage": ["bytes-constructor", "negative-size-value-error", "non-integer-item-type-error", "out-of-range-byte-value-error", "string-without-encoding-type-error", "ordinary-python-source-adapter"]
     },
     {
+      "id": "adapter-bytes-string-encoding-constructor",
+      "source": "../adapter/adapter-bytes-string-encoding-constructor.py",
+      "reference": "Python Standard Library Built-in Functions bytes constructor; bytes(string, encoding[, errors]) string encoding form",
+      "expected_result": "True ~> .K",
+      "coverage": ["bytes-constructor", "string-source", "encoding-argument", "utf-8-encoding", "ascii-encoding", "latin-1-encoding", "strict-errors", "unicode-encode-error", "lookup-error", "type-error", "ordinary-python-source-adapter"]
+    },
+    {
       "id": "adapter-format-builtin",
       "source": "../adapter/adapter-format-builtin.py",
       "reference": "Python Standard Library Built-in Functions format; empty format_spec over current K string-conversion values",

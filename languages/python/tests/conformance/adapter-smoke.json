@@ -249,6 +249,13 @@
       "coverage": ["bytes-subsequence-membership", "empty-bytes-membership", "bytes-chained-membership-comparison", "ordinary-python-source-adapter"]
     },
     {
+      "id": "adapter-bytes-membership-diagnostics",
+      "source": "../adapter/adapter-bytes-membership-diagnostics.py",
+      "reference": "Python Language Reference 6.10.2 Membership test operations; Standard Library binary sequence types; CPython Lib/test/test_bytes.py test_contains",
+      "expected_result": "True ~> .K",
+      "coverage": ["bytes-membership", "bytearray-membership", "bytes-membership-value-error", "bytes-membership-type-error", "bytearray-membership-value-error", "bytearray-membership-type-error", "bytes-chained-membership-comparison", "ordinary-python-source-adapter"]
+    },
+    {
       "id": "adapter-bytes-iterable-builtins",
       "source": "../adapter/adapter-bytes-iterable-builtins.py",
       "reference": "Python Language Reference 2.5.5 String and bytes literals; Standard Library binary sequence types; Built-in Functions all, any, sum, min, max",

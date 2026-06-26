@@ -1241,6 +1241,9 @@ module PYTHON
                 | isListSequence(Val) [function, symbol(isListSequence)]
                 | isTupleSequence(Val) [function, symbol(isTupleSequence)]
                 | isBytesSequence(Val) [function, symbol(isBytesSequence)]
+                | bytesMembershipBadInt(CmpOp, Val, Val) [function, symbol(bytesMembershipBadInt)]
+                | bytesMembershipBadNeedle(CmpOp, Val, Val) [function, symbol(bytesMembershipBadNeedle)]
+                | bytesMembershipInvalid(CmpOp, Val, Val) [function, symbol(bytesMembershipInvalid)]
                 | isStringVal(Val) [function, symbol(isStringVal)]
                 | isConcreteSequenceVal(Val) [function, symbol(isConcreteSequenceVal)]
                 | sumStartForbidden(Val) [function, symbol(sumStartForbidden)]
@@ -7111,6 +7114,30 @@ module PYTHON
   rule isBytesSequence(bytearrayVal(_:ValItems)) => true
   rule isBytesSequence(_:Val) => false [owise]
 
+  rule bytesMembershipBadInt(#in, Needle:Val, Haystack:Val) => true
+    requires isBytesSequence(Haystack)
+      andBool isIntLike(Needle)
+      andBool (intValue(Needle) <Int 0 orBool intValue(Needle) >Int 255)
+  rule bytesMembershipBadInt(#notIn, Needle:Val, Haystack:Val) => true
+    requires isBytesSequence(Haystack)
+      andBool isIntLike(Needle)
+      andBool (intValue(Needle) <Int 0 orBool intValue(Needle) >Int 255)
+  rule bytesMembershipBadInt(_:CmpOp, _:Val, _:Val) => false [owise]
+
+  rule bytesMembershipBadNeedle(#in, Needle:Val, Haystack:Val) => true
+    requires isBytesSequence(Haystack)
+      andBool notBool isIntLike(Needle)
+      andBool notBool isBytesSequence(Needle)
+  rule bytesMembershipBadNeedle(#notIn, Needle:Val, Haystack:Val) => true
+    requires isBytesSequence(Haystack)
+      andBool notBool isIntLike(Needle)
+      andBool notBool isBytesSequence(Needle)
+  rule bytesMembershipBadNeedle(_:CmpOp, _:Val, _:Val) => false [owise]
+
+  rule bytesMembershipInvalid(Op:CmpOp, Needle:Val, Haystack:Val) =>
+    bytesMembershipBadInt(Op, Needle, Haystack)
+      orBool bytesMembershipBadNeedle(Op, Needle, Haystack)
+
   rule isStringVal(_:String) => true
   rule isStringVal(_:Val) => false [owise]
 
@@ -8239,9 +8266,18 @@ module PYTHON
        ... </k>
     requires notBool orderComparable(L, R)
   rule <k> R:Val ~> compareChainLast(Op:CmpOp, L:Val) =>
+           exceptionSignal(#exception(#token("ValueError", "Id")))
+       ... </k>
+    requires bytesMembershipBadInt(Op, L, R)
+  rule <k> R:Val ~> compareChainLast(Op:CmpOp, L:Val) =>
+           exceptionSignal(#exception(#token("TypeError", "Id")))
+       ... </k>
+    requires bytesMembershipBadNeedle(Op, L, R)
+  rule <k> R:Val ~> compareChainLast(Op:CmpOp, L:Val) =>
            boolValue(cmpHolds(Op, L, R))
        ... </k>
-    requires (notBool orderingComparisonOp(Op)) orBool orderComparable(L, R)
+    requires ((notBool orderingComparisonOp(Op)) orBool orderComparable(L, R))
+      andBool notBool bytesMembershipInvalid(Op, L, R)
   rule <k> L:Val ~> compareChain(cmpChainCons(Op:CmpOp, Right:Exp, Rest:CmpChain)) =>
            Right ~> compareChainNext(Op, L, Rest)
        ... </k>
@@ -8261,33 +8297,66 @@ module PYTHON
            exceptionSignal(#exception(#token("TypeError", "Id")))
        ... </k>
     requires notBool orderComparable(L, R)
+  rule <k> R:Val ~> compareChainNext(Op:CmpOp, L:Val, _Rest:CmpChain) =>
+           exceptionSignal(#exception(#token("ValueError", "Id")))
+       ... </k>
+    requires bytesMembershipBadInt(Op, L, R)
+  rule <k> R:Val ~> compareChainNext(Op:CmpOp, L:Val, _Rest:CmpChain) =>
+           exceptionSignal(#exception(#token("TypeError", "Id")))
+       ... </k>
+    requires bytesMembershipBadNeedle(Op, L, R)
   rule <k> R:Val ~> compareChainNext(Op:CmpOp, L:Val, Rest:CmpChain) =>
            compareFrom(R, Rest)
        ... </k>
     requires ((notBool orderingComparisonOp(Op)) orBool orderComparable(L, R))
+      andBool notBool bytesMembershipInvalid(Op, L, R)
       andBool cmpHolds(Op, L, R)
   rule <k> R:Val ~> compareChainNext(Op:CmpOp, L:Val, _:CmpChain) =>
            False
        ... </k>
     requires ((notBool orderingComparisonOp(Op)) orBool orderComparable(L, R))
+      andBool notBool bytesMembershipInvalid(Op, L, R)
       andBool notBool cmpHolds(Op, L, R)
   rule <k> compareFrom(L:Val, Chain:CmpChain) =>
            L ~> compareChain(Chain)
        ... </k>
   rule Needle:String in Haystack:String => boolValue(findString(Haystack, Needle, 0) >=Int 0)
   rule #bytes() in #bytes() => True
-  rule #bytes() in bytesVal(_:ValItems) => True
+  rule #bytearray() in #bytes() => True
   rule bytesVal(_:ValItems) in #bytes() => False
+  rule bytearrayVal(_:ValItems) in #bytes() => False
+  rule #bytes() in bytesVal(_:ValItems) => True
+  rule #bytearray() in bytesVal(_:ValItems) => True
   rule bytesVal(Needle:ValItems) in bytesVal(Haystack:ValItems) =>
     boolValue(bytesContains(Needle, Haystack))
+  rule bytearrayVal(Needle:ValItems) in bytesVal(Haystack:ValItems) =>
+    boolValue(bytesContains(Needle, Haystack))
   rule V:Val in #bytes() => False
-    requires notBool isBytesSequence(V)
+    requires isIntLike(V) andBool intValue(V) >=Int 0 andBool intValue(V) <=Int 255
   rule V:Val in bytesVal(VS:ValItems) => boolValue(containsVal(intValue(V), VS))
     requires isIntLike(V) andBool intValue(V) >=Int 0 andBool intValue(V) <=Int 255
-  rule V:Val in bytesVal(_VS:ValItems) => False
-    requires notBool isIntLike(V) andBool notBool isBytesSequence(V)
-  rule V:Val in bytesVal(_VS:ValItems) => False
-    requires isIntLike(V) andBool (intValue(V) <Int 0 orBool intValue(V) >Int 255)
+  rule #bytes() in #bytearray() => True
+  rule #bytearray() in #bytearray() => True
+  rule bytesVal(_:ValItems) in #bytearray() => False
+  rule bytearrayVal(_:ValItems) in #bytearray() => False
+  rule #bytes() in bytearrayVal(_:ValItems) => True
+  rule #bytearray() in bytearrayVal(_:ValItems) => True
+  rule bytesVal(Needle:ValItems) in bytearrayVal(Haystack:ValItems) =>
+    boolValue(bytesContains(Needle, Haystack))
+  rule bytearrayVal(Needle:ValItems) in bytearrayVal(Haystack:ValItems) =>
+    boolValue(bytesContains(Needle, Haystack))
+  rule V:Val in #bytearray() => False
+    requires isIntLike(V) andBool intValue(V) >=Int 0 andBool intValue(V) <=Int 255
+  rule V:Val in bytearrayVal(VS:ValItems) => boolValue(containsVal(intValue(V), VS))
+    requires isIntLike(V) andBool intValue(V) >=Int 0 andBool intValue(V) <=Int 255
+  rule <k> V:Val in Haystack:Val =>
+           exceptionSignal(#exception(#token("ValueError", "Id")))
+       ... </k>
+    requires bytesMembershipBadInt(#in, V, Haystack)
+  rule <k> V:Val in Haystack:Val =>
+           exceptionSignal(#exception(#token("TypeError", "Id")))
+       ... </k>
+    requires bytesMembershipBadNeedle(#in, V, Haystack)
   rule _V:Val in [] => False
   rule V:Val in listVal(VS:ValItems) => boolValue(containsVal(V, VS))
   rule _V:Val in () => False
@@ -8300,18 +8369,41 @@ module PYTHON
   rule V:Val in rangeVal(Start:Int, Stop:Int, Step:Int) => boolValue(rangeContains(V, Start, Stop, Step))
   rule Needle:String not in Haystack:String => boolValue(findString(Haystack, Needle, 0) <Int 0)
   rule #bytes() not in #bytes() => False
-  rule #bytes() not in bytesVal(_:ValItems) => False
+  rule #bytearray() not in #bytes() => False
   rule bytesVal(_:ValItems) not in #bytes() => True
+  rule bytearrayVal(_:ValItems) not in #bytes() => True
+  rule #bytes() not in bytesVal(_:ValItems) => False
+  rule #bytearray() not in bytesVal(_:ValItems) => False
   rule bytesVal(Needle:ValItems) not in bytesVal(Haystack:ValItems) =>
     boolValue(notBool bytesContains(Needle, Haystack))
+  rule bytearrayVal(Needle:ValItems) not in bytesVal(Haystack:ValItems) =>
+    boolValue(notBool bytesContains(Needle, Haystack))
   rule V:Val not in #bytes() => True
-    requires notBool isBytesSequence(V)
+    requires isIntLike(V) andBool intValue(V) >=Int 0 andBool intValue(V) <=Int 255
   rule V:Val not in bytesVal(VS:ValItems) => boolValue(notBool containsVal(intValue(V), VS))
     requires isIntLike(V) andBool intValue(V) >=Int 0 andBool intValue(V) <=Int 255
-  rule V:Val not in bytesVal(_VS:ValItems) => True
-    requires notBool isIntLike(V) andBool notBool isBytesSequence(V)
-  rule V:Val not in bytesVal(_VS:ValItems) => True
-    requires isIntLike(V) andBool (intValue(V) <Int 0 orBool intValue(V) >Int 255)
+  rule #bytes() not in #bytearray() => False
+  rule #bytearray() not in #bytearray() => False
+  rule bytesVal(_:ValItems) not in #bytearray() => True
+  rule bytearrayVal(_:ValItems) not in #bytearray() => True
+  rule #bytes() not in bytearrayVal(_:ValItems) => False
+  rule #bytearray() not in bytearrayVal(_:ValItems) => False
+  rule bytesVal(Needle:ValItems) not in bytearrayVal(Haystack:ValItems) =>
+    boolValue(notBool bytesContains(Needle, Haystack))
+  rule bytearrayVal(Needle:ValItems) not in bytearrayVal(Haystack:ValItems) =>
+    boolValue(notBool bytesContains(Needle, Haystack))
+  rule V:Val not in #bytearray() => True
+    requires isIntLike(V) andBool intValue(V) >=Int 0 andBool intValue(V) <=Int 255
+  rule V:Val not in bytearrayVal(VS:ValItems) => boolValue(notBool containsVal(intValue(V), VS))
+    requires isIntLike(V) andBool intValue(V) >=Int 0 andBool intValue(V) <=Int 255
+  rule <k> V:Val not in Haystack:Val =>
+           exceptionSignal(#exception(#token("ValueError", "Id")))
+       ... </k>
+    requires bytesMembershipBadInt(#notIn, V, Haystack)
+  rule <k> V:Val not in Haystack:Val =>
+           exceptionSignal(#exception(#token("TypeError", "Id")))
+       ... </k>
+    requires bytesMembershipBadNeedle(#notIn, V, Haystack)
   rule _V:Val not in [] => True
   rule V:Val not in listVal(VS:ValItems) => boolValue(notBool containsVal(V, VS))
   rule _V:Val not in () => True

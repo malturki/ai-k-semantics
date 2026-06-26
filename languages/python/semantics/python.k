@@ -13828,6 +13828,8 @@ module PYTHON
     requires stringOneUnicodeChar(S)
   rule #ord(bytesVal(valItemsLast(V:Val))) => intValue(V)
     requires isIntLike(V) andBool intValue(V) >=Int 0 andBool intValue(V) <=Int 255
+  rule #ord(bytearrayVal(valItemsLast(V:Val))) => intValue(V)
+    requires isIntLike(V) andBool intValue(V) >=Int 0 andBool intValue(V) <=Int 255
   rule #bin(V:Val) => pyIntBaseString(intValue(V), 2, "0b")
     requires isIntLike(V)
   rule #oct(V:Val) => pyIntBaseString(intValue(V), 8, "0o")
@@ -13861,6 +13863,9 @@ module PYTHON
     requires notBool stringOneUnicodeChar(S)
   rule <k> #ord(#bytes()) => exceptionSignal(#exception(#token("TypeError", "Id"))) ... </k>
   rule <k> #ord(bytesVal(VS:ValItems)) => exceptionSignal(#exception(#token("TypeError", "Id"))) ... </k>
+    requires valItemsLen(VS) =/=Int 1 orBool notBool valItemsAllByteInts(VS)
+  rule <k> #ord(#bytearray()) => exceptionSignal(#exception(#token("TypeError", "Id"))) ... </k>
+  rule <k> #ord(bytearrayVal(VS:ValItems)) => exceptionSignal(#exception(#token("TypeError", "Id"))) ... </k>
     requires valItemsLen(VS) =/=Int 1 orBool notBool valItemsAllByteInts(VS)
   rule <k> #ord(V:Val) => exceptionSignal(#exception(#token("TypeError", "Id"))) ... </k>
     requires notBool isStringVal(V) andBool notBool isBytesSequence(V)

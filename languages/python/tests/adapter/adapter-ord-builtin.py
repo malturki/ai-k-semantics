@@ -13,6 +13,12 @@ assert ord(b"a") == 97
 assert ord(b"\x80") == 128
 assert ord(b"\xff") == 255
 
+assert ord(bytearray(b" ")) == 32
+assert ord(bytearray(b"A")) == 65
+assert ord(bytearray(b"a")) == 97
+assert ord(bytearray(b"\x80")) == 128
+assert ord(bytearray(b"\xff")) == 255
+
 empty_string_error = False
 try:
     ord("")
@@ -37,11 +43,24 @@ try:
 except TypeError:
     long_bytes_error = True
 
+empty_bytearray_error = False
+try:
+    ord(bytearray())
+except TypeError:
+    empty_bytearray_error = True
+
+long_bytearray_error = False
+try:
+    ord(bytearray(b"ab"))
+except TypeError:
+    long_bytearray_error = True
+
 type_error = False
 try:
     ord(42)
 except TypeError:
     type_error = True
 
-result = empty_string_error and long_string_error and empty_bytes_error and long_bytes_error and type_error
+result = empty_string_error and long_string_error and empty_bytes_error and long_bytes_error
+result = result and empty_bytearray_error and long_bytearray_error and type_error
 result

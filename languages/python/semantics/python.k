@@ -1296,6 +1296,10 @@ module PYTHON
                 | pyStringConversionSupported(Val) [function, symbol(pyStringConversionSupported)]
                 | pyStringConversionItemsSupported(ValItems) [function, symbol(pyStringConversionItemsSupported)]
                 | pyStringConversionDictItemsSupported(DictItems) [function, symbol(pyStringConversionDictItemsSupported)]
+                | stringUtf8ContAt(String, Int) [function, symbol(stringUtf8ContAt)]
+                | stringUtf8Valid2At(String, Int) [function, symbol(stringUtf8Valid2At)]
+                | stringUtf8Valid3At(String, Int) [function, symbol(stringUtf8Valid3At)]
+                | stringUtf8Valid4At(String, Int) [function, symbol(stringUtf8Valid4At)]
                 | bytesContainsByte(ValItems, Int) [function, symbol(bytesContainsByte)]
                 | zeroNumeric(Val) [function, symbol(zeroNumeric)]
                 | seqOrderComparable(Val, Val) [function, symbol(seqOrderComparable)]
@@ -1546,6 +1550,10 @@ module PYTHON
                | rangeMin(Int, Int, Int) [function, symbol(rangeMin)]
                | rangeMax(Int, Int, Int) [function, symbol(rangeMax)]
                | stringReprQuoteByte(String) [function, symbol(stringReprQuoteByte)]
+               | stringByte(String, Int) [function, symbol(stringByte)]
+               | stringUtf8Code2At(String, Int) [function, symbol(stringUtf8Code2At)]
+               | stringUtf8Code3At(String, Int) [function, symbol(stringUtf8Code3At)]
+               | stringUtf8Code4At(String, Int) [function, symbol(stringUtf8Code4At)]
                | stringAsciiControlCode(String) [function, symbol(stringAsciiControlCode)]
                | bytesReprQuoteByte(ValItems) [function, symbol(bytesReprQuoteByte)]
   syntax IdItems ::= concatIdItems(IdItems, IdItems) [function, symbol(concatIdItems)]
@@ -1624,6 +1632,12 @@ module PYTHON
                   | pyReprStr(Val) [function, symbol(pyReprStr)]
                   | pyReprValItems(ValItems) [function, symbol(pyReprValItems)]
                   | pyReprDictItems(DictItems) [function, symbol(pyReprDictItems)]
+                  | pyAsciiStr(Val) [function, symbol(pyAsciiStr)]
+                  | pyAsciiValItems(ValItems) [function, symbol(pyAsciiValItems)]
+                  | pyAsciiDictItems(DictItems) [function, symbol(pyAsciiDictItems)]
+                  | stringAsciiPayload(String, Int, Int) [function, symbol(stringAsciiPayload)]
+                  | stringAsciiEscape(Int) [function, symbol(stringAsciiEscape)]
+                  | fixedHex(Int, Int) [function, symbol(fixedHex)]
   syntax ArgVals ::= "#noArgVals" [symbol(noArgVals)]
                    | argValsCons(Val, ArgVals) [symbol(argValsCons)]
                    | appendArgVal(ArgVals, Val) [function, symbol(appendArgVal)]
@@ -2048,6 +2062,48 @@ module PYTHON
   rule pyReprDictItems(dictItemsCons(K:Val, V:Val, DS:DictItems)) =>
     pyReprStr(K) +String ": " +String pyReprStr(V) +String ", " +String pyReprDictItems(DS)
 
+  rule pyAsciiStr(I:Int) => Int2String(I)
+  rule pyAsciiStr(True) => "True"
+  rule pyAsciiStr(False) => "False"
+  rule pyAsciiStr(None) => "None"
+  rule pyAsciiStr(Ellipsis) => "Ellipsis"
+  rule pyAsciiStr(F:Float) => pyFloatReprStr(F)
+  rule pyAsciiStr(S:String) =>
+    stringReprQuoteChar(stringReprQuoteByte(S))
+      +String stringAsciiPayload(S, stringReprQuoteByte(S), 0)
+      +String stringReprQuoteChar(stringReprQuoteByte(S))
+  rule pyAsciiStr(#bytes()) => "b''"
+  rule pyAsciiStr(bytesVal(VS:ValItems)) => pyReprStr(bytesVal(VS))
+  rule pyAsciiStr([]) => "[]"
+  rule pyAsciiStr(listVal(VS:ValItems)) => "[" +String pyAsciiValItems(VS) +String "]"
+  rule pyAsciiStr(()) => "()"
+  rule pyAsciiStr(tupleVal(valItemsLast(V:Val))) => "(" +String pyAsciiStr(V) +String ",)"
+  rule pyAsciiStr(tupleVal(valItemsCons(V:Val, VS:ValItems))) =>
+    "(" +String pyAsciiStr(V) +String ", " +String pyAsciiValItems(VS) +String ")"
+  rule pyAsciiStr(({}):Val) => "{}"
+  rule pyAsciiStr(dictVal(DS:DictItems)) => "{" +String pyAsciiDictItems(DS) +String "}"
+  rule pyAsciiStr(set()) => "set()"
+  rule pyAsciiStr(setVal(VS:ValItems)) => "{" +String pyAsciiValItems(VS) +String "}"
+  rule pyAsciiStr(rangeVal(Start:Int, Stop:Int)) =>
+    "range(" +String Int2String(Start) +String ", " +String Int2String(Stop) +String ")"
+  rule pyAsciiStr(rangeVal(Start:Int, Stop:Int, Step:Int)) =>
+    "range(" +String Int2String(Start) +String ", " +String Int2String(Stop) +String ")"
+    requires Step ==Int 1
+  rule pyAsciiStr(rangeVal(Start:Int, Stop:Int, Step:Int)) =>
+    "range(" +String Int2String(Start) +String ", " +String Int2String(Stop) +String ", " +String Int2String(Step) +String ")"
+    requires Step =/=Int 1
+  rule pyAsciiStr(sliceVal(Start:Val, Stop:Val, Step:Val)) =>
+    "slice(" +String pyAsciiStr(Start) +String ", " +String pyAsciiStr(Stop) +String ", " +String pyAsciiStr(Step) +String ")"
+
+  rule pyAsciiValItems(valItemsLast(V:Val)) => pyAsciiStr(V)
+  rule pyAsciiValItems(valItemsCons(V:Val, VS:ValItems)) =>
+    pyAsciiStr(V) +String ", " +String pyAsciiValItems(VS)
+
+  rule pyAsciiDictItems(dictItemsLast(K:Val, V:Val)) =>
+    pyAsciiStr(K) +String ": " +String pyAsciiStr(V)
+  rule pyAsciiDictItems(dictItemsCons(K:Val, V:Val, DS:DictItems)) =>
+    pyAsciiStr(K) +String ": " +String pyAsciiStr(V) +String ", " +String pyAsciiDictItems(DS)
+
   rule pyFloatReprStr(F:Float) => "nan"
     requires isNaN(F)
   rule pyFloatReprStr(F:Float) => "-inf"
@@ -2098,6 +2154,92 @@ module PYTHON
     requires notBool ((C <String chrChar(32) orBool C ==String chrChar(127))
       orBool C ==String chrChar(92)
       orBool C ==String stringReprQuoteChar(Quote))
+
+  rule stringByte(S:String, I:Int) => ordChar(substrString(S, I, I +Int 1))
+    requires I >=Int 0 andBool I <Int lengthString(S)
+
+  rule stringUtf8ContAt(S:String, I:Int) => true
+    requires I <Int lengthString(S)
+      andBool stringByte(S, I) >=Int 128
+      andBool stringByte(S, I) <=Int 191
+  rule stringUtf8ContAt(_:String, _:Int) => false [owise]
+
+  rule stringUtf8Valid2At(S:String, I:Int) => true
+    requires I +Int 1 <Int lengthString(S)
+      andBool stringByte(S, I) >=Int 194
+      andBool stringByte(S, I) <=Int 223
+      andBool stringUtf8ContAt(S, I +Int 1)
+  rule stringUtf8Valid2At(_:String, _:Int) => false [owise]
+
+  rule stringUtf8Valid3At(S:String, I:Int) => true
+    requires I +Int 2 <Int lengthString(S)
+      andBool ((stringByte(S, I) ==Int 224 andBool stringByte(S, I +Int 1) >=Int 160 andBool stringByte(S, I +Int 1) <=Int 191)
+        orBool (stringByte(S, I) >=Int 225 andBool stringByte(S, I) <=Int 236 andBool stringUtf8ContAt(S, I +Int 1))
+        orBool (stringByte(S, I) ==Int 237 andBool stringByte(S, I +Int 1) >=Int 128 andBool stringByte(S, I +Int 1) <=Int 159)
+        orBool (stringByte(S, I) >=Int 238 andBool stringByte(S, I) <=Int 239 andBool stringUtf8ContAt(S, I +Int 1)))
+      andBool stringUtf8ContAt(S, I +Int 2)
+  rule stringUtf8Valid3At(_:String, _:Int) => false [owise]
+
+  rule stringUtf8Valid4At(S:String, I:Int) => true
+    requires I +Int 3 <Int lengthString(S)
+      andBool ((stringByte(S, I) ==Int 240 andBool stringByte(S, I +Int 1) >=Int 144 andBool stringByte(S, I +Int 1) <=Int 191)
+        orBool (stringByte(S, I) >=Int 241 andBool stringByte(S, I) <=Int 243 andBool stringUtf8ContAt(S, I +Int 1))
+        orBool (stringByte(S, I) ==Int 244 andBool stringByte(S, I +Int 1) >=Int 128 andBool stringByte(S, I +Int 1) <=Int 143))
+      andBool stringUtf8ContAt(S, I +Int 2)
+      andBool stringUtf8ContAt(S, I +Int 3)
+  rule stringUtf8Valid4At(_:String, _:Int) => false [owise]
+
+  rule stringUtf8Code2At(S:String, I:Int) =>
+    ((stringByte(S, I) -Int 192) *Int 64)
+      +Int (stringByte(S, I +Int 1) -Int 128)
+    requires stringUtf8Valid2At(S, I)
+  rule stringUtf8Code3At(S:String, I:Int) =>
+    ((stringByte(S, I) -Int 224) *Int 4096)
+      +Int ((stringByte(S, I +Int 1) -Int 128) *Int 64)
+      +Int (stringByte(S, I +Int 2) -Int 128)
+    requires stringUtf8Valid3At(S, I)
+  rule stringUtf8Code4At(S:String, I:Int) =>
+    ((stringByte(S, I) -Int 240) *Int 262144)
+      +Int ((stringByte(S, I +Int 1) -Int 128) *Int 4096)
+      +Int ((stringByte(S, I +Int 2) -Int 128) *Int 64)
+      +Int (stringByte(S, I +Int 3) -Int 128)
+    requires stringUtf8Valid4At(S, I)
+
+  rule stringAsciiPayload(S:String, _Quote:Int, I:Int) => ""
+    requires I >=Int lengthString(S)
+  rule stringAsciiPayload(S:String, Quote:Int, I:Int) =>
+    stringReprChar(substrString(S, I, I +Int 1), Quote)
+      +String stringAsciiPayload(S, Quote, I +Int 1)
+    requires I <Int lengthString(S) andBool stringByte(S, I) <Int 128
+  rule stringAsciiPayload(S:String, Quote:Int, I:Int) =>
+    stringAsciiEscape(stringUtf8Code2At(S, I)) +String stringAsciiPayload(S, Quote, I +Int 2)
+    requires stringUtf8Valid2At(S, I)
+  rule stringAsciiPayload(S:String, Quote:Int, I:Int) =>
+    stringAsciiEscape(stringUtf8Code3At(S, I)) +String stringAsciiPayload(S, Quote, I +Int 3)
+    requires stringUtf8Valid3At(S, I)
+  rule stringAsciiPayload(S:String, Quote:Int, I:Int) =>
+    stringAsciiEscape(stringUtf8Code4At(S, I)) +String stringAsciiPayload(S, Quote, I +Int 4)
+    requires stringUtf8Valid4At(S, I)
+  rule stringAsciiPayload(S:String, Quote:Int, I:Int) =>
+    "\\x" +String fixedHex(stringByte(S, I), 2) +String stringAsciiPayload(S, Quote, I +Int 1)
+    requires I <Int lengthString(S)
+      andBool stringByte(S, I) >=Int 128
+      andBool notBool stringUtf8Valid2At(S, I)
+      andBool notBool stringUtf8Valid3At(S, I)
+      andBool notBool stringUtf8Valid4At(S, I)
+
+  rule stringAsciiEscape(Code:Int) => "\\x" +String fixedHex(Code, 2)
+    requires Code >=Int 128 andBool Code <=Int 255
+  rule stringAsciiEscape(Code:Int) => "\\u" +String fixedHex(Code, 4)
+    requires Code >=Int 256 andBool Code <=Int 65535
+  rule stringAsciiEscape(Code:Int) => "\\U" +String fixedHex(Code, 8)
+    requires Code >=Int 65536 andBool Code <=Int 1114111
+
+  rule fixedHex(_I:Int, Width:Int) => ""
+    requires Width <=Int 0
+  rule fixedHex(I:Int, Width:Int) =>
+    fixedHex(I /Int 16, Width -Int 1) +String byteHexDigit(I %Int 16)
+    requires I >=Int 0 andBool Width >Int 0
 
   rule stringAsciiControlCode(C:String) => 0 requires C ==String chrChar(0)
   rule stringAsciiControlCode(C:String) => 1 requires C ==String chrChar(1)
@@ -7003,7 +7145,7 @@ module PYTHON
        ... </k>
     requires fStringFormatSupported(V)
   rule <k> V:Val ~> fStringAppendConv(#fstrConvAscii, Rest:FStringParts, Acc:String) =>
-           fStringEval(Rest, Acc +String pyReprStr(V))
+           fStringEval(Rest, Acc +String pyAsciiStr(V))
        ... </k>
     requires fStringFormatSupported(V)
   rule <k> V:Val ~> fStringAppendFormat(Spec:String, Rest:FStringParts, Acc:String) =>
@@ -7018,7 +7160,7 @@ module PYTHON
        ... </k>
     requires fStringFormatSupported(V)
   rule <k> V:Val ~> fStringAppendConvFormat(#fstrConvAscii, Spec:String, Rest:FStringParts, Acc:String) =>
-           Spec ~> formatApply(pyReprStr(V)) ~> fStringAppendFormatted(Rest, Acc)
+           Spec ~> formatApply(pyAsciiStr(V)) ~> fStringAppendFormatted(Rest, Acc)
        ... </k>
     requires fStringFormatSupported(V)
   rule <k> V:Val ~> fStringAppendFormatParts(SpecParts:FStringParts, Rest:FStringParts, Acc:String) =>
@@ -7033,7 +7175,7 @@ module PYTHON
        ... </k>
     requires fStringFormatSupported(V)
   rule <k> V:Val ~> fStringAppendConvFormatParts(#fstrConvAscii, SpecParts:FStringParts, Rest:FStringParts, Acc:String) =>
-           fStringEval(SpecParts, "") ~> fStringApplyDynamicFormat(pyReprStr(V), Rest, Acc)
+           fStringEval(SpecParts, "") ~> fStringApplyDynamicFormat(pyAsciiStr(V), Rest, Acc)
        ... </k>
     requires fStringFormatSupported(V)
   rule <k> Spec:String ~> fStringApplyDynamicFormat(V:Val, Rest:FStringParts, Acc:String) =>
@@ -12478,7 +12620,7 @@ module PYTHON
     requires pyStringConversionSupported(V)
   rule #repr(V:Val) => pyReprStr(V)
     requires pyStringConversionSupported(V)
-  rule #ascii(V:Val) => pyReprStr(V)
+  rule #ascii(V:Val) => pyAsciiStr(V)
     requires pyStringConversionSupported(V)
   rule <k> #format(Obj:Exp) => Obj ~> formatDefault() ... </k>
   rule <k> V:Val ~> formatDefault()

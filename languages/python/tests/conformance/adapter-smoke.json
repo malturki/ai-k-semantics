@@ -228,6 +228,13 @@
       "coverage": ["string-literal", "bytes-literal", "escape-sequences", "raw-string-literal", "raw-bytes-literal", "ignored-end-of-line", "adjacent-literal-concatenation", "named-character-escape", "hex-escape", "octal-escape", "ordinary-python-source-adapter"]
     },
     {
+      "id": "adapter-string-ascii-unicode",
+      "source": "../adapter/adapter-string-ascii-unicode.py",
+      "reference": "Python Standard Library Built-in Functions ascii; Python Language Reference formatted string literals conversion field",
+      "expected_result": "True ~> .K",
+      "coverage": ["ascii-builtin", "unicode-string-escaping", "formatted-string-literal", "conversion-field", "container-string-conversion", "ordinary-python-source-adapter"]
+    },
+    {
       "id": "adapter-bytes-subsequence-membership",
       "source": "../adapter/adapter-bytes-subsequence-membership.py",
       "reference": "Python Language Reference 6.10.2 Membership test operations; Standard Library binary sequence types",

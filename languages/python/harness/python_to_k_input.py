@@ -11,6 +11,7 @@ from __future__ import annotations
 
 import ast
 import json
+import re
 import sys
 from pathlib import Path
 from typing import TypeGuard
@@ -21,6 +22,7 @@ class UnsupportedPythonSubset(ValueError):
 
 
 ELLIPSIS_NAME_ID = "kEllipsisName"
+JSON_SURROGATE_PAIR_RE = re.compile(r"\\u(d[89ab][0-9a-f]{2})\\u(d[cdef][0-9a-f]{2})")
 SUPPORTED_ZERO_ARG_CLASS_PATTERNS = {
     "bool",
     "bytes",
@@ -933,10 +935,21 @@ def emit_constant(node: ast.AST, value: object) -> str:
     if isinstance(value, float):
         return repr(value)
     if isinstance(value, str):
-        return json.dumps(value)
+        return emit_string(value)
     if isinstance(value, bytes):
         return emit_bytes(value)
     raise unsupported(node, f"constant {value!r} is not supported")
+
+
+def emit_string(value: str) -> str:
+    return JSON_SURROGATE_PAIR_RE.sub(emit_surrogate_pair, json.dumps(value))
+
+
+def emit_surrogate_pair(match: re.Match[str]) -> str:
+    high = int(match.group(1), 16)
+    low = int(match.group(2), 16)
+    code_point = 0x10000 + ((high - 0xD800) << 10) + (low - 0xDC00)
+    return f"\\U{code_point:08x}"
 
 
 def emit_fstring_parts(node: ast.AST, values: list[ast.expr]) -> str:
@@ -946,7 +959,7 @@ def emit_fstring_parts(node: ast.AST, values: list[ast.expr]) -> str:
     rest = emit_fstring_parts(node, values[1:])
     match value:
         case ast.Constant(value=text) if isinstance(text, str):
-            return f"#fstrText({json.dumps(text)}, {rest})"
+            return f"#fstrText({emit_string(text)}, {rest})"
         case ast.FormattedValue(value=formatted, conversion=-1, format_spec=None):
             return f"#fstrExp({emit_exp(formatted)}, {rest})"
         case ast.FormattedValue(value=formatted, conversion=conversion, format_spec=None):
@@ -958,11 +971,11 @@ def emit_fstring_parts(node: ast.AST, values: list[ast.expr]) -> str:
             emitted_conversion = emit_fstring_conversion(value, conversion)
             return f"#fstrExpConvFormatEmpty({emit_exp(formatted)}, {emitted_conversion}, {rest})"
         case ast.FormattedValue(value=formatted, conversion=-1, format_spec=format_spec) if fstring_literal_format_spec_supported(format_spec):
-            emitted_spec = json.dumps(fstring_literal_format_spec_value(format_spec))
+            emitted_spec = emit_string(fstring_literal_format_spec_value(format_spec))
             return f"#fstrExpFormat({emit_exp(formatted)}, {emitted_spec}, {rest})"
         case ast.FormattedValue(value=formatted, conversion=conversion, format_spec=format_spec) if fstring_literal_format_spec_supported(format_spec):
             emitted_conversion = emit_fstring_conversion(value, conversion)
-            emitted_spec = json.dumps(fstring_literal_format_spec_value(format_spec))
+            emitted_spec = emit_string(fstring_literal_format_spec_value(format_spec))
             return f"#fstrExpConvFormat({emit_exp(formatted)}, {emitted_conversion}, {emitted_spec}, {rest})"
         case ast.FormattedValue(value=formatted, conversion=-1, format_spec=format_spec) if fstring_dynamic_format_spec(format_spec):
             emitted_spec_parts = emit_fstring_parts(format_spec, format_spec.values)

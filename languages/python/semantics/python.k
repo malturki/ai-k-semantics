@@ -1254,7 +1254,9 @@ module PYTHON
                 | powTypeErrorProfile(Val, Val) [function, symbol(powTypeErrorProfile)]
                 | powModTypeErrorProfile(Val, Val, Val) [function, symbol(powModTypeErrorProfile)]
                 | isIntegralFloat(Float) [function, symbol(isIntegralFloat)]
+                | roundDefaultFiniteFloat(Val) [function, symbol(roundDefaultFiniteFloat)]
                 | roundDefaultSpecialFloat(Val) [function, symbol(roundDefaultSpecialFloat)]
+                | roundNdigitsFiniteFloat(Val, Val) [function, symbol(roundNdigitsFiniteFloat)]
                 | roundNdigitsSpecialFloat(Val, Val) [function, symbol(roundNdigitsSpecialFloat)]
                 | isSpecialFloatVal(Val) [function, symbol(isSpecialFloatVal)]
                 | formatIntSpecSupported(String) [function, symbol(formatIntSpecSupported)]
@@ -1509,6 +1511,8 @@ module PYTHON
                | roundInt(Int, Int) [function, symbol(roundInt)]
                | roundIntNeg(Int, Int) [function, symbol(roundIntNeg)]
                | roundIntAbs(Int, Int) [function, symbol(roundIntAbs)]
+               | roundFloatDefault(Float) [function, symbol(roundFloatDefault)]
+               | roundFloatFloor(Float, Int) [function, symbol(roundFloatFloor)]
                | pyGcd(Int, Int) [function, symbol(pyGcd)]
                | pyExtendedGcdX(Int, Int) [function, symbol(pyExtendedGcdX)]
                | pyExtendedGcdY(Int, Int) [function, symbol(pyExtendedGcdY)]
@@ -1602,6 +1606,7 @@ module PYTHON
                  | pyFloatPowInt(Float, Int) [function, symbol(pyFloatPowInt)]
                  | pyFloatFloorDiv(Float, Float) [function, symbol(pyFloatFloorDiv)]
                  | pyFloatModulo(Float, Float) [function, symbol(pyFloatModulo)]
+                 | roundFloat(Float, Int) [function, symbol(roundFloat)]
   syntax String ::= repeatString(String, Int) [function, symbol(repeatString)]
                   | minStringItems(ValItems) [function, symbol(minStringItems)]
                   | maxStringItems(ValItems) [function, symbol(maxStringItems)]
@@ -3293,8 +3298,13 @@ module PYTHON
   rule powModTypeErrorProfile(V1:Val, V2:Val, V3:Val) =>
     (notBool isIntLike(V1)) orBool (notBool isIntLike(V2)) orBool (notBool isIntLike(V3))
   rule isIntegralFloat(F:Float) => (notBool isNaN(F)) andBool (notBool isInfinite(F)) andBool F ==Float floorFloat(F)
+  rule roundDefaultFiniteFloat(F:Float) => notBool isInfinite(F) andBool notBool isNaN(F)
+  rule roundDefaultFiniteFloat(_:Val) => false [owise]
   rule roundDefaultSpecialFloat(F:Float) => isInfinite(F) orBool isNaN(F)
   rule roundDefaultSpecialFloat(_:Val) => false [owise]
+  rule roundNdigitsFiniteFloat(F:Float, D:Val) =>
+    (notBool isInfinite(F)) andBool (notBool isNaN(F)) andBool (isIntLike(D) orBool valEq(D, None))
+  rule roundNdigitsFiniteFloat(_:Val, _:Val) => false [owise]
   rule roundNdigitsSpecialFloat(F:Float, D:Val) =>
     (isInfinite(F) orBool isNaN(F)) andBool (isIntLike(D) orBool valEq(D, None))
   rule roundNdigitsSpecialFloat(_:Val, _:Val) => false [owise]
@@ -4508,6 +4518,23 @@ module PYTHON
     requires Factor >Int 0
       andBool (2 *Int (N %Int Factor)) ==Int Factor
       andBool ((N /Int Factor) %Int 2) =/=Int 0
+
+  rule roundFloatDefault(F:Float) => roundFloatFloor(F, Float2Int(floorFloat(F)))
+    requires notBool isInfinite(F) andBool notBool isNaN(F)
+  rule roundFloatFloor(F:Float, Lower:Int) => Lower
+    requires (F -Float Int2Float(Lower, 53, 11)) <Float 0.5
+  rule roundFloatFloor(F:Float, Lower:Int) => Lower +Int 1
+    requires (F -Float Int2Float(Lower, 53, 11)) >Float 0.5
+  rule roundFloatFloor(F:Float, Lower:Int) => Lower
+    requires (F -Float Int2Float(Lower, 53, 11)) ==Float 0.5
+      andBool (intAbs(Lower) %Int 2) ==Int 0
+  rule roundFloatFloor(F:Float, Lower:Int) => Lower +Int 1
+    requires (F -Float Int2Float(Lower, 53, 11)) ==Float 0.5
+      andBool (intAbs(Lower) %Int 2) =/=Int 0
+
+  rule roundFloat(F:Float, D:Int) =>
+    floatScale10(Int2Float(roundFloatDefault(floatScale10(F, D)), 53, 11), 0 -Int D)
+    requires notBool isInfinite(F) andBool notBool isNaN(F)
 
   rule pyGcd(A:Int, B:Int) => pyGcd(intAbs(A), intAbs(B))
     requires A <Int 0 orBool B <Int 0
@@ -14646,6 +14673,8 @@ module PYTHON
   rule <k> #round(Obj:Exp) => Obj ~> roundDefault() ... </k>
   rule <k> V:Val ~> roundDefault() => intValue(V) ... </k>
     requires isIntLike(V)
+  rule <k> F:Float ~> roundDefault() => roundFloatDefault(F) ... </k>
+    requires notBool isInfinite(F) andBool notBool isNaN(F)
   rule <k> F:Float ~> roundDefault()
         => exceptionSignal(#exception(#token("OverflowError", "Id"))) ... </k>
     requires isInfinite(F)
@@ -14655,11 +14684,14 @@ module PYTHON
   rule <k> V:Val ~> roundDefault()
         => exceptionSignal(#exception(#token("TypeError", "Id"))) ... </k>
     requires notBool isIntLike(V)
+      andBool notBool roundDefaultFiniteFloat(V)
       andBool notBool roundDefaultSpecialFloat(V)
   rule <k> #round(Obj:Exp, Ndigits:Exp) => Obj ~> roundNdigits(Ndigits) ... </k>
   rule <k> V:Val ~> roundNdigits(Ndigits:Exp) => Ndigits ~> roundApply(V) ... </k>
   rule <k> None ~> roundApply(V:Val) => intValue(V) ... </k>
     requires isIntLike(V)
+  rule <k> None ~> roundApply(F:Float) => roundFloatDefault(F) ... </k>
+    requires notBool isInfinite(F) andBool notBool isNaN(F)
   rule <k> None ~> roundApply(F:Float)
         => exceptionSignal(#exception(#token("OverflowError", "Id"))) ... </k>
     requires isInfinite(F)
@@ -14668,11 +14700,17 @@ module PYTHON
     requires isNaN(F)
   rule <k> D:Val ~> roundApply(F:Float) => F ... </k>
     requires isIntLike(D) andBool (isInfinite(F) orBool isNaN(F))
+  rule <k> D:Val ~> roundApply(F:Float) => roundFloat(F, intValue(D)) ... </k>
+    requires isIntLike(D)
+      andBool notBool isInfinite(F)
+      andBool notBool isNaN(F)
   rule <k> D:Val ~> roundApply(V:Val) => roundInt(intValue(V), intValue(D)) ... </k>
     requires isIntLike(V) andBool isIntLike(D)
   rule <k> D:Val ~> roundApply(V:Val)
         => exceptionSignal(#exception(#token("TypeError", "Id"))) ... </k>
-    requires (notBool isIntLike(V) andBool notBool roundNdigitsSpecialFloat(V, D))
+    requires (notBool isIntLike(V)
+              andBool notBool roundNdigitsFiniteFloat(V, D)
+              andBool notBool roundNdigitsSpecialFloat(V, D))
       orBool (notBool isIntLike(D) andBool notBool valEq(D, None))
   rule <k> #pow(V1:Val, V2:Val) =>
            exceptionSignal(#exception(#token("ZeroDivisionError", "Id")))

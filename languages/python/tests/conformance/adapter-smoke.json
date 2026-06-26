@@ -1082,6 +1082,13 @@
       "coverage": ["round-builtin", "int-like-argument", "ndigits", "negative-ndigits", "none-ndigits", "half-even-rounding", "ordinary-python-source-adapter"]
     },
     {
+      "id": "adapter-round-float-builtin",
+      "source": "../adapter/adapter-round-float-builtin.py",
+      "reference": "Python Standard Library Built-in Functions round; CPython Lib/test/test_builtin.py test_round finite float cases",
+      "expected_result": "True ~> .K",
+      "coverage": ["round-builtin", "finite-float-argument", "ndigits", "negative-ndigits", "none-ndigits", "half-even-rounding", "ordinary-python-source-adapter"]
+    },
+    {
       "id": "adapter-round-special-floats",
       "source": "../adapter/adapter-round-special-floats.py",
       "reference": "Python Standard Library Built-in Functions round",

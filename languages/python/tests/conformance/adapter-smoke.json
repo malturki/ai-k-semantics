@@ -291,6 +291,20 @@
       "coverage": ["bytes-constructor", "string-source", "encoding-argument", "errors-argument", "backslashreplace-errors", "xmlcharrefreplace-errors", "ascii-encoding", "latin-1-encoding", "ordinary-python-source-adapter"]
     },
     {
+      "id": "adapter-bytearray-constructor",
+      "source": "../adapter/adapter-bytearray-constructor.py",
+      "reference": "Python Standard Library Built-in Functions bytearray constructor; Built-in Types binary sequence types",
+      "expected_result": "True ~> .K",
+      "coverage": ["bytearray-constructor", "zero-filled-bytearray", "bytearray-copy", "iterable-of-byte-integers", "string-source", "encoding-argument", "bytearray-read-sequence-operations", "bytearray-class-pattern", "ordinary-python-source-adapter"]
+    },
+    {
+      "id": "adapter-bytearray-constructor-errors",
+      "source": "../adapter/adapter-bytearray-constructor-errors.py",
+      "reference": "Python Standard Library Built-in Functions bytearray constructor; Built-in Types binary sequence types",
+      "expected_result": "True ~> .K",
+      "coverage": ["bytearray-constructor", "negative-size-value-error", "non-integer-item-type-error", "out-of-range-byte-value-error", "string-without-encoding-type-error", "unicode-encode-error", "lookup-error", "bytearray-index-errors", "ordinary-python-source-adapter"]
+    },
+    {
       "id": "adapter-format-builtin",
       "source": "../adapter/adapter-format-builtin.py",
       "reference": "Python Standard Library Built-in Functions format; empty format_spec over current K string-conversion values",

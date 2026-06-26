@@ -24,6 +24,7 @@ class UnsupportedPythonSubset(ValueError):
 ELLIPSIS_NAME_ID = "kEllipsisName"
 JSON_SURROGATE_PAIR_RE = re.compile(r"\\u(d[89ab][0-9a-f]{2})\\u(d[cdef][0-9a-f]{2})")
 SUPPORTED_ZERO_ARG_CLASS_PATTERNS = {
+    "bytearray",
     "bool",
     "bytes",
     "complex",
@@ -38,6 +39,7 @@ SUPPORTED_ZERO_ARG_CLASS_PATTERNS = {
     "tuple",
 }
 SUPPORTED_SINGLE_ARG_CLASS_PATTERNS = {
+    "bytearray",
     "bool",
     "bytes",
     "dict",
@@ -62,6 +64,7 @@ SUPPORTED_GETATTR_NAMES = {
     "stop",
 }
 SUPPORTED_BUILTIN_CLASS_NAMES = {
+    "bytearray",
     "bool",
     "bytes",
     "complex",
@@ -761,6 +764,14 @@ def emit_exp(exp: ast.expr) -> str:
             return f"#bytesCtor({emit_exp(source)}, {emit_exp(encoding)})"
         case ast.Call(func=ast.Name(id="bytes"), args=[source, encoding, errors], keywords=[]):
             return f"#bytesCtor({emit_exp(source)}, {emit_exp(encoding)}, {emit_exp(errors)})"
+        case ast.Call(func=ast.Name(id="bytearray"), args=[], keywords=[]):
+            return "#bytearrayCtor()"
+        case ast.Call(func=ast.Name(id="bytearray"), args=[arg], keywords=[]):
+            return f"#bytearrayCtor({emit_exp(arg)})"
+        case ast.Call(func=ast.Name(id="bytearray"), args=[source, encoding], keywords=[]):
+            return f"#bytearrayCtor({emit_exp(source)}, {emit_exp(encoding)})"
+        case ast.Call(func=ast.Name(id="bytearray"), args=[source, encoding, errors], keywords=[]):
+            return f"#bytearrayCtor({emit_exp(source)}, {emit_exp(encoding)}, {emit_exp(errors)})"
         case ast.Call(func=ast.Name(id="bool"), args=[], keywords=[]):
             return "#boolCtor()"
         case ast.Call(func=ast.Name(id="bool"), args=[arg], keywords=[]):

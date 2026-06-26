@@ -16,6 +16,8 @@ module PYTHON-SYNTAX
                | "Ellipsis" [symbol(pyEllipsis)]
                | "#bytes" "(" ")" [symbol(emptyBytesVal)]
                | "#bytes" "(" ValItems ")" [symbol(bytesVal)]
+               | "#bytearray" "(" ")" [symbol(emptyBytearrayVal)]
+               | "#bytearray" "(" ValItems ")" [symbol(bytearrayVal)]
                | "[" "]" [symbol(emptyListVal)]
                | "[" ValItems "]" [symbol(listVal)]
                | "(" ")" [symbol(emptyTupleVal)]
@@ -393,6 +395,10 @@ module PYTHON-SYNTAX
                | "#bytesCtor" "(" Exp ")" [symbol(bytesCtor1Exp), strict]
                | "#bytesCtor" "(" Exp "," Exp ")" [symbol(bytesCtor2Exp), strict]
                | "#bytesCtor" "(" Exp "," Exp "," Exp ")" [symbol(bytesCtor3Exp), strict]
+               | "#bytearrayCtor" "(" ")" [symbol(bytearrayCtorExp)]
+               | "#bytearrayCtor" "(" Exp ")" [symbol(bytearrayCtor1Exp), strict]
+               | "#bytearrayCtor" "(" Exp "," Exp ")" [symbol(bytearrayCtor2Exp), strict]
+               | "#bytearrayCtor" "(" Exp "," Exp "," Exp ")" [symbol(bytearrayCtor3Exp), strict]
                | "#boolCtor" "(" ")" [symbol(boolCtor0Exp)]
                | "#boolCtor" "(" Exp ")" [symbol(boolCtor1Exp), strict]
                | "#strCtor" "(" ")" [symbol(strCtor0Exp)]
@@ -1787,6 +1793,7 @@ module PYTHON
   syntax Val ::= listSlice(ValItems, Int, Int) [function, symbol(listSlice)]
                | tupleSlice(ValItems, Int, Int) [function, symbol(tupleSlice)]
                | bytesSlice(ValItems, Int, Int) [function, symbol(bytesSlice)]
+               | bytesToBytearray(Val) [function, symbol(bytesToBytearray)]
                | bytesStringUtf8(String) [function, symbol(bytesStringUtf8)]
                | bytesStringAscii(String) [function, symbol(bytesStringAscii)]
                | bytesStringLatin1(String) [function, symbol(bytesStringLatin1)]
@@ -1812,6 +1819,7 @@ module PYTHON
                | tupleSliceStep(ValItems, Int, Int, Int) [function, symbol(tupleSliceStep)]
                | bytesSliceStep(ValItems, Int, Int, Int) [function, symbol(bytesSliceStep)]
                | bytesRepeat(ValItems, Int) [function, symbol(bytesRepeat)]
+               | bytearrayRepeat(ValItems, Int) [function, symbol(bytearrayRepeat)]
                | listGet(ValItems, Int) [function, symbol(listGet)]
                | rangeSlice(Int, Int, Int, Int, Int) [function, symbol(rangeSlice)]
                | rangeSliceStep(Int, Int, Int, Int, Int, Int) [function, symbol(rangeSliceStep)]
@@ -1834,6 +1842,8 @@ module PYTHON
   rule truthy(Ellipsis) => true
   rule truthy(#bytes()) => false
   rule truthy(bytesVal(_:ValItems)) => true
+  rule truthy(#bytearray()) => false
+  rule truthy(bytearrayVal(_:ValItems)) => true
   rule truthy([]) => false
   rule truthy(listVal(_:ValItems)) => true
   rule truthy(()) => false
@@ -2015,6 +2025,8 @@ module PYTHON
   rule pyStringConversionSupported(F:Float) => pyFloatStringConversionSupported(F)
   rule pyStringConversionSupported(#bytes()) => true
   rule pyStringConversionSupported(bytesVal(VS:ValItems)) => valItemsAllByteInts(VS)
+  rule pyStringConversionSupported(#bytearray()) => true
+  rule pyStringConversionSupported(bytearrayVal(VS:ValItems)) => valItemsAllByteInts(VS)
   rule pyStringConversionSupported([]) => true
   rule pyStringConversionSupported(listVal(VS:ValItems)) => pyStringConversionItemsSupported(VS)
   rule pyStringConversionSupported(()) => true
@@ -2052,6 +2064,8 @@ module PYTHON
   rule pyFormatStr(F:Float) => pyFloatReprStr(F)
   rule pyFormatStr(#bytes()) => pyReprStr(#bytes())
   rule pyFormatStr(bytesVal(VS:ValItems)) => pyReprStr(bytesVal(VS))
+  rule pyFormatStr(#bytearray()) => pyReprStr(#bytearray())
+  rule pyFormatStr(bytearrayVal(VS:ValItems)) => pyReprStr(bytearrayVal(VS))
   rule pyFormatStr([]) => pyReprStr([])
   rule pyFormatStr(listVal(VS:ValItems)) => pyReprStr(listVal(VS))
   rule pyFormatStr(()) => pyReprStr(())
@@ -2078,6 +2092,9 @@ module PYTHON
     "b" +String bytesReprQuoteChar(bytesReprQuoteByte(VS))
       +String bytesReprPayload(VS, bytesReprQuoteByte(VS))
       +String bytesReprQuoteChar(bytesReprQuoteByte(VS))
+  rule pyReprStr(#bytearray()) => "bytearray(b'')"
+  rule pyReprStr(bytearrayVal(VS:ValItems)) =>
+    "bytearray(" +String pyReprStr(bytesVal(VS)) +String ")"
   rule pyReprStr([]) => "[]"
   rule pyReprStr(listVal(VS:ValItems)) => "[" +String pyReprValItems(VS) +String "]"
   rule pyReprStr(()) => "()"
@@ -2120,6 +2137,8 @@ module PYTHON
       +String stringReprQuoteChar(stringReprQuoteByte(S))
   rule pyAsciiStr(#bytes()) => "b''"
   rule pyAsciiStr(bytesVal(VS:ValItems)) => pyReprStr(bytesVal(VS))
+  rule pyAsciiStr(#bytearray()) => "bytearray(b'')"
+  rule pyAsciiStr(bytearrayVal(VS:ValItems)) => pyReprStr(bytearrayVal(VS))
   rule pyAsciiStr([]) => "[]"
   rule pyAsciiStr(listVal(VS:ValItems)) => "[" +String pyAsciiValItems(VS) +String "]"
   rule pyAsciiStr(()) => "()"
@@ -3168,6 +3187,8 @@ module PYTHON
   rule isIntLike(_:String) => false
   rule isIntLike(#bytes()) => false
   rule isIntLike(bytesVal(_:ValItems)) => false
+  rule isIntLike(#bytearray()) => false
+  rule isIntLike(bytearrayVal(_:ValItems)) => false
   rule isIntLike(True) => true
   rule isIntLike(False) => true
   rule isIntLike(None) => false
@@ -4172,6 +4193,8 @@ module PYTHON
   rule singletonIdentity(_:String) => false
   rule singletonIdentity(#bytes()) => false
   rule singletonIdentity(bytesVal(_:ValItems)) => false
+  rule singletonIdentity(#bytearray()) => false
+  rule singletonIdentity(bytearrayVal(_:ValItems)) => false
   rule singletonIdentity([]) => false
   rule singletonIdentity(listVal(_:ValItems)) => false
   rule singletonIdentity(()) => false
@@ -4272,6 +4295,8 @@ module PYTHON
   rule pyLen(S:String) => stringCodePointLen(S, 0)
   rule pyLen(#bytes()) => 0
   rule pyLen(bytesVal(VS:ValItems)) => valItemsLen(VS)
+  rule pyLen(#bytearray()) => 0
+  rule pyLen(bytearrayVal(VS:ValItems)) => valItemsLen(VS)
   rule pyLen([]) => 0
   rule pyLen(listVal(VS:ValItems)) => valItemsLen(VS)
   rule pyLen(()) => 0
@@ -4290,6 +4315,8 @@ module PYTHON
   rule lenSupported(_:String) => true
   rule lenSupported(#bytes()) => true
   rule lenSupported(bytesVal(_:ValItems)) => true
+  rule lenSupported(#bytearray()) => true
+  rule lenSupported(bytearrayVal(_:ValItems)) => true
   rule lenSupported([]) => true
   rule lenSupported(listVal(_:ValItems)) => true
   rule lenSupported(()) => true
@@ -4535,6 +4562,10 @@ module PYTHON
     requires Id2String(C) ==String "bytes"
   rule matchBuiltinClass(bytesVal(_:ValItems), C:Id) => true
     requires Id2String(C) ==String "bytes"
+  rule matchBuiltinClass(#bytearray(), C:Id) => true
+    requires Id2String(C) ==String "bytearray"
+  rule matchBuiltinClass(bytearrayVal(_:ValItems), C:Id) => true
+    requires Id2String(C) ==String "bytearray"
   rule matchBuiltinClass([], C:Id) => true
     requires Id2String(C) ==String "list"
   rule matchBuiltinClass(listVal(_:ValItems), C:Id) => true
@@ -4560,7 +4591,8 @@ module PYTHON
   rule matchBuiltinClass(_:Val, _:Id) => false [owise]
 
   rule builtinClassWholeArg(C:Id) => true
-    requires Id2String(C) ==String "bool"
+    requires Id2String(C) ==String "bytearray"
+      orBool Id2String(C) ==String "bool"
       orBool Id2String(C) ==String "bytes"
       orBool Id2String(C) ==String "dict"
       orBool Id2String(C) ==String "float"
@@ -4573,7 +4605,8 @@ module PYTHON
   rule builtinClassWholeArg(_:Id) => false [owise]
 
   rule isinstanceClassSupported(C:Id) => true
-    requires Id2String(C) ==String "bool"
+    requires Id2String(C) ==String "bytearray"
+      orBool Id2String(C) ==String "bool"
       orBool Id2String(C) ==String "bytes"
       orBool Id2String(C) ==String "complex"
       orBool Id2String(C) ==String "dict"
@@ -4892,13 +4925,29 @@ module PYTHON
   rule valEq(_:Val, _:Float) => false [owise]
   rule valEq(S1:String, S2:String) => S1 ==String S2
   rule valEq(#bytes(), #bytes()) => true
+  rule valEq(#bytes(), #bytearray()) => true
   rule valEq(#bytes(), bytesVal(_:ValItems)) => false
+  rule valEq(#bytes(), bytearrayVal(_:ValItems)) => false
+  rule valEq(#bytearray(), #bytes()) => true
+  rule valEq(#bytearray(), #bytearray()) => true
+  rule valEq(#bytearray(), bytesVal(_:ValItems)) => false
+  rule valEq(#bytearray(), bytearrayVal(_:ValItems)) => false
   rule valEq(bytesVal(_:ValItems), #bytes()) => false
+  rule valEq(bytesVal(_:ValItems), #bytearray()) => false
   rule valEq(bytesVal(VS1:ValItems), bytesVal(VS2:ValItems)) => valsEq(VS1, VS2)
+  rule valEq(bytesVal(VS1:ValItems), bytearrayVal(VS2:ValItems)) => valsEq(VS1, VS2)
+  rule valEq(bytearrayVal(_:ValItems), #bytes()) => false
+  rule valEq(bytearrayVal(_:ValItems), #bytearray()) => false
+  rule valEq(bytearrayVal(VS1:ValItems), bytesVal(VS2:ValItems)) => valsEq(VS1, VS2)
+  rule valEq(bytearrayVal(VS1:ValItems), bytearrayVal(VS2:ValItems)) => valsEq(VS1, VS2)
   rule valEq(#bytes(), _:Val) => false [owise]
   rule valEq(_:Val, #bytes()) => false [owise]
   rule valEq(bytesVal(_:ValItems), _:Val) => false [owise]
   rule valEq(_:Val, bytesVal(_:ValItems)) => false [owise]
+  rule valEq(#bytearray(), _:Val) => false [owise]
+  rule valEq(_:Val, #bytearray()) => false [owise]
+  rule valEq(bytearrayVal(_:ValItems), _:Val) => false [owise]
+  rule valEq(_:Val, bytearrayVal(_:ValItems)) => false [owise]
   rule valEq(_:String, _:Int) => false
   rule valEq(_:Int, _:String) => false
   rule valEq([], []) => true
@@ -5125,8 +5174,13 @@ module PYTHON
   rule cmpHolds(#in, Needle:String, Haystack:String) => findString(Haystack, Needle, 0) >=Int 0
   rule cmpHolds(#in, #bytes(), #bytes()) => true
   rule cmpHolds(#in, #bytes(), bytesVal(_:ValItems)) => true
+  rule cmpHolds(#in, #bytearray(), #bytes()) => true
+  rule cmpHolds(#in, #bytearray(), bytesVal(_:ValItems)) => true
   rule cmpHolds(#in, bytesVal(_:ValItems), #bytes()) => false
+  rule cmpHolds(#in, bytearrayVal(_:ValItems), #bytes()) => false
   rule cmpHolds(#in, bytesVal(Needle:ValItems), bytesVal(Haystack:ValItems)) =>
+    bytesContains(Needle, Haystack)
+  rule cmpHolds(#in, bytearrayVal(Needle:ValItems), bytesVal(Haystack:ValItems)) =>
     bytesContains(Needle, Haystack)
   rule cmpHolds(#in, V:Val, #bytes()) => false
     requires notBool isBytesSequence(V)
@@ -5135,6 +5189,24 @@ module PYTHON
   rule cmpHolds(#in, V:Val, bytesVal(_VS:ValItems)) => false
     requires notBool isIntLike(V) andBool notBool isBytesSequence(V)
   rule cmpHolds(#in, V:Val, bytesVal(_VS:ValItems)) => false
+    requires isIntLike(V) andBool (intValue(V) <Int 0 orBool intValue(V) >Int 255)
+  rule cmpHolds(#in, #bytes(), #bytearray()) => true
+  rule cmpHolds(#in, #bytearray(), #bytearray()) => true
+  rule cmpHolds(#in, bytesVal(_:ValItems), #bytearray()) => false
+  rule cmpHolds(#in, bytearrayVal(_:ValItems), #bytearray()) => false
+  rule cmpHolds(#in, #bytes(), bytearrayVal(_:ValItems)) => true
+  rule cmpHolds(#in, #bytearray(), bytearrayVal(_:ValItems)) => true
+  rule cmpHolds(#in, bytesVal(Needle:ValItems), bytearrayVal(Haystack:ValItems)) =>
+    bytesContains(Needle, Haystack)
+  rule cmpHolds(#in, bytearrayVal(Needle:ValItems), bytearrayVal(Haystack:ValItems)) =>
+    bytesContains(Needle, Haystack)
+  rule cmpHolds(#in, V:Val, #bytearray()) => false
+    requires notBool isBytesSequence(V)
+  rule cmpHolds(#in, V:Val, bytearrayVal(VS:ValItems)) => containsVal(intValue(V), VS)
+    requires isIntLike(V) andBool intValue(V) >=Int 0 andBool intValue(V) <=Int 255
+  rule cmpHolds(#in, V:Val, bytearrayVal(_VS:ValItems)) => false
+    requires notBool isIntLike(V) andBool notBool isBytesSequence(V)
+  rule cmpHolds(#in, V:Val, bytearrayVal(_VS:ValItems)) => false
     requires isIntLike(V) andBool (intValue(V) <Int 0 orBool intValue(V) >Int 255)
   rule cmpHolds(#in, _V:Val, []) => false
   rule cmpHolds(#in, V:Val, listVal(VS:ValItems)) => containsVal(V, VS)
@@ -5536,6 +5608,9 @@ module PYTHON
   rule targetValueArityOk(targetSeq(TS:Targets), bytesVal(VS:ValItems)) =>
     sameTargetsValArity(TS, VS)
   rule targetValueArityOk(targetSeq(_:Targets), #bytes()) => false
+  rule targetValueArityOk(targetSeq(TS:Targets), bytearrayVal(VS:ValItems)) =>
+    sameTargetsValArity(TS, VS)
+  rule targetValueArityOk(targetSeq(_:Targets), #bytearray()) => false
   rule targetValueArityOk(targetSeq(TS:Targets), S:String) =>
     sameTargetsValArity(TS, stringToValItems(S, 0, lengthString(S)))
     requires lengthString(S) >Int 0
@@ -5568,6 +5643,10 @@ module PYTHON
   rule targetValueArityOk(targetStarSeq(Prefix:MaybeTargets, _:Id, Suffix:MaybeTargets), bytesVal(VS:ValItems)) =>
     targetStarSeqArityOk(Prefix, Suffix, VS)
   rule targetValueArityOk(targetStarSeq(Prefix:MaybeTargets, _:Id, Suffix:MaybeTargets), #bytes()) =>
+    maybeTargetsLen(Prefix) +Int maybeTargetsLen(Suffix) ==Int 0
+  rule targetValueArityOk(targetStarSeq(Prefix:MaybeTargets, _:Id, Suffix:MaybeTargets), bytearrayVal(VS:ValItems)) =>
+    targetStarSeqArityOk(Prefix, Suffix, VS)
+  rule targetValueArityOk(targetStarSeq(Prefix:MaybeTargets, _:Id, Suffix:MaybeTargets), #bytearray()) =>
     maybeTargetsLen(Prefix) +Int maybeTargetsLen(Suffix) ==Int 0
   rule targetValueArityOk(targetStarSeq(Prefix:MaybeTargets, _:Id, Suffix:MaybeTargets), S:String) =>
     targetStarSeqArityOk(Prefix, Suffix, stringToValItems(S, 0, lengthString(S)))
@@ -5926,6 +6005,8 @@ module PYTHON
     requires lengthString(S) >Int 0
   rule iterableArgVals(#bytes()) => #noArgVals
   rule iterableArgVals(bytesVal(VS:ValItems)) => valItemsToArgVals(VS)
+  rule iterableArgVals(#bytearray()) => #noArgVals
+  rule iterableArgVals(bytearrayVal(VS:ValItems)) => valItemsToArgVals(VS)
   rule iterableArgVals(({}):Val) => #noArgVals
   rule iterableArgVals(dictVal(DS:DictItems)) => valItemsToArgVals(dictKeysToValItems(DS))
   rule iterableArgVals(set()) => #noArgVals
@@ -6187,6 +6268,8 @@ module PYTHON
     bindTargets(Rho, TS, VS)
   rule bindTarget(Rho:Map, targetSeq(TS:Targets), bytesVal(VS:ValItems)) =>
     bindTargets(Rho, TS, VS)
+  rule bindTarget(Rho:Map, targetSeq(TS:Targets), bytearrayVal(VS:ValItems)) =>
+    bindTargets(Rho, TS, VS)
   rule bindTarget(Rho:Map, targetSeq(TS:Targets), S:String) =>
     bindTargets(Rho, TS, stringToValItems(S, 0, lengthString(S)))
     requires lengthString(S) >Int 0
@@ -6213,6 +6296,11 @@ module PYTHON
   rule bindTarget(Rho:Map, targetStarSeq(Prefix:MaybeTargets, Star:Id, Suffix:MaybeTargets), bytesVal(VS:ValItems)) =>
     bindTargetStarSeq(Rho, Prefix, Star, Suffix, VS)
   rule bindTarget(Rho:Map, targetStarSeq(Prefix:MaybeTargets, Star:Id, Suffix:MaybeTargets), #bytes()) =>
+    Rho [ Star <- [] ]
+    requires maybeTargetsLen(Prefix) +Int maybeTargetsLen(Suffix) ==Int 0
+  rule bindTarget(Rho:Map, targetStarSeq(Prefix:MaybeTargets, Star:Id, Suffix:MaybeTargets), bytearrayVal(VS:ValItems)) =>
+    bindTargetStarSeq(Rho, Prefix, Star, Suffix, VS)
+  rule bindTarget(Rho:Map, targetStarSeq(Prefix:MaybeTargets, Star:Id, Suffix:MaybeTargets), #bytearray()) =>
     Rho [ Star <- [] ]
     requires maybeTargetsLen(Prefix) +Int maybeTargetsLen(Suffix) ==Int 0
   rule bindTarget(Rho:Map, targetStarSeq(Prefix:MaybeTargets, Star:Id, Suffix:MaybeTargets), S:String) =>
@@ -6313,6 +6401,12 @@ module PYTHON
   rule zeroBytes(0) => #bytes()
   rule zeroBytes(N:Int) => bytesVal(repeatValItems(valItemsLast(0), N))
     requires N >Int 0
+  rule bytesToBytearray(#bytes()) => #bytearray()
+  rule bytesToBytearray(bytesVal(VS:ValItems)) => bytearrayVal(VS)
+  rule bytearrayRepeat(_:ValItems, N:Int) => #bytearray()
+    requires N <=Int 0
+  rule bytearrayRepeat(VS:ValItems, N:Int) => bytearrayVal(repeatValItems(VS, N))
+    requires N >Int 0
 
   rule argValsToSetItems(argValsCons(V:Val, #noArgVals)) => valItemsLast(V)
   rule argValsToSetItems(argValsCons(V:Val, VS:ArgVals)) => argValsToSetItems(VS)
@@ -6326,6 +6420,8 @@ module PYTHON
   rule concreteIterableExtraNonEmpty(S:String) => lengthString(S) >Int 0
   rule concreteIterableExtraNonEmpty(#bytes()) => false
   rule concreteIterableExtraNonEmpty(bytesVal(_:ValItems)) => true
+  rule concreteIterableExtraNonEmpty(#bytearray()) => false
+  rule concreteIterableExtraNonEmpty(bytearrayVal(_:ValItems)) => true
   rule concreteIterableExtraNonEmpty({}) => false
   rule concreteIterableExtraNonEmpty(dictVal(_:DictItems)) => true
   rule concreteIterableExtraNonEmpty(set()) => false
@@ -6338,6 +6434,8 @@ module PYTHON
   rule concreteIterableExtraEmpty(S:String) => lengthString(S) ==Int 0
   rule concreteIterableExtraEmpty(#bytes()) => true
   rule concreteIterableExtraEmpty(bytesVal(_:ValItems)) => false
+  rule concreteIterableExtraEmpty(#bytearray()) => true
+  rule concreteIterableExtraEmpty(bytearrayVal(_:ValItems)) => false
   rule concreteIterableExtraEmpty({}) => true
   rule concreteIterableExtraEmpty(dictVal(_:DictItems)) => false
   rule concreteIterableExtraEmpty(set()) => true
@@ -6353,6 +6451,8 @@ module PYTHON
     requires isIntLike(V)
   rule bytesCtorSourceSupported(#bytes()) => true
   rule bytesCtorSourceSupported(bytesVal(_:ValItems)) => true
+  rule bytesCtorSourceSupported(#bytearray()) => true
+  rule bytesCtorSourceSupported(bytearrayVal(_:ValItems)) => true
   rule bytesCtorSourceSupported([]) => true
   rule bytesCtorSourceSupported(listVal(_:ValItems)) => true
   rule bytesCtorSourceSupported(()) => true
@@ -6433,6 +6533,7 @@ module PYTHON
   rule concreteIterableExtraItems(S:String) => stringToValItems(S, 0, lengthString(S))
     requires lengthString(S) >Int 0
   rule concreteIterableExtraItems(bytesVal(VS:ValItems)) => VS
+  rule concreteIterableExtraItems(bytearrayVal(VS:ValItems)) => VS
   rule concreteIterableExtraItems(dictVal(DS:DictItems)) => dictKeysToValItems(DS)
   rule concreteIterableExtraItems(setVal(VS:ValItems)) => VS
   rule concreteIterableExtraItems(rangeVal(Start:Int, Stop:Int)) =>
@@ -6465,6 +6566,8 @@ module PYTHON
   rule unpackValueSupported(()) => true
   rule unpackValueSupported(bytesVal(_:ValItems)) => true
   rule unpackValueSupported(#bytes()) => true
+  rule unpackValueSupported(bytearrayVal(_:ValItems)) => true
+  rule unpackValueSupported(#bytearray()) => true
   rule unpackValueSupported(_:String) => true
   rule unpackValueSupported(dictVal(_:DictItems)) => true
   rule unpackValueSupported(({}):Val) => true
@@ -6481,6 +6584,8 @@ module PYTHON
   rule unpackValueLen(()) => 0
   rule unpackValueLen(bytesVal(VS:ValItems)) => valItemsLen(VS)
   rule unpackValueLen(#bytes()) => 0
+  rule unpackValueLen(bytearrayVal(VS:ValItems)) => valItemsLen(VS)
+  rule unpackValueLen(#bytearray()) => 0
   rule unpackValueLen(S:String) => stringCodePointLen(S, 0)
   rule unpackValueLen(dictVal(DS:DictItems)) => valItemsLen(dictKeysToValItems(DS))
   rule unpackValueLen(({}):Val) => 0
@@ -7002,6 +7107,8 @@ module PYTHON
 
   rule isBytesSequence(#bytes()) => true
   rule isBytesSequence(bytesVal(_:ValItems)) => true
+  rule isBytesSequence(#bytearray()) => true
+  rule isBytesSequence(bytearrayVal(_:ValItems)) => true
   rule isBytesSequence(_:Val) => false [owise]
 
   rule isStringVal(_:String) => true
@@ -7010,6 +7117,8 @@ module PYTHON
   rule isConcreteSequenceVal(_:String) => true
   rule isConcreteSequenceVal(#bytes()) => true
   rule isConcreteSequenceVal(bytesVal(_:ValItems)) => true
+  rule isConcreteSequenceVal(#bytearray()) => true
+  rule isConcreteSequenceVal(bytearrayVal(_:ValItems)) => true
   rule isConcreteSequenceVal([]) => true
   rule isConcreteSequenceVal(listVal(_:ValItems)) => true
   rule isConcreteSequenceVal(()) => true
@@ -7070,8 +7179,20 @@ module PYTHON
   rule seqLt(tupleVal(VS1:ValItems), tupleVal(VS2:ValItems)) => valItemsLt(VS1, VS2)
   rule seqLt(#bytes(), #bytes()) => false
   rule seqLt(#bytes(), bytesVal(_:ValItems)) => true
+  rule seqLt(#bytes(), #bytearray()) => false
+  rule seqLt(#bytes(), bytearrayVal(_:ValItems)) => true
   rule seqLt(bytesVal(_:ValItems), #bytes()) => false
+  rule seqLt(bytesVal(_:ValItems), #bytearray()) => false
   rule seqLt(bytesVal(VS1:ValItems), bytesVal(VS2:ValItems)) => valItemsLt(VS1, VS2)
+  rule seqLt(bytesVal(VS1:ValItems), bytearrayVal(VS2:ValItems)) => valItemsLt(VS1, VS2)
+  rule seqLt(#bytearray(), #bytes()) => false
+  rule seqLt(#bytearray(), bytesVal(_:ValItems)) => true
+  rule seqLt(#bytearray(), #bytearray()) => false
+  rule seqLt(#bytearray(), bytearrayVal(_:ValItems)) => true
+  rule seqLt(bytearrayVal(_:ValItems), #bytes()) => false
+  rule seqLt(bytearrayVal(_:ValItems), #bytearray()) => false
+  rule seqLt(bytearrayVal(VS1:ValItems), bytesVal(VS2:ValItems)) => valItemsLt(VS1, VS2)
+  rule seqLt(bytearrayVal(VS1:ValItems), bytearrayVal(VS2:ValItems)) => valItemsLt(VS1, VS2)
 
   rule dictsEq(DS1:DictItems, DS2:DictItems) =>
     dictItemsLen(DS1) ==Int dictItemsLen(DS2)
@@ -7554,12 +7675,30 @@ module PYTHON
            exceptionSignal(#exception(#token("TypeError", "Id")))
        ... </k>
     requires notBool isIntLike(V)
+  rule <k> #bytearray() * V:Val =>
+           exceptionSignal(#exception(#token("TypeError", "Id")))
+       ... </k>
+    requires notBool isIntLike(V)
+  rule <k> bytearrayVal(_:ValItems) * V:Val =>
+           exceptionSignal(#exception(#token("TypeError", "Id")))
+       ... </k>
+    requires notBool isIntLike(V)
   rule <k> V:Val * #bytes() =>
            exceptionSignal(#exception(#token("TypeError", "Id")))
        ... </k>
     requires notBool isIntLike(V)
       andBool notBool isConcreteSequenceVal(V)
   rule <k> V:Val * bytesVal(_:ValItems) =>
+           exceptionSignal(#exception(#token("TypeError", "Id")))
+       ... </k>
+    requires notBool isIntLike(V)
+      andBool notBool isConcreteSequenceVal(V)
+  rule <k> V:Val * #bytearray() =>
+           exceptionSignal(#exception(#token("TypeError", "Id")))
+       ... </k>
+    requires notBool isIntLike(V)
+      andBool notBool isConcreteSequenceVal(V)
+  rule <k> V:Val * bytearrayVal(_:ValItems) =>
            exceptionSignal(#exception(#token("TypeError", "Id")))
        ... </k>
     requires notBool isIntLike(V)
@@ -7747,8 +7886,20 @@ module PYTHON
   rule S1:String + S2:String => S1 +String S2
   rule #bytes() + #bytes() => #bytes()
   rule #bytes() + bytesVal(VS:ValItems) => bytesVal(VS)
+  rule #bytes() + #bytearray() => #bytes()
+  rule #bytes() + bytearrayVal(VS:ValItems) => bytesVal(VS)
   rule bytesVal(VS:ValItems) + #bytes() => bytesVal(VS)
   rule bytesVal(VS1:ValItems) + bytesVal(VS2:ValItems) => bytesVal(concatValItems(VS1, VS2))
+  rule bytesVal(VS:ValItems) + #bytearray() => bytesVal(VS)
+  rule bytesVal(VS1:ValItems) + bytearrayVal(VS2:ValItems) => bytesVal(concatValItems(VS1, VS2))
+  rule #bytearray() + #bytes() => #bytearray()
+  rule #bytearray() + bytesVal(VS:ValItems) => bytearrayVal(VS)
+  rule #bytearray() + #bytearray() => #bytearray()
+  rule #bytearray() + bytearrayVal(VS:ValItems) => bytearrayVal(VS)
+  rule bytearrayVal(VS:ValItems) + #bytes() => bytearrayVal(VS)
+  rule bytearrayVal(VS1:ValItems) + bytesVal(VS2:ValItems) => bytearrayVal(concatValItems(VS1, VS2))
+  rule bytearrayVal(VS:ValItems) + #bytearray() => bytearrayVal(VS)
+  rule bytearrayVal(VS1:ValItems) + bytearrayVal(VS2:ValItems) => bytearrayVal(concatValItems(VS1, VS2))
   rule #bytes() * V:Val => #bytes()
     requires isIntLike(V)
   rule bytesVal(VS:ValItems) * V:Val => bytesRepeat(VS, intValue(V))
@@ -7756,6 +7907,14 @@ module PYTHON
   rule V:Val * #bytes() => #bytes()
     requires isIntLike(V)
   rule V:Val * bytesVal(VS:ValItems) => bytesRepeat(VS, intValue(V))
+    requires isIntLike(V)
+  rule #bytearray() * V:Val => #bytearray()
+    requires isIntLike(V)
+  rule bytearrayVal(VS:ValItems) * V:Val => bytearrayRepeat(VS, intValue(V))
+    requires isIntLike(V)
+  rule V:Val * #bytearray() => #bytearray()
+    requires isIntLike(V)
+  rule V:Val * bytearrayVal(VS:ValItems) => bytearrayRepeat(VS, intValue(V))
     requires isIntLike(V)
   rule [] + [] => []
   rule [] + listVal(VS:ValItems) => listVal(VS)
@@ -7782,12 +7941,30 @@ module PYTHON
            exceptionSignal(#exception(#token("TypeError", "Id")))
        ... </k>
     requires notBool isBytesSequence(V)
+  rule <k> #bytearray() + V:Val =>
+           exceptionSignal(#exception(#token("TypeError", "Id")))
+       ... </k>
+    requires notBool isBytesSequence(V)
+  rule <k> bytearrayVal(_:ValItems) + V:Val =>
+           exceptionSignal(#exception(#token("TypeError", "Id")))
+       ... </k>
+    requires notBool isBytesSequence(V)
   rule <k> V:Val + #bytes() =>
            exceptionSignal(#exception(#token("TypeError", "Id")))
        ... </k>
     requires notBool isBytesSequence(V)
       andBool notBool isConcreteSequenceVal(V)
   rule <k> V:Val + bytesVal(_:ValItems) =>
+           exceptionSignal(#exception(#token("TypeError", "Id")))
+       ... </k>
+    requires notBool isBytesSequence(V)
+      andBool notBool isConcreteSequenceVal(V)
+  rule <k> V:Val + #bytearray() =>
+           exceptionSignal(#exception(#token("TypeError", "Id")))
+       ... </k>
+    requires notBool isBytesSequence(V)
+      andBool notBool isConcreteSequenceVal(V)
+  rule <k> V:Val + bytearrayVal(_:ValItems) =>
            exceptionSignal(#exception(#token("TypeError", "Id")))
        ... </k>
     requires notBool isBytesSequence(V)
@@ -7837,6 +8014,9 @@ module PYTHON
   rule sliceExp(#bytes(), _Lower:Val, _Upper:Val) => #bytes()
   rule sliceExp(bytesVal(VS:ValItems), Lower:Val, Upper:Val) =>
     bytesSlice(VS, pySliceLower(Lower, valItemsLen(VS)), pySliceUpper(Upper, valItemsLen(VS)))
+  rule sliceExp(#bytearray(), _Lower:Val, _Upper:Val) => #bytearray()
+  rule sliceExp(bytearrayVal(VS:ValItems), Lower:Val, Upper:Val) =>
+    bytesToBytearray(bytesSlice(VS, pySliceLower(Lower, valItemsLen(VS)), pySliceUpper(Upper, valItemsLen(VS))))
   rule sliceExp([], _Lower:Val, _Upper:Val) => []
   rule sliceExp(listVal(VS:ValItems), Lower:Val, Upper:Val) =>
     listSlice(VS, pySliceLower(Lower, valItemsLen(VS)), pySliceUpper(Upper, valItemsLen(VS)))
@@ -7865,6 +8045,14 @@ module PYTHON
     requires isIntLike(Step) andBool intValue(Step) >Int 0
   rule sliceStepExp(bytesVal(VS:ValItems), Lower:Val, Upper:Val, Step:Val) =>
     bytesSliceStep(VS, pySliceLowerNeg(Lower, valItemsLen(VS)), pySliceUpperNeg(Upper, valItemsLen(VS)), intValue(Step))
+    requires isIntLike(Step) andBool intValue(Step) <Int 0
+  rule sliceStepExp(#bytearray(), _Lower:Val, _Upper:Val, Step:Val) => #bytearray()
+    requires isIntLike(Step) andBool intValue(Step) =/=Int 0
+  rule sliceStepExp(bytearrayVal(VS:ValItems), Lower:Val, Upper:Val, Step:Val) =>
+    bytesToBytearray(bytesSliceStep(VS, pySliceLower(Lower, valItemsLen(VS)), pySliceUpper(Upper, valItemsLen(VS)), intValue(Step)))
+    requires isIntLike(Step) andBool intValue(Step) >Int 0
+  rule sliceStepExp(bytearrayVal(VS:ValItems), Lower:Val, Upper:Val, Step:Val) =>
+    bytesToBytearray(bytesSliceStep(VS, pySliceLowerNeg(Lower, valItemsLen(VS)), pySliceUpperNeg(Upper, valItemsLen(VS)), intValue(Step)))
     requires isIntLike(Step) andBool intValue(Step) <Int 0
   rule sliceStepExp([], _Lower:Val, _Upper:Val, Step:Val) => []
     requires isIntLike(Step) andBool intValue(Step) =/=Int 0
@@ -8182,6 +8370,31 @@ module PYTHON
     requires isIntLike(I)
       andBool notBool subscriptIndexInBounds(I, valItemsLen(VS))
   rule <k> subscriptExp(bytesVal(_:ValItems), I:Val) =>
+           exceptionSignal(#exception(#token("TypeError", "Id")))
+       ... </k>
+    requires notBool isIntLike(I)
+      andBool notBool isSliceVal(I)
+  rule <k> subscriptExp(#bytearray(), I:Val) =>
+           exceptionSignal(#exception(#token("IndexError", "Id")))
+       ... </k>
+    requires isIntLike(I)
+  rule <k> subscriptExp(#bytearray(), I:Val) =>
+           exceptionSignal(#exception(#token("TypeError", "Id")))
+       ... </k>
+    requires notBool isIntLike(I)
+      andBool notBool isSliceVal(I)
+  rule subscriptExp(bytearrayVal(VS:ValItems), I:Val) => listGet(VS, intValue(I))
+    requires isIntLike(I) andBool intValue(I) >=Int 0 andBool intValue(I) <Int valItemsLen(VS)
+  rule subscriptExp(bytearrayVal(VS:ValItems), I:Val) => listGet(VS, valItemsLen(VS) +Int intValue(I))
+    requires isIntLike(I)
+     andBool intValue(I) <Int 0
+     andBool valItemsLen(VS) +Int intValue(I) >=Int 0
+  rule <k> subscriptExp(bytearrayVal(VS:ValItems), I:Val) =>
+           exceptionSignal(#exception(#token("IndexError", "Id")))
+       ... </k>
+    requires isIntLike(I)
+      andBool notBool subscriptIndexInBounds(I, valItemsLen(VS))
+  rule <k> subscriptExp(bytearrayVal(_:ValItems), I:Val) =>
            exceptionSignal(#exception(#token("TypeError", "Id")))
        ... </k>
     requires notBool isIntLike(I)
@@ -12850,6 +13063,8 @@ module PYTHON
     requires isIntLike(V) andBool intValue(V) <Int 0
   rule #bytesCtor(#bytes()) => #bytes()
   rule #bytesCtor(bytesVal(VS:ValItems)) => bytesVal(VS)
+  rule #bytesCtor(#bytearray()) => #bytes()
+  rule #bytesCtor(bytearrayVal(VS:ValItems)) => bytesVal(VS)
   rule #bytesCtor([]) => #bytes()
   rule #bytesCtor(listVal(VS:ValItems)) => bytesVal(byteItems(VS))
     requires valItemsAllByteInts(VS)
@@ -12987,6 +13202,152 @@ module PYTHON
            exceptionSignal(#exception(#token("TypeError", "Id")))
        ... </k>
     requires notBool isStringVal(V)
+  rule #bytearrayCtor() => #bytearray()
+  rule #bytearrayCtor(V:Val) => bytesToBytearray(zeroBytes(intValue(V)))
+    requires isIntLike(V) andBool intValue(V) >=Int 0
+  rule <k> #bytearrayCtor(V:Val) => exceptionSignal(#exception(#token("ValueError", "Id"))) ... </k>
+    requires isIntLike(V) andBool intValue(V) <Int 0
+  rule #bytearrayCtor(#bytes()) => #bytearray()
+  rule #bytearrayCtor(bytesVal(VS:ValItems)) => bytearrayVal(VS)
+  rule #bytearrayCtor(#bytearray()) => #bytearray()
+  rule #bytearrayCtor(bytearrayVal(VS:ValItems)) => bytearrayVal(VS)
+  rule #bytearrayCtor([]) => #bytearray()
+  rule #bytearrayCtor(listVal(VS:ValItems)) => bytearrayVal(byteItems(VS))
+    requires valItemsAllByteInts(VS)
+  rule <k> #bytearrayCtor(listVal(VS:ValItems)) => exceptionSignal(#exception(#token("TypeError", "Id"))) ... </k>
+    requires notBool valItemsAllIntLike(VS)
+  rule <k> #bytearrayCtor(listVal(VS:ValItems)) => exceptionSignal(#exception(#token("ValueError", "Id"))) ... </k>
+    requires valItemsAllIntLike(VS) andBool notBool valItemsAllByteInts(VS)
+  rule #bytearrayCtor(()) => #bytearray()
+  rule #bytearrayCtor(tupleVal(VS:ValItems)) => bytearrayVal(byteItems(VS))
+    requires valItemsAllByteInts(VS)
+  rule <k> #bytearrayCtor(tupleVal(VS:ValItems)) => exceptionSignal(#exception(#token("TypeError", "Id"))) ... </k>
+    requires notBool valItemsAllIntLike(VS)
+  rule <k> #bytearrayCtor(tupleVal(VS:ValItems)) => exceptionSignal(#exception(#token("ValueError", "Id"))) ... </k>
+    requires valItemsAllIntLike(VS) andBool notBool valItemsAllByteInts(VS)
+  rule #bytearrayCtor(({}):Val) => #bytearray()
+  rule #bytearrayCtor(dictVal(DS:DictItems)) => bytearrayVal(byteItems(dictKeysToValItems(DS)))
+    requires valItemsAllByteInts(dictKeysToValItems(DS))
+  rule <k> #bytearrayCtor(dictVal(DS:DictItems)) => exceptionSignal(#exception(#token("TypeError", "Id"))) ... </k>
+    requires notBool valItemsAllIntLike(dictKeysToValItems(DS))
+  rule <k> #bytearrayCtor(dictVal(DS:DictItems)) => exceptionSignal(#exception(#token("ValueError", "Id"))) ... </k>
+    requires valItemsAllIntLike(dictKeysToValItems(DS))
+      andBool notBool valItemsAllByteInts(dictKeysToValItems(DS))
+  rule #bytearrayCtor(set()) => #bytearray()
+  rule #bytearrayCtor(setVal(VS:ValItems)) => bytearrayVal(byteItems(VS))
+    requires valItemsAllByteInts(VS)
+  rule <k> #bytearrayCtor(setVal(VS:ValItems)) => exceptionSignal(#exception(#token("TypeError", "Id"))) ... </k>
+    requires notBool valItemsAllIntLike(VS)
+  rule <k> #bytearrayCtor(setVal(VS:ValItems)) => exceptionSignal(#exception(#token("ValueError", "Id"))) ... </k>
+    requires valItemsAllIntLike(VS) andBool notBool valItemsAllByteInts(VS)
+  rule #bytearrayCtor(rangeVal(Start:Int, Stop:Int)) => #bytearray()
+    requires pyRangeLen(Start, Stop, 1) ==Int 0
+  rule #bytearrayCtor(rangeVal(Start:Int, Stop:Int)) =>
+    bytearrayVal(rangeToValItems(Start, Stop, 1, 0, pyRangeLen(Start, Stop, 1)))
+    requires pyRangeLen(Start, Stop, 1) >Int 0
+      andBool valItemsAllByteInts(rangeToValItems(Start, Stop, 1, 0, pyRangeLen(Start, Stop, 1)))
+  rule <k> #bytearrayCtor(rangeVal(Start:Int, Stop:Int)) =>
+           exceptionSignal(#exception(#token("ValueError", "Id")))
+       ... </k>
+    requires pyRangeLen(Start, Stop, 1) >Int 0
+      andBool notBool valItemsAllByteInts(rangeToValItems(Start, Stop, 1, 0, pyRangeLen(Start, Stop, 1)))
+  rule #bytearrayCtor(rangeVal(Start:Int, Stop:Int, Step:Int)) => #bytearray()
+    requires Step =/=Int 0 andBool pyRangeLen(Start, Stop, Step) ==Int 0
+  rule #bytearrayCtor(rangeVal(Start:Int, Stop:Int, Step:Int)) =>
+    bytearrayVal(rangeToValItems(Start, Stop, Step, 0, pyRangeLen(Start, Stop, Step)))
+    requires Step =/=Int 0
+      andBool pyRangeLen(Start, Stop, Step) >Int 0
+      andBool valItemsAllByteInts(rangeToValItems(Start, Stop, Step, 0, pyRangeLen(Start, Stop, Step)))
+  rule <k> #bytearrayCtor(rangeVal(Start:Int, Stop:Int, Step:Int)) =>
+           exceptionSignal(#exception(#token("ValueError", "Id")))
+       ... </k>
+    requires Step =/=Int 0
+      andBool pyRangeLen(Start, Stop, Step) >Int 0
+      andBool notBool valItemsAllByteInts(rangeToValItems(Start, Stop, Step, 0, pyRangeLen(Start, Stop, Step)))
+  rule <k> #bytearrayCtor(V:Val) => exceptionSignal(#exception(#token("TypeError", "Id"))) ... </k>
+    requires notBool bytesCtorSourceSupported(V)
+  rule #bytearrayCtor(S:String, Enc:String) => bytesToBytearray(bytesStringUtf8(S))
+    requires bytesEncodingUtf8(Enc)
+  rule #bytearrayCtor(S:String, Enc:String) => bytesToBytearray(bytesStringAscii(S))
+    requires bytesEncodingAscii(Enc) andBool stringAsciiEncodable(S, 0)
+  rule #bytearrayCtor(S:String, Enc:String) => bytesToBytearray(bytesStringLatin1(S))
+    requires bytesEncodingLatin1(Enc) andBool stringLatin1Encodable(S, 0)
+  rule <k> #bytearrayCtor(S:String, Enc:String) => exceptionSignal(#exception(#token("UnicodeEncodeError", "Id"))) ... </k>
+    requires (bytesEncodingAscii(Enc) andBool notBool stringAsciiEncodable(S, 0))
+      orBool (bytesEncodingLatin1(Enc) andBool notBool stringLatin1Encodable(S, 0))
+  rule <k> #bytearrayCtor(_S:String, Enc:String) => exceptionSignal(#exception(#token("LookupError", "Id"))) ... </k>
+    requires notBool bytesEncodingSupported(Enc)
+  rule <k> #bytearrayCtor(_S:String, Enc:Val) => exceptionSignal(#exception(#token("TypeError", "Id"))) ... </k>
+    requires notBool isStringVal(Enc)
+  rule <k> #bytearrayCtor(V:Val, _Enc:Val) => exceptionSignal(#exception(#token("TypeError", "Id"))) ... </k>
+    requires notBool isStringVal(V)
+  rule #bytearrayCtor(S:String, Enc:String, _Errors:String) => #bytearrayCtor(S, Enc)
+    requires bytesEncodingUtf8(Enc)
+      orBool (bytesEncodingAscii(Enc) andBool stringAsciiEncodable(S, 0))
+      orBool (bytesEncodingLatin1(Enc) andBool stringLatin1Encodable(S, 0))
+  rule #bytearrayCtor(S:String, Enc:String, Errors:String) => bytesToBytearray(bytesStringAsciiIgnore(S))
+    requires bytesEncodingAscii(Enc) andBool notBool stringAsciiEncodable(S, 0)
+      andBool bytesErrorsIgnore(Errors)
+  rule #bytearrayCtor(S:String, Enc:String, Errors:String) => bytesToBytearray(bytesStringLatin1Ignore(S))
+    requires bytesEncodingLatin1(Enc) andBool notBool stringLatin1Encodable(S, 0)
+      andBool bytesErrorsIgnore(Errors)
+  rule #bytearrayCtor(S:String, Enc:String, Errors:String) => bytesToBytearray(bytesStringAsciiReplace(S))
+    requires bytesEncodingAscii(Enc) andBool notBool stringAsciiEncodable(S, 0)
+      andBool bytesErrorsReplace(Errors)
+  rule #bytearrayCtor(S:String, Enc:String, Errors:String) => bytesToBytearray(bytesStringLatin1Replace(S))
+    requires bytesEncodingLatin1(Enc) andBool notBool stringLatin1Encodable(S, 0)
+      andBool bytesErrorsReplace(Errors)
+  rule #bytearrayCtor(S:String, Enc:String, Errors:String) => bytesToBytearray(bytesStringAsciiBackslashReplace(S))
+    requires bytesEncodingAscii(Enc) andBool notBool stringAsciiEncodable(S, 0)
+      andBool bytesErrorsBackslashReplace(Errors)
+  rule #bytearrayCtor(S:String, Enc:String, Errors:String) => bytesToBytearray(bytesStringLatin1BackslashReplace(S))
+    requires bytesEncodingLatin1(Enc) andBool notBool stringLatin1Encodable(S, 0)
+      andBool bytesErrorsBackslashReplace(Errors)
+  rule #bytearrayCtor(S:String, Enc:String, Errors:String) => bytesToBytearray(bytesStringAsciiXmlCharRefReplace(S))
+    requires bytesEncodingAscii(Enc) andBool notBool stringAsciiEncodable(S, 0)
+      andBool bytesErrorsXmlCharRefReplace(Errors)
+  rule #bytearrayCtor(S:String, Enc:String, Errors:String) => bytesToBytearray(bytesStringLatin1XmlCharRefReplace(S))
+    requires bytesEncodingLatin1(Enc) andBool notBool stringLatin1Encodable(S, 0)
+      andBool bytesErrorsXmlCharRefReplace(Errors)
+  rule <k> #bytearrayCtor(S:String, Enc:String, Errors:String) =>
+           exceptionSignal(#exception(#token("UnicodeEncodeError", "Id")))
+       ... </k>
+    requires ((bytesEncodingAscii(Enc) andBool notBool stringAsciiEncodable(S, 0))
+      orBool (bytesEncodingLatin1(Enc) andBool notBool stringLatin1Encodable(S, 0)))
+      andBool bytesErrorsUnicodeRaise(Errors)
+  rule <k> #bytearrayCtor(S:String, Enc:String, Errors:String) =>
+           exceptionSignal(#exception(#token("NotImplementedError", "Id")))
+       ... </k>
+    requires ((bytesEncodingAscii(Enc) andBool notBool stringAsciiEncodable(S, 0))
+      orBool (bytesEncodingLatin1(Enc) andBool notBool stringLatin1Encodable(S, 0)))
+      andBool bytesErrorsKnown(Errors)
+      andBool notBool bytesErrorsIgnore(Errors)
+      andBool notBool bytesErrorsReplace(Errors)
+      andBool notBool bytesErrorsBackslashReplace(Errors)
+      andBool notBool bytesErrorsXmlCharRefReplace(Errors)
+      andBool notBool bytesErrorsUnicodeRaise(Errors)
+  rule <k> #bytearrayCtor(_S:String, Enc:String, _Errors:String) =>
+           exceptionSignal(#exception(#token("LookupError", "Id")))
+       ... </k>
+    requires notBool bytesEncodingSupported(Enc)
+  rule <k> #bytearrayCtor(S:String, Enc:String, Errors:String) =>
+           exceptionSignal(#exception(#token("LookupError", "Id")))
+       ... </k>
+    requires ((bytesEncodingAscii(Enc) andBool notBool stringAsciiEncodable(S, 0))
+      orBool (bytesEncodingLatin1(Enc) andBool notBool stringLatin1Encodable(S, 0)))
+      andBool notBool bytesErrorsKnown(Errors)
+  rule <k> #bytearrayCtor(_S:String, Enc:Val, _Errors:Val) =>
+           exceptionSignal(#exception(#token("TypeError", "Id")))
+       ... </k>
+    requires notBool isStringVal(Enc)
+  rule <k> #bytearrayCtor(_S:String, _Enc:String, Errors:Val) =>
+           exceptionSignal(#exception(#token("TypeError", "Id")))
+       ... </k>
+    requires notBool isStringVal(Errors)
+  rule <k> #bytearrayCtor(V:Val, _Enc:Val, _Errors:Val) =>
+           exceptionSignal(#exception(#token("TypeError", "Id")))
+       ... </k>
+    requires notBool isStringVal(V)
   rule #dictCtor(({}):Val) => ({}):Val
   rule #dictCtor(dictVal(DS:DictItems)) => dictVal(DS)
   rule #dictCtor([]) => ({}):Val
@@ -13007,6 +13368,8 @@ module PYTHON
     requires lengthString(S) >Int 0
   rule #listCtor(#bytes()) => []
   rule #listCtor(bytesVal(VS:ValItems)) => listVal(VS)
+  rule #listCtor(#bytearray()) => []
+  rule #listCtor(bytearrayVal(VS:ValItems)) => listVal(VS)
   rule #listCtor(({}):Val) => []
   rule #listCtor(dictVal(DS:DictItems)) => listVal(dictKeysToValItems(DS))
   rule #listCtor(set()) => []
@@ -13031,6 +13394,8 @@ module PYTHON
     requires lengthString(S) >Int 0
   rule #tupleCtor(#bytes()) => ()
   rule #tupleCtor(bytesVal(VS:ValItems)) => tupleVal(VS)
+  rule #tupleCtor(#bytearray()) => ()
+  rule #tupleCtor(bytearrayVal(VS:ValItems)) => tupleVal(VS)
   rule #tupleCtor(({}):Val) => ()
   rule #tupleCtor(dictVal(DS:DictItems)) => tupleVal(dictKeysToValItems(DS))
   rule #tupleCtor(set()) => ()
@@ -14743,6 +15108,10 @@ module PYTHON
        <env> Rho => bindVals(Rho, IDS, VS) </env>
        <result> _ => .K </result>
     requires sameIdValArity(IDS, VS)
+  rule <k> unpackAssignStmt(IDS:IdItems, bytearrayVal(VS:ValItems)) => stmtNoResult ... </k>
+       <env> Rho => bindVals(Rho, IDS, VS) </env>
+       <result> _ => .K </result>
+    requires sameIdValArity(IDS, VS)
   rule <k> unpackAssignStmt(IDS:IdItems, S:String) => stmtNoResult ... </k>
        <env> Rho => bindVals(Rho, IDS, stringToValItems(S, 0, lengthString(S))) </env>
        <result> _ => .K </result>
@@ -14782,6 +15151,10 @@ module PYTHON
        <result> _ => .K </result>
     requires sameTargetsValArity(TS, VS)
   rule <k> unpackTargetAssignStmt(TS:Targets, bytesVal(VS:ValItems)) => stmtNoResult ... </k>
+       <env> Rho => bindTargets(Rho, TS, VS) </env>
+       <result> _ => .K </result>
+    requires sameTargetsValArity(TS, VS)
+  rule <k> unpackTargetAssignStmt(TS:Targets, bytearrayVal(VS:ValItems)) => stmtNoResult ... </k>
        <env> Rho => bindTargets(Rho, TS, VS) </env>
        <result> _ => .K </result>
     requires sameTargetsValArity(TS, VS)
@@ -14834,6 +15207,10 @@ module PYTHON
        <result> _ => .K </result>
     requires starUnpackArityOk(Prefix, Suffix, valItemsLen(VS))
   rule <k> unpackStarAssignStmt(Prefix:IdItems, Star:Id, Suffix:IdItems, bytesVal(VS:ValItems)) => stmtNoResult ... </k>
+       <env> Rho => bindStarUnpack(Rho, Prefix, Star, Suffix, VS) </env>
+       <result> _ => .K </result>
+    requires starUnpackArityOk(Prefix, Suffix, valItemsLen(VS))
+  rule <k> unpackStarAssignStmt(Prefix:IdItems, Star:Id, Suffix:IdItems, bytearrayVal(VS:ValItems)) => stmtNoResult ... </k>
        <env> Rho => bindStarUnpack(Rho, Prefix, Star, Suffix, VS) </env>
        <result> _ => .K </result>
     requires starUnpackArityOk(Prefix, Suffix, valItemsLen(VS))
@@ -16079,6 +16456,10 @@ module PYTHON
   rule <k> bytesVal(VS:ValItems) ~> forIter(X:Id, Body:Block) =>
            forItems(X, VS, Body)
        ... </k>
+  rule <k> #bytearray() ~> forIter(_:Id, _:Block) => stmtNoResult ... </k>
+  rule <k> bytearrayVal(VS:ValItems) ~> forIter(X:Id, Body:Block) =>
+           forItems(X, VS, Body)
+       ... </k>
   rule <k> S:String ~> forIter(_:Id, _:Block) => stmtNoResult ... </k>
     requires lengthString(S) ==Int 0
   rule <k> S:String ~> forIter(X:Id, Body:Block) =>
@@ -16173,6 +16554,11 @@ module PYTHON
        ... </k>
        <env> Rho => bindVals(Rho, IDS, VS) </env>
     requires sameIdValArity(IDS, VS)
+  rule <k> forUnpackItems(IDS:IdItems, valItemsCons(bytearrayVal(VS:ValItems), Rest:ValItems), block(SS:Stmts)) =>
+           SS ~> forUnpackItems(IDS, Rest, block(SS))
+       ... </k>
+       <env> Rho => bindVals(Rho, IDS, VS) </env>
+    requires sameIdValArity(IDS, VS)
   rule <k> forUnpackItems(IDS:IdItems, valItemsCons(S:String, Rest:ValItems), block(SS:Stmts)) =>
            SS ~> forUnpackItems(IDS, Rest, block(SS))
        ... </k>
@@ -16213,6 +16599,11 @@ module PYTHON
        <env> Rho => bindVals(Rho, IDS, VS) </env>
     requires sameIdValArity(IDS, VS)
   rule <k> forUnpackItems(IDS:IdItems, valItemsLast(bytesVal(VS:ValItems)), block(SS:Stmts)) =>
+           SS ~> forDone
+       ... </k>
+       <env> Rho => bindVals(Rho, IDS, VS) </env>
+    requires sameIdValArity(IDS, VS)
+  rule <k> forUnpackItems(IDS:IdItems, valItemsLast(bytearrayVal(VS:ValItems)), block(SS:Stmts)) =>
            SS ~> forDone
        ... </k>
        <env> Rho => bindVals(Rho, IDS, VS) </env>
@@ -16261,6 +16652,11 @@ module PYTHON
        ... </k>
        <env> Rho => bindVals(Rho, IDS, VS) </env>
     requires sameIdValArity(IDS, VS)
+  rule <k> forUnpackItems(IDS:IdItems, valItemsCons(bytearrayVal(VS:ValItems), Rest:ValItems), {}) =>
+           forUnpackItems(IDS, Rest, {})
+       ... </k>
+       <env> Rho => bindVals(Rho, IDS, VS) </env>
+    requires sameIdValArity(IDS, VS)
   rule <k> forUnpackItems(IDS:IdItems, valItemsCons(S:String, Rest:ValItems), {}) =>
            forUnpackItems(IDS, Rest, {})
        ... </k>
@@ -16301,6 +16697,11 @@ module PYTHON
        <env> Rho => bindVals(Rho, IDS, VS) </env>
     requires sameIdValArity(IDS, VS)
   rule <k> forUnpackItems(IDS:IdItems, valItemsLast(bytesVal(VS:ValItems)), {}) =>
+           stmtNoResult
+       ... </k>
+       <env> Rho => bindVals(Rho, IDS, VS) </env>
+    requires sameIdValArity(IDS, VS)
+  rule <k> forUnpackItems(IDS:IdItems, valItemsLast(bytearrayVal(VS:ValItems)), {}) =>
            stmtNoResult
        ... </k>
        <env> Rho => bindVals(Rho, IDS, VS) </env>
@@ -16509,6 +16910,11 @@ module PYTHON
        ... </k>
        <env> Rho => bindStarUnpack(Rho, Prefix, Star, Suffix, VS) </env>
     requires starUnpackArityOk(Prefix, Suffix, valItemsLen(VS))
+  rule <k> forStarUnpackItems(Prefix:IdItems, Star:Id, Suffix:IdItems, valItemsCons(bytearrayVal(VS:ValItems), Rest:ValItems), block(SS:Stmts)) =>
+           SS ~> forStarUnpackItems(Prefix, Star, Suffix, Rest, block(SS))
+       ... </k>
+       <env> Rho => bindStarUnpack(Rho, Prefix, Star, Suffix, VS) </env>
+    requires starUnpackArityOk(Prefix, Suffix, valItemsLen(VS))
   rule <k> forStarUnpackItems(Prefix:IdItems, Star:Id, Suffix:IdItems, valItemsCons(S:String, Rest:ValItems), block(SS:Stmts)) =>
            SS ~> forStarUnpackItems(Prefix, Star, Suffix, Rest, block(SS))
        ... </k>
@@ -16558,6 +16964,11 @@ module PYTHON
        ... </k>
        <env> Rho => Rho [ Star <- [] ] </env>
     requires idItemsLen(Prefix) +Int idItemsLen(Suffix) ==Int 0
+  rule <k> forStarUnpackItems(Prefix:IdItems, Star:Id, Suffix:IdItems, valItemsCons(#bytearray(), Rest:ValItems), block(SS:Stmts)) =>
+           SS ~> forStarUnpackItems(Prefix, Star, Suffix, Rest, block(SS))
+       ... </k>
+       <env> Rho => Rho [ Star <- [] ] </env>
+    requires idItemsLen(Prefix) +Int idItemsLen(Suffix) ==Int 0
   rule <k> forStarUnpackItems(Prefix:IdItems, Star:Id, Suffix:IdItems, valItemsCons(set(), Rest:ValItems), block(SS:Stmts)) =>
            SS ~> forStarUnpackItems(Prefix, Star, Suffix, Rest, block(SS))
        ... </k>
@@ -16593,6 +17004,11 @@ module PYTHON
        <env> Rho => bindStarUnpack(Rho, Prefix, Star, Suffix, VS) </env>
     requires starUnpackArityOk(Prefix, Suffix, valItemsLen(VS))
   rule <k> forStarUnpackItems(Prefix:IdItems, Star:Id, Suffix:IdItems, valItemsLast(bytesVal(VS:ValItems)), block(SS:Stmts)) =>
+           SS ~> forDone
+       ... </k>
+       <env> Rho => bindStarUnpack(Rho, Prefix, Star, Suffix, VS) </env>
+    requires starUnpackArityOk(Prefix, Suffix, valItemsLen(VS))
+  rule <k> forStarUnpackItems(Prefix:IdItems, Star:Id, Suffix:IdItems, valItemsLast(bytearrayVal(VS:ValItems)), block(SS:Stmts)) =>
            SS ~> forDone
        ... </k>
        <env> Rho => bindStarUnpack(Rho, Prefix, Star, Suffix, VS) </env>
@@ -16646,6 +17062,11 @@ module PYTHON
        ... </k>
        <env> Rho => Rho [ Star <- [] ] </env>
     requires idItemsLen(Prefix) +Int idItemsLen(Suffix) ==Int 0
+  rule <k> forStarUnpackItems(Prefix:IdItems, Star:Id, Suffix:IdItems, valItemsLast(#bytearray()), block(SS:Stmts)) =>
+           SS ~> forDone
+       ... </k>
+       <env> Rho => Rho [ Star <- [] ] </env>
+    requires idItemsLen(Prefix) +Int idItemsLen(Suffix) ==Int 0
   rule <k> forStarUnpackItems(Prefix:IdItems, Star:Id, Suffix:IdItems, valItemsLast(set()), block(SS:Stmts)) =>
            SS ~> forDone
        ... </k>
@@ -16681,6 +17102,11 @@ module PYTHON
        <env> Rho => bindStarUnpack(Rho, Prefix, Star, Suffix, VS) </env>
     requires starUnpackArityOk(Prefix, Suffix, valItemsLen(VS))
   rule <k> forStarUnpackItems(Prefix:IdItems, Star:Id, Suffix:IdItems, valItemsCons(bytesVal(VS:ValItems), Rest:ValItems), {}) =>
+           forStarUnpackItems(Prefix, Star, Suffix, Rest, {})
+       ... </k>
+       <env> Rho => bindStarUnpack(Rho, Prefix, Star, Suffix, VS) </env>
+    requires starUnpackArityOk(Prefix, Suffix, valItemsLen(VS))
+  rule <k> forStarUnpackItems(Prefix:IdItems, Star:Id, Suffix:IdItems, valItemsCons(bytearrayVal(VS:ValItems), Rest:ValItems), {}) =>
            forStarUnpackItems(Prefix, Star, Suffix, Rest, {})
        ... </k>
        <env> Rho => bindStarUnpack(Rho, Prefix, Star, Suffix, VS) </env>
@@ -16734,6 +17160,11 @@ module PYTHON
        ... </k>
        <env> Rho => Rho [ Star <- [] ] </env>
     requires idItemsLen(Prefix) +Int idItemsLen(Suffix) ==Int 0
+  rule <k> forStarUnpackItems(Prefix:IdItems, Star:Id, Suffix:IdItems, valItemsCons(#bytearray(), Rest:ValItems), {}) =>
+           forStarUnpackItems(Prefix, Star, Suffix, Rest, {})
+       ... </k>
+       <env> Rho => Rho [ Star <- [] ] </env>
+    requires idItemsLen(Prefix) +Int idItemsLen(Suffix) ==Int 0
   rule <k> forStarUnpackItems(Prefix:IdItems, Star:Id, Suffix:IdItems, valItemsCons(set(), Rest:ValItems), {}) =>
            forStarUnpackItems(Prefix, Star, Suffix, Rest, {})
        ... </k>
@@ -16769,6 +17200,11 @@ module PYTHON
        <env> Rho => bindStarUnpack(Rho, Prefix, Star, Suffix, VS) </env>
     requires starUnpackArityOk(Prefix, Suffix, valItemsLen(VS))
   rule <k> forStarUnpackItems(Prefix:IdItems, Star:Id, Suffix:IdItems, valItemsLast(bytesVal(VS:ValItems)), {}) =>
+           stmtNoResult
+       ... </k>
+       <env> Rho => bindStarUnpack(Rho, Prefix, Star, Suffix, VS) </env>
+    requires starUnpackArityOk(Prefix, Suffix, valItemsLen(VS))
+  rule <k> forStarUnpackItems(Prefix:IdItems, Star:Id, Suffix:IdItems, valItemsLast(bytearrayVal(VS:ValItems)), {}) =>
            stmtNoResult
        ... </k>
        <env> Rho => bindStarUnpack(Rho, Prefix, Star, Suffix, VS) </env>
@@ -16818,6 +17254,11 @@ module PYTHON
        <env> Rho => Rho [ Star <- [] ] </env>
     requires idItemsLen(Prefix) +Int idItemsLen(Suffix) ==Int 0
   rule <k> forStarUnpackItems(Prefix:IdItems, Star:Id, Suffix:IdItems, valItemsLast(#bytes()), {}) =>
+           stmtNoResult
+       ... </k>
+       <env> Rho => Rho [ Star <- [] ] </env>
+    requires idItemsLen(Prefix) +Int idItemsLen(Suffix) ==Int 0
+  rule <k> forStarUnpackItems(Prefix:IdItems, Star:Id, Suffix:IdItems, valItemsLast(#bytearray()), {}) =>
            stmtNoResult
        ... </k>
        <env> Rho => Rho [ Star <- [] ] </env>

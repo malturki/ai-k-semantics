@@ -123,6 +123,13 @@
       "coverage": ["complex-constructor", "complex-string-conversion", "unicode-whitespace", "float-special-strings", "complex-values", "ordinary-python-source-adapter"]
     },
     {
+      "id": "adapter-complex-constructor-errors",
+      "source": "../adapter/adapter-complex-constructor-errors.py",
+      "reference": "Python Standard Library Built-in Types complex; CPython Lib/test/test_complex.py test_constructor_from_string",
+      "expected_result": "True ~> .K",
+      "coverage": ["complex-constructor", "complex-string-conversion", "numeric-string-parsing", "constructor-error-diagnostics", "value-error", "type-error", "ordinary-python-source-adapter"]
+    },
+    {
       "id": "adapter-numeric-real-imag-attributes",
       "source": "../adapter/adapter-numeric-real-imag-attributes.py",
       "reference": "Python Language Reference data model numbers; Python Standard Library Built-in Types numeric types; CPython numeric real/imag attributes",

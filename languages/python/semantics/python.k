@@ -1455,6 +1455,8 @@ module PYTHON
                 | isKwDefaultMissing(Val) [function, symbol(isKwDefaultMissing)]
                 | intCtorExplicitBaseSource(Val) [function, symbol(intCtorExplicitBaseSource)]
                 | floatCtorTypeErrorProfile(Val) [function, symbol(floatCtorTypeErrorProfile)]
+                | complexCtorTypeErrorProfile(Val) [function, symbol(complexCtorTypeErrorProfile)]
+                | complexCtorTwoArgTypeErrorProfile(Val) [function, symbol(complexCtorTwoArgTypeErrorProfile)]
                 | validIntBase(Int) [function, symbol(validIntBase)]
                 | intStringOk(String, Int) [function, symbol(intStringOk)]
                 | intStringBodyOk(String, Int, Int) [function, symbol(intStringBodyOk)]
@@ -1965,6 +1967,28 @@ module PYTHON
   rule floatCtorTypeErrorProfile(rangeVal(_:Int, _:Int, _:Int)) => true
   rule floatCtorTypeErrorProfile(sliceVal(_:Val, _:Val, _:Val)) => true
   rule floatCtorTypeErrorProfile(_:Val) => false [owise]
+
+  rule complexCtorTypeErrorProfile(#bytes()) => true
+  rule complexCtorTypeErrorProfile(bytesVal(_:ValItems)) => true
+  rule complexCtorTypeErrorProfile(#bytearray()) => true
+  rule complexCtorTypeErrorProfile(bytearrayVal(_:ValItems)) => true
+  rule complexCtorTypeErrorProfile(None) => true
+  rule complexCtorTypeErrorProfile(Ellipsis) => true
+  rule complexCtorTypeErrorProfile([]) => true
+  rule complexCtorTypeErrorProfile(listVal(_:ValItems)) => true
+  rule complexCtorTypeErrorProfile(()) => true
+  rule complexCtorTypeErrorProfile(tupleVal(_:ValItems)) => true
+  rule complexCtorTypeErrorProfile(({}):Val) => true
+  rule complexCtorTypeErrorProfile(dictVal(_:DictItems)) => true
+  rule complexCtorTypeErrorProfile(set()) => true
+  rule complexCtorTypeErrorProfile(setVal(_:ValItems)) => true
+  rule complexCtorTypeErrorProfile(rangeVal(_:Int, _:Int)) => true
+  rule complexCtorTypeErrorProfile(rangeVal(_:Int, _:Int, _:Int)) => true
+  rule complexCtorTypeErrorProfile(sliceVal(_:Val, _:Val, _:Val)) => true
+  rule complexCtorTypeErrorProfile(_:Val) => false [owise]
+
+  rule complexCtorTwoArgTypeErrorProfile(_:String) => true
+  rule complexCtorTwoArgTypeErrorProfile(V:Val) => complexCtorTypeErrorProfile(V) [owise]
 
   rule callableVal(closure(_:Id, _:Exp)) => true
   rule callableVal(closureArgs(_:IdItems, _:Exp)) => true
@@ -14651,11 +14675,24 @@ module PYTHON
       floatStringValue(substrString(S, 0, complexSplitIndex(S))),
       complexImagStringValue(substrString(S, complexSplitIndex(S), lengthString(S))))
     requires complexPairStringOk(S)
+  rule <k> #complexCtor(S:String) =>
+           exceptionSignal(#exception(#token("ValueError", "Id")))
+       ... </k>
+    requires notBool complexStringOk(stripPythonStringSpace(S))
   rule #complexCtor(V:Val) => #complex(complexReal(V), complexImag(V))
     requires isComplexLike(V)
+  rule <k> #complexCtor(V:Val) =>
+           exceptionSignal(#exception(#token("TypeError", "Id")))
+       ... </k>
+    requires complexCtorTypeErrorProfile(V)
   rule #complexCtor(V1:Val, V2:Val) =>
     #complex(complexReal(V1) -Float complexImag(V2), complexImag(V1) +Float complexReal(V2))
     requires isComplexLike(V1) andBool isComplexLike(V2)
+  rule <k> #complexCtor(V1:Val, V2:Val) =>
+           exceptionSignal(#exception(#token("TypeError", "Id")))
+       ... </k>
+    requires complexCtorTwoArgTypeErrorProfile(V1)
+      orBool complexCtorTwoArgTypeErrorProfile(V2)
   rule #conjugate(#complex(R:Float, I:Float)) => #complex(R, 0.0 -Float I)
   rule #conjugate(F:Float) => F
   rule #conjugate(V:Val) => intValue(V)

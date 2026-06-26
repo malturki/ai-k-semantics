@@ -1296,6 +1296,8 @@ module PYTHON
                 | pyStringConversionSupported(Val) [function, symbol(pyStringConversionSupported)]
                 | pyStringConversionItemsSupported(ValItems) [function, symbol(pyStringConversionItemsSupported)]
                 | pyStringConversionDictItemsSupported(DictItems) [function, symbol(pyStringConversionDictItemsSupported)]
+                | unicodeScalarCodePoint(Int) [function, symbol(unicodeScalarCodePoint)]
+                | stringOneUnicodeChar(String) [function, symbol(stringOneUnicodeChar)]
                 | stringUtf8ContAt(String, Int) [function, symbol(stringUtf8ContAt)]
                 | stringUtf8Valid2At(String, Int) [function, symbol(stringUtf8Valid2At)]
                 | stringUtf8Valid3At(String, Int) [function, symbol(stringUtf8Valid3At)]
@@ -1554,6 +1556,7 @@ module PYTHON
                | stringUtf8Code2At(String, Int) [function, symbol(stringUtf8Code2At)]
                | stringUtf8Code3At(String, Int) [function, symbol(stringUtf8Code3At)]
                | stringUtf8Code4At(String, Int) [function, symbol(stringUtf8Code4At)]
+               | stringCodePointAt(String, Int) [function, symbol(stringCodePointAt)]
                | stringAsciiControlCode(String) [function, symbol(stringAsciiControlCode)]
                | bytesReprQuoteByte(ValItems) [function, symbol(bytesReprQuoteByte)]
   syntax IdItems ::= concatIdItems(IdItems, IdItems) [function, symbol(concatIdItems)]
@@ -1594,6 +1597,8 @@ module PYTHON
                   | bytesReprByte(Val, Int) [function, symbol(bytesReprByte)]
                   | byteHex(Int) [function, symbol(byteHex)]
                   | byteHexDigit(Int) [function, symbol(byteHexDigit)]
+                  | unicodeChar(Int) [function, symbol(unicodeChar)]
+                  | utf8ByteString(Int, Int, Int, Int) [function, symbol(utf8ByteString4)]
                   | pyIntBaseString(Int, Int, String) [function, symbol(pyIntBaseString)]
                   | intBaseDigits(Int, Int) [function, symbol(intBaseDigits)]
                   | pyIntBaseStringUpper(Int, Int, String) [function, symbol(pyIntBaseStringUpper)]
@@ -2205,6 +2210,31 @@ module PYTHON
       +Int (stringByte(S, I +Int 3) -Int 128)
     requires stringUtf8Valid4At(S, I)
 
+  rule unicodeScalarCodePoint(C:Int) => true
+    requires C >=Int 0
+      andBool C <=Int 1114111
+      andBool (C <Int 55296 orBool C >Int 57343)
+  rule unicodeScalarCodePoint(_:Int) => false [owise]
+
+  rule stringOneUnicodeChar(S:String) => true
+    requires lengthString(S) ==Int 1 andBool stringByte(S, 0) <Int 128
+  rule stringOneUnicodeChar(S:String) => true
+    requires lengthString(S) ==Int 2 andBool stringUtf8Valid2At(S, 0)
+  rule stringOneUnicodeChar(S:String) => true
+    requires lengthString(S) ==Int 3 andBool stringUtf8Valid3At(S, 0)
+  rule stringOneUnicodeChar(S:String) => true
+    requires lengthString(S) ==Int 4 andBool stringUtf8Valid4At(S, 0)
+  rule stringOneUnicodeChar(_:String) => false [owise]
+
+  rule stringCodePointAt(S:String, I:Int) => stringByte(S, I)
+    requires I <Int lengthString(S) andBool stringByte(S, I) <Int 128
+  rule stringCodePointAt(S:String, I:Int) => stringUtf8Code2At(S, I)
+    requires stringUtf8Valid2At(S, I)
+  rule stringCodePointAt(S:String, I:Int) => stringUtf8Code3At(S, I)
+    requires stringUtf8Valid3At(S, I)
+  rule stringCodePointAt(S:String, I:Int) => stringUtf8Code4At(S, I)
+    requires stringUtf8Valid4At(S, I)
+
   rule stringAsciiPayload(S:String, _Quote:Int, I:Int) => ""
     requires I >=Int lengthString(S)
   rule stringAsciiPayload(S:String, Quote:Int, I:Int) =>
@@ -2352,6 +2382,26 @@ module PYTHON
   rule byteHexDigitUpper(13) => "D"
   rule byteHexDigitUpper(14) => "E"
   rule byteHexDigitUpper(15) => "F"
+
+  rule unicodeChar(C:Int) => chrChar(C)
+    requires C >=Int 0 andBool C <=Int 127
+  rule unicodeChar(C:Int) => utf8ByteString(
+      192 +Int (C /Int 64),
+      128 +Int (C %Int 64))
+    requires C >=Int 128 andBool C <=Int 2047
+  rule unicodeChar(C:Int) => utf8ByteString(
+      224 +Int (C /Int 4096),
+      128 +Int ((C /Int 64) %Int 64),
+      128 +Int (C %Int 64))
+    requires C >=Int 2048
+      andBool C <=Int 65535
+      andBool unicodeScalarCodePoint(C)
+  rule unicodeChar(C:Int) => utf8ByteString(
+      240 +Int (C /Int 262144),
+      128 +Int ((C /Int 4096) %Int 64),
+      128 +Int ((C /Int 64) %Int 64),
+      128 +Int (C %Int 64))
+    requires C >=Int 65536 andBool C <=Int 1114111
 
   rule formatSignPrefix("+", I:Int) => "+"
     requires I >=Int 0
@@ -2943,8 +2993,8 @@ module PYTHON
     [owise]
 
   rule formatIntDigits(I:Int, "b") => intBaseDigits(intAbs(I), 2)
-  rule formatIntDigits(I:Int, "c") => chrChar(I)
-    requires I >=Int 0 andBool I <=Int 255
+  rule formatIntDigits(I:Int, "c") => unicodeChar(I)
+    requires unicodeScalarCodePoint(I)
   rule formatIntDigits(I:Int, "d") => Int2String(intAbs(I))
   rule formatIntDigits(I:Int, "o") => intBaseDigits(intAbs(I), 8)
   rule formatIntDigits(I:Int, "x") => intBaseDigits(intAbs(I), 16)
@@ -3879,6 +3929,7 @@ module PYTHON
 
   rule utf8ByteString(A:Int, B:Int) => chrChar(A) +String chrChar(B)
   rule utf8ByteString(A:Int, B:Int, C:Int) => chrChar(A) +String chrChar(B) +String chrChar(C)
+  rule utf8ByteString(A:Int, B:Int, C:Int, D:Int) => chrChar(A) +String chrChar(B) +String chrChar(C) +String chrChar(D)
 
   rule pythonStringSpacePrefixLen(S:String) => 1
     requires lengthString(S) >=Int 1
@@ -12727,8 +12778,8 @@ module PYTHON
       andBool formatIntType(Spec) ==String "c"
       andBool notBool formatHasSign(Spec)
       andBool notBool formatHasAlt(Spec)
-      andBool intValue(V) >Int 255
-      andBool intValue(V) <=Int 1114111
+      andBool intValue(V) >=Int 55296
+      andBool intValue(V) <=Int 57343
   rule <k> Spec:String ~> formatApply(V:Val)
         => exceptionSignal(#exception(#token("OverflowError", "Id"))) ... </k>
     requires formatIntWidthSpecSupported(Spec)
@@ -12743,22 +12794,21 @@ module PYTHON
       andBool isIntLike(V)
       andBool formatGroupingAllowed(Spec)
       andBool notBool (formatIntType(Spec) ==String "c" andBool (formatHasSign(Spec) orBool formatHasAlt(Spec)))
-      andBool (formatIntType(Spec) =/=String "c" orBool (intValue(V) >=Int 0 andBool intValue(V) <=Int 255))
+      andBool (formatIntType(Spec) =/=String "c" orBool unicodeScalarCodePoint(intValue(V)))
   rule <k> Spec:String ~> formatApply(V:Val)
         => pyIntBaseString(intValue(V), 2, "") ... </k>
     requires Spec ==String "b" andBool isIntLike(V)
   rule <k> Spec:String ~> formatApply(V:Val)
-        => chrChar(intValue(V)) ... </k>
+        => unicodeChar(intValue(V)) ... </k>
     requires Spec ==String "c"
       andBool isIntLike(V)
-      andBool intValue(V) >=Int 0
-      andBool intValue(V) <=Int 255
+      andBool unicodeScalarCodePoint(intValue(V))
   rule <k> Spec:String ~> formatApply(V:Val)
         => exceptionSignal(#exception(#token("NotImplementedError", "Id"))) ... </k>
     requires Spec ==String "c"
       andBool isIntLike(V)
-      andBool intValue(V) >Int 255
-      andBool intValue(V) <=Int 1114111
+      andBool intValue(V) >=Int 55296
+      andBool intValue(V) <=Int 57343
   rule <k> Spec:String ~> formatApply(V:Val)
         => exceptionSignal(#exception(#token("OverflowError", "Id"))) ... </k>
     requires Spec ==String "c"
@@ -12934,10 +12984,10 @@ module PYTHON
   rule <k> Spec:Val ~> formatApply(_V:Val)
         => exceptionSignal(#exception(#token("TypeError", "Id"))) ... </k>
     requires notBool isStringVal(Spec)
-  rule #chr(V:Val) => chrChar(intValue(V))
-    requires isIntLike(V) andBool intValue(V) >=Int 0 andBool intValue(V) <=Int 255
-  rule #ord(S:String) => ordChar(S)
-    requires lengthString(S) ==Int 1
+  rule #chr(V:Val) => unicodeChar(intValue(V))
+    requires isIntLike(V) andBool unicodeScalarCodePoint(intValue(V))
+  rule #ord(S:String) => stringCodePointAt(S, 0)
+    requires stringOneUnicodeChar(S)
   rule #ord(bytesVal(valItemsLast(V:Val))) => intValue(V)
     requires isIntLike(V) andBool intValue(V) >=Int 0 andBool intValue(V) <=Int 255
   rule #bin(V:Val) => pyIntBaseString(intValue(V), 2, "0b")
@@ -12962,13 +13012,15 @@ module PYTHON
   rule <k> #ascii(V:Val) => exceptionSignal(#exception(#token("TypeError", "Id"))) ... </k>
     requires notBool pyStringConversionSupported(V)
   rule <k> #chr(V:Val) => exceptionSignal(#exception(#token("NotImplementedError", "Id"))) ... </k>
-    requires isIntLike(V) andBool intValue(V) >Int 255 andBool intValue(V) <=Int 1114111
+    requires isIntLike(V)
+      andBool intValue(V) >=Int 55296
+      andBool intValue(V) <=Int 57343
   rule <k> #chr(V:Val) => exceptionSignal(#exception(#token("ValueError", "Id"))) ... </k>
     requires isIntLike(V) andBool (intValue(V) <Int 0 orBool intValue(V) >Int 1114111)
   rule <k> #chr(V:Val) => exceptionSignal(#exception(#token("TypeError", "Id"))) ... </k>
     requires notBool isIntLike(V)
   rule <k> #ord(S:String) => exceptionSignal(#exception(#token("TypeError", "Id"))) ... </k>
-    requires lengthString(S) =/=Int 1
+    requires notBool stringOneUnicodeChar(S)
   rule <k> #ord(#bytes()) => exceptionSignal(#exception(#token("TypeError", "Id"))) ... </k>
   rule <k> #ord(bytesVal(VS:ValItems)) => exceptionSignal(#exception(#token("TypeError", "Id"))) ... </k>
     requires valItemsLen(VS) =/=Int 1 orBool notBool valItemsAllByteInts(VS)

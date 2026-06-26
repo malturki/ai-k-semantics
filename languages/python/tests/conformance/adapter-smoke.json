@@ -403,6 +403,13 @@
       "coverage": ["ord-builtin", "byte-range-string-code-point", "bytes-single-byte-value", "type-error", "ordinary-python-source-adapter"]
     },
     {
+      "id": "adapter-chr-ord-unicode",
+      "source": "../adapter/adapter-chr-ord-unicode.py",
+      "reference": "Python Standard Library Built-in Functions chr and ord; Python Format Specification Mini-Language integer presentation type 'c'",
+      "expected_result": "True ~> .K",
+      "coverage": ["chr-builtin", "ord-builtin", "unicode-string-code-point", "format-builtin", "character-presentation-type", "ascii-builtin", "formatted-string-literal", "ordinary-python-source-adapter"]
+    },
+    {
       "id": "adapter-bin-oct-hex-builtins",
       "source": "../adapter/adapter-bin-oct-hex-builtins.py",
       "reference": "Python Standard Library Built-in Functions bin, oct, hex; CPython Lib/test/test_builtin.py test_bin/test_oct/test_hex",

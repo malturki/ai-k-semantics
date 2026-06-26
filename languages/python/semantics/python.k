@@ -1557,6 +1557,7 @@ module PYTHON
                | stringUtf8Code3At(String, Int) [function, symbol(stringUtf8Code3At)]
                | stringUtf8Code4At(String, Int) [function, symbol(stringUtf8Code4At)]
                | stringCodePointAt(String, Int) [function, symbol(stringCodePointAt)]
+               | stringCodePointByteLenAt(String, Int) [function, symbol(stringCodePointByteLenAt)]
                | stringCodePointLen(String, Int) [function, symbol(stringCodePointLen)]
                | stringCodePointPrefixByteLen(String, Int, Int) [function, symbol(stringCodePointPrefixByteLen)]
                | stringAsciiControlCode(String) [function, symbol(stringAsciiControlCode)]
@@ -2236,6 +2237,21 @@ module PYTHON
     requires stringUtf8Valid3At(S, I)
   rule stringCodePointAt(S:String, I:Int) => stringUtf8Code4At(S, I)
     requires stringUtf8Valid4At(S, I)
+
+  rule stringCodePointByteLenAt(S:String, I:Int) => 1
+    requires I <Int lengthString(S) andBool stringByte(S, I) <Int 128
+  rule stringCodePointByteLenAt(S:String, I:Int) => 2
+    requires stringUtf8Valid2At(S, I)
+  rule stringCodePointByteLenAt(S:String, I:Int) => 3
+    requires stringUtf8Valid3At(S, I)
+  rule stringCodePointByteLenAt(S:String, I:Int) => 4
+    requires stringUtf8Valid4At(S, I)
+  rule stringCodePointByteLenAt(S:String, I:Int) => 1
+    requires I <Int lengthString(S)
+      andBool stringByte(S, I) >=Int 128
+      andBool notBool stringUtf8Valid2At(S, I)
+      andBool notBool stringUtf8Valid3At(S, I)
+      andBool notBool stringUtf8Valid4At(S, I)
 
   rule stringCodePointLen(S:String, I:Int) => 0
     requires I >=Int lengthString(S)
@@ -6362,7 +6378,7 @@ module PYTHON
   rule unpackValueLen(()) => 0
   rule unpackValueLen(bytesVal(VS:ValItems)) => valItemsLen(VS)
   rule unpackValueLen(#bytes()) => 0
-  rule unpackValueLen(S:String) => lengthString(S)
+  rule unpackValueLen(S:String) => stringCodePointLen(S, 0)
   rule unpackValueLen(dictVal(DS:DictItems)) => valItemsLen(dictKeysToValItems(DS))
   rule unpackValueLen(({}):Val) => 0
   rule unpackValueLen(setVal(VS:ValItems)) => valItemsLen(VS)
@@ -6372,11 +6388,13 @@ module PYTHON
     requires Step =/=Int 0
 
   rule stringToValItems(S:String, I:Int, Len:Int) =>
-    valItemsLast(substrString(S, I, I +Int 1))
-    requires I +Int 1 >=Int Len
+    valItemsLast(substrString(S, I, I +Int stringCodePointByteLenAt(S, I)))
+    requires I +Int stringCodePointByteLenAt(S, I) >=Int Len
   rule stringToValItems(S:String, I:Int, Len:Int) =>
-    valItemsCons(substrString(S, I, I +Int 1), stringToValItems(S, I +Int 1, Len))
-    requires I +Int 1 <Int Len
+    valItemsCons(
+      substrString(S, I, I +Int stringCodePointByteLenAt(S, I)),
+      stringToValItems(S, I +Int stringCodePointByteLenAt(S, I), Len))
+    requires I +Int stringCodePointByteLenAt(S, I) <Int Len
 
   rule dictKeysToValItems(dictItemsLast(K:Val, _:Val)) => valItemsLast(K)
   rule dictKeysToValItems(dictItemsCons(K:Val, _:Val, DS:DictItems)) =>
@@ -6549,18 +6567,30 @@ module PYTHON
     requires N >Int 0
 
   rule sliceString(_:String, Start:Int, Stop:Int) => "" requires Start >=Int Stop
-  rule sliceString(S:String, Start:Int, Stop:Int) => substrString(S, Start, Stop)
+  rule sliceString(S:String, Start:Int, Stop:Int) =>
+    substrString(
+      S,
+      stringCodePointPrefixByteLen(S, Start, 0),
+      stringCodePointPrefixByteLen(S, Stop, 0))
     requires Start <Int Stop
 
   rule sliceStepString(_:String, Start:Int, Stop:Int, Step:Int) => ""
     requires Start >=Int Stop andBool Step >Int 0
   rule sliceStepString(S:String, Start:Int, Stop:Int, Step:Int) =>
-    substrString(S, Start, Start +Int 1) +String sliceStepString(S, Start +Int Step, Stop, Step)
+    substrString(
+      S,
+      stringCodePointPrefixByteLen(S, Start, 0),
+      stringCodePointPrefixByteLen(S, Start +Int 1, 0))
+      +String sliceStepString(S, Start +Int Step, Stop, Step)
     requires Start <Int Stop andBool Step >Int 0
   rule sliceStepString(_:String, Start:Int, Stop:Int, Step:Int) => ""
     requires Start <=Int Stop andBool Step <Int 0
   rule sliceStepString(S:String, Start:Int, Stop:Int, Step:Int) =>
-    substrString(S, Start, Start +Int 1) +String sliceStepString(S, Start +Int Step, Stop, Step)
+    substrString(
+      S,
+      stringCodePointPrefixByteLen(S, Start, 0),
+      stringCodePointPrefixByteLen(S, Start +Int 1, 0))
+      +String sliceStepString(S, Start +Int Step, Stop, Step)
     requires Start >Int Stop andBool Step <Int 0
 
   rule listSlice(_:ValItems, Start:Int, Stop:Int) => [] requires Start >=Int Stop
@@ -7684,7 +7714,7 @@ module PYTHON
   rule <k> lenExp(V:Val) => exceptionSignal(#exception(#token("TypeError", "Id"))) ... </k>
     requires notBool lenSupported(V)
   rule sliceExp(S:String, Lower:Val, Upper:Val) =>
-    sliceString(S, pySliceLower(Lower, lengthString(S)), pySliceUpper(Upper, lengthString(S)))
+    sliceString(S, pySliceLower(Lower, stringCodePointLen(S, 0)), pySliceUpper(Upper, stringCodePointLen(S, 0)))
   rule sliceExp(#bytes(), _Lower:Val, _Upper:Val) => #bytes()
   rule sliceExp(bytesVal(VS:ValItems), Lower:Val, Upper:Val) =>
     bytesSlice(VS, pySliceLower(Lower, valItemsLen(VS)), pySliceUpper(Upper, valItemsLen(VS)))
@@ -7704,10 +7734,10 @@ module PYTHON
        ... </k>
     requires isIntLike(Step) andBool intValue(Step) ==Int 0
   rule sliceStepExp(S:String, Lower:Val, Upper:Val, Step:Val) =>
-    sliceStepString(S, pySliceLower(Lower, lengthString(S)), pySliceUpper(Upper, lengthString(S)), intValue(Step))
+    sliceStepString(S, pySliceLower(Lower, stringCodePointLen(S, 0)), pySliceUpper(Upper, stringCodePointLen(S, 0)), intValue(Step))
     requires isIntLike(Step) andBool intValue(Step) >Int 0
   rule sliceStepExp(S:String, Lower:Val, Upper:Val, Step:Val) =>
-    sliceStepString(S, pySliceLowerNeg(Lower, lengthString(S)), pySliceUpperNeg(Upper, lengthString(S)), intValue(Step))
+    sliceStepString(S, pySliceLowerNeg(Lower, stringCodePointLen(S, 0)), pySliceUpperNeg(Upper, stringCodePointLen(S, 0)), intValue(Step))
     requires isIntLike(Step) andBool intValue(Step) <Int 0
   rule sliceStepExp(#bytes(), _Lower:Val, _Upper:Val, Step:Val) => #bytes()
     requires isIntLike(Step) andBool intValue(Step) =/=Int 0
@@ -7988,18 +8018,25 @@ module PYTHON
   rule subscriptExp(V:Val, sliceVal(Lower:Val, Upper:Val, None)) => sliceExp(V, Lower, Upper)
   rule subscriptExp(V:Val, sliceVal(Lower:Val, Upper:Val, Step:Val)) => sliceStepExp(V, Lower, Upper, Step)
     requires isIntLike(Step)
-  rule subscriptExp(S:String, I:Val) => substrString(S, intValue(I), intValue(I) +Int 1)
-    requires isIntLike(I) andBool intValue(I) >=Int 0 andBool intValue(I) <Int lengthString(S)
   rule subscriptExp(S:String, I:Val) =>
-    substrString(S, lengthString(S) +Int intValue(I), lengthString(S) +Int intValue(I) +Int 1)
+    substrString(
+      S,
+      stringCodePointPrefixByteLen(S, intValue(I), 0),
+      stringCodePointPrefixByteLen(S, intValue(I) +Int 1, 0))
+    requires isIntLike(I) andBool intValue(I) >=Int 0 andBool intValue(I) <Int stringCodePointLen(S, 0)
+  rule subscriptExp(S:String, I:Val) =>
+    substrString(
+      S,
+      stringCodePointPrefixByteLen(S, stringCodePointLen(S, 0) +Int intValue(I), 0),
+      stringCodePointPrefixByteLen(S, stringCodePointLen(S, 0) +Int intValue(I) +Int 1, 0))
     requires isIntLike(I)
      andBool intValue(I) <Int 0
-     andBool lengthString(S) +Int intValue(I) >=Int 0
+     andBool stringCodePointLen(S, 0) +Int intValue(I) >=Int 0
   rule <k> subscriptExp(S:String, I:Val) =>
            exceptionSignal(#exception(#token("IndexError", "Id")))
        ... </k>
     requires isIntLike(I)
-      andBool notBool subscriptIndexInBounds(I, lengthString(S))
+      andBool notBool subscriptIndexInBounds(I, stringCodePointLen(S, 0))
   rule <k> subscriptExp(_S:String, I:Val) =>
            exceptionSignal(#exception(#token("TypeError", "Id")))
        ... </k>

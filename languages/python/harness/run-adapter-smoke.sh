@@ -73,6 +73,7 @@ run_case "adapter-string-ordering" "$ROOT/tests/adapter/adapter-string-ordering.
 run_case "adapter-string-slice" "$ROOT/tests/adapter/adapter-string-slice.py" "True ~> .K"
 run_case "adapter-string-slice-step" "$ROOT/tests/adapter/adapter-string-slice-step.py" "True ~> .K"
 run_case "adapter-string-slice-negative-step" "$ROOT/tests/adapter/adapter-string-slice-negative-step.py" "True ~> .K"
+run_case "adapter-string-unicode-sequence" "$ROOT/tests/adapter/adapter-string-unicode-sequence.py" "True ~> .K"
 run_case "adapter-fstrings-basic" "$ROOT/tests/adapter/adapter-fstrings-basic.py" "True ~> .K"
 run_case "adapter-fstrings-conversions" "$ROOT/tests/adapter/adapter-fstrings-conversions.py" "True ~> .K"
 run_case "adapter-fstrings-empty-format" "$ROOT/tests/adapter/adapter-fstrings-empty-format.py" "True ~> .K"

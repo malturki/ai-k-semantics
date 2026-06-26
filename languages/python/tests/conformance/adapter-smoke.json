@@ -214,6 +214,13 @@
       "coverage": ["string-slicing", "negative-step-sequence-slicing", "omitted-slice-bounds", "negative-slice-bounds", "slice-bound-clamping", "ordinary-python-source-adapter"]
     },
     {
+      "id": "adapter-string-unicode-sequence",
+      "source": "../adapter/adapter-string-unicode-sequence.py",
+      "reference": "Python Language Reference 6.3.2 Subscriptions and 6.3.3 Slicings; Python Standard Library sequence types and text sequence type str",
+      "expected_result": "True ~> .K",
+      "coverage": ["string-subscription", "string-slicing", "unicode-string-code-point", "string-iteration", "sequence-unpacking", "list-constructor", "tuple-constructor", "min-builtin", "max-builtin", "index-error", "ordinary-python-source-adapter"]
+    },
+    {
       "id": "adapter-bytes-basic",
       "source": "../adapter/adapter-bytes-basic.py",
       "reference": "Python Language Reference 2.5.5 String and bytes literals; 6.2.2 Atoms; 6.3.2 Subscriptions; 6.3.3 Slicings; 6.10 Comparisons; Standard Library binary sequence types",

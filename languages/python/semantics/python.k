@@ -1557,6 +1557,8 @@ module PYTHON
                | stringUtf8Code3At(String, Int) [function, symbol(stringUtf8Code3At)]
                | stringUtf8Code4At(String, Int) [function, symbol(stringUtf8Code4At)]
                | stringCodePointAt(String, Int) [function, symbol(stringCodePointAt)]
+               | stringCodePointLen(String, Int) [function, symbol(stringCodePointLen)]
+               | stringCodePointPrefixByteLen(String, Int, Int) [function, symbol(stringCodePointPrefixByteLen)]
                | stringAsciiControlCode(String) [function, symbol(stringAsciiControlCode)]
                | bytesReprQuoteByte(ValItems) [function, symbol(bytesReprQuoteByte)]
   syntax IdItems ::= concatIdItems(IdItems, IdItems) [function, symbol(concatIdItems)]
@@ -2235,6 +2237,50 @@ module PYTHON
   rule stringCodePointAt(S:String, I:Int) => stringUtf8Code4At(S, I)
     requires stringUtf8Valid4At(S, I)
 
+  rule stringCodePointLen(S:String, I:Int) => 0
+    requires I >=Int lengthString(S)
+  rule stringCodePointLen(S:String, I:Int) => 1 +Int stringCodePointLen(S, I +Int 1)
+    requires I <Int lengthString(S) andBool stringByte(S, I) <Int 128
+  rule stringCodePointLen(S:String, I:Int) => 1 +Int stringCodePointLen(S, I +Int 2)
+    requires stringUtf8Valid2At(S, I)
+  rule stringCodePointLen(S:String, I:Int) => 1 +Int stringCodePointLen(S, I +Int 3)
+    requires stringUtf8Valid3At(S, I)
+  rule stringCodePointLen(S:String, I:Int) => 1 +Int stringCodePointLen(S, I +Int 4)
+    requires stringUtf8Valid4At(S, I)
+  rule stringCodePointLen(S:String, I:Int) => 1 +Int stringCodePointLen(S, I +Int 1)
+    requires I <Int lengthString(S)
+      andBool stringByte(S, I) >=Int 128
+      andBool notBool stringUtf8Valid2At(S, I)
+      andBool notBool stringUtf8Valid3At(S, I)
+      andBool notBool stringUtf8Valid4At(S, I)
+
+  rule stringCodePointPrefixByteLen(_S:String, Count:Int, I:Int) => I
+    requires Count <=Int 0
+  rule stringCodePointPrefixByteLen(S:String, Count:Int, I:Int) => lengthString(S)
+    requires Count >Int 0 andBool I >=Int lengthString(S)
+  rule stringCodePointPrefixByteLen(S:String, Count:Int, I:Int) =>
+    stringCodePointPrefixByteLen(S, Count -Int 1, I +Int 1)
+    requires Count >Int 0
+      andBool I <Int lengthString(S)
+      andBool stringByte(S, I) <Int 128
+  rule stringCodePointPrefixByteLen(S:String, Count:Int, I:Int) =>
+    stringCodePointPrefixByteLen(S, Count -Int 1, I +Int 2)
+    requires Count >Int 0 andBool stringUtf8Valid2At(S, I)
+  rule stringCodePointPrefixByteLen(S:String, Count:Int, I:Int) =>
+    stringCodePointPrefixByteLen(S, Count -Int 1, I +Int 3)
+    requires Count >Int 0 andBool stringUtf8Valid3At(S, I)
+  rule stringCodePointPrefixByteLen(S:String, Count:Int, I:Int) =>
+    stringCodePointPrefixByteLen(S, Count -Int 1, I +Int 4)
+    requires Count >Int 0 andBool stringUtf8Valid4At(S, I)
+  rule stringCodePointPrefixByteLen(S:String, Count:Int, I:Int) =>
+    stringCodePointPrefixByteLen(S, Count -Int 1, I +Int 1)
+    requires Count >Int 0
+      andBool I <Int lengthString(S)
+      andBool stringByte(S, I) >=Int 128
+      andBool notBool stringUtf8Valid2At(S, I)
+      andBool notBool stringUtf8Valid3At(S, I)
+      andBool notBool stringUtf8Valid4At(S, I)
+
   rule stringAsciiPayload(S:String, _Quote:Int, I:Int) => ""
     requires I >=Int lengthString(S)
   rule stringAsciiPayload(S:String, Quote:Int, I:Int) =>
@@ -2880,32 +2926,33 @@ module PYTHON
   rule formatFloatSpecialAlign(S:String) => formatAlign(S, ">")
     requires formatAlignIndex(S) >=Int 0 orBool notBool formatHasZero(S)
 
-  rule formatStringPayload(Text:String, Spec:String) => substrString(Text, 0, formatStringPrecision(Spec))
+  rule formatStringPayload(Text:String, Spec:String) =>
+    substrString(Text, 0, stringCodePointPrefixByteLen(Text, formatStringPrecision(Spec), 0))
     requires formatHasStringPrecision(Spec)
       andBool notBool formatStringPrecisionMissing(Spec)
-      andBool formatStringPrecision(Spec) <Int lengthString(Text)
+      andBool formatStringPrecision(Spec) <Int stringCodePointLen(Text, 0)
   rule formatStringPayload(Text:String, Spec:String) => Text
     requires notBool formatHasStringPrecision(Spec)
       orBool formatStringPrecisionMissing(Spec)
-      orBool formatStringPrecision(Spec) >=Int lengthString(Text)
+      orBool formatStringPrecision(Spec) >=Int stringCodePointLen(Text, 0)
 
   rule formatPad(_Align:String, _Fill:String, Text:String, Width:Int) => Text
-    requires Width <=Int lengthString(Text)
-  rule formatPad("<", Fill:String, Text:String, Width:Int) => Text +String repeatString(Fill, Width -Int lengthString(Text))
-    requires Width >Int lengthString(Text)
-  rule formatPad(">", Fill:String, Text:String, Width:Int) => repeatString(Fill, Width -Int lengthString(Text)) +String Text
-    requires Width >Int lengthString(Text)
+    requires Width <=Int stringCodePointLen(Text, 0)
+  rule formatPad("<", Fill:String, Text:String, Width:Int) => Text +String repeatString(Fill, Width -Int stringCodePointLen(Text, 0))
+    requires Width >Int stringCodePointLen(Text, 0)
+  rule formatPad(">", Fill:String, Text:String, Width:Int) => repeatString(Fill, Width -Int stringCodePointLen(Text, 0)) +String Text
+    requires Width >Int stringCodePointLen(Text, 0)
   rule formatPad("^", Fill:String, Text:String, Width:Int) =>
-    repeatString(Fill, (Width -Int lengthString(Text)) /Int 2)
+    repeatString(Fill, (Width -Int stringCodePointLen(Text, 0)) /Int 2)
       +String Text
-      +String repeatString(Fill, (Width -Int lengthString(Text)) -Int ((Width -Int lengthString(Text)) /Int 2))
-    requires Width >Int lengthString(Text)
+      +String repeatString(Fill, (Width -Int stringCodePointLen(Text, 0)) -Int ((Width -Int stringCodePointLen(Text, 0)) /Int 2))
+    requires Width >Int stringCodePointLen(Text, 0)
 
   rule formatPadEqual(_Fill:String, Prefix:String, Digits:String, Width:Int) => Prefix +String Digits
-    requires Width <=Int lengthString(Prefix) +Int lengthString(Digits)
+    requires Width <=Int stringCodePointLen(Prefix, 0) +Int stringCodePointLen(Digits, 0)
   rule formatPadEqual(Fill:String, Prefix:String, Digits:String, Width:Int) =>
-    Prefix +String repeatString(Fill, Width -Int lengthString(Prefix) -Int lengthString(Digits)) +String Digits
-    requires Width >Int lengthString(Prefix) +Int lengthString(Digits)
+    Prefix +String repeatString(Fill, Width -Int stringCodePointLen(Prefix, 0) -Int stringCodePointLen(Digits, 0)) +String Digits
+    requires Width >Int stringCodePointLen(Prefix, 0) +Int stringCodePointLen(Digits, 0)
 
   rule formatIntSign(_Spec:String, I:Int) => "-"
     requires I <Int 0
@@ -4168,7 +4215,7 @@ module PYTHON
   rule floatValue(V:Val) => Int2Float(intValue(V), 53, 11)
     requires isIntLike(V)
 
-  rule pyLen(S:String) => lengthString(S)
+  rule pyLen(S:String) => stringCodePointLen(S, 0)
   rule pyLen(#bytes()) => 0
   rule pyLen(bytesVal(VS:ValItems)) => valItemsLen(VS)
   rule pyLen([]) => 0

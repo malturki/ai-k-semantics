@@ -103,6 +103,7 @@ run_case "adapter-format-float-fractional-grouping-spec" "$ROOT/tests/adapter/ad
 run_case "adapter-chr-builtin" "$ROOT/tests/adapter/adapter-chr-builtin.py" "True ~> .K"
 run_case "adapter-ord-builtin" "$ROOT/tests/adapter/adapter-ord-builtin.py" "True ~> .K"
 run_case "adapter-chr-ord-unicode" "$ROOT/tests/adapter/adapter-chr-ord-unicode.py" "True ~> .K"
+run_case "adapter-string-unicode-length-format" "$ROOT/tests/adapter/adapter-string-unicode-length-format.py" "True ~> .K"
 run_case "adapter-bin-oct-hex-builtins" "$ROOT/tests/adapter/adapter-bin-oct-hex-builtins.py" "True ~> .K"
 run_case "adapter-callable-builtin" "$ROOT/tests/adapter/adapter-callable-builtin.py" "True ~> .K"
 run_case "adapter-isinstance-builtin" "$ROOT/tests/adapter/adapter-isinstance-builtin.py" "True ~> .K"

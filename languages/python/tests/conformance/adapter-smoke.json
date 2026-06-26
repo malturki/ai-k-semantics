@@ -410,6 +410,13 @@
       "coverage": ["chr-builtin", "ord-builtin", "unicode-string-code-point", "format-builtin", "character-presentation-type", "ascii-builtin", "formatted-string-literal", "ordinary-python-source-adapter"]
     },
     {
+      "id": "adapter-string-unicode-length-format",
+      "source": "../adapter/adapter-string-unicode-length-format.py",
+      "reference": "Python Standard Library Built-in Functions len; Python Format Specification Mini-Language string width and precision count Unicode code points",
+      "expected_result": "True ~> .K",
+      "coverage": ["len-builtin", "unicode-string-code-point", "format-builtin", "format-spec-mini-language", "width-option", "precision-option", "formatted-string-literal", "ordinary-python-source-adapter"]
+    },
+    {
       "id": "adapter-bin-oct-hex-builtins",
       "source": "../adapter/adapter-bin-oct-hex-builtins.py",
       "reference": "Python Standard Library Built-in Functions bin, oct, hex; CPython Lib/test/test_builtin.py test_bin/test_oct/test_hex",

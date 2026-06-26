@@ -1318,6 +1318,8 @@ module PYTHON
                 | bytesErrorsStrict(String) [function, symbol(bytesErrorsStrict)]
                 | bytesErrorsIgnore(String) [function, symbol(bytesErrorsIgnore)]
                 | bytesErrorsReplace(String) [function, symbol(bytesErrorsReplace)]
+                | bytesErrorsBackslashReplace(String) [function, symbol(bytesErrorsBackslashReplace)]
+                | bytesErrorsXmlCharRefReplace(String) [function, symbol(bytesErrorsXmlCharRefReplace)]
                 | bytesErrorsUnicodeRaise(String) [function, symbol(bytesErrorsUnicodeRaise)]
                 | bytesErrorsKnown(String) [function, symbol(bytesErrorsKnown)]
                 | stringAsciiEncodable(String, Int) [function, symbol(stringAsciiEncodable)]
@@ -1789,14 +1791,23 @@ module PYTHON
                | bytesStringAscii(String) [function, symbol(bytesStringAscii)]
                | bytesStringLatin1(String) [function, symbol(bytesStringLatin1)]
                | bytesPrependByte(Int, Val) [function, symbol(bytesPrependByte)]
+               | bytesConcat(Val, Val) [function, symbol(bytesConcat)]
                | bytesStringAsciiIgnore(String) [function, symbol(bytesStringAsciiIgnore)]
                | bytesStringAsciiIgnoreFrom(String, Int, Int) [function, symbol(bytesStringAsciiIgnoreFrom)]
                | bytesStringAsciiReplace(String) [function, symbol(bytesStringAsciiReplace)]
                | bytesStringAsciiReplaceFrom(String, Int, Int) [function, symbol(bytesStringAsciiReplaceFrom)]
+               | bytesStringAsciiBackslashReplace(String) [function, symbol(bytesStringAsciiBackslashReplace)]
+               | bytesStringAsciiBackslashReplaceFrom(String, Int, Int) [function, symbol(bytesStringAsciiBackslashReplaceFrom)]
+               | bytesStringAsciiXmlCharRefReplace(String) [function, symbol(bytesStringAsciiXmlCharRefReplace)]
+               | bytesStringAsciiXmlCharRefReplaceFrom(String, Int, Int) [function, symbol(bytesStringAsciiXmlCharRefReplaceFrom)]
                | bytesStringLatin1Ignore(String) [function, symbol(bytesStringLatin1Ignore)]
                | bytesStringLatin1IgnoreFrom(String, Int, Int) [function, symbol(bytesStringLatin1IgnoreFrom)]
                | bytesStringLatin1Replace(String) [function, symbol(bytesStringLatin1Replace)]
                | bytesStringLatin1ReplaceFrom(String, Int, Int) [function, symbol(bytesStringLatin1ReplaceFrom)]
+               | bytesStringLatin1BackslashReplace(String) [function, symbol(bytesStringLatin1BackslashReplace)]
+               | bytesStringLatin1BackslashReplaceFrom(String, Int, Int) [function, symbol(bytesStringLatin1BackslashReplaceFrom)]
+               | bytesStringLatin1XmlCharRefReplace(String) [function, symbol(bytesStringLatin1XmlCharRefReplace)]
+               | bytesStringLatin1XmlCharRefReplaceFrom(String, Int, Int) [function, symbol(bytesStringLatin1XmlCharRefReplaceFrom)]
                | listSliceStep(ValItems, Int, Int, Int) [function, symbol(listSliceStep)]
                | tupleSliceStep(ValItems, Int, Int, Int) [function, symbol(tupleSliceStep)]
                | bytesSliceStep(ValItems, Int, Int, Int) [function, symbol(bytesSliceStep)]
@@ -6383,6 +6394,12 @@ module PYTHON
 
   rule bytesErrorsReplace("replace") => true
   rule bytesErrorsReplace(_:String) => false [owise]
+
+  rule bytesErrorsBackslashReplace("backslashreplace") => true
+  rule bytesErrorsBackslashReplace(_:String) => false [owise]
+
+  rule bytesErrorsXmlCharRefReplace("xmlcharrefreplace") => true
+  rule bytesErrorsXmlCharRefReplace(_:String) => false [owise]
 
   rule bytesErrorsUnicodeRaise("strict") => true
   rule bytesErrorsUnicodeRaise("surrogateescape") => true
@@ -12742,6 +12759,10 @@ module PYTHON
     requires lengthString(S) >Int 0 andBool stringLatin1Encodable(S, 0)
   rule bytesPrependByte(B:Int, #bytes()) => bytesVal(valItemsLast(B))
   rule bytesPrependByte(B:Int, bytesVal(VS:ValItems)) => bytesVal(valItemsCons(B, VS))
+  rule bytesConcat(#bytes(), #bytes()) => #bytes()
+  rule bytesConcat(#bytes(), bytesVal(VS:ValItems)) => bytesVal(VS)
+  rule bytesConcat(bytesVal(VS:ValItems), #bytes()) => bytesVal(VS)
+  rule bytesConcat(bytesVal(VS1:ValItems), bytesVal(VS2:ValItems)) => bytesVal(concatValItems(VS1, VS2))
   rule bytesStringAsciiIgnore(S:String) => bytesStringAsciiIgnoreFrom(S, 0, lengthString(S))
   rule bytesStringAsciiIgnoreFrom(_S:String, I:Int, Len:Int) => #bytes()
     requires I >=Int Len
@@ -12760,6 +12781,28 @@ module PYTHON
   rule bytesStringAsciiReplaceFrom(S:String, I:Int, Len:Int) =>
     bytesPrependByte(63, bytesStringAsciiReplaceFrom(S, I +Int stringCodePointByteLenAt(S, I), Len))
     requires I <Int Len andBool stringCodePointAt(S, I) >=Int 128
+  rule bytesStringAsciiBackslashReplace(S:String) => bytesStringAsciiBackslashReplaceFrom(S, 0, lengthString(S))
+  rule bytesStringAsciiBackslashReplaceFrom(_S:String, I:Int, Len:Int) => #bytes()
+    requires I >=Int Len
+  rule bytesStringAsciiBackslashReplaceFrom(S:String, I:Int, Len:Int) =>
+    bytesPrependByte(stringCodePointAt(S, I), bytesStringAsciiBackslashReplaceFrom(S, I +Int stringCodePointByteLenAt(S, I), Len))
+    requires I <Int Len andBool stringCodePointAt(S, I) <Int 128
+  rule bytesStringAsciiBackslashReplaceFrom(S:String, I:Int, Len:Int) =>
+    bytesConcat(
+      bytesStringUtf8(stringAsciiEscape(stringCodePointAt(S, I))),
+      bytesStringAsciiBackslashReplaceFrom(S, I +Int stringCodePointByteLenAt(S, I), Len))
+    requires I <Int Len andBool stringCodePointAt(S, I) >=Int 128
+  rule bytesStringAsciiXmlCharRefReplace(S:String) => bytesStringAsciiXmlCharRefReplaceFrom(S, 0, lengthString(S))
+  rule bytesStringAsciiXmlCharRefReplaceFrom(_S:String, I:Int, Len:Int) => #bytes()
+    requires I >=Int Len
+  rule bytesStringAsciiXmlCharRefReplaceFrom(S:String, I:Int, Len:Int) =>
+    bytesPrependByte(stringCodePointAt(S, I), bytesStringAsciiXmlCharRefReplaceFrom(S, I +Int stringCodePointByteLenAt(S, I), Len))
+    requires I <Int Len andBool stringCodePointAt(S, I) <Int 128
+  rule bytesStringAsciiXmlCharRefReplaceFrom(S:String, I:Int, Len:Int) =>
+    bytesConcat(
+      bytesStringUtf8("&#" +String Int2String(stringCodePointAt(S, I)) +String ";"),
+      bytesStringAsciiXmlCharRefReplaceFrom(S, I +Int stringCodePointByteLenAt(S, I), Len))
+    requires I <Int Len andBool stringCodePointAt(S, I) >=Int 128
   rule bytesStringLatin1Ignore(S:String) => bytesStringLatin1IgnoreFrom(S, 0, lengthString(S))
   rule bytesStringLatin1IgnoreFrom(_S:String, I:Int, Len:Int) => #bytes()
     requires I >=Int Len
@@ -12777,6 +12820,28 @@ module PYTHON
     requires I <Int Len andBool stringCodePointAt(S, I) <=Int 255
   rule bytesStringLatin1ReplaceFrom(S:String, I:Int, Len:Int) =>
     bytesPrependByte(63, bytesStringLatin1ReplaceFrom(S, I +Int stringCodePointByteLenAt(S, I), Len))
+    requires I <Int Len andBool stringCodePointAt(S, I) >Int 255
+  rule bytesStringLatin1BackslashReplace(S:String) => bytesStringLatin1BackslashReplaceFrom(S, 0, lengthString(S))
+  rule bytesStringLatin1BackslashReplaceFrom(_S:String, I:Int, Len:Int) => #bytes()
+    requires I >=Int Len
+  rule bytesStringLatin1BackslashReplaceFrom(S:String, I:Int, Len:Int) =>
+    bytesPrependByte(stringCodePointAt(S, I), bytesStringLatin1BackslashReplaceFrom(S, I +Int stringCodePointByteLenAt(S, I), Len))
+    requires I <Int Len andBool stringCodePointAt(S, I) <=Int 255
+  rule bytesStringLatin1BackslashReplaceFrom(S:String, I:Int, Len:Int) =>
+    bytesConcat(
+      bytesStringUtf8(stringAsciiEscape(stringCodePointAt(S, I))),
+      bytesStringLatin1BackslashReplaceFrom(S, I +Int stringCodePointByteLenAt(S, I), Len))
+    requires I <Int Len andBool stringCodePointAt(S, I) >Int 255
+  rule bytesStringLatin1XmlCharRefReplace(S:String) => bytesStringLatin1XmlCharRefReplaceFrom(S, 0, lengthString(S))
+  rule bytesStringLatin1XmlCharRefReplaceFrom(_S:String, I:Int, Len:Int) => #bytes()
+    requires I >=Int Len
+  rule bytesStringLatin1XmlCharRefReplaceFrom(S:String, I:Int, Len:Int) =>
+    bytesPrependByte(stringCodePointAt(S, I), bytesStringLatin1XmlCharRefReplaceFrom(S, I +Int stringCodePointByteLenAt(S, I), Len))
+    requires I <Int Len andBool stringCodePointAt(S, I) <=Int 255
+  rule bytesStringLatin1XmlCharRefReplaceFrom(S:String, I:Int, Len:Int) =>
+    bytesConcat(
+      bytesStringUtf8("&#" +String Int2String(stringCodePointAt(S, I)) +String ";"),
+      bytesStringLatin1XmlCharRefReplaceFrom(S, I +Int stringCodePointByteLenAt(S, I), Len))
     requires I <Int Len andBool stringCodePointAt(S, I) >Int 255
   rule #bytesCtor() => #bytes()
   rule #bytesCtor(V:Val) => zeroBytes(intValue(V))
@@ -12871,6 +12936,18 @@ module PYTHON
   rule #bytesCtor(S:String, Enc:String, Errors:String) => bytesStringLatin1Replace(S)
     requires bytesEncodingLatin1(Enc) andBool notBool stringLatin1Encodable(S, 0)
       andBool bytesErrorsReplace(Errors)
+  rule #bytesCtor(S:String, Enc:String, Errors:String) => bytesStringAsciiBackslashReplace(S)
+    requires bytesEncodingAscii(Enc) andBool notBool stringAsciiEncodable(S, 0)
+      andBool bytesErrorsBackslashReplace(Errors)
+  rule #bytesCtor(S:String, Enc:String, Errors:String) => bytesStringLatin1BackslashReplace(S)
+    requires bytesEncodingLatin1(Enc) andBool notBool stringLatin1Encodable(S, 0)
+      andBool bytesErrorsBackslashReplace(Errors)
+  rule #bytesCtor(S:String, Enc:String, Errors:String) => bytesStringAsciiXmlCharRefReplace(S)
+    requires bytesEncodingAscii(Enc) andBool notBool stringAsciiEncodable(S, 0)
+      andBool bytesErrorsXmlCharRefReplace(Errors)
+  rule #bytesCtor(S:String, Enc:String, Errors:String) => bytesStringLatin1XmlCharRefReplace(S)
+    requires bytesEncodingLatin1(Enc) andBool notBool stringLatin1Encodable(S, 0)
+      andBool bytesErrorsXmlCharRefReplace(Errors)
   rule <k> #bytesCtor(S:String, Enc:String, Errors:String) =>
            exceptionSignal(#exception(#token("UnicodeEncodeError", "Id")))
        ... </k>
@@ -12885,6 +12962,8 @@ module PYTHON
       andBool bytesErrorsKnown(Errors)
       andBool notBool bytesErrorsIgnore(Errors)
       andBool notBool bytesErrorsReplace(Errors)
+      andBool notBool bytesErrorsBackslashReplace(Errors)
+      andBool notBool bytesErrorsXmlCharRefReplace(Errors)
       andBool notBool bytesErrorsUnicodeRaise(Errors)
   rule <k> #bytesCtor(_S:String, Enc:String, _Errors:String) =>
            exceptionSignal(#exception(#token("LookupError", "Id")))

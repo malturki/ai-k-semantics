@@ -1453,6 +1453,8 @@ module PYTHON
                 | kwRequiredAlignedPresent(IdItems, KwArgVals, ArgVals) [function, symbol(kwRequiredAlignedPresent)]
                 | hasKwDefaultMissing(ArgVals) [function, symbol(hasKwDefaultMissing)]
                 | isKwDefaultMissing(Val) [function, symbol(isKwDefaultMissing)]
+                | intCtorExplicitBaseSource(Val) [function, symbol(intCtorExplicitBaseSource)]
+                | floatCtorTypeErrorProfile(Val) [function, symbol(floatCtorTypeErrorProfile)]
                 | validIntBase(Int) [function, symbol(validIntBase)]
                 | intStringOk(String, Int) [function, symbol(intStringOk)]
                 | intStringBodyOk(String, Int, Int) [function, symbol(intStringBodyOk)]
@@ -1941,6 +1943,28 @@ module PYTHON
   rule truthy(sliceVal(_:Val, _:Val, _:Val)) => true
   rule truthy(argsVal(_:ArgVals)) => true
   rule truthy(dictArgsVal(_:DictVals)) => true
+
+  rule intCtorExplicitBaseSource(_:String) => true
+  rule intCtorExplicitBaseSource(#bytes()) => true
+  rule intCtorExplicitBaseSource(bytesVal(_:ValItems)) => true
+  rule intCtorExplicitBaseSource(#bytearray()) => true
+  rule intCtorExplicitBaseSource(bytearrayVal(_:ValItems)) => true
+  rule intCtorExplicitBaseSource(_:Val) => false [owise]
+
+  rule floatCtorTypeErrorProfile(None) => true
+  rule floatCtorTypeErrorProfile(Ellipsis) => true
+  rule floatCtorTypeErrorProfile([]) => true
+  rule floatCtorTypeErrorProfile(listVal(_:ValItems)) => true
+  rule floatCtorTypeErrorProfile(()) => true
+  rule floatCtorTypeErrorProfile(tupleVal(_:ValItems)) => true
+  rule floatCtorTypeErrorProfile(({}):Val) => true
+  rule floatCtorTypeErrorProfile(dictVal(_:DictItems)) => true
+  rule floatCtorTypeErrorProfile(set()) => true
+  rule floatCtorTypeErrorProfile(setVal(_:ValItems)) => true
+  rule floatCtorTypeErrorProfile(rangeVal(_:Int, _:Int)) => true
+  rule floatCtorTypeErrorProfile(rangeVal(_:Int, _:Int, _:Int)) => true
+  rule floatCtorTypeErrorProfile(sliceVal(_:Val, _:Val, _:Val)) => true
+  rule floatCtorTypeErrorProfile(_:Val) => false [owise]
 
   rule callableVal(closure(_:Id, _:Exp)) => true
   rule callableVal(closureArgs(_:IdItems, _:Exp)) => true
@@ -14510,8 +14534,10 @@ module PYTHON
   rule #intCtor() => 0
   rule #intCtor(V:Val) => intValue(V)
     requires isIntLike(V)
+  rule #intCtor(#bytes()) => #intCtor("")
   rule #intCtor(bytesVal(VS:ValItems)) => #intCtor(bytesAsciiString(VS))
     requires valItemsAllByteInts(VS)
+  rule #intCtor(#bytearray()) => #intCtor("")
   rule #intCtor(bytearrayVal(VS:ValItems)) => #intCtor(bytesAsciiString(VS))
     requires valItemsAllByteInts(VS)
   rule #intCtor(S:String) => intStringValue(stripAsciiSpace(S), 10)
@@ -14541,16 +14567,51 @@ module PYTHON
       andBool intStringOk(stripAsciiSpace(S), intValue(B))
   rule #intCtor(S:String, B:Val) => intStringValue(S, intValue(B))
     requires isIntLike(B) andBool intStringOk(S, intValue(B))
+  rule #intCtor(#bytes(), B:Val) => #intCtor("", B)
+  rule #intCtor(#bytearray(), B:Val) => #intCtor("", B)
   rule #intCtor(bytesVal(VS:ValItems), B:Val) => #intCtor(bytesAsciiString(VS), B)
     requires valItemsAllByteInts(VS)
   rule #intCtor(bytearrayVal(VS:ValItems), B:Val) => #intCtor(bytesAsciiString(VS), B)
     requires valItemsAllByteInts(VS)
+  rule <k> #intCtor(S:String) =>
+           exceptionSignal(#exception(#token("ValueError", "Id")))
+       ... </k>
+    requires notBool intStringOk(stripAsciiSpace(S), 10)
+  rule <k> #intCtor(_S:String, B:Val) =>
+           exceptionSignal(#exception(#token("TypeError", "Id")))
+       ... </k>
+    requires notBool isIntLike(B)
+  rule <k> #intCtor(_S:String, B:Val) =>
+           exceptionSignal(#exception(#token("ValueError", "Id")))
+       ... </k>
+    requires isIntLike(B)
+      andBool intValue(B) =/=Int 0
+      andBool notBool validIntBase(intValue(B))
+  rule <k> #intCtor(S:String, B:Val) =>
+           exceptionSignal(#exception(#token("ValueError", "Id")))
+       ... </k>
+    requires isIntLike(B)
+      andBool intValue(B) ==Int 0
+      andBool notBool intBase0StringOk(stripAsciiSpace(S))
+  rule <k> #intCtor(S:String, B:Val) =>
+           exceptionSignal(#exception(#token("ValueError", "Id")))
+       ... </k>
+    requires isIntLike(B)
+      andBool validIntBase(intValue(B))
+      andBool notBool intPrefixedStringOk(stripAsciiSpace(S), intValue(B))
+      andBool notBool intStringOk(stripAsciiSpace(S), intValue(B))
+  rule <k> #intCtor(V:Val, _B:Val) =>
+           exceptionSignal(#exception(#token("TypeError", "Id")))
+       ... </k>
+    requires notBool intCtorExplicitBaseSource(V)
   rule #floatCtor() => 0.0
   rule #floatCtor(F:Float) => F
   rule #floatCtor(V:Val) => floatValue(V)
     requires isIntLike(V)
+  rule #floatCtor(#bytes()) => #floatCtor("")
   rule #floatCtor(bytesVal(VS:ValItems)) => #floatCtor(bytesAsciiString(VS))
     requires valItemsAllByteInts(VS)
+  rule #floatCtor(#bytearray()) => #floatCtor("")
   rule #floatCtor(bytearrayVal(VS:ValItems)) => #floatCtor(bytesAsciiString(VS))
     requires valItemsAllByteInts(VS)
   rule #floatCtor(S:String) => #floatCtor(stripAsciiSpace(S))
@@ -14567,6 +14628,14 @@ module PYTHON
     requires floatExponentStringOk(S)
   rule #floatCtor(S:String) => floatSpecialStringValue(S)
     requires floatSpecialStringOk(S)
+  rule <k> #floatCtor(S:String) =>
+           exceptionSignal(#exception(#token("ValueError", "Id")))
+       ... </k>
+    requires notBool floatStringOk(stripAsciiSpace(S))
+  rule <k> #floatCtor(V:Val) =>
+           exceptionSignal(#exception(#token("TypeError", "Id")))
+       ... </k>
+    requires floatCtorTypeErrorProfile(V)
   rule #complexCtor() => #complex(0.0, 0.0)
   rule #complexCtor(S:String) => #complexCtor(stripPythonStringSpace(S))
     requires stripPythonStringSpace(S) =/=String S

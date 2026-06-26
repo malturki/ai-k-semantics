@@ -1131,6 +1131,13 @@
       "coverage": ["int-constructor", "float-constructor", "bytearray-to-int", "bytearray-to-float", "explicit-int-base", "base-prefix", "base-zero-autodetection", "ascii-whitespace-padded-numeric-bytearrays", "underscore-digit-separators", "infinity-bytearray-to-float", "nan-bytearray-to-float", "ordinary-python-source-adapter"]
     },
     {
+      "id": "adapter-numeric-constructor-errors",
+      "source": "../adapter/adapter-numeric-constructor-errors.py",
+      "reference": "Python Standard Library Built-in Functions int and float; Python Standard Library Built-in Types int and float",
+      "expected_result": "True ~> .K",
+      "coverage": ["int-constructor", "float-constructor", "string-to-int", "bytes-to-int", "bytearray-to-int", "string-to-float", "bytes-to-float", "bytearray-to-float", "explicit-int-base", "base-zero-autodetection", "type-error", "value-error", "ordinary-python-source-adapter"]
+    },
+    {
       "id": "adapter-chained-comparison",
       "source": "../adapter/adapter-chained-comparison.py",
       "reference": "Python Language Reference 6.10 Comparisons; 6.16 Evaluation order",

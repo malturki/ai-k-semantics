@@ -334,6 +334,9 @@ module PYTHON-SYNTAX
                | "#getattr" "(" Exp "," Id ")" [symbol(getattrExp), strict(1)]
                | "#getattrDefault" "(" Exp "," Id "," Exp ")" [symbol(getattrDefaultExp)]
                | "#hasattr" "(" Exp "," Id ")" [symbol(hasattrExp)]
+               | "#getattrDyn" "(" Exp "," Exp ")" [symbol(getattrDynExp)]
+               | "#getattrDefaultDyn" "(" Exp "," Exp "," Exp ")" [symbol(getattrDefaultDynExp)]
+               | "#hasattrDyn" "(" Exp "," Exp ")" [symbol(hasattrDynExp)]
                | "#fstring" "(" FStringParts ")" [symbol(fstringExp)]
                | "#list" "(" ArgExps ")" [symbol(listDisplayExp)]
                | "#tuple" "(" ArgExps ")" [symbol(tupleDisplayExp)]
@@ -631,6 +634,7 @@ module PYTHON
                | rangeVal(Int, Int) [symbol(rangeVal)]
                | rangeVal(Int, Int, Int) [symbol(rangeValStep)]
                | sliceVal(Val, Val, Val) [symbol(sliceVal)]
+               | matchClassAttrStringVal(Val, String) [function, symbol(matchClassAttrStringVal)]
                | argsVal(ArgVals) [symbol(argsVal)]
                | dictArgsVal(DictVals) [symbol(dictArgsVal)]
 
@@ -664,6 +668,13 @@ module PYTHON
                  | getattrDefaultObject(Id, Exp) [symbol(getattrDefaultObject)]
                  | getattrDefaultApply(Val, Id) [symbol(getattrDefaultApply)]
                  | hasattrObject(Id) [symbol(hasattrObject)]
+                 | getattrDynName(Exp) [symbol(getattrDynName)]
+                 | getattrDynApply(Val) [symbol(getattrDynApply)]
+                 | getattrDefaultDynName(Exp, Exp) [symbol(getattrDefaultDynName)]
+                 | getattrDefaultDynDefault(Val, Exp) [symbol(getattrDefaultDynDefault)]
+                 | getattrDefaultDynApply(Val, String) [symbol(getattrDefaultDynApply)]
+                 | hasattrDynName(Exp) [symbol(hasattrDynName)]
+                 | hasattrDynApply(Val) [symbol(hasattrDynApply)]
                  | formatDefault() [symbol(formatDefault)]
                  | formatSpec(Exp) [symbol(formatSpec)]
                  | formatApply(Val) [symbol(formatApply)]
@@ -1224,6 +1235,8 @@ module PYTHON
                 | matchBuiltinClassArgKw(Val, Id, MatchPattern, MatchAttrPatterns) [function, symbol(matchBuiltinClassArgKw)]
                 | matchClassAttrs(Val, MatchAttrPatterns) [function, symbol(matchClassAttrs)]
                 | classHasMatchAttr(Val, Id) [function, symbol(classHasMatchAttr)]
+                | getattrStringSupported(String) [function, symbol(getattrStringSupported)]
+                | classHasAttrString(Val, String) [function, symbol(classHasAttrString)]
                 | matchSimplePattern(Val, MatchPattern) [function, symbol(matchSimplePattern)]
                 | matchFixedSequence(Val, MatchPatterns) [function, symbol(matchFixedSequence)]
                 | matchStarSequence(Val, MatchPatterns, MatchPatterns) [function, symbol(matchStarSequence)]
@@ -4761,6 +4774,34 @@ module PYTHON
         orBool Id2String(A) ==String "denominator")
   rule classHasMatchAttr(_:Val, _:Id) => false [owise]
 
+  rule getattrStringSupported("start") => true
+  rule getattrStringSupported("stop") => true
+  rule getattrStringSupported("step") => true
+  rule getattrStringSupported("real") => true
+  rule getattrStringSupported("imag") => true
+  rule getattrStringSupported("numerator") => true
+  rule getattrStringSupported("denominator") => true
+  rule getattrStringSupported("missing") => true
+  rule getattrStringSupported(_:String) => false [owise]
+
+  rule classHasAttrString(rangeVal(_:Int, _:Int), A:String) => true
+    requires A ==String "start" orBool A ==String "stop" orBool A ==String "step"
+  rule classHasAttrString(rangeVal(_:Int, _:Int, _:Int), A:String) => true
+    requires A ==String "start" orBool A ==String "stop" orBool A ==String "step"
+  rule classHasAttrString(sliceVal(_:Val, _:Val, _:Val), A:String) => true
+    requires A ==String "start" orBool A ==String "stop" orBool A ==String "step"
+  rule classHasAttrString(#complex(_:Float, _:Float), A:String) => true
+    requires A ==String "real" orBool A ==String "imag"
+  rule classHasAttrString(_:Float, A:String) => true
+    requires A ==String "real" orBool A ==String "imag"
+  rule classHasAttrString(V:Val, A:String) => true
+    requires isIntLike(V)
+      andBool (A ==String "real"
+        orBool A ==String "imag"
+        orBool A ==String "numerator"
+        orBool A ==String "denominator")
+  rule classHasAttrString(_:Val, _:String) => false [owise]
+
   rule matchClassAttrVal(rangeVal(Start:Int, _:Int), Attr:Id) => Start
     requires Id2String(Attr) ==String "start"
   rule matchClassAttrVal(rangeVal(_:Int, Stop:Int), Attr:Id) => Stop
@@ -4795,6 +4836,41 @@ module PYTHON
     requires isIntLike(V) andBool Id2String(Attr) ==String "numerator"
   rule matchClassAttrVal(V:Val, Attr:Id) => 1
     requires isIntLike(V) andBool Id2String(Attr) ==String "denominator"
+
+  rule matchClassAttrStringVal(rangeVal(Start:Int, _:Int), Attr:String) => Start
+    requires Attr ==String "start"
+  rule matchClassAttrStringVal(rangeVal(_:Int, Stop:Int), Attr:String) => Stop
+    requires Attr ==String "stop"
+  rule matchClassAttrStringVal(rangeVal(_:Int, _:Int), Attr:String) => 1
+    requires Attr ==String "step"
+  rule matchClassAttrStringVal(rangeVal(Start:Int, _:Int, _:Int), Attr:String) => Start
+    requires Attr ==String "start"
+  rule matchClassAttrStringVal(rangeVal(_:Int, Stop:Int, _:Int), Attr:String) => Stop
+    requires Attr ==String "stop"
+  rule matchClassAttrStringVal(rangeVal(_:Int, _:Int, Step:Int), Attr:String) => Step
+    requires Attr ==String "step"
+  rule matchClassAttrStringVal(sliceVal(Start:Val, _:Val, _:Val), Attr:String) => Start
+    requires Attr ==String "start"
+  rule matchClassAttrStringVal(sliceVal(_:Val, Stop:Val, _:Val), Attr:String) => Stop
+    requires Attr ==String "stop"
+  rule matchClassAttrStringVal(sliceVal(_:Val, _:Val, Step:Val), Attr:String) => Step
+    requires Attr ==String "step"
+  rule matchClassAttrStringVal(#complex(R:Float, _:Float), Attr:String) => R
+    requires Attr ==String "real"
+  rule matchClassAttrStringVal(#complex(_:Float, I:Float), Attr:String) => I
+    requires Attr ==String "imag"
+  rule matchClassAttrStringVal(F:Float, Attr:String) => F
+    requires Attr ==String "real"
+  rule matchClassAttrStringVal(_:Float, Attr:String) => 0.0
+    requires Attr ==String "imag"
+  rule matchClassAttrStringVal(V:Val, Attr:String) => intValue(V)
+    requires isIntLike(V) andBool Attr ==String "real"
+  rule matchClassAttrStringVal(V:Val, Attr:String) => 0
+    requires isIntLike(V) andBool Attr ==String "imag"
+  rule matchClassAttrStringVal(V:Val, Attr:String) => intValue(V)
+    requires isIntLike(V) andBool Attr ==String "numerator"
+  rule matchClassAttrStringVal(V:Val, Attr:String) => 1
+    requires isIntLike(V) andBool Attr ==String "denominator"
 
   rule matchSimplePattern(_:Val, #matchWildcard) => true
   rule matchSimplePattern(_:Val, #matchCapture(_Name:Id)) => true
@@ -8240,6 +8316,53 @@ module PYTHON
   rule <k> #hasattr(Obj:Exp, Attr:Id) => Obj ~> hasattrObject(Attr) ... </k>
   rule <k> V:Val ~> hasattrObject(Attr:Id)
         => boolValue(classHasMatchAttr(V, Attr)) ... </k>
+  rule <k> #getattrDyn(Obj:Exp, Attr:Exp)
+        => Obj ~> getattrDynName(Attr) ... </k>
+  rule <k> V:Val ~> getattrDynName(Attr:Exp)
+        => Attr ~> getattrDynApply(V) ... </k>
+  rule <k> Attr:String ~> getattrDynApply(V:Val)
+        => matchClassAttrStringVal(V, Attr) ... </k>
+    requires classHasAttrString(V, Attr)
+  rule <k> Attr:String ~> getattrDynApply(V:Val)
+        => exceptionSignal(#exception(#token("AttributeError", "Id"))) ... </k>
+    requires getattrStringSupported(Attr) andBool notBool classHasAttrString(V, Attr)
+  rule <k> Attr:String ~> getattrDynApply(_V:Val)
+        => exceptionSignal(#exception(#token("NotImplementedError", "Id"))) ... </k>
+    requires notBool getattrStringSupported(Attr)
+  rule <k> Attr:Val ~> getattrDynApply(_V:Val)
+        => exceptionSignal(#exception(#token("TypeError", "Id"))) ... </k>
+    requires notBool isStringVal(Attr)
+  rule <k> #getattrDefaultDyn(Obj:Exp, Attr:Exp, Default:Exp)
+        => Obj ~> getattrDefaultDynName(Attr, Default) ... </k>
+  rule <k> V:Val ~> getattrDefaultDynName(Attr:Exp, Default:Exp)
+        => Attr ~> getattrDefaultDynDefault(V, Default) ... </k>
+  rule <k> Attr:String ~> getattrDefaultDynDefault(V:Val, Default:Exp)
+        => Default ~> getattrDefaultDynApply(V, Attr) ... </k>
+  rule <k> Attr:Val ~> getattrDefaultDynDefault(_V:Val, _Default:Exp)
+        => exceptionSignal(#exception(#token("TypeError", "Id"))) ... </k>
+    requires notBool isStringVal(Attr)
+  rule <k> _Default:Val ~> getattrDefaultDynApply(V:Val, Attr:String)
+        => matchClassAttrStringVal(V, Attr) ... </k>
+    requires classHasAttrString(V, Attr)
+  rule <k> Default:Val ~> getattrDefaultDynApply(V:Val, Attr:String)
+        => Default ... </k>
+    requires getattrStringSupported(Attr) andBool notBool classHasAttrString(V, Attr)
+  rule <k> _Default:Val ~> getattrDefaultDynApply(_V:Val, Attr:String)
+        => exceptionSignal(#exception(#token("NotImplementedError", "Id"))) ... </k>
+    requires notBool getattrStringSupported(Attr)
+  rule <k> #hasattrDyn(Obj:Exp, Attr:Exp)
+        => Obj ~> hasattrDynName(Attr) ... </k>
+  rule <k> V:Val ~> hasattrDynName(Attr:Exp)
+        => Attr ~> hasattrDynApply(V) ... </k>
+  rule <k> Attr:String ~> hasattrDynApply(V:Val)
+        => boolValue(classHasAttrString(V, Attr)) ... </k>
+    requires getattrStringSupported(Attr)
+  rule <k> Attr:String ~> hasattrDynApply(_V:Val)
+        => exceptionSignal(#exception(#token("NotImplementedError", "Id"))) ... </k>
+    requires notBool getattrStringSupported(Attr)
+  rule <k> Attr:Val ~> hasattrDynApply(_V:Val)
+        => exceptionSignal(#exception(#token("TypeError", "Id"))) ... </k>
+    requires notBool isStringVal(Attr)
 
   rule V1:Val < V2:Val => boolValue(intValue(V1) <Int intValue(V2))
     requires isIntLike(V1) andBool isIntLike(V2)
@@ -18502,6 +18625,13 @@ module PYTHON
   rule <k> exceptionSignal(V:Val) ~> getattrDefaultObject(_:Id, _:Exp) => exceptionSignal(V) ... </k>
   rule <k> exceptionSignal(V:Val) ~> getattrDefaultApply(_:Val, _:Id) => exceptionSignal(V) ... </k>
   rule <k> exceptionSignal(V:Val) ~> hasattrObject(_:Id) => exceptionSignal(V) ... </k>
+  rule <k> exceptionSignal(V:Val) ~> getattrDynName(_:Exp) => exceptionSignal(V) ... </k>
+  rule <k> exceptionSignal(V:Val) ~> getattrDynApply(_:Val) => exceptionSignal(V) ... </k>
+  rule <k> exceptionSignal(V:Val) ~> getattrDefaultDynName(_:Exp, _:Exp) => exceptionSignal(V) ... </k>
+  rule <k> exceptionSignal(V:Val) ~> getattrDefaultDynDefault(_:Val, _:Exp) => exceptionSignal(V) ... </k>
+  rule <k> exceptionSignal(V:Val) ~> getattrDefaultDynApply(_:Val, _:String) => exceptionSignal(V) ... </k>
+  rule <k> exceptionSignal(V:Val) ~> hasattrDynName(_:Exp) => exceptionSignal(V) ... </k>
+  rule <k> exceptionSignal(V:Val) ~> hasattrDynApply(_:Val) => exceptionSignal(V) ... </k>
   rule <k> exceptionSignal(V:Val) ~> formatDefault() => exceptionSignal(V) ... </k>
   rule <k> exceptionSignal(V:Val) ~> formatSpec(_:Exp) => exceptionSignal(V) ... </k>
   rule <k> exceptionSignal(V:Val) ~> formatApply(_:Val) => exceptionSignal(V) ... </k>

@@ -515,6 +515,13 @@
       "coverage": ["hasattr-builtin", "getattr-attribute-error-profile", "attribute-access", "missing-attribute", "ordinary-python-source-adapter"]
     },
     {
+      "id": "adapter-dynamic-getattr-hasattr",
+      "source": "../adapter/adapter-dynamic-getattr-hasattr.py",
+      "reference": "Python Standard Library Built-in Functions getattr and hasattr; Python Language Reference 6.3.4 Calls argument evaluation order; current K attribute profile for range, slice, and numeric attributes",
+      "expected_result": "True ~> .K",
+      "coverage": ["getattr-builtin", "hasattr-builtin", "dynamic-attribute-name", "attribute-name-type-error", "default-argument-evaluation", "missing-attribute", "ordinary-python-source-adapter"]
+    },
+    {
       "id": "adapter-list-normal",
       "source": "../adapter/adapter-list-normal.py",
       "reference": "Python Language Reference 6.2.4 Displays for lists, sets and dictionaries; 6.3.2 Subscriptions",

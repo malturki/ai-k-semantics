@@ -812,14 +812,23 @@ def emit_exp(exp: ast.expr) -> str:
                 return f"#issubclassAny({emitted_class}, {emitted_classinfo})"
             return f"#issubclass({emitted_class}, {emitted_classinfo})"
         case ast.Call(func=ast.Name(id="getattr"), args=[obj, name], keywords=[]):
-            return f"#getattr({emit_exp(obj)}, {emit_getattr_name(exp, name)})"
+            emitted_name = emit_getattr_name(name)
+            if emitted_name is not None:
+                return f"#getattr({emit_exp(obj)}, {emitted_name})"
+            return f"#getattrDyn({emit_exp(obj)}, {emit_exp(name)})"
         case ast.Call(func=ast.Name(id="getattr"), args=[obj, name, default], keywords=[]):
-            return (
-                f"#getattrDefault({emit_exp(obj)}, "
-                f"{emit_getattr_name(exp, name)}, {emit_exp(default)})"
-            )
+            emitted_name = emit_getattr_name(name)
+            if emitted_name is not None:
+                return (
+                    f"#getattrDefault({emit_exp(obj)}, "
+                    f"{emitted_name}, {emit_exp(default)})"
+                )
+            return f"#getattrDefaultDyn({emit_exp(obj)}, {emit_exp(name)}, {emit_exp(default)})"
         case ast.Call(func=ast.Name(id="hasattr"), args=[obj, name], keywords=[]):
-            return f"#hasattr({emit_exp(obj)}, {emit_getattr_name(exp, name)})"
+            emitted_name = emit_getattr_name(name)
+            if emitted_name is not None:
+                return f"#hasattr({emit_exp(obj)}, {emitted_name})"
+            return f"#hasattrDyn({emit_exp(obj)}, {emit_exp(name)})"
         case ast.Call(func=ast.Name(id="all"), args=[arg], keywords=[]):
             return f"#all({emit_exp(arg)})"
         case ast.Call(func=ast.Name(id="any"), args=[arg], keywords=[]):
@@ -1495,12 +1504,11 @@ def emit_builtin_class_name(node: ast.AST, class_expr: ast.expr, role: str) -> s
     raise unsupported(node, f"{role} currently supports known built-in class names")
 
 
-def emit_getattr_name(node: ast.AST, name_expr: ast.expr) -> str:
+def emit_getattr_name(name_expr: ast.expr) -> str | None:
     if isinstance(name_expr, ast.Constant) and isinstance(name_expr.value, str):
         if name_expr.value in SUPPORTED_GETATTR_NAMES:
             return emit_id(name_expr.value)
-        raise unsupported(node, "getattr currently supports the known current attribute names")
-    raise unsupported(node, "getattr currently supports string-literal attribute names")
+    return None
 
 
 def emit_format_spec(node: ast.AST, spec_expr: ast.expr) -> str:

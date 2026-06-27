@@ -239,6 +239,7 @@ run_case "adapter-chained-comparison-short-circuit" "$ROOT/tests/adapter/adapter
 run_case "adapter-chained-identity" "$ROOT/tests/adapter/adapter-chained-identity.py" "True ~> .K"
 run_case "adapter-comparison-type-errors" "$ROOT/tests/adapter/adapter-comparison-type-errors.py" "True ~> .K"
 run_case "adapter-named-expression" "$ROOT/tests/adapter/adapter-named-expression.py" "True ~> .K"
+run_case "adapter-name-errors" "$ROOT/tests/adapter/adapter-name-errors.py" "True ~> .K"
 run_case "adapter-assert-message" "$ROOT/tests/adapter/adapter-assert-message.py" "True ~> .K"
 run_case "adapter-assert-false" "$ROOT/tests/adapter/adapter-assert-false.py" "True ~> .K"
 run_case "adapter-del-many" "$ROOT/tests/adapter/adapter-del-many.py" "True ~> .K"

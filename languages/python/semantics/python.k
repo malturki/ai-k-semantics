@@ -7782,6 +7782,9 @@ module PYTHON
 
   rule <k> X:Id => V ... </k>
        <env> ... X |-> V:Val ... </env>
+  rule <k> X:Id => exceptionSignal(#exception(#token("NameError", "Id"))) ... </k>
+       <env> Rho </env>
+    requires notBool (X in_keys(Rho))
 
   rule <k> #name(X:Id) => V ... </k>
        <env> ... X |-> V:Val ... </env>

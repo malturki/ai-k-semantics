@@ -1222,6 +1222,13 @@
       "coverage": ["assignment-expression", "named-expression", "simple-name-target", "expression-evaluation-order", "ordinary-python-source-adapter"]
     },
     {
+      "id": "adapter-name-errors",
+      "source": "../adapter/adapter-name-errors.py",
+      "reference": "Python Language Reference 4.2 Naming and binding; Python Built-in Exceptions NameError",
+      "expected_result": "True ~> .K",
+      "coverage": ["name-lookup", "unbound-name", "name-error", "del-statement", "function-return-expression", "ordinary-python-source-adapter"]
+    },
+    {
       "id": "adapter-assert-message",
       "source": "../adapter/adapter-assert-message.py",
       "reference": "Python Language Reference 7.3 The assert statement",

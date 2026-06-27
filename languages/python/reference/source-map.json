@@ -219,8 +219,8 @@
               "section": "Naming and binding"
             }
           ],
-          "k_coverage": ["semantics/python.k: single global environment with name lookup and assignment for Val", "semantics/python.k: internal #namedExpr binds simple-name assignment expressions in the current environment"],
-          "test_coverage": ["tests/examples/smoke-assignment.py", "tests/examples/smoke-comparisons.py", "tests/adapter/adapter-named-expression.py"],
+          "k_coverage": ["semantics/python.k: single global environment with name lookup and assignment for Val, plus current NameError sentinel behavior for unbound expression names", "semantics/python.k: internal #namedExpr binds simple-name assignment expressions in the current environment"],
+          "test_coverage": ["tests/examples/smoke-assignment.py", "tests/examples/smoke-comparisons.py", "tests/adapter/adapter-named-expression.py", "tests/adapter/adapter-name-errors.py"],
           "gaps": ["Need static scope analysis, local/global/nonlocal declarations, class scopes, comprehension binding behavior, closures, and annotation scopes."]
         },
         {

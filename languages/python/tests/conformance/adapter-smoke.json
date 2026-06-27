@@ -319,6 +319,13 @@
       "coverage": ["bytearray-constructor", "negative-size-value-error", "non-integer-item-type-error", "out-of-range-byte-value-error", "string-without-encoding-type-error", "unicode-encode-error", "lookup-error", "bytearray-index-errors", "ordinary-python-source-adapter"]
     },
     {
+      "id": "adapter-memoryview-iteration",
+      "source": "../adapter/adapter-memoryview-iteration.py",
+      "reference": "Python Language Reference 8.3 The for statement and loop else; Python Standard Library Built-in Types memoryview; Python Standard Library Built-in Functions bytearray/list/tuple/set/sorted/all/any/sum/min/max",
+      "expected_result": "True ~> .K",
+      "coverage": ["memoryview-builtin", "memoryview-iteration", "memoryview-bytearray-source", "for-statement", "for-else", "bytearray-constructor", "list-constructor", "tuple-constructor", "set-constructor", "sorted-builtin", "all-any-builtins", "sum-builtin", "min-max-builtins", "list-comprehension", "ordinary-python-source-adapter"]
+    },
+    {
       "id": "adapter-format-builtin",
       "source": "../adapter/adapter-format-builtin.py",
       "reference": "Python Standard Library Built-in Functions format; empty format_spec over current K string-conversion values",

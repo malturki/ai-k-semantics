@@ -6512,6 +6512,7 @@ module PYTHON
   rule iterableArgVals(bytesVal(VS:ValItems)) => valItemsToArgVals(VS)
   rule iterableArgVals(#bytearray()) => #noArgVals
   rule iterableArgVals(bytearrayVal(VS:ValItems)) => valItemsToArgVals(VS)
+  rule iterableArgVals(#memoryviewVal(V:Val)) => iterableArgVals(V)
   rule iterableArgVals(({}):Val) => #noArgVals
   rule iterableArgVals(dictVal(DS:DictItems)) => valItemsToArgVals(dictKeysToValItems(DS))
   rule iterableArgVals(set()) => #noArgVals
@@ -6941,6 +6942,7 @@ module PYTHON
   rule concreteIterableExtraNonEmpty(bytesVal(_:ValItems)) => true
   rule concreteIterableExtraNonEmpty(#bytearray()) => false
   rule concreteIterableExtraNonEmpty(bytearrayVal(_:ValItems)) => true
+  rule concreteIterableExtraNonEmpty(#memoryviewVal(V:Val)) => concreteIterableExtraNonEmpty(V)
   rule concreteIterableExtraNonEmpty({}) => false
   rule concreteIterableExtraNonEmpty(dictVal(_:DictItems)) => true
   rule concreteIterableExtraNonEmpty(set()) => false
@@ -6955,6 +6957,7 @@ module PYTHON
   rule concreteIterableExtraEmpty(bytesVal(_:ValItems)) => false
   rule concreteIterableExtraEmpty(#bytearray()) => true
   rule concreteIterableExtraEmpty(bytearrayVal(_:ValItems)) => false
+  rule concreteIterableExtraEmpty(#memoryviewVal(V:Val)) => concreteIterableExtraEmpty(V)
   rule concreteIterableExtraEmpty({}) => true
   rule concreteIterableExtraEmpty(dictVal(_:DictItems)) => false
   rule concreteIterableExtraEmpty(set()) => true
@@ -6993,6 +6996,7 @@ module PYTHON
   rule sortedIterableSupported(bytesVal(_:ValItems)) => true
   rule sortedIterableSupported(#bytearray()) => true
   rule sortedIterableSupported(bytearrayVal(_:ValItems)) => true
+  rule sortedIterableSupported(#memoryviewVal(V:Val)) => sortedIterableSupported(V)
   rule sortedIterableSupported({}) => true
   rule sortedIterableSupported(dictVal(_:DictItems)) => true
   rule sortedIterableSupported(set()) => true
@@ -7070,6 +7074,7 @@ module PYTHON
     requires lengthString(S) >Int 0
   rule concreteIterableExtraItems(bytesVal(VS:ValItems)) => VS
   rule concreteIterableExtraItems(bytearrayVal(VS:ValItems)) => VS
+  rule concreteIterableExtraItems(#memoryviewVal(V:Val)) => concreteIterableExtraItems(V)
   rule concreteIterableExtraItems(dictVal(DS:DictItems)) => dictKeysToValItems(DS)
   rule concreteIterableExtraItems(setVal(VS:ValItems)) => VS
   rule concreteIterableExtraItems(rangeVal(Start:Int, Stop:Int)) =>
@@ -14263,6 +14268,7 @@ module PYTHON
   rule #listCtor(bytesVal(VS:ValItems)) => listVal(VS)
   rule #listCtor(#bytearray()) => []
   rule #listCtor(bytearrayVal(VS:ValItems)) => listVal(VS)
+  rule #listCtor(#memoryviewVal(V:Val)) => #listCtor(V)
   rule #listCtor(({}):Val) => []
   rule #listCtor(dictVal(DS:DictItems)) => listVal(dictKeysToValItems(DS))
   rule #listCtor(set()) => []
@@ -14289,6 +14295,7 @@ module PYTHON
   rule #tupleCtor(bytesVal(VS:ValItems)) => tupleVal(VS)
   rule #tupleCtor(#bytearray()) => ()
   rule #tupleCtor(bytearrayVal(VS:ValItems)) => tupleVal(VS)
+  rule #tupleCtor(#memoryviewVal(V:Val)) => #tupleCtor(V)
   rule #tupleCtor(({}):Val) => ()
   rule #tupleCtor(dictVal(DS:DictItems)) => tupleVal(dictKeysToValItems(DS))
   rule #tupleCtor(set()) => ()
@@ -14691,6 +14698,7 @@ module PYTHON
   rule #all(_:String) => True
   rule #all(#bytes()) => True
   rule #all(bytesVal(VS:ValItems)) => boolValue(allValItems(VS))
+  rule #all(#memoryviewVal(V:Val)) => #all(V)
   rule #all(({}):Val) => True
   rule #all(dictVal(DS:DictItems)) => boolValue(allValItems(dictKeysToValItems(DS)))
   rule #all(set()) => True
@@ -14705,6 +14713,7 @@ module PYTHON
   rule #any(S:String) => boolValue(lengthString(S) >Int 0)
   rule #any(#bytes()) => False
   rule #any(bytesVal(VS:ValItems)) => boolValue(anyValItems(VS))
+  rule #any(#memoryviewVal(V:Val)) => #any(V)
   rule #any(({}):Val) => False
   rule #any(dictVal(DS:DictItems)) => boolValue(anyValItems(dictKeysToValItems(DS)))
   rule #any(set()) => False
@@ -14718,6 +14727,7 @@ module PYTHON
   rule <k> #sum(tupleVal(VS:ValItems)) => 0 ~> sumFold(VS) ... </k>
   rule #sum(#bytes()) => 0
   rule <k> #sum(bytesVal(VS:ValItems)) => 0 ~> sumFold(VS) ... </k>
+  rule #sum(#memoryviewVal(V:Val)) => #sum(V)
   rule #sum(({}):Val) => 0
   rule <k> #sum(dictVal(DS:DictItems)) => 0 ~> sumFold(dictKeysToValItems(DS)) ... </k>
   rule #sum(set()) => 0
@@ -14750,6 +14760,7 @@ module PYTHON
     requires sumStartForbidden(Seed)
   rule <k> #sum(bytesVal(VS:ValItems), Seed:Val) => Seed ~> sumFold(VS) ... </k>
     requires notBool sumStartForbidden(Seed)
+  rule #sum(#memoryviewVal(V:Val), Seed:Val) => #sum(V, Seed)
   rule <k> #sum(({}):Val, Seed:Val) => exceptionSignal(#exception(#token("TypeError", "Id"))) ... </k>
     requires sumStartForbidden(Seed)
   rule #sum(({}):Val, Seed:Val) => Seed
@@ -14798,6 +14809,7 @@ module PYTHON
   rule <k> #min(()) => exceptionSignal(#exception(#token("ValueError", "Id"))) ... </k>
   rule <k> #min("") => exceptionSignal(#exception(#token("ValueError", "Id"))) ... </k>
   rule <k> #min(#bytes()) => exceptionSignal(#exception(#token("ValueError", "Id"))) ... </k>
+  rule #min(#memoryviewVal(V:Val)) => #min(V)
   rule <k> #min(({}):Val) => exceptionSignal(#exception(#token("ValueError", "Id"))) ... </k>
   rule <k> #min(set()) => exceptionSignal(#exception(#token("ValueError", "Id"))) ... </k>
   rule <k> #min(rangeVal(Start:Int, Stop:Int)) => exceptionSignal(#exception(#token("ValueError", "Id"))) ... </k>
@@ -14828,6 +14840,7 @@ module PYTHON
   rule <k> #max(()) => exceptionSignal(#exception(#token("ValueError", "Id"))) ... </k>
   rule <k> #max("") => exceptionSignal(#exception(#token("ValueError", "Id"))) ... </k>
   rule <k> #max(#bytes()) => exceptionSignal(#exception(#token("ValueError", "Id"))) ... </k>
+  rule #max(#memoryviewVal(V:Val)) => #max(V)
   rule <k> #max(({}):Val) => exceptionSignal(#exception(#token("ValueError", "Id"))) ... </k>
   rule <k> #max(set()) => exceptionSignal(#exception(#token("ValueError", "Id"))) ... </k>
   rule <k> #max(rangeVal(Start:Int, Stop:Int)) => exceptionSignal(#exception(#token("ValueError", "Id"))) ... </k>
@@ -17592,6 +17605,14 @@ module PYTHON
   rule <k> bytearrayVal(VS:ValItems) ~> forIter(X:Id, Body:Block) =>
            forItems(X, VS, Body)
        ... </k>
+  rule <k> #memoryviewVal(#bytes()) ~> forIter(_:Id, _:Block) => stmtNoResult ... </k>
+  rule <k> #memoryviewVal(bytesVal(VS:ValItems)) ~> forIter(X:Id, Body:Block) =>
+           forItems(X, VS, Body)
+       ... </k>
+  rule <k> #memoryviewVal(#bytearray()) ~> forIter(_:Id, _:Block) => stmtNoResult ... </k>
+  rule <k> #memoryviewVal(bytearrayVal(VS:ValItems)) ~> forIter(X:Id, Body:Block) =>
+           forItems(X, VS, Body)
+       ... </k>
   rule <k> S:String ~> forIter(_:Id, _:Block) => stmtNoResult ... </k>
     requires lengthString(S) ==Int 0
   rule <k> S:String ~> forIter(X:Id, Body:Block) =>
@@ -18468,6 +18489,18 @@ module PYTHON
        ... </k>
   rule <k> #bytes() ~> forElseIter(_:Id, _:Block, Else:Block) => runLoopElse(Else) ... </k>
   rule <k> bytesVal(VS:ValItems) ~> forElseIter(X:Id, Body:Block, Else:Block) =>
+           forElseItems(X, VS, Body, Else)
+       ... </k>
+  rule <k> #bytearray() ~> forElseIter(_:Id, _:Block, Else:Block) => runLoopElse(Else) ... </k>
+  rule <k> bytearrayVal(VS:ValItems) ~> forElseIter(X:Id, Body:Block, Else:Block) =>
+           forElseItems(X, VS, Body, Else)
+       ... </k>
+  rule <k> #memoryviewVal(#bytes()) ~> forElseIter(_:Id, _:Block, Else:Block) => runLoopElse(Else) ... </k>
+  rule <k> #memoryviewVal(bytesVal(VS:ValItems)) ~> forElseIter(X:Id, Body:Block, Else:Block) =>
+           forElseItems(X, VS, Body, Else)
+       ... </k>
+  rule <k> #memoryviewVal(#bytearray()) ~> forElseIter(_:Id, _:Block, Else:Block) => runLoopElse(Else) ... </k>
+  rule <k> #memoryviewVal(bytearrayVal(VS:ValItems)) ~> forElseIter(X:Id, Body:Block, Else:Block) =>
            forElseItems(X, VS, Body, Else)
        ... </k>
   rule <k> S:String ~> forElseIter(_:Id, _:Block, Else:Block) => runLoopElse(Else) ... </k>

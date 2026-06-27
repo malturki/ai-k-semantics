@@ -2458,13 +2458,30 @@ def emit_for_stmt(
 
 
 def emit_with_stmt(node: ast.AST, items: list[ast.withitem], body: list[ast.stmt]) -> str:
-    if len(items) != 1:
-        raise unsupported(node, "with statements currently support exactly one context manager")
-    item = items[0]
+    if not items:
+        raise unsupported(node, "with statements require at least one context manager")
+    if len(items) == 1:
+        item = items[0]
+        if item.optional_vars is None:
+            return f"#with({emit_exp(item.context_expr)}, {emit_block(body)})"
+        if isinstance(item.optional_vars, ast.Name):
+            return f"#withAs({emit_exp(item.context_expr)}, {emit_id(item.optional_vars.id)}, {emit_block(body)})"
+        raise unsupported(node, "with-as targets currently support only simple names")
+    return f"#withMany({emit_with_items(node, items)}, {emit_block(body)})"
+
+
+def emit_with_items(node: ast.AST, items: list[ast.withitem]) -> str:
+    head = emit_with_item(node, items[0])
+    if len(items) == 1:
+        return f"#withOne({head})"
+    return f"#withItems({head}, {emit_with_items(node, items[1:])})"
+
+
+def emit_with_item(node: ast.AST, item: ast.withitem) -> str:
     if item.optional_vars is None:
-        return f"#with({emit_exp(item.context_expr)}, {emit_block(body)})"
+        return f"#withItem({emit_exp(item.context_expr)})"
     if isinstance(item.optional_vars, ast.Name):
-        return f"#withAs({emit_exp(item.context_expr)}, {emit_id(item.optional_vars.id)}, {emit_block(body)})"
+        return f"#withItemAs({emit_exp(item.context_expr)}, {emit_id(item.optional_vars.id)})"
     raise unsupported(node, "with-as targets currently support only simple names")
 
 

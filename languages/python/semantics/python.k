@@ -166,6 +166,12 @@ module PYTHON-SYNTAX
   syntax CmpChain ::= "#cmpLast" "(" CmpOp "," Exp ")" [symbol(cmpChainLast)]
                     | "#cmpCons" "(" CmpOp "," Exp "," CmpChain ")" [symbol(cmpChainCons)]
 
+  syntax WithItem ::= "#withItem" "(" Exp ")" [symbol(withItem)]
+                    | "#withItemAs" "(" Exp "," Id ")" [symbol(withItemAs)]
+
+  syntax WithItems ::= "#withOne" "(" WithItem ")" [symbol(withItemsLast)]
+                     | "#withItems" "(" WithItem "," WithItems ")" [symbol(withItemsCons)]
+
   syntax Stmts ::= Stmt ";" Stmts [symbol(stmtsCons)]
                  | Stmt ";" [symbol(stmtsLast)]
 
@@ -311,6 +317,7 @@ module PYTHON-SYNTAX
                 | "#forStarUnpackElse" "(" IdItems "," Id "," IdItems "," Exp "," Block "," Block ")" [symbol(forStarUnpackElseStmt)]
                 | "#with" "(" Exp "," Block ")" [symbol(withStmt)]
                 | "#withAs" "(" Exp "," Id "," Block ")" [symbol(withAsStmt)]
+                | "#withMany" "(" WithItems "," Block ")" [symbol(withManyStmt)]
                 | "raise" [symbol(reraiseStmt)]
                 | "raise" Exp [symbol(raiseStmt), strict]
                 | "#raiseFromNone" "(" Exp ")" [symbol(raiseFromNoneStmt), strict]
@@ -16628,6 +16635,19 @@ module PYTHON
        <result> _ => .K </result>
   rule <k> Fun:Val ~> applyDecorators(F:Id, argValsCons(Decorator:Val, Rest:ArgVals)) =>
            Decorator ~> callArg(Fun) ~> applyDecorators(F, Rest)
+       ... </k>
+
+  rule <k> withManyStmt(withItemsLast(withItem(Ctx:Exp)), Body:Block) =>
+           withStmt(Ctx, Body)
+       ... </k>
+  rule <k> withManyStmt(withItemsLast(withItemAs(Ctx:Exp, Alias:Id)), Body:Block) =>
+           withAsStmt(Ctx, Alias, Body)
+       ... </k>
+  rule <k> withManyStmt(withItemsCons(withItem(Ctx:Exp), Rest:WithItems), Body:Block) =>
+           withStmt(Ctx, block(stmtsLast(withManyStmt(Rest, Body))))
+       ... </k>
+  rule <k> withManyStmt(withItemsCons(withItemAs(Ctx:Exp, Alias:Id), Rest:WithItems), Body:Block) =>
+           withAsStmt(Ctx, Alias, block(stmtsLast(withManyStmt(Rest, Body))))
        ... </k>
 
   rule <k> withStmt(Ctx:Exp, Body:Block) =>

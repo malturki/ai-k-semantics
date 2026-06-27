@@ -913,6 +913,12 @@ def emit_exp(exp: ast.expr) -> str:
             raise unsupported(exp, "complex constructor supports at most one positional argument with keywords")
         case ast.Call(func=ast.Attribute(value=value, attr="conjugate", ctx=ast.Load()), args=[], keywords=[]):
             return f"#conjugate({emit_exp(value)})"
+        case ast.Call(
+            func=ast.Attribute(value=ast.Name(id=name), attr=attr, ctx=ast.Load()),
+            args=[arg],
+            keywords=[],
+        ) if attr in {"append", "extend"}:
+            return f"#methodCall({emit_id(name)}, {emit_id(attr)}, {emit_exp(arg)})"
         case ast.Call(func=ast.Name(id="abs"), args=[arg], keywords=[]):
             return f"#abs({emit_exp(arg)})"
         case ast.Call(func=ast.Name(id="divmod"), args=[left, right], keywords=[]):

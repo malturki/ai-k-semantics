@@ -479,6 +479,7 @@ module PYTHON-SYNTAX
                | "#complexCtorKw" "(" KwArgExps ")" [symbol(complexCtorKwExp)]
                | "#complexCtorMixed" "(" Exp "," KwArgExps ")" [symbol(complexCtorMixedExp), strict(1)]
                | "#conjugate" "(" Exp ")" [symbol(conjugateExp), strict]
+               | "#methodCall" "(" Id "," Id "," Exp ")" [symbol(methodCall1Exp), strict(3)]
                | "#abs" "(" Exp ")" [symbol(absExp), strict]
                | "#divmod" "(" Exp "," Exp ")" [symbol(divmodExp), strict]
                | "#pow" "(" Exp "," Exp ")" [symbol(powBuiltinExp), strict]
@@ -1263,6 +1264,7 @@ module PYTHON
                 | isIntLike(Val) [function, symbol(isIntLike)]
                 | isFloatLike(Val) [function, symbol(isFloatLike)]
                 | isComplexLike(Val) [function, symbol(isComplexLike)]
+                | isBytearrayVal(Val) [function, symbol(isBytearrayVal)]
                 | valEq(Val, Val) [function, symbol(valEq)]
                 | singletonPatternEq(Val, Val) [function, symbol(singletonPatternEq)]
                 | matchBuiltinClass(Val, Id) [function, symbol(matchBuiltinClass)]
@@ -1383,6 +1385,9 @@ module PYTHON
                 | concreteIterableExtraNonEmpty(Val) [function, symbol(concreteIterableExtraNonEmpty)]
                 | concreteIterableExtraEmpty(Val) [function, symbol(concreteIterableExtraEmpty)]
                 | bytesCtorSourceSupported(Val) [function, symbol(bytesCtorSourceSupported)]
+                | bytearrayExtendSourceSupported(Val) [function, symbol(bytearrayExtendSourceSupported)]
+                | bytearrayExtendSourceNonEmpty(Val) [function, symbol(bytearrayExtendSourceNonEmpty)]
+                | bytearrayExtendSourceEmpty(Val) [function, symbol(bytearrayExtendSourceEmpty)]
                 | bytesEncodingUtf8(String) [function, symbol(bytesEncodingUtf8)]
                 | bytesEncodingAscii(String) [function, symbol(bytesEncodingAscii)]
                 | bytesEncodingLatin1(String) [function, symbol(bytesEncodingLatin1)]
@@ -1855,6 +1860,7 @@ module PYTHON
   syntax ValItems ::= concatValItems(ValItems, ValItems) [function, symbol(concatValItems)]
   syntax ValItems ::= repeatValItems(ValItems, Int) [function, symbol(repeatValItems)]
   syntax ValItems ::= byteItems(ValItems) [function, symbol(byteItems)]
+  syntax ValItems ::= bytearrayExtendSourceItems(Val) [function, symbol(bytearrayExtendSourceItems)]
   syntax ValItems ::= sliceValItems(ValItems, Int, Int) [function, symbol(sliceValItems)]
   syntax ValItems ::= sliceStepValItems(ValItems, Int, Int, Int) [function, symbol(sliceStepValItems)]
   syntax ValItems ::= listSet(ValItems, Int, Val) [function, symbol(listSet)]
@@ -1873,6 +1879,8 @@ module PYTHON
                | subscriptGet(Val, Val) [function, symbol(subscriptGet)]
                | subscriptSet(Val, Val, Val) [function, symbol(subscriptSet)]
                | subscriptDel(Val, Val) [function, symbol(subscriptDel)]
+               | bytearrayAppendByte(Val, Val) [function, symbol(bytearrayAppendByte)]
+               | bytearrayExtendBytes(Val, ValItems) [function, symbol(bytearrayExtendBytes)]
   syntax Val ::= dictFromDictVals(DictVals) [function, symbol(dictFromDictVals)]
   syntax Val ::= dictCtorFromPairs(ValItems) [function, symbol(dictCtorFromPairs)]
   syntax Val ::= dictCtorFromKwArgs(KwArgVals) [function, symbol(dictCtorFromKwArgs)]
@@ -3430,6 +3438,10 @@ module PYTHON
   rule isIntLike(sliceVal(_:Val, _:Val, _:Val)) => false
   rule isIntLike(argsVal(_:ArgVals)) => false
   rule isIntLike(dictArgsVal(_:DictVals)) => false
+
+  rule isBytearrayVal(#bytearray()) => true
+  rule isBytearrayVal(bytearrayVal(_:ValItems)) => true
+  rule isBytearrayVal(_:Val) => false [owise]
 
   rule isFloatLike(_:Float) => true
   rule isFloatLike(V:Val) => isIntLike(V) [owise]
@@ -6928,6 +6940,14 @@ module PYTHON
     requires N <=Int 0
   rule bytearrayRepeat(VS:ValItems, N:Int) => bytearrayVal(repeatValItems(VS, N))
     requires N >Int 0
+  rule bytearrayAppendByte(#bytearray(), V:Val) => bytearrayVal(valItemsLast(intValue(V)))
+    requires isIntLike(V)
+  rule bytearrayAppendByte(bytearrayVal(VS:ValItems), V:Val) =>
+    bytearrayVal(concatValItems(VS, valItemsLast(intValue(V))))
+    requires isIntLike(V)
+  rule bytearrayExtendBytes(#bytearray(), VS:ValItems) => bytearrayVal(VS)
+  rule bytearrayExtendBytes(bytearrayVal(VS1:ValItems), VS2:ValItems) =>
+    bytearrayVal(concatValItems(VS1, VS2))
 
   rule argValsToSetItems(argValsCons(V:Val, #noArgVals)) => valItemsLast(V)
   rule argValsToSetItems(argValsCons(V:Val, VS:ArgVals)) => argValsToSetItems(VS)
@@ -6988,6 +7008,75 @@ module PYTHON
   rule bytesCtorSourceSupported(rangeVal(_:Int, _:Int)) => true
   rule bytesCtorSourceSupported(rangeVal(_:Int, _:Int, _:Int)) => true
   rule bytesCtorSourceSupported(_:Val) => false [owise]
+
+  rule bytearrayExtendSourceSupported(#bytes()) => true
+  rule bytearrayExtendSourceSupported(bytesVal(_:ValItems)) => true
+  rule bytearrayExtendSourceSupported(#bytearray()) => true
+  rule bytearrayExtendSourceSupported(bytearrayVal(_:ValItems)) => true
+  rule bytearrayExtendSourceSupported(#memoryviewVal(V:Val)) => bytearrayExtendSourceSupported(V)
+  rule bytearrayExtendSourceSupported([]) => true
+  rule bytearrayExtendSourceSupported(listVal(_:ValItems)) => true
+  rule bytearrayExtendSourceSupported(()) => true
+  rule bytearrayExtendSourceSupported(tupleVal(_:ValItems)) => true
+  rule bytearrayExtendSourceSupported({}) => true
+  rule bytearrayExtendSourceSupported(dictVal(_:DictItems)) => true
+  rule bytearrayExtendSourceSupported(set()) => true
+  rule bytearrayExtendSourceSupported(setVal(_:ValItems)) => true
+  rule bytearrayExtendSourceSupported(rangeVal(_:Int, _:Int)) => true
+  rule bytearrayExtendSourceSupported(rangeVal(_:Int, _:Int, _:Int)) => true
+  rule bytearrayExtendSourceSupported(_:Val) => false [owise]
+
+  rule bytearrayExtendSourceEmpty(#bytes()) => true
+  rule bytearrayExtendSourceEmpty(bytesVal(_:ValItems)) => false
+  rule bytearrayExtendSourceEmpty(#bytearray()) => true
+  rule bytearrayExtendSourceEmpty(bytearrayVal(_:ValItems)) => false
+  rule bytearrayExtendSourceEmpty(#memoryviewVal(V:Val)) => bytearrayExtendSourceEmpty(V)
+  rule bytearrayExtendSourceEmpty([]) => true
+  rule bytearrayExtendSourceEmpty(listVal(_:ValItems)) => false
+  rule bytearrayExtendSourceEmpty(()) => true
+  rule bytearrayExtendSourceEmpty(tupleVal(_:ValItems)) => false
+  rule bytearrayExtendSourceEmpty({}) => true
+  rule bytearrayExtendSourceEmpty(dictVal(_:DictItems)) => false
+  rule bytearrayExtendSourceEmpty(set()) => true
+  rule bytearrayExtendSourceEmpty(setVal(_:ValItems)) => false
+  rule bytearrayExtendSourceEmpty(rangeVal(Start:Int, Stop:Int)) => pyRangeLen(Start, Stop, 1) ==Int 0
+  rule bytearrayExtendSourceEmpty(rangeVal(Start:Int, Stop:Int, Step:Int)) =>
+    pyRangeLen(Start, Stop, Step) ==Int 0
+    requires Step =/=Int 0
+  rule bytearrayExtendSourceEmpty(_:Val) => false [owise]
+
+  rule bytearrayExtendSourceNonEmpty(#bytes()) => false
+  rule bytearrayExtendSourceNonEmpty(bytesVal(_:ValItems)) => true
+  rule bytearrayExtendSourceNonEmpty(#bytearray()) => false
+  rule bytearrayExtendSourceNonEmpty(bytearrayVal(_:ValItems)) => true
+  rule bytearrayExtendSourceNonEmpty(#memoryviewVal(V:Val)) => bytearrayExtendSourceNonEmpty(V)
+  rule bytearrayExtendSourceNonEmpty([]) => false
+  rule bytearrayExtendSourceNonEmpty(listVal(_:ValItems)) => true
+  rule bytearrayExtendSourceNonEmpty(()) => false
+  rule bytearrayExtendSourceNonEmpty(tupleVal(_:ValItems)) => true
+  rule bytearrayExtendSourceNonEmpty({}) => false
+  rule bytearrayExtendSourceNonEmpty(dictVal(_:DictItems)) => true
+  rule bytearrayExtendSourceNonEmpty(set()) => false
+  rule bytearrayExtendSourceNonEmpty(setVal(_:ValItems)) => true
+  rule bytearrayExtendSourceNonEmpty(rangeVal(Start:Int, Stop:Int)) => pyRangeLen(Start, Stop, 1) >Int 0
+  rule bytearrayExtendSourceNonEmpty(rangeVal(Start:Int, Stop:Int, Step:Int)) =>
+    pyRangeLen(Start, Stop, Step) >Int 0
+    requires Step =/=Int 0
+  rule bytearrayExtendSourceNonEmpty(_:Val) => false [owise]
+
+  rule bytearrayExtendSourceItems(bytesVal(VS:ValItems)) => VS
+  rule bytearrayExtendSourceItems(bytearrayVal(VS:ValItems)) => VS
+  rule bytearrayExtendSourceItems(#memoryviewVal(V:Val)) => bytearrayExtendSourceItems(V)
+  rule bytearrayExtendSourceItems(listVal(VS:ValItems)) => VS
+  rule bytearrayExtendSourceItems(tupleVal(VS:ValItems)) => VS
+  rule bytearrayExtendSourceItems(dictVal(DS:DictItems)) => dictKeysToValItems(DS)
+  rule bytearrayExtendSourceItems(setVal(VS:ValItems)) => VS
+  rule bytearrayExtendSourceItems(rangeVal(Start:Int, Stop:Int)) =>
+    rangeToValItems(Start, Stop, 1, 0, pyRangeLen(Start, Stop, 1))
+    requires pyRangeLen(Start, Stop, 1) >Int 0
+  rule bytearrayExtendSourceItems(rangeVal(Start:Int, Stop:Int, Step:Int)) =>
+    rangeToValItems(Start, Stop, Step, 0, pyRangeLen(Start, Stop, Step))
+    requires Step =/=Int 0 andBool pyRangeLen(Start, Stop, Step) >Int 0
 
   rule sortedIterableSupported([]) => true
   rule sortedIterableSupported(listVal(_:ValItems)) => true
@@ -15512,6 +15601,78 @@ module PYTHON
   rule #conjugate(F:Float) => F
   rule #conjugate(V:Val) => intValue(V)
     requires isIntLike(V)
+  rule <k> #methodCall(X:Id, Method:Id, V:Val) => None ... </k>
+       <env> ... X |-> (B:Val => bytearrayAppendByte(B, V)) ... </env>
+    requires Id2String(Method) ==String "append"
+      andBool isBytearrayVal(B)
+      andBool isIntLike(V)
+      andBool intValue(V) >=Int 0
+      andBool intValue(V) <=Int 255
+  rule <k> #methodCall(X:Id, Method:Id, V:Val) =>
+           exceptionSignal(#exception(#token("ValueError", "Id")))
+       ... </k>
+       <env> ... X |-> B:Val ... </env>
+    requires Id2String(Method) ==String "append"
+      andBool isBytearrayVal(B)
+      andBool isIntLike(V)
+      andBool (intValue(V) <Int 0 orBool intValue(V) >Int 255)
+  rule <k> #methodCall(X:Id, Method:Id, V:Val) =>
+           exceptionSignal(#exception(#token("TypeError", "Id")))
+       ... </k>
+       <env> ... X |-> B:Val ... </env>
+    requires Id2String(Method) ==String "append"
+      andBool isBytearrayVal(B)
+      andBool notBool isIntLike(V)
+  rule <k> #methodCall(X:Id, Method:Id, Src:Val) => None ... </k>
+       <env> ... X |-> B:Val ... </env>
+    requires Id2String(Method) ==String "extend"
+      andBool isBytearrayVal(B)
+      andBool bytearrayExtendSourceSupported(Src)
+      andBool bytearrayExtendSourceEmpty(Src)
+  rule <k> #methodCall(X:Id, Method:Id, Src:Val) => None ... </k>
+       <env> ... X |-> (B:Val => bytearrayExtendBytes(B, byteItems(bytearrayExtendSourceItems(Src)))) ... </env>
+    requires Id2String(Method) ==String "extend"
+      andBool isBytearrayVal(B)
+      andBool bytearrayExtendSourceSupported(Src)
+      andBool bytearrayExtendSourceNonEmpty(Src)
+      andBool valItemsAllByteInts(bytearrayExtendSourceItems(Src))
+  rule <k> #methodCall(X:Id, Method:Id, Src:Val) =>
+           exceptionSignal(#exception(#token("TypeError", "Id")))
+       ... </k>
+       <env> ... X |-> B:Val ... </env>
+    requires Id2String(Method) ==String "extend"
+      andBool isBytearrayVal(B)
+      andBool bytearrayExtendSourceSupported(Src)
+      andBool bytearrayExtendSourceNonEmpty(Src)
+      andBool notBool valItemsAllIntLike(bytearrayExtendSourceItems(Src))
+  rule <k> #methodCall(X:Id, Method:Id, Src:Val) =>
+           exceptionSignal(#exception(#token("ValueError", "Id")))
+       ... </k>
+       <env> ... X |-> B:Val ... </env>
+    requires Id2String(Method) ==String "extend"
+      andBool isBytearrayVal(B)
+      andBool bytearrayExtendSourceSupported(Src)
+      andBool bytearrayExtendSourceNonEmpty(Src)
+      andBool valItemsAllIntLike(bytearrayExtendSourceItems(Src))
+      andBool notBool valItemsAllByteInts(bytearrayExtendSourceItems(Src))
+  rule <k> #methodCall(X:Id, Method:Id, Src:Val) =>
+           exceptionSignal(#exception(#token("TypeError", "Id")))
+       ... </k>
+       <env> ... X |-> B:Val ... </env>
+    requires Id2String(Method) ==String "extend"
+      andBool isBytearrayVal(B)
+      andBool notBool bytearrayExtendSourceSupported(Src)
+  rule <k> #methodCall(X:Id, _Method:Id, _Arg:Val) =>
+           exceptionSignal(#exception(#token("NameError", "Id")))
+       ... </k>
+       <env> Rho </env>
+    requires notBool (X in_keys(Rho))
+  rule <k> #methodCall(X:Id, Method:Id, _Arg:Val) =>
+           exceptionSignal(#exception(#token("NotImplementedError", "Id")))
+       ... </k>
+       <env> ... X |-> B:Val ... </env>
+    requires (Id2String(Method) ==String "append" orBool Id2String(Method) ==String "extend")
+      andBool notBool isBytearrayVal(B)
   rule #abs(V:Val) => 0 -Int intValue(V)
     requires isIntLike(V) andBool intValue(V) <Int 0
   rule #abs(V:Val) => intValue(V)

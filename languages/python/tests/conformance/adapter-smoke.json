@@ -2132,6 +2132,13 @@
       "coverage": ["try-statement", "exception-class-hierarchy", "except-type-tuple", "except-as-target", "handler-order", "raise-statement", "exception-handler-matching", "ordinary-python-source-adapter"]
     },
     {
+      "id": "adapter-exception-hierarchy-builtins",
+      "source": "../adapter/adapter-exception-hierarchy-builtins.py",
+      "reference": "Python Language Reference 8.4 The try statement; 7.8 The raise statement; Python Standard Library Built-in Exceptions",
+      "expected_result": "True ~> .K",
+      "coverage": ["try-statement", "built-in-exception-hierarchy", "os-error-family", "import-error-family", "warning-family", "base-exception-non-exception", "cpython-runtime-exception-name", "raise-statement", "exception-handler-matching", "ordinary-python-source-adapter"]
+    },
+    {
       "id": "adapter-range-for",
       "source": "../adapter/adapter-range-for.py",
       "reference": "Python Language Reference 8.3 The for statement; Standard Library range type",

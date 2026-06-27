@@ -2466,7 +2466,9 @@ def emit_with_stmt(node: ast.AST, items: list[ast.withitem], body: list[ast.stmt
             return f"#with({emit_exp(item.context_expr)}, {emit_block(body)})"
         if isinstance(item.optional_vars, ast.Name):
             return f"#withAs({emit_exp(item.context_expr)}, {emit_id(item.optional_vars.id)}, {emit_block(body)})"
-        raise unsupported(node, "with-as targets currently support only simple names")
+        if isinstance(item.optional_vars, ast.Tuple | ast.List):
+            return f"#withAsTarget({emit_exp(item.context_expr)}, {emit_target(item.optional_vars)}, {emit_block(body)})"
+        raise unsupported(node, "with-as targets currently support only simple names and sequence targets")
     return f"#withMany({emit_with_items(node, items)}, {emit_block(body)})"
 
 
@@ -2482,7 +2484,9 @@ def emit_with_item(node: ast.AST, item: ast.withitem) -> str:
         return f"#withItem({emit_exp(item.context_expr)})"
     if isinstance(item.optional_vars, ast.Name):
         return f"#withItemAs({emit_exp(item.context_expr)}, {emit_id(item.optional_vars.id)})"
-    raise unsupported(node, "with-as targets currently support only simple names")
+    if isinstance(item.optional_vars, ast.Tuple | ast.List):
+        return f"#withItemAsTarget({emit_exp(item.context_expr)}, {emit_target(item.optional_vars)})"
+    raise unsupported(node, "with-as targets currently support only simple names and sequence targets")
 
 
 def emit_assign(node: ast.AST, targets: list[ast.expr], value: ast.expr) -> str:

@@ -168,6 +168,7 @@ module PYTHON-SYNTAX
 
   syntax WithItem ::= "#withItem" "(" Exp ")" [symbol(withItem)]
                     | "#withItemAs" "(" Exp "," Id ")" [symbol(withItemAs)]
+                    | "#withItemAsTarget" "(" Exp "," Target ")" [symbol(withItemAsTarget)]
 
   syntax WithItems ::= "#withOne" "(" WithItem ")" [symbol(withItemsLast)]
                      | "#withItems" "(" WithItem "," WithItems ")" [symbol(withItemsCons)]
@@ -317,6 +318,7 @@ module PYTHON-SYNTAX
                 | "#forStarUnpackElse" "(" IdItems "," Id "," IdItems "," Exp "," Block "," Block ")" [symbol(forStarUnpackElseStmt)]
                 | "#with" "(" Exp "," Block ")" [symbol(withStmt)]
                 | "#withAs" "(" Exp "," Id "," Block ")" [symbol(withAsStmt)]
+                | "#withAsTarget" "(" Exp "," Target "," Block ")" [symbol(withAsTargetStmt)]
                 | "#withMany" "(" WithItems "," Block ")" [symbol(withManyStmt)]
                 | "raise" [symbol(reraiseStmt)]
                 | "raise" Exp [symbol(raiseStmt), strict]
@@ -1171,6 +1173,7 @@ module PYTHON
                  | runLoopElse(Block) [symbol(runLoopElse)]
                  | withEnter(Block) [symbol(withEnter)]
                  | withEnterAs(Id, Block) [symbol(withEnterAs)]
+                 | withEnterAsTarget(Target, Block) [symbol(withEnterAsTarget)]
                  | withExit(Val) [symbol(withExit)]
                  | "memoryviewApply" [symbol(memoryviewApply)]
                  | tryFinallyDone(Block) [symbol(tryFinallyDone)]
@@ -6043,6 +6046,8 @@ module PYTHON
   rule targetValueArityOk(targetSeq(TS:Targets), bytearrayVal(VS:ValItems)) =>
     sameTargetsValArity(TS, VS)
   rule targetValueArityOk(targetSeq(_:Targets), #bytearray()) => false
+  rule targetValueArityOk(targetSeq(TS:Targets), #memoryviewVal(V:Val)) =>
+    targetValueArityOk(targetSeq(TS), V)
   rule targetValueArityOk(targetSeq(TS:Targets), S:String) =>
     sameTargetsValArity(TS, stringToValItems(S, 0, lengthString(S)))
     requires lengthString(S) >Int 0
@@ -6080,6 +6085,8 @@ module PYTHON
     targetStarSeqArityOk(Prefix, Suffix, VS)
   rule targetValueArityOk(targetStarSeq(Prefix:MaybeTargets, _:Id, Suffix:MaybeTargets), #bytearray()) =>
     maybeTargetsLen(Prefix) +Int maybeTargetsLen(Suffix) ==Int 0
+  rule targetValueArityOk(targetStarSeq(Prefix:MaybeTargets, Star:Id, Suffix:MaybeTargets), #memoryviewVal(V:Val)) =>
+    targetValueArityOk(targetStarSeq(Prefix, Star, Suffix), V)
   rule targetValueArityOk(targetStarSeq(Prefix:MaybeTargets, _:Id, Suffix:MaybeTargets), S:String) =>
     targetStarSeqArityOk(Prefix, Suffix, stringToValItems(S, 0, lengthString(S)))
     requires lengthString(S) >Int 0
@@ -6768,6 +6775,8 @@ module PYTHON
     bindTargets(Rho, TS, VS)
   rule bindTarget(Rho:Map, targetSeq(TS:Targets), bytearrayVal(VS:ValItems)) =>
     bindTargets(Rho, TS, VS)
+  rule bindTarget(Rho:Map, targetSeq(TS:Targets), #memoryviewVal(V:Val)) =>
+    bindTarget(Rho, targetSeq(TS), V)
   rule bindTarget(Rho:Map, targetSeq(TS:Targets), S:String) =>
     bindTargets(Rho, TS, stringToValItems(S, 0, lengthString(S)))
     requires lengthString(S) >Int 0
@@ -6801,6 +6810,8 @@ module PYTHON
   rule bindTarget(Rho:Map, targetStarSeq(Prefix:MaybeTargets, Star:Id, Suffix:MaybeTargets), #bytearray()) =>
     Rho [ Star <- [] ]
     requires maybeTargetsLen(Prefix) +Int maybeTargetsLen(Suffix) ==Int 0
+  rule bindTarget(Rho:Map, targetStarSeq(Prefix:MaybeTargets, Star:Id, Suffix:MaybeTargets), #memoryviewVal(V:Val)) =>
+    bindTarget(Rho, targetStarSeq(Prefix, Star, Suffix), V)
   rule bindTarget(Rho:Map, targetStarSeq(Prefix:MaybeTargets, Star:Id, Suffix:MaybeTargets), S:String) =>
     bindTargetStarSeq(Rho, Prefix, Star, Suffix, stringToValItems(S, 0, lengthString(S)))
     requires lengthString(S) >Int 0
@@ -7093,6 +7104,7 @@ module PYTHON
   rule unpackValueSupported(#bytes()) => true
   rule unpackValueSupported(bytearrayVal(_:ValItems)) => true
   rule unpackValueSupported(#bytearray()) => true
+  rule unpackValueSupported(#memoryviewVal(V:Val)) => unpackValueSupported(V)
   rule unpackValueSupported(_:String) => true
   rule unpackValueSupported(dictVal(_:DictItems)) => true
   rule unpackValueSupported(({}):Val) => true
@@ -7111,6 +7123,7 @@ module PYTHON
   rule unpackValueLen(#bytes()) => 0
   rule unpackValueLen(bytearrayVal(VS:ValItems)) => valItemsLen(VS)
   rule unpackValueLen(#bytearray()) => 0
+  rule unpackValueLen(#memoryviewVal(V:Val)) => unpackValueLen(V)
   rule unpackValueLen(S:String) => stringCodePointLen(S, 0)
   rule unpackValueLen(dictVal(DS:DictItems)) => valItemsLen(dictKeysToValItems(DS))
   rule unpackValueLen(({}):Val) => 0
@@ -16643,11 +16656,17 @@ module PYTHON
   rule <k> withManyStmt(withItemsLast(withItemAs(Ctx:Exp, Alias:Id)), Body:Block) =>
            withAsStmt(Ctx, Alias, Body)
        ... </k>
+  rule <k> withManyStmt(withItemsLast(withItemAsTarget(Ctx:Exp, T:Target)), Body:Block) =>
+           withAsTargetStmt(Ctx, T, Body)
+       ... </k>
   rule <k> withManyStmt(withItemsCons(withItem(Ctx:Exp), Rest:WithItems), Body:Block) =>
            withStmt(Ctx, block(stmtsLast(withManyStmt(Rest, Body))))
        ... </k>
   rule <k> withManyStmt(withItemsCons(withItemAs(Ctx:Exp, Alias:Id), Rest:WithItems), Body:Block) =>
            withAsStmt(Ctx, Alias, block(stmtsLast(withManyStmt(Rest, Body))))
+       ... </k>
+  rule <k> withManyStmt(withItemsCons(withItemAsTarget(Ctx:Exp, T:Target), Rest:WithItems), Body:Block) =>
+           withAsTargetStmt(Ctx, T, block(stmtsLast(withManyStmt(Rest, Body))))
        ... </k>
 
   rule <k> withStmt(Ctx:Exp, Body:Block) =>
@@ -16655,6 +16674,9 @@ module PYTHON
        ... </k>
   rule <k> withAsStmt(Ctx:Exp, Alias:Id, Body:Block) =>
            Ctx ~> withEnterAs(Alias, Body)
+       ... </k>
+  rule <k> withAsTargetStmt(Ctx:Exp, T:Target, Body:Block) =>
+           Ctx ~> withEnterAsTarget(T, Body)
        ... </k>
   rule <k> CM:Val ~> withEnter(block(SS:Stmts)) =>
            SS ~> withExit(CM)
@@ -16679,6 +16701,28 @@ module PYTHON
        <env> Rho => Rho [ Alias <- contextEnterValue(CM) ] </env>
     requires contextManagerSupported(CM)
   rule <k> CM:Val ~> withEnterAs(_Alias:Id, _Body:Block) =>
+           exceptionSignal(#exception(#token("TypeError", "Id")))
+       ... </k>
+    requires notBool contextManagerSupported(CM)
+  rule <k> CM:Val ~> withEnterAsTarget(T:Target, block(SS:Stmts)) =>
+           SS ~> withExit(CM)
+       ... </k>
+       <env> Rho => bindTarget(Rho, T, contextEnterValue(CM)) </env>
+    requires contextManagerSupported(CM)
+      andBool targetValueArityOk(T, contextEnterValue(CM))
+  rule <k> CM:Val ~> withEnterAsTarget(T:Target, {}) =>
+           withExit(CM)
+       ... </k>
+       <env> Rho => bindTarget(Rho, T, contextEnterValue(CM)) </env>
+    requires contextManagerSupported(CM)
+      andBool targetValueArityOk(T, contextEnterValue(CM))
+  rule <k> CM:Val ~> withEnterAsTarget(T:Target, _Body:Block) =>
+           exceptionSignal(#exception(#token("ValueError", "Id"))) ~> withExit(CM)
+       ... </k>
+    requires contextManagerSupported(CM)
+      andBool unpackValueSupported(contextEnterValue(CM))
+      andBool notBool targetValueArityOk(T, contextEnterValue(CM))
+  rule <k> CM:Val ~> withEnterAsTarget(_T:Target, _Body:Block) =>
            exceptionSignal(#exception(#token("TypeError", "Id")))
        ... </k>
     requires notBool contextManagerSupported(CM)
@@ -19311,6 +19355,7 @@ module PYTHON
   rule <k> exceptionSignal(V:Val) ~> memoryviewApply => exceptionSignal(V) ... </k>
   rule <k> exceptionSignal(V:Val) ~> withEnter(_:Block) => exceptionSignal(V) ... </k>
   rule <k> exceptionSignal(V:Val) ~> withEnterAs(_:Id, _:Block) => exceptionSignal(V) ... </k>
+  rule <k> exceptionSignal(V:Val) ~> withEnterAsTarget(_:Target, _:Block) => exceptionSignal(V) ... </k>
   rule <k> exceptionSignal(V:Val) ~> buildDictCtorKw => exceptionSignal(V) ... </k>
   rule <k> exceptionSignal(V:Val) ~> buildDictCtorMixed(_:Val) => exceptionSignal(V) ... </k>
   rule <k> exceptionSignal(V:Val) ~> buildComplexCtorKw => exceptionSignal(V) ... </k>

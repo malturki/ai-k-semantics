@@ -2153,6 +2153,13 @@
       "coverage": ["with-statement", "multiple-context-managers", "context-manager-enter", "context-manager-exit", "with-as-target", "memoryview-builtin", "second-manager-exception-propagation", "body-exception-propagation", "return-break-continue-through-with", "ordinary-python-source-adapter"]
     },
     {
+      "id": "adapter-with-targets-memoryview",
+      "source": "../adapter/adapter-with-targets-memoryview.py",
+      "reference": "Python Language Reference 8.5 The with statement; Python Language Reference 7.2 Assignment statements; Python Standard Library Built-in Types memoryview",
+      "expected_result": "True ~> .K",
+      "coverage": ["with-statement", "with-as-target", "sequence-target-binding", "starred-target-binding", "target-arity-error", "memoryview-builtin", "ordinary-python-source-adapter"]
+    },
+    {
       "id": "adapter-range-for",
       "source": "../adapter/adapter-range-for.py",
       "reference": "Python Language Reference 8.3 The for statement; Standard Library range type",

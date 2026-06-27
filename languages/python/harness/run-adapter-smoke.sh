@@ -319,6 +319,7 @@ run_case "adapter-lambda-pos-kw-defaults-nonsuffix" "$ROOT/tests/adapter/adapter
 run_case "adapter-lambda-pos-kw-kwargs" "$ROOT/tests/adapter/adapter-lambda-pos-kw-kwargs.py" "True ~> .K"
 run_case "adapter-keyword-calls" "$ROOT/tests/adapter/adapter-keyword-calls.py" "True ~> .K"
 run_case "adapter-mixed-calls" "$ROOT/tests/adapter/adapter-mixed-calls.py" "True ~> .K"
+run_case "adapter-call-noncallable-errors" "$ROOT/tests/adapter/adapter-call-noncallable-errors.py" "True ~> .K"
 run_case "adapter-starred-call" "$ROOT/tests/adapter/adapter-starred-call.py" "True ~> .K"
 run_case "adapter-call-kw-unpack" "$ROOT/tests/adapter/adapter-call-kw-unpack.py" "True ~> .K"
 run_case "adapter-call-mixed-kw-unpack" "$ROOT/tests/adapter/adapter-call-mixed-kw-unpack.py" "True ~> .K"

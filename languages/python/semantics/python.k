@@ -9564,6 +9564,10 @@ module PYTHON
   rule <k> V:Val ~> evalStarArgNext(ES:ArgExps, VS:ArgVals) =>
            evalArgs(ES, concatArgVals(VS, iterableArgVals(V)))
        ... </k>
+  rule <k> argsVal(_:ArgVals) ~> callApplyArgs(F:Val) =>
+           exceptionSignal(#exception(#token("TypeError", "Id")))
+       ... </k>
+    requires notBool callableVal(F)
   rule <k> argsVal(VS:ArgVals) ~> callApplyArgs(closureArgs(IDS:IdItems, Body:Exp)) =>
            Body ~> restoreEnv(Rho)
        ... </k>
@@ -9978,6 +9982,10 @@ module PYTHON
   rule <k> V:Val ~> evalKwStarArgNext(Rest:KwArgExps, KWS:KwArgVals) =>
            evalKwArgs(Rest, appendKwUnpack(KWS, V))
        ... </k>
+  rule <k> kwArgsVal(_:KwArgVals) ~> callApplyKwArgs(F:Val) =>
+           exceptionSignal(#exception(#token("TypeError", "Id")))
+       ... </k>
+    requires notBool callableVal(F)
   rule <k> kwArgsVal(KWS:KwArgVals) ~> callApplyKwArgs(closure(X:Id, Body:Exp)) =>
            Body ~> restoreEnv(Rho)
        ... </k>
@@ -10541,6 +10549,10 @@ module PYTHON
   rule <k> argsVal(VS:ArgVals) ~> evalMixedKwArgs(KWS:KwArgExps, F:Val) =>
            evalKwArgs(KWS, #noKwArgVals) ~> callApplyMixedArgs(F, VS)
        ... </k>
+  rule <k> kwArgsVal(_:KwArgVals) ~> callApplyMixedArgs(F:Val, _:ArgVals) =>
+           exceptionSignal(#exception(#token("TypeError", "Id")))
+       ... </k>
+    requires notBool callableVal(F)
   rule <k> kwArgsVal(KWS:KwArgVals) ~> callApplyMixedArgs(closure(X:Id, Body:Exp), VS:ArgVals) =>
            Body ~> restoreEnv(Rho)
        ... </k>
@@ -18928,6 +18940,12 @@ module PYTHON
   rule <k> exceptionSignal(V:Val) ~> roundDefault() => exceptionSignal(V) ... </k>
   rule <k> exceptionSignal(V:Val) ~> roundNdigits(_:Exp) => exceptionSignal(V) ... </k>
   rule <k> exceptionSignal(V:Val) ~> roundApply(_:Val) => exceptionSignal(V) ... </k>
+  rule <k> exceptionSignal(V:Val) ~> callArg(_:Exp) => exceptionSignal(V) ... </k>
+  rule <k> exceptionSignal(V:Val) ~> callApply(_:Val) => exceptionSignal(V) ... </k>
+  rule <k> exceptionSignal(V:Val) ~> callArgs(_:ArgExps) => exceptionSignal(V) ... </k>
+  rule <k> exceptionSignal(V:Val) ~> evalArgNext(_:ArgExps, _:ArgVals) => exceptionSignal(V) ... </k>
+  rule <k> exceptionSignal(V:Val) ~> evalStarArgNext(_:ArgExps, _:ArgVals) => exceptionSignal(V) ... </k>
+  rule <k> exceptionSignal(V:Val) ~> callApplyArgs(_:Val) => exceptionSignal(V) ... </k>
   rule <k> exceptionSignal(V:Val) ~> callKwArgs(_:KwArgExps) => exceptionSignal(V) ... </k>
   rule <k> exceptionSignal(V:Val) ~> evalKwArgNext(_:Id, _:KwArgExps, _:KwArgVals) => exceptionSignal(V) ... </k>
   rule <k> exceptionSignal(V:Val) ~> evalKwStarArgNext(_:KwArgExps, _:KwArgVals) => exceptionSignal(V) ... </k>

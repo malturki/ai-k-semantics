@@ -1775,6 +1775,13 @@
       "coverage": ["mixed-positional-keyword-call", "argument-expression-evaluation-order", "keyword-default-filling", "function-call", "lambda-call", "ordinary-python-source-adapter"]
     },
     {
+      "id": "adapter-call-noncallable-errors",
+      "source": "../adapter/adapter-call-noncallable-errors.py",
+      "reference": "Python Language Reference 6.3.4 Calls; 6.16 Evaluation order",
+      "expected_result": "True ~> .K",
+      "coverage": ["call-expression", "non-callable-call-type-error", "argument-expression-evaluation-order", "keyword-expression-evaluation-order", "function-call", "lambda-call", "ordinary-python-source-adapter"]
+    },
+    {
       "id": "adapter-starred-call",
       "source": "../adapter/adapter-starred-call.py",
       "reference": "Python Language Reference 6.3.4 Calls; 6.16 Evaluation order",

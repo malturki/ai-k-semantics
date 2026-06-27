@@ -82,7 +82,7 @@ The base modules should model portable Python semantics from the official docs. 
 - adapter-backed `set(x)` for current concrete string/bytes/list/tuple/dict/set/range values, with dictionaries yielding keys and duplicate elements normalized
 - single-argument `lambda` expressions
 - single-positional-argument calls to lambda closure values
-- adapter-backed zero- and multi-positional-argument calls, keyword-only calls, mixed positional/keyword calls, starred positional call arguments over current ordered concrete iterables, functions, and lambdas
+- adapter-backed zero- and multi-positional-argument calls, keyword-only calls, mixed positional/keyword calls, starred positional call arguments over current ordered concrete iterables, functions, and lambdas, plus current non-callable `TypeError` behavior after argument evaluation
 - adapter-backed keyword argument unpacking over current concrete dictionary values with string keys
 - adapter-backed positional lambda default values, evaluated when the lambda expression is evaluated
 - adapter-backed positional function default values, evaluated at function definition time

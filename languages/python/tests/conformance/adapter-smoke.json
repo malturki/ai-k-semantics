@@ -900,6 +900,13 @@
       "coverage": ["sorted-builtin", "concrete-iterable-subset", "list-result", "ordering-comparison-subset", "type-error", "ordinary-python-source-adapter"]
     },
     {
+      "id": "adapter-sorted-reverse-builtin",
+      "source": "../adapter/adapter-sorted-reverse-builtin.py",
+      "reference": "Python Standard Library Built-in Functions sorted reverse keyword-only parameter; Python expression evaluation order; Truth Value Testing",
+      "expected_result": "True ~> .K",
+      "coverage": ["sorted-builtin", "reverse-argument", "truth-value-testing", "evaluation-order", "exception-propagation", "type-error", "ordinary-python-source-adapter"]
+    },
+    {
       "id": "adapter-sum-int",
       "source": "../adapter/adapter-sum-int.py",
       "reference": "Python Standard Library Built-in Functions sum; Built-in Types list, tuple, dict, set, and range",

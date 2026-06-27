@@ -744,6 +744,8 @@ def emit_exp(exp: ast.expr) -> str:
             return f"#tupleCtor({emit_exp(arg)})"
         case ast.Call(func=ast.Name(id="sorted"), args=[arg], keywords=[]):
             return f"#sorted({emit_exp(arg)})"
+        case ast.Call(func=ast.Name(id="sorted"), args=[arg], keywords=[ast.keyword(arg="reverse", value=reverse)]):
+            return f"#sortedReverse({emit_exp(arg)}, {emit_exp(reverse)})"
         case ast.Call(func=ast.Name(id="dict"), args=[], keywords=[]):
             return "#dictCtor()"
         case ast.Call(func=ast.Name(id="dict"), args=[arg], keywords=[]):

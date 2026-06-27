@@ -389,6 +389,7 @@ module PYTHON-SYNTAX
                | "#tupleCtor" "(" ")" [symbol(tupleCtorExp)]
                | "#tupleCtor" "(" Exp ")" [symbol(tupleCtor1Exp), strict]
                | "#sorted" "(" Exp ")" [symbol(sortedExp), strict]
+               | "#sortedReverse" "(" Exp "," Exp ")" [symbol(sortedReverseExp)]
                | "#dictCtor" "(" ")" [symbol(dictCtorExp)]
                | "#dictCtor" "(" Exp ")" [symbol(dictCtor1Exp), strict]
                | "#dictCtorKw" "(" KwArgExps ")" [symbol(dictCtorKwExp)]
@@ -679,6 +680,8 @@ module PYTHON
                  | formatDefault() [symbol(formatDefault)]
                  | formatSpec(Exp) [symbol(formatSpec)]
                  | formatApply(Val) [symbol(formatApply)]
+                 | sortedReverseFlag(Exp) [symbol(sortedReverseFlag)]
+                 | sortedReverseApply(Val) [symbol(sortedReverseApply)]
                  | roundDefault() [symbol(roundDefault)]
                  | roundNdigits(Exp) [symbol(roundNdigits)]
                  | roundApply(Val) [symbol(roundApply)]
@@ -1727,6 +1730,7 @@ module PYTHON
                    | valItemsToArgVals(ValItems) [function, symbol(valItemsToArgVals)]
                    | iterableArgVals(Val) [function, symbol(iterableArgVals)]
   syntax Val ::= argValsToTupleVal(ArgVals) [function, symbol(argValsToTupleVal)]
+               | argValsToListVal(ArgVals) [function, symbol(argValsToListVal)]
                | sortedListVal(ArgVals) [function, symbol(sortedListVal)]
                | minNumericItems(ValItems) [function, symbol(minNumericItems)]
                | maxNumericItems(ValItems) [function, symbol(maxNumericItems)]
@@ -6580,9 +6584,11 @@ module PYTHON
   rule argValsToTupleVal(VS:ArgVals) => tupleVal(argValsToValItems(VS))
     requires notBool emptyArgVals(VS)
 
-  rule sortedListVal(#noArgVals) => []
-  rule sortedListVal(VS:ArgVals) => listVal(argValsToValItems(sortedArgVals(VS)))
+  rule argValsToListVal(#noArgVals) => []
+  rule argValsToListVal(VS:ArgVals) => listVal(argValsToValItems(VS))
     requires notBool emptyArgVals(VS)
+
+  rule sortedListVal(VS:ArgVals) => argValsToListVal(sortedArgVals(VS))
 
   rule setFromArgVals(#noArgVals) => set()
   rule setFromArgVals(VS:ArgVals) => setVal(argValsToSetItems(VS))
@@ -13311,6 +13317,33 @@ module PYTHON
       andBool notBool argValsAllOrderComparable(iterableArgVals(V))
   rule <k> #sorted(V:Val) => exceptionSignal(#exception(#token("TypeError", "Id"))) ... </k>
     requires notBool sortedIterableSupported(V)
+  rule <k> #sortedReverse(Iter:Exp, Reverse:Exp) =>
+           Iter ~> sortedReverseFlag(Reverse)
+       ... </k>
+  rule <k> Iter:Val ~> sortedReverseFlag(Reverse:Exp) =>
+           Reverse ~> sortedReverseApply(Iter)
+       ... </k>
+  rule <k> Reverse:Val ~> sortedReverseApply(Iter:Val) =>
+           argValsToListVal(reverseArgVals(sortedArgVals(iterableArgVals(Iter))))
+       ... </k>
+    requires sortedIterableSupported(Iter)
+      andBool argValsAllOrderComparable(iterableArgVals(Iter))
+      andBool truthy(Reverse)
+  rule <k> Reverse:Val ~> sortedReverseApply(Iter:Val) =>
+           sortedListVal(iterableArgVals(Iter))
+       ... </k>
+    requires sortedIterableSupported(Iter)
+      andBool argValsAllOrderComparable(iterableArgVals(Iter))
+      andBool notBool truthy(Reverse)
+  rule <k> _Reverse:Val ~> sortedReverseApply(Iter:Val) =>
+           exceptionSignal(#exception(#token("TypeError", "Id")))
+       ... </k>
+    requires sortedIterableSupported(Iter)
+      andBool notBool argValsAllOrderComparable(iterableArgVals(Iter))
+  rule <k> _Reverse:Val ~> sortedReverseApply(Iter:Val) =>
+           exceptionSignal(#exception(#token("TypeError", "Id")))
+       ... </k>
+    requires notBool sortedIterableSupported(Iter)
   rule bytesStringUtf8(S:String) => #bytes()
     requires lengthString(S) ==Int 0
   rule bytesStringUtf8(S:String) => bytesVal(stringBytesToValItems(S, 0, lengthString(S)))
@@ -18693,6 +18726,8 @@ module PYTHON
   rule <k> exceptionSignal(V:Val) ~> formatDefault() => exceptionSignal(V) ... </k>
   rule <k> exceptionSignal(V:Val) ~> formatSpec(_:Exp) => exceptionSignal(V) ... </k>
   rule <k> exceptionSignal(V:Val) ~> formatApply(_:Val) => exceptionSignal(V) ... </k>
+  rule <k> exceptionSignal(V:Val) ~> sortedReverseFlag(_:Exp) => exceptionSignal(V) ... </k>
+  rule <k> exceptionSignal(V:Val) ~> sortedReverseApply(_:Val) => exceptionSignal(V) ... </k>
   rule <k> exceptionSignal(V:Val) ~> roundDefault() => exceptionSignal(V) ... </k>
   rule <k> exceptionSignal(V:Val) ~> roundNdigits(_:Exp) => exceptionSignal(V) ... </k>
   rule <k> exceptionSignal(V:Val) ~> roundApply(_:Val) => exceptionSignal(V) ... </k>

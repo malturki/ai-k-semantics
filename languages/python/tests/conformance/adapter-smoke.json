@@ -893,6 +893,13 @@
       "coverage": ["all-builtin", "any-builtin", "truth-value-testing", "concrete-iterable-subset", "dict-key-iteration-subset", "range-iteration-subset", "ordinary-python-source-adapter"]
     },
     {
+      "id": "adapter-sorted-builtin",
+      "source": "../adapter/adapter-sorted-builtin.py",
+      "reference": "Python Standard Library Built-in Functions sorted; Built-in Types list, tuple, str, bytes, dict, range",
+      "expected_result": "True ~> .K",
+      "coverage": ["sorted-builtin", "concrete-iterable-subset", "list-result", "ordering-comparison-subset", "type-error", "ordinary-python-source-adapter"]
+    },
+    {
       "id": "adapter-sum-int",
       "source": "../adapter/adapter-sum-int.py",
       "reference": "Python Standard Library Built-in Functions sum; Built-in Types list, tuple, dict, set, and range",

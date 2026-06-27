@@ -388,6 +388,7 @@ module PYTHON-SYNTAX
                | "#listCtor" "(" Exp ")" [symbol(listCtor1Exp), strict]
                | "#tupleCtor" "(" ")" [symbol(tupleCtorExp)]
                | "#tupleCtor" "(" Exp ")" [symbol(tupleCtor1Exp), strict]
+               | "#sorted" "(" Exp ")" [symbol(sortedExp), strict]
                | "#dictCtor" "(" ")" [symbol(dictCtorExp)]
                | "#dictCtor" "(" Exp ")" [symbol(dictCtor1Exp), strict]
                | "#dictCtorKw" "(" KwArgExps ")" [symbol(dictCtorKwExp)]
@@ -1352,6 +1353,9 @@ module PYTHON
                 | stringAsciiEncodable(String, Int) [function, symbol(stringAsciiEncodable)]
                 | stringLatin1Encodable(String, Int) [function, symbol(stringLatin1Encodable)]
                 | lenSupported(Val) [function, symbol(lenSupported)]
+                | sortedIterableSupported(Val) [function, symbol(sortedIterableSupported)]
+                | argValsAllOrderComparable(ArgVals) [function, symbol(argValsAllOrderComparable)]
+                | valOrderComparableToArgVals(Val, ArgVals) [function, symbol(valOrderComparableToArgVals)]
                 | sliceStepAssignRhsSupported(Val) [function, symbol(sliceStepAssignRhsSupported)]
                 | unpackValueSupported(Val) [function, symbol(unpackValueSupported)]
                 | subscriptIndexInBounds(Val, Int) [function, symbol(subscriptIndexInBounds)]
@@ -1701,6 +1705,9 @@ module PYTHON
                    | concatArgVals(ArgVals, ArgVals) [function, symbol(concatArgVals)]
                    | reverseArgVals(ArgVals) [function, symbol(reverseArgVals)]
                    | reverseArgVals(ArgVals, ArgVals) [function, symbol(reverseArgValsAcc)]
+                   | sortedArgVals(ArgVals) [function, symbol(sortedArgVals)]
+                   | sortedArgVals(ArgVals, ArgVals) [function, symbol(sortedArgValsAcc)]
+                   | insertSortedArgVal(Val, ArgVals) [function, symbol(insertSortedArgVal)]
                    | dropArgVals(ArgVals, Int) [function, symbol(dropArgVals)]
                    | takeArgVals(ArgVals, Int) [function, symbol(takeArgVals)]
                    | varArgTail(ArgVals, Int) [function, symbol(varArgTail)]
@@ -1720,6 +1727,7 @@ module PYTHON
                    | valItemsToArgVals(ValItems) [function, symbol(valItemsToArgVals)]
                    | iterableArgVals(Val) [function, symbol(iterableArgVals)]
   syntax Val ::= argValsToTupleVal(ArgVals) [function, symbol(argValsToTupleVal)]
+               | sortedListVal(ArgVals) [function, symbol(sortedListVal)]
                | minNumericItems(ValItems) [function, symbol(minNumericItems)]
                | maxNumericItems(ValItems) [function, symbol(maxNumericItems)]
                | setFromArgVals(ArgVals) [function, symbol(setFromArgVals)]
@@ -6067,6 +6075,27 @@ module PYTHON
   rule reverseArgVals(argValsCons(V:Val, VS:ArgVals), Acc:ArgVals) =>
     reverseArgVals(VS, argValsCons(V, Acc))
 
+  rule sortedArgVals(VS:ArgVals) => sortedArgVals(VS, #noArgVals)
+  rule sortedArgVals(#noArgVals, Acc:ArgVals) => Acc
+  rule sortedArgVals(argValsCons(V:Val, VS:ArgVals), Acc:ArgVals) =>
+    sortedArgVals(VS, insertSortedArgVal(V, Acc))
+
+  rule insertSortedArgVal(V:Val, #noArgVals) => argValsCons(V, #noArgVals)
+  rule insertSortedArgVal(V:Val, argValsCons(W:Val, WS:ArgVals)) =>
+    argValsCons(V, argValsCons(W, WS))
+    requires cmpHolds(#lt, V, W)
+  rule insertSortedArgVal(V:Val, argValsCons(W:Val, WS:ArgVals)) =>
+    argValsCons(W, insertSortedArgVal(V, WS))
+    requires notBool cmpHolds(#lt, V, W)
+
+  rule valOrderComparableToArgVals(_V:Val, #noArgVals) => true
+  rule valOrderComparableToArgVals(V:Val, argValsCons(W:Val, WS:ArgVals)) =>
+    orderComparable(V, W) andBool valOrderComparableToArgVals(V, WS)
+
+  rule argValsAllOrderComparable(#noArgVals) => true
+  rule argValsAllOrderComparable(argValsCons(V:Val, VS:ArgVals)) =>
+    valOrderComparableToArgVals(V, VS) andBool argValsAllOrderComparable(VS)
+
   rule dropArgVals(VS:ArgVals, 0) => VS
   rule dropArgVals(#noArgVals, N:Int) => #noArgVals
     requires N >Int 0
@@ -6551,6 +6580,10 @@ module PYTHON
   rule argValsToTupleVal(VS:ArgVals) => tupleVal(argValsToValItems(VS))
     requires notBool emptyArgVals(VS)
 
+  rule sortedListVal(#noArgVals) => []
+  rule sortedListVal(VS:ArgVals) => listVal(argValsToValItems(sortedArgVals(VS)))
+    requires notBool emptyArgVals(VS)
+
   rule setFromArgVals(#noArgVals) => set()
   rule setFromArgVals(VS:ArgVals) => setVal(argValsToSetItems(VS))
     requires notBool emptyArgVals(VS)
@@ -6621,6 +6654,23 @@ module PYTHON
   rule bytesCtorSourceSupported(rangeVal(_:Int, _:Int)) => true
   rule bytesCtorSourceSupported(rangeVal(_:Int, _:Int, _:Int)) => true
   rule bytesCtorSourceSupported(_:Val) => false [owise]
+
+  rule sortedIterableSupported([]) => true
+  rule sortedIterableSupported(listVal(_:ValItems)) => true
+  rule sortedIterableSupported(()) => true
+  rule sortedIterableSupported(tupleVal(_:ValItems)) => true
+  rule sortedIterableSupported(_:String) => true
+  rule sortedIterableSupported(#bytes()) => true
+  rule sortedIterableSupported(bytesVal(_:ValItems)) => true
+  rule sortedIterableSupported(#bytearray()) => true
+  rule sortedIterableSupported(bytearrayVal(_:ValItems)) => true
+  rule sortedIterableSupported({}) => true
+  rule sortedIterableSupported(dictVal(_:DictItems)) => true
+  rule sortedIterableSupported(set()) => true
+  rule sortedIterableSupported(setVal(_:ValItems)) => true
+  rule sortedIterableSupported(rangeVal(_:Int, _:Int)) => true
+  rule sortedIterableSupported(rangeVal(_:Int, _:Int, _:Int)) => true
+  rule sortedIterableSupported(_:Val) => false [owise]
 
   rule bytesEncodingUtf8("utf-8") => true
   rule bytesEncodingUtf8("utf8") => true
@@ -13253,6 +13303,14 @@ module PYTHON
   rule #dictCtor() => ({}):Val
   rule #setCtor() => set()
   rule #setCtor(V:Val) => setFromArgVals(iterableArgVals(V))
+  rule #sorted(V:Val) => sortedListVal(iterableArgVals(V))
+    requires sortedIterableSupported(V)
+      andBool argValsAllOrderComparable(iterableArgVals(V))
+  rule <k> #sorted(V:Val) => exceptionSignal(#exception(#token("TypeError", "Id"))) ... </k>
+    requires sortedIterableSupported(V)
+      andBool notBool argValsAllOrderComparable(iterableArgVals(V))
+  rule <k> #sorted(V:Val) => exceptionSignal(#exception(#token("TypeError", "Id"))) ... </k>
+    requires notBool sortedIterableSupported(V)
   rule bytesStringUtf8(S:String) => #bytes()
     requires lengthString(S) ==Int 0
   rule bytesStringUtf8(S:String) => bytesVal(stringBytesToValItems(S, 0, lengthString(S)))

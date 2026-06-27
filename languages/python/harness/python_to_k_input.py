@@ -72,6 +72,7 @@ SUPPORTED_BUILTIN_CLASS_NAMES = {
     "float",
     "int",
     "list",
+    "memoryview",
     "range",
     "set",
     "slice",
@@ -697,6 +698,8 @@ def emit_stmt(stmt: ast.stmt) -> str:
             return f"#whileElse({emit_exp(test)}, {emit_block(body)}, {emit_block(orelse)})"
         case ast.For(target=target, iter=iter_, body=body, orelse=orelse):
             return emit_for_stmt(stmt, target, iter_, body, orelse)
+        case ast.With(items=items, body=body, type_comment=None):
+            return emit_with_stmt(stmt, items, body)
         case ast.Match(subject=subject, cases=cases):
             return f"#match({emit_exp(subject)}, {emit_match_cases(stmt, cases)})"
         case ast.Try(body=body, handlers=handlers, orelse=orelse, finalbody=finalbody) if handlers and finalbody:
@@ -800,6 +803,8 @@ def emit_exp(exp: ast.expr) -> str:
             return f"#bytearrayCtor({emit_exp(source)}, {emit_exp(encoding)})"
         case ast.Call(func=ast.Name(id="bytearray"), args=[source, encoding, errors], keywords=[]):
             return f"#bytearrayCtor({emit_exp(source)}, {emit_exp(encoding)}, {emit_exp(errors)})"
+        case ast.Call(func=ast.Name(id="memoryview"), args=[arg], keywords=[]):
+            return f"#memoryview({emit_exp(arg)})"
         case ast.Call(func=ast.Name(id="bool"), args=[], keywords=[]):
             return "#boolCtor()"
         case ast.Call(func=ast.Name(id="bool"), args=[arg], keywords=[]):
@@ -2450,6 +2455,17 @@ def emit_for_stmt(
             return f"#forUnpack({ids}, {emit_exp(iter_)}, {emit_block(body)})"
         return f"#forUnpackElse({ids}, {emit_exp(iter_)}, {emit_block(body)}, {emit_block(orelse)})"
     raise unsupported(node, "only simple-name and flat/starred sequence for targets are supported")
+
+
+def emit_with_stmt(node: ast.AST, items: list[ast.withitem], body: list[ast.stmt]) -> str:
+    if len(items) != 1:
+        raise unsupported(node, "with statements currently support exactly one context manager")
+    item = items[0]
+    if item.optional_vars is None:
+        return f"#with({emit_exp(item.context_expr)}, {emit_block(body)})"
+    if isinstance(item.optional_vars, ast.Name):
+        return f"#withAs({emit_exp(item.context_expr)}, {emit_id(item.optional_vars.id)}, {emit_block(body)})"
+    raise unsupported(node, "with-as targets currently support only simple names")
 
 
 def emit_assign(node: ast.AST, targets: list[ast.expr], value: ast.expr) -> str:

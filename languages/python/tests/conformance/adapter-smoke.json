@@ -2139,6 +2139,13 @@
       "coverage": ["try-statement", "built-in-exception-hierarchy", "os-error-family", "import-error-family", "warning-family", "base-exception-non-exception", "cpython-runtime-exception-name", "raise-statement", "exception-handler-matching", "ordinary-python-source-adapter"]
     },
     {
+      "id": "adapter-with-memoryview",
+      "source": "../adapter/adapter-with-memoryview.py",
+      "reference": "Python Language Reference 8.5 The with statement; Python Standard Library Built-in Types memoryview",
+      "expected_result": "True ~> .K",
+      "coverage": ["with-statement", "context-manager-enter", "context-manager-exit", "with-as-target", "memoryview-builtin", "body-exception-propagation", "pre-entry-exception-propagation", "return-break-continue-through-with", "ordinary-python-source-adapter"]
+    },
+    {
       "id": "adapter-range-for",
       "source": "../adapter/adapter-range-for.py",
       "reference": "Python Language Reference 8.3 The for statement; Standard Library range type",

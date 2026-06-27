@@ -18,6 +18,7 @@ module PYTHON-SYNTAX
                | "#bytes" "(" ValItems ")" [symbol(bytesVal)]
                | "#bytearray" "(" ")" [symbol(emptyBytearrayVal)]
                | "#bytearray" "(" ValItems ")" [symbol(bytearrayVal)]
+               | "#memoryviewVal" "(" Val ")" [symbol(memoryviewVal)]
                | "[" "]" [symbol(emptyListVal)]
                | "[" ValItems "]" [symbol(listVal)]
                | "(" ")" [symbol(emptyTupleVal)]
@@ -308,6 +309,8 @@ module PYTHON-SYNTAX
                 | "#forTargetElse" "(" Target "," Exp "," Block "," Block ")" [symbol(forTargetElseStmt)]
                 | "#forStarUnpack" "(" IdItems "," Id "," IdItems "," Exp "," Block ")" [symbol(forStarUnpackStmt)]
                 | "#forStarUnpackElse" "(" IdItems "," Id "," IdItems "," Exp "," Block "," Block ")" [symbol(forStarUnpackElseStmt)]
+                | "#with" "(" Exp "," Block ")" [symbol(withStmt)]
+                | "#withAs" "(" Exp "," Id "," Block ")" [symbol(withAsStmt)]
                 | "raise" [symbol(reraiseStmt)]
                 | "raise" Exp [symbol(raiseStmt), strict]
                 | "#raiseFromNone" "(" Exp ")" [symbol(raiseFromNoneStmt), strict]
@@ -407,6 +410,7 @@ module PYTHON-SYNTAX
                | "#bytearrayCtor" "(" Exp ")" [symbol(bytearrayCtor1Exp), strict]
                | "#bytearrayCtor" "(" Exp "," Exp ")" [symbol(bytearrayCtor2Exp), strict]
                | "#bytearrayCtor" "(" Exp "," Exp "," Exp ")" [symbol(bytearrayCtor3Exp), strict]
+               | "#memoryview" "(" Exp ")" [symbol(memoryviewExp)]
                | "#boolCtor" "(" ")" [symbol(boolCtor0Exp)]
                | "#boolCtor" "(" Exp ")" [symbol(boolCtor1Exp), strict]
                | "#strCtor" "(" ")" [symbol(strCtor0Exp)]
@@ -639,6 +643,7 @@ module PYTHON
                | rangeVal(Int, Int) [symbol(rangeVal)]
                | rangeVal(Int, Int, Int) [symbol(rangeValStep)]
                | sliceVal(Val, Val, Val) [symbol(sliceVal)]
+               | contextEnterValue(Val) [function, symbol(contextEnterValue)]
                | matchClassAttrStringVal(Val, String) [function, symbol(matchClassAttrStringVal)]
                | argsVal(ArgVals) [symbol(argsVal)]
                | dictArgsVal(DictVals) [symbol(dictArgsVal)]
@@ -1157,6 +1162,10 @@ module PYTHON
                  | forElseRangeStep(Id, Int, Int, Int, Block, Block) [symbol(forElseRangeStep)]
                  | forElseRangeStepAgain(Id, Int, Int, Int, Block, Block) [symbol(forElseRangeStepAgain)]
                  | runLoopElse(Block) [symbol(runLoopElse)]
+                 | withEnter(Block) [symbol(withEnter)]
+                 | withEnterAs(Id, Block) [symbol(withEnterAs)]
+                 | withExit(Val) [symbol(withExit)]
+                 | "memoryviewApply" [symbol(memoryviewApply)]
                  | tryFinallyDone(Block) [symbol(tryFinallyDone)]
                  | tryFinallyReturn(Val) [symbol(tryFinallyReturn)]
                  | tryFinallyException(Val) [symbol(tryFinallyException)]
@@ -1260,6 +1269,8 @@ module PYTHON
                 | classHasMatchAttr(Val, Id) [function, symbol(classHasMatchAttr)]
                 | getattrStringSupported(String) [function, symbol(getattrStringSupported)]
                 | classHasAttrString(Val, String) [function, symbol(classHasAttrString)]
+                | contextManagerSupported(Val) [function, symbol(contextManagerSupported)]
+                | contextManagerSuppressesException(Val, Val) [function, symbol(contextManagerSuppressesException)]
                 | matchSimplePattern(Val, MatchPattern) [function, symbol(matchSimplePattern)]
                 | matchFixedSequence(Val, MatchPatterns) [function, symbol(matchFixedSequence)]
                 | matchStarSequence(Val, MatchPatterns, MatchPatterns) [function, symbol(matchStarSequence)]
@@ -1917,6 +1928,7 @@ module PYTHON
   rule truthy(bytesVal(_:ValItems)) => true
   rule truthy(#bytearray()) => false
   rule truthy(bytearrayVal(_:ValItems)) => true
+  rule truthy(#memoryviewVal(V:Val)) => pyLen(V) =/=Int 0
   rule truthy([]) => false
   rule truthy(listVal(_:ValItems)) => true
   rule truthy(()) => false
@@ -2126,6 +2138,15 @@ module PYTHON
   rule callableVal(functionValPosKwOnlyKwArgs(_:IdItems, _:IdItems, _:Id, _:Block)) => true
   rule callableVal(functionValPosKwDefaultsKwArgs(_:IdItems, _:ArgVals, _:IdItems, _:ArgVals, _:Id, _:Block)) => true
   rule callableVal(_:Val) => false [owise]
+
+  rule contextManagerSupported(#memoryviewVal(_:Val)) => true
+  rule contextManagerSupported(_:Val) => false [owise]
+
+  rule contextManagerSuppressesException(#memoryviewVal(_:Val), _:Val) => false
+  rule contextManagerSuppressesException(_:Val, _:Val) => false [owise]
+
+  rule contextEnterValue(V:Val) => V
+    requires contextManagerSupported(V)
 
   rule #debug => True
 
@@ -4317,6 +4338,7 @@ module PYTHON
   rule singletonIdentity(bytesVal(_:ValItems)) => false
   rule singletonIdentity(#bytearray()) => false
   rule singletonIdentity(bytearrayVal(_:ValItems)) => false
+  rule singletonIdentity(#memoryviewVal(_:Val)) => false
   rule singletonIdentity([]) => false
   rule singletonIdentity(listVal(_:ValItems)) => false
   rule singletonIdentity(()) => false
@@ -4422,6 +4444,7 @@ module PYTHON
   rule pyLen(bytesVal(VS:ValItems)) => valItemsLen(VS)
   rule pyLen(#bytearray()) => 0
   rule pyLen(bytearrayVal(VS:ValItems)) => valItemsLen(VS)
+  rule pyLen(#memoryviewVal(V:Val)) => pyLen(V)
   rule pyLen([]) => 0
   rule pyLen(listVal(VS:ValItems)) => valItemsLen(VS)
   rule pyLen(()) => 0
@@ -4442,6 +4465,7 @@ module PYTHON
   rule lenSupported(bytesVal(_:ValItems)) => true
   rule lenSupported(#bytearray()) => true
   rule lenSupported(bytearrayVal(_:ValItems)) => true
+  rule lenSupported(#memoryviewVal(V:Val)) => lenSupported(V)
   rule lenSupported([]) => true
   rule lenSupported(listVal(_:ValItems)) => true
   rule lenSupported(()) => true
@@ -4708,6 +4732,8 @@ module PYTHON
     requires Id2String(C) ==String "bytearray"
   rule matchBuiltinClass(bytearrayVal(_:ValItems), C:Id) => true
     requires Id2String(C) ==String "bytearray"
+  rule matchBuiltinClass(#memoryviewVal(_:Val), C:Id) => true
+    requires Id2String(C) ==String "memoryview"
   rule matchBuiltinClass([], C:Id) => true
     requires Id2String(C) ==String "list"
   rule matchBuiltinClass(listVal(_:ValItems), C:Id) => true
@@ -4755,6 +4781,7 @@ module PYTHON
       orBool Id2String(C) ==String "float"
       orBool Id2String(C) ==String "int"
       orBool Id2String(C) ==String "list"
+      orBool Id2String(C) ==String "memoryview"
       orBool Id2String(C) ==String "range"
       orBool Id2String(C) ==String "kSetClassName"
       orBool Id2String(C) ==String "set"
@@ -14183,6 +14210,17 @@ module PYTHON
            exceptionSignal(#exception(#token("TypeError", "Id")))
        ... </k>
     requires notBool isStringVal(V)
+  rule <k> #memoryview(E:Exp) => E ~> memoryviewApply ... </k>
+    requires notBool isKResult(E)
+  rule <k> V:Val ~> memoryviewApply => #memoryview(V) ... </k>
+  rule #memoryview(#bytes()) => #memoryviewVal(#bytes())
+  rule #memoryview(bytesVal(VS:ValItems)) => #memoryviewVal(bytesVal(VS))
+  rule #memoryview(#bytearray()) => #memoryviewVal(#bytearray())
+  rule #memoryview(bytearrayVal(VS:ValItems)) => #memoryviewVal(bytearrayVal(VS))
+  rule <k> #memoryview(V:Val) =>
+           exceptionSignal(#exception(#token("TypeError", "Id")))
+       ... </k>
+    requires notBool isBytesSequence(V)
   rule #dictCtor(({}):Val) => ({}):Val
   rule #dictCtor(dictVal(DS:DictItems)) => dictVal(DS)
   rule #dictCtor([]) => ({}):Val
@@ -16591,6 +16629,49 @@ module PYTHON
   rule <k> Fun:Val ~> applyDecorators(F:Id, argValsCons(Decorator:Val, Rest:ArgVals)) =>
            Decorator ~> callArg(Fun) ~> applyDecorators(F, Rest)
        ... </k>
+
+  rule <k> withStmt(Ctx:Exp, Body:Block) =>
+           Ctx ~> withEnter(Body)
+       ... </k>
+  rule <k> withAsStmt(Ctx:Exp, Alias:Id, Body:Block) =>
+           Ctx ~> withEnterAs(Alias, Body)
+       ... </k>
+  rule <k> CM:Val ~> withEnter(block(SS:Stmts)) =>
+           SS ~> withExit(CM)
+       ... </k>
+    requires contextManagerSupported(CM)
+  rule <k> CM:Val ~> withEnter({}) =>
+           withExit(CM)
+       ... </k>
+    requires contextManagerSupported(CM)
+  rule <k> CM:Val ~> withEnter(_Body:Block) =>
+           exceptionSignal(#exception(#token("TypeError", "Id")))
+       ... </k>
+    requires notBool contextManagerSupported(CM)
+  rule <k> CM:Val ~> withEnterAs(Alias:Id, block(SS:Stmts)) =>
+           SS ~> withExit(CM)
+       ... </k>
+       <env> Rho => Rho [ Alias <- contextEnterValue(CM) ] </env>
+    requires contextManagerSupported(CM)
+  rule <k> CM:Val ~> withEnterAs(Alias:Id, {}) =>
+           withExit(CM)
+       ... </k>
+       <env> Rho => Rho [ Alias <- contextEnterValue(CM) ] </env>
+    requires contextManagerSupported(CM)
+  rule <k> CM:Val ~> withEnterAs(_Alias:Id, _Body:Block) =>
+           exceptionSignal(#exception(#token("TypeError", "Id")))
+       ... </k>
+    requires notBool contextManagerSupported(CM)
+  rule <k> withExit(_CM:Val) => stmtNoResult ... </k>
+  rule <k> stmtNoResult ~> withExit(_CM:Val) => stmtNoResult ... </k>
+  rule <k> _V:Val ~> withExit(_CM:Val) => stmtNoResult ... </k>
+  rule <k> returnSignal(V:Val) ~> withExit(_CM:Val) => returnSignal(V) ... </k>
+  rule <k> breakSignal ~> withExit(_CM:Val) => breakSignal ... </k>
+  rule <k> continueSignal ~> withExit(_CM:Val) => continueSignal ... </k>
+  rule <k> exceptionSignal(V:Val) ~> withExit(CM:Val) => stmtNoResult ... </k>
+    requires contextManagerSuppressesException(CM, V)
+  rule <k> exceptionSignal(V:Val) ~> withExit(CM:Val) => exceptionSignal(V) ... </k>
+    requires notBool contextManagerSuppressesException(CM, V)
 
   rule <k> tryFinallyStmt(block(SS:Stmts), Finally:Block) =>
            SS ~> tryFinallyDone(Finally)
@@ -19207,6 +19288,9 @@ module PYTHON
   rule <k> exceptionSignal(V:Val) ~> callMixedArgs(_:ArgExps, _:KwArgExps) => exceptionSignal(V) ... </k>
   rule <k> exceptionSignal(V:Val) ~> evalMixedKwArgs(_:KwArgExps, _:Val) => exceptionSignal(V) ... </k>
   rule <k> exceptionSignal(V:Val) ~> callApplyMixedArgs(_:Val, _:ArgVals) => exceptionSignal(V) ... </k>
+  rule <k> exceptionSignal(V:Val) ~> memoryviewApply => exceptionSignal(V) ... </k>
+  rule <k> exceptionSignal(V:Val) ~> withEnter(_:Block) => exceptionSignal(V) ... </k>
+  rule <k> exceptionSignal(V:Val) ~> withEnterAs(_:Id, _:Block) => exceptionSignal(V) ... </k>
   rule <k> exceptionSignal(V:Val) ~> buildDictCtorKw => exceptionSignal(V) ... </k>
   rule <k> exceptionSignal(V:Val) ~> buildDictCtorMixed(_:Val) => exceptionSignal(V) ... </k>
   rule <k> exceptionSignal(V:Val) ~> buildComplexCtorKw => exceptionSignal(V) ... </k>

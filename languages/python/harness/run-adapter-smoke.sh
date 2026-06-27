@@ -350,6 +350,7 @@ run_case "adapter-for-else-break" "$ROOT/tests/adapter/adapter-for-else-break.py
 run_case "adapter-for-else-continue" "$ROOT/tests/adapter/adapter-for-else-continue.py" "True ~> .K"
 run_case "adapter-for-string-else" "$ROOT/tests/adapter/adapter-for-string-else.py" "True ~> .K"
 run_case "adapter-for-dict-else" "$ROOT/tests/adapter/adapter-for-dict-else.py" "True ~> .K"
+run_case "adapter-with-memoryview" "$ROOT/tests/adapter/adapter-with-memoryview.py" "True ~> .K"
 run_case "adapter-try-finally" "$ROOT/tests/adapter/adapter-try-finally.py" "True ~> .K"
 run_case "adapter-try-finally-return" "$ROOT/tests/adapter/adapter-try-finally-return.py" "True ~> .K"
 run_case "adapter-try-finally-break-continue" "$ROOT/tests/adapter/adapter-try-finally-break-continue.py" "True ~> .K"

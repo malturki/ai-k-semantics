@@ -369,6 +369,7 @@ run_case "adapter-try-except-multiple-else" "$ROOT/tests/adapter/adapter-try-exc
 run_case "adapter-try-except-as" "$ROOT/tests/adapter/adapter-try-except-as.py" "True ~> .K"
 run_case "adapter-try-except-bare" "$ROOT/tests/adapter/adapter-try-except-bare.py" "True ~> .K"
 run_case "adapter-try-except-tuple" "$ROOT/tests/adapter/adapter-try-except-tuple.py" "True ~> .K"
+run_case "adapter-exception-hierarchy" "$ROOT/tests/adapter/adapter-exception-hierarchy.py" "True ~> .K"
 run_case "adapter-range-for" "$ROOT/tests/adapter/adapter-range-for.py" "True ~> .K"
 run_case "adapter-range-start-stop" "$ROOT/tests/adapter/adapter-range-start-stop.py" "True ~> .K"
 run_case "adapter-range-break-continue" "$ROOT/tests/adapter/adapter-range-break-continue.py" "True ~> .K"

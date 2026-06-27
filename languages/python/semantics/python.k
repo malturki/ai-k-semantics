@@ -1271,6 +1271,7 @@ module PYTHON
                 | matchValItemsSuffix(ValItems, MatchPatterns) [function, symbol(matchValItemsSuffix)]
                 | exceptionMatches(Val, Id) [function, symbol(exceptionMatches)]
                 | exceptionIn(Val, IdItems) [function, symbol(exceptionIn)]
+                | exceptionTypeMatchesString(String, String) [function, symbol(exceptionTypeMatchesString)]
                 | valIs(Val, Val) [function, symbol(valIs)]
                 | cmpHolds(CmpOp, Val, Val) [function, symbol(cmpHolds)]
                 | orderingComparisonOp(CmpOp) [function, symbol(orderingComparisonOp)]
@@ -5296,13 +5297,46 @@ module PYTHON
   rule valEq(Ellipsis, _:String) => false
   rule valEq(_:String, Ellipsis) => false
 
-  rule exceptionMatches(#exception(E:Id), F:Id) => Id2String(E) ==String Id2String(F)
-  rule exceptionMatches(#exceptionInstance(E:Id, _Args:ArgVals), F:Id) => Id2String(E) ==String Id2String(F)
+  rule exceptionMatches(#exception(E:Id), F:Id) => exceptionTypeMatchesString(Id2String(E), Id2String(F))
+  rule exceptionMatches(#exceptionInstance(E:Id, _Args:ArgVals), F:Id) => exceptionTypeMatchesString(Id2String(E), Id2String(F))
   rule exceptionMatches(_V:Val, _F:Id) => false [owise]
 
-  rule exceptionIn(#exception(E:Id), IDS:IdItems) => stringIdContains(Id2String(E), IDS)
-  rule exceptionIn(#exceptionInstance(E:Id, _Args:ArgVals), IDS:IdItems) => stringIdContains(Id2String(E), IDS)
-  rule exceptionIn(_V:Val, _IDS:IdItems) => false [owise]
+  rule exceptionIn(_V:Val, #noIds) => false
+  rule exceptionIn(V:Val, idItemsLast(E:Id)) => exceptionMatches(V, E)
+  rule exceptionIn(V:Val, idItemsCons(E:Id, IDS:IdItems)) => exceptionMatches(V, E) orBool exceptionIn(V, IDS)
+
+  rule exceptionTypeMatchesString(E:String, F:String) => true
+    requires E ==String F
+  rule exceptionTypeMatchesString("Exception", "BaseException") => true
+  rule exceptionTypeMatchesString("ArithmeticError", "Exception") => true
+  rule exceptionTypeMatchesString("ArithmeticError", "BaseException") => true
+  rule exceptionTypeMatchesString("LookupError", "Exception") => true
+  rule exceptionTypeMatchesString("LookupError", "BaseException") => true
+  rule exceptionTypeMatchesString("AssertionError", "Exception") => true
+  rule exceptionTypeMatchesString("AssertionError", "BaseException") => true
+  rule exceptionTypeMatchesString("AttributeError", "Exception") => true
+  rule exceptionTypeMatchesString("AttributeError", "BaseException") => true
+  rule exceptionTypeMatchesString("IndexError", "LookupError") => true
+  rule exceptionTypeMatchesString("IndexError", "Exception") => true
+  rule exceptionTypeMatchesString("IndexError", "BaseException") => true
+  rule exceptionTypeMatchesString("KeyError", "LookupError") => true
+  rule exceptionTypeMatchesString("KeyError", "Exception") => true
+  rule exceptionTypeMatchesString("KeyError", "BaseException") => true
+  rule exceptionTypeMatchesString("NameError", "Exception") => true
+  rule exceptionTypeMatchesString("NameError", "BaseException") => true
+  rule exceptionTypeMatchesString("OverflowError", "ArithmeticError") => true
+  rule exceptionTypeMatchesString("OverflowError", "Exception") => true
+  rule exceptionTypeMatchesString("OverflowError", "BaseException") => true
+  rule exceptionTypeMatchesString("RuntimeError", "Exception") => true
+  rule exceptionTypeMatchesString("RuntimeError", "BaseException") => true
+  rule exceptionTypeMatchesString("TypeError", "Exception") => true
+  rule exceptionTypeMatchesString("TypeError", "BaseException") => true
+  rule exceptionTypeMatchesString("ValueError", "Exception") => true
+  rule exceptionTypeMatchesString("ValueError", "BaseException") => true
+  rule exceptionTypeMatchesString("ZeroDivisionError", "ArithmeticError") => true
+  rule exceptionTypeMatchesString("ZeroDivisionError", "Exception") => true
+  rule exceptionTypeMatchesString("ZeroDivisionError", "BaseException") => true
+  rule exceptionTypeMatchesString(_E:String, _F:String) => false [owise]
 
   rule valIs(V1:Val, V2:Val) => valEq(V1, V2)
     requires singletonIdentity(V1) andBool singletonIdentity(V2)

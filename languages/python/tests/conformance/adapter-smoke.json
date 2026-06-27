@@ -907,6 +907,13 @@
       "coverage": ["sorted-builtin", "reverse-argument", "truth-value-testing", "evaluation-order", "exception-propagation", "type-error", "ordinary-python-source-adapter"]
     },
     {
+      "id": "adapter-sorted-key-builtin",
+      "source": "../adapter/adapter-sorted-key-builtin.py",
+      "reference": "Python Standard Library Built-in Functions sorted key and reverse keyword-only parameters; Python expression evaluation order; sort stability",
+      "expected_result": "True ~> .K",
+      "coverage": ["sorted-builtin", "key-argument", "reverse-argument", "stable-sort", "truth-value-testing", "evaluation-order", "exception-propagation", "type-error", "ordinary-python-source-adapter"]
+    },
+    {
       "id": "adapter-sum-int",
       "source": "../adapter/adapter-sum-int.py",
       "reference": "Python Standard Library Built-in Functions sum; Built-in Types list, tuple, dict, set, and range",

@@ -572,6 +572,30 @@ def emit_min_max_keyword_call(
     )
 
 
+def emit_sorted_keyword_call(node: ast.AST, arg: ast.expr, keywords: list[ast.keyword]) -> str:
+    if len(keywords) == 2:
+        first, second = keywords
+        if first.arg == "key" and second.arg == "reverse":
+            return (
+                f"#sortedKeyReverse("
+                f"{emit_exp(arg)}, {emit_exp(first.value)}, {emit_exp(second.value)})"
+            )
+        if first.arg == "reverse" and second.arg == "key":
+            return (
+                f"#sortedReverseKey("
+                f"{emit_exp(arg)}, {emit_exp(first.value)}, {emit_exp(second.value)})"
+            )
+        raise unsupported(node, "sorted currently supports combined key= and reverse= keywords only")
+    if len(keywords) != 1:
+        raise unsupported(node, "sorted currently supports at most key= and reverse= keyword pairs")
+    keyword = keywords[0]
+    if keyword.arg == "key":
+        return f"#sortedKey({emit_exp(arg)}, {emit_exp(keyword.value)})"
+    if keyword.arg == "reverse":
+        return f"#sortedReverse({emit_exp(arg)}, {emit_exp(keyword.value)})"
+    raise unsupported(node, "sorted currently supports only key= or reverse=, not **kwargs or other keywords")
+
+
 def emit_module(module: ast.Module) -> str:
     return emit_stmt_list(module.body) + "\n"
 
@@ -744,8 +768,8 @@ def emit_exp(exp: ast.expr) -> str:
             return f"#tupleCtor({emit_exp(arg)})"
         case ast.Call(func=ast.Name(id="sorted"), args=[arg], keywords=[]):
             return f"#sorted({emit_exp(arg)})"
-        case ast.Call(func=ast.Name(id="sorted"), args=[arg], keywords=[ast.keyword(arg="reverse", value=reverse)]):
-            return f"#sortedReverse({emit_exp(arg)}, {emit_exp(reverse)})"
+        case ast.Call(func=ast.Name(id="sorted"), args=[arg], keywords=keywords) if keywords:
+            return emit_sorted_keyword_call(exp, arg, keywords)
         case ast.Call(func=ast.Name(id="dict"), args=[], keywords=[]):
             return "#dictCtor()"
         case ast.Call(func=ast.Name(id="dict"), args=[arg], keywords=[]):

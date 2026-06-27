@@ -390,6 +390,9 @@ module PYTHON-SYNTAX
                | "#tupleCtor" "(" Exp ")" [symbol(tupleCtor1Exp), strict]
                | "#sorted" "(" Exp ")" [symbol(sortedExp), strict]
                | "#sortedReverse" "(" Exp "," Exp ")" [symbol(sortedReverseExp)]
+               | "#sortedKey" "(" Exp "," Exp ")" [symbol(sortedKeyExp)]
+               | "#sortedKeyReverse" "(" Exp "," Exp "," Exp ")" [symbol(sortedKeyReverseExp)]
+               | "#sortedReverseKey" "(" Exp "," Exp "," Exp ")" [symbol(sortedReverseKeyExp)]
                | "#dictCtor" "(" ")" [symbol(dictCtorExp)]
                | "#dictCtor" "(" Exp ")" [symbol(dictCtor1Exp), strict]
                | "#dictCtorKw" "(" KwArgExps ")" [symbol(dictCtorKwExp)]
@@ -646,6 +649,9 @@ module PYTHON
   syntax CompDictStack ::= "#noCompDictStack" [symbol(noCompDictStack)]
                          | compDictFrame(Target, MaybeCompFilters, MaybeCompClauses, Exp, Exp, ArgVals, Map, CompDictStack) [symbol(compDictFrame)]
 
+  syntax KeyedVals ::= "#noKeyedVals" [symbol(noKeyedVals)]
+                     | keyedValsCons(Val, Val, KeyedVals) [symbol(keyedValsCons)]
+
   syntax ActiveException ::= "noException" [symbol(noException)]
                            | currentException(Val) [symbol(currentException)]
 
@@ -682,6 +688,18 @@ module PYTHON
                  | formatApply(Val) [symbol(formatApply)]
                  | sortedReverseFlag(Exp) [symbol(sortedReverseFlag)]
                  | sortedReverseApply(Val) [symbol(sortedReverseApply)]
+                 | sortedKeyEval(Exp) [symbol(sortedKeyEval)]
+                 | sortedKeyApply(Val) [symbol(sortedKeyApply)]
+                 | sortedKeyReverseKey(Exp, Exp) [symbol(sortedKeyReverseKey)]
+                 | sortedKeyReverseReverse(Val, Exp) [symbol(sortedKeyReverseReverse)]
+                 | sortedKeyReverseApply(Val, Val) [symbol(sortedKeyReverseApply)]
+                 | sortedReverseKeyReverse(Exp, Exp) [symbol(sortedReverseKeyReverse)]
+                 | sortedReverseKeyKey(Val, Exp) [symbol(sortedReverseKeyKey)]
+                 | sortedKeyApplyReverse(Val, Val) [symbol(sortedKeyApplyReverse)]
+                 | sortedKeyCollect(ArgVals, KeyedVals, Val) [symbol(sortedKeyCollect)]
+                 | sortedKeyCollectReverse(ArgVals, KeyedVals, Val, Val) [symbol(sortedKeyCollectReverse)]
+                 | sortedKeyAdd(Val, ArgVals, KeyedVals, Val) [symbol(sortedKeyAdd)]
+                 | sortedKeyAddReverse(Val, ArgVals, KeyedVals, Val, Val) [symbol(sortedKeyAddReverse)]
                  | roundDefault() [symbol(roundDefault)]
                  | roundNdigits(Exp) [symbol(roundNdigits)]
                  | roundApply(Val) [symbol(roundApply)]
@@ -1357,8 +1375,11 @@ module PYTHON
                 | stringLatin1Encodable(String, Int) [function, symbol(stringLatin1Encodable)]
                 | lenSupported(Val) [function, symbol(lenSupported)]
                 | sortedIterableSupported(Val) [function, symbol(sortedIterableSupported)]
+                | isNoneVal(Val) [function, symbol(isNoneVal)]
                 | argValsAllOrderComparable(ArgVals) [function, symbol(argValsAllOrderComparable)]
                 | valOrderComparableToArgVals(Val, ArgVals) [function, symbol(valOrderComparableToArgVals)]
+                | keyedValsAllOrderComparable(KeyedVals) [function, symbol(keyedValsAllOrderComparable)]
+                | keyedValKeyComparableToKeyedVals(Val, KeyedVals) [function, symbol(keyedValKeyComparableToKeyedVals)]
                 | sliceStepAssignRhsSupported(Val) [function, symbol(sliceStepAssignRhsSupported)]
                 | unpackValueSupported(Val) [function, symbol(unpackValueSupported)]
                 | subscriptIndexInBounds(Val, Int) [function, symbol(subscriptIndexInBounds)]
@@ -1700,8 +1721,8 @@ module PYTHON
                   | pyAsciiValItems(ValItems) [function, symbol(pyAsciiValItems)]
                   | pyAsciiDictItems(DictItems) [function, symbol(pyAsciiDictItems)]
                   | stringAsciiPayload(String, Int, Int) [function, symbol(stringAsciiPayload)]
-                  | stringAsciiEscape(Int) [function, symbol(stringAsciiEscape)]
-                  | fixedHex(Int, Int) [function, symbol(fixedHex)]
+                | stringAsciiEscape(Int) [function, symbol(stringAsciiEscape)]
+                | fixedHex(Int, Int) [function, symbol(fixedHex)]
   syntax ArgVals ::= "#noArgVals" [symbol(noArgVals)]
                    | argValsCons(Val, ArgVals) [symbol(argValsCons)]
                    | appendArgVal(ArgVals, Val) [function, symbol(appendArgVal)]
@@ -1729,9 +1750,19 @@ module PYTHON
                    | buildPosOnlyKwOnlyKwArgsPosArgs(IdItems, IdItems, IdItems, ArgVals, KwArgVals, ArgVals, ArgVals) [function, symbol(buildPosOnlyKwOnlyKwArgsPosArgs)]
                    | valItemsToArgVals(ValItems) [function, symbol(valItemsToArgVals)]
                    | iterableArgVals(Val) [function, symbol(iterableArgVals)]
+  syntax KeyedVals ::= appendKeyedVal(KeyedVals, Val, Val) [function, symbol(appendKeyedVal)]
+                     | sortedKeyedVals(KeyedVals) [function, symbol(sortedKeyedVals)]
+                     | sortedKeyedVals(KeyedVals, KeyedVals) [function, symbol(sortedKeyedValsAcc)]
+                     | sortedKeyedValsReverse(KeyedVals) [function, symbol(sortedKeyedValsReverse)]
+                     | sortedKeyedValsReverse(KeyedVals, KeyedVals) [function, symbol(sortedKeyedValsReverseAcc)]
+                     | insertSortedKeyedVal(Val, Val, KeyedVals) [function, symbol(insertSortedKeyedVal)]
+                     | insertSortedKeyedValReverse(Val, Val, KeyedVals) [function, symbol(insertSortedKeyedValReverse)]
+  syntax ArgVals ::= keyedValsToArgVals(KeyedVals) [function, symbol(keyedValsToArgVals)]
   syntax Val ::= argValsToTupleVal(ArgVals) [function, symbol(argValsToTupleVal)]
                | argValsToListVal(ArgVals) [function, symbol(argValsToListVal)]
                | sortedListVal(ArgVals) [function, symbol(sortedListVal)]
+               | sortedKeyedListVal(KeyedVals) [function, symbol(sortedKeyedListVal)]
+               | sortedKeyedReverseListVal(KeyedVals) [function, symbol(sortedKeyedReverseListVal)]
                | minNumericItems(ValItems) [function, symbol(minNumericItems)]
                | maxNumericItems(ValItems) [function, symbol(maxNumericItems)]
                | setFromArgVals(ArgVals) [function, symbol(setFromArgVals)]
@@ -4373,6 +4404,9 @@ module PYTHON
   rule singletonIdentity(argsVal(_:ArgVals)) => false
   rule singletonIdentity(dictArgsVal(_:DictVals)) => false
 
+  rule isNoneVal(None) => true
+  rule isNoneVal(_:Val) => false [owise]
+
   rule intValue(I:Int) => I
   rule intValue(True) => 1
   rule intValue(False) => 0
@@ -6092,6 +6126,43 @@ module PYTHON
     argValsCons(W, insertSortedArgVal(V, WS))
     requires notBool cmpHolds(#lt, V, W)
 
+  rule appendKeyedVal(#noKeyedVals, Item:Val, Key:Val) =>
+    keyedValsCons(Item, Key, #noKeyedVals)
+  rule appendKeyedVal(keyedValsCons(Item0:Val, Key0:Val, Rest:KeyedVals), Item:Val, Key:Val) =>
+    keyedValsCons(Item0, Key0, appendKeyedVal(Rest, Item, Key))
+
+  rule sortedKeyedVals(KVS:KeyedVals) => sortedKeyedVals(KVS, #noKeyedVals)
+  rule sortedKeyedVals(#noKeyedVals, Acc:KeyedVals) => Acc
+  rule sortedKeyedVals(keyedValsCons(Item:Val, Key:Val, Rest:KeyedVals), Acc:KeyedVals) =>
+    sortedKeyedVals(Rest, insertSortedKeyedVal(Item, Key, Acc))
+
+  rule sortedKeyedValsReverse(KVS:KeyedVals) => sortedKeyedValsReverse(KVS, #noKeyedVals)
+  rule sortedKeyedValsReverse(#noKeyedVals, Acc:KeyedVals) => Acc
+  rule sortedKeyedValsReverse(keyedValsCons(Item:Val, Key:Val, Rest:KeyedVals), Acc:KeyedVals) =>
+    sortedKeyedValsReverse(Rest, insertSortedKeyedValReverse(Item, Key, Acc))
+
+  rule insertSortedKeyedVal(Item:Val, Key:Val, #noKeyedVals) =>
+    keyedValsCons(Item, Key, #noKeyedVals)
+  rule insertSortedKeyedVal(Item:Val, Key:Val, keyedValsCons(Item0:Val, Key0:Val, Rest:KeyedVals)) =>
+    keyedValsCons(Item, Key, keyedValsCons(Item0, Key0, Rest))
+    requires cmpHolds(#lt, Key, Key0)
+  rule insertSortedKeyedVal(Item:Val, Key:Val, keyedValsCons(Item0:Val, Key0:Val, Rest:KeyedVals)) =>
+    keyedValsCons(Item0, Key0, insertSortedKeyedVal(Item, Key, Rest))
+    requires notBool cmpHolds(#lt, Key, Key0)
+
+  rule insertSortedKeyedValReverse(Item:Val, Key:Val, #noKeyedVals) =>
+    keyedValsCons(Item, Key, #noKeyedVals)
+  rule insertSortedKeyedValReverse(Item:Val, Key:Val, keyedValsCons(Item0:Val, Key0:Val, Rest:KeyedVals)) =>
+    keyedValsCons(Item, Key, keyedValsCons(Item0, Key0, Rest))
+    requires cmpHolds(#lt, Key0, Key)
+  rule insertSortedKeyedValReverse(Item:Val, Key:Val, keyedValsCons(Item0:Val, Key0:Val, Rest:KeyedVals)) =>
+    keyedValsCons(Item0, Key0, insertSortedKeyedValReverse(Item, Key, Rest))
+    requires notBool cmpHolds(#lt, Key0, Key)
+
+  rule keyedValsToArgVals(#noKeyedVals) => #noArgVals
+  rule keyedValsToArgVals(keyedValsCons(Item:Val, _Key:Val, Rest:KeyedVals)) =>
+    argValsCons(Item, keyedValsToArgVals(Rest))
+
   rule valOrderComparableToArgVals(_V:Val, #noArgVals) => true
   rule valOrderComparableToArgVals(V:Val, argValsCons(W:Val, WS:ArgVals)) =>
     orderComparable(V, W) andBool valOrderComparableToArgVals(V, WS)
@@ -6099,6 +6170,14 @@ module PYTHON
   rule argValsAllOrderComparable(#noArgVals) => true
   rule argValsAllOrderComparable(argValsCons(V:Val, VS:ArgVals)) =>
     valOrderComparableToArgVals(V, VS) andBool argValsAllOrderComparable(VS)
+
+  rule keyedValKeyComparableToKeyedVals(_Key:Val, #noKeyedVals) => true
+  rule keyedValKeyComparableToKeyedVals(Key:Val, keyedValsCons(_Item:Val, Key0:Val, Rest:KeyedVals)) =>
+    orderComparable(Key, Key0) andBool keyedValKeyComparableToKeyedVals(Key, Rest)
+
+  rule keyedValsAllOrderComparable(#noKeyedVals) => true
+  rule keyedValsAllOrderComparable(keyedValsCons(_Item:Val, Key:Val, Rest:KeyedVals)) =>
+    keyedValKeyComparableToKeyedVals(Key, Rest) andBool keyedValsAllOrderComparable(Rest)
 
   rule dropArgVals(VS:ArgVals, 0) => VS
   rule dropArgVals(#noArgVals, N:Int) => #noArgVals
@@ -6589,6 +6668,10 @@ module PYTHON
     requires notBool emptyArgVals(VS)
 
   rule sortedListVal(VS:ArgVals) => argValsToListVal(sortedArgVals(VS))
+  rule sortedKeyedListVal(KVS:KeyedVals) =>
+    argValsToListVal(keyedValsToArgVals(sortedKeyedVals(KVS)))
+  rule sortedKeyedReverseListVal(KVS:KeyedVals) =>
+    argValsToListVal(keyedValsToArgVals(sortedKeyedValsReverse(KVS)))
 
   rule setFromArgVals(#noArgVals) => set()
   rule setFromArgVals(VS:ArgVals) => setVal(argValsToSetItems(VS))
@@ -9058,6 +9141,10 @@ module PYTHON
        ... </k>
   rule <k> callExp(F:Exp, Arg:Exp) => F ~> callArg(Arg) ... </k>
   rule <k> F:Val ~> callArg(Arg:Exp) => Arg ~> callApply(F) ... </k>
+  rule <k> _A:Val ~> callApply(F:Val) =>
+           exceptionSignal(#exception(#token("TypeError", "Id")))
+       ... </k>
+    requires notBool callableVal(F)
   rule <k> A:Val ~> callApply(closure(X:Id, Body:Exp)) => Body ~> restoreEnv(Rho) ... </k>
        <env> Rho => Rho [ X <- A ] </env>
   rule <k> A:Val ~> callApply(closureDefaults(IDS:IdItems, Defaults:ArgVals, Body:Exp)) =>
@@ -13344,6 +13431,106 @@ module PYTHON
            exceptionSignal(#exception(#token("TypeError", "Id")))
        ... </k>
     requires notBool sortedIterableSupported(Iter)
+  rule <k> #sortedKey(Iter:Exp, Key:Exp) =>
+           Iter ~> sortedKeyEval(Key)
+       ... </k>
+  rule <k> Iter:Val ~> sortedKeyEval(Key:Exp) =>
+           Key ~> sortedKeyApply(Iter)
+       ... </k>
+  rule <k> Key:Val ~> sortedKeyApply(Iter:Val) =>
+           #sorted(Iter)
+       ... </k>
+    requires isNoneVal(Key)
+  rule <k> Key:Val ~> sortedKeyApply(Iter:Val) =>
+           sortedKeyCollect(iterableArgVals(Iter), #noKeyedVals, Key)
+       ... </k>
+    requires sortedIterableSupported(Iter)
+      andBool notBool isNoneVal(Key)
+  rule <k> Key:Val ~> sortedKeyApply(Iter:Val) =>
+           exceptionSignal(#exception(#token("TypeError", "Id")))
+       ... </k>
+    requires (notBool sortedIterableSupported(Iter))
+      andBool notBool isNoneVal(Key)
+  rule <k> #sortedKeyReverse(Iter:Exp, Key:Exp, Reverse:Exp) =>
+           Iter ~> sortedKeyReverseKey(Key, Reverse)
+       ... </k>
+  rule <k> Iter:Val ~> sortedKeyReverseKey(Key:Exp, Reverse:Exp) =>
+           Key ~> sortedKeyReverseReverse(Iter, Reverse)
+       ... </k>
+  rule <k> Key:Val ~> sortedKeyReverseReverse(Iter:Val, Reverse:Exp) =>
+           Reverse ~> sortedKeyReverseApply(Iter, Key)
+       ... </k>
+  rule <k> #sortedReverseKey(Iter:Exp, Reverse:Exp, Key:Exp) =>
+           Iter ~> sortedReverseKeyReverse(Reverse, Key)
+       ... </k>
+  rule <k> Iter:Val ~> sortedReverseKeyReverse(Reverse:Exp, Key:Exp) =>
+           Reverse ~> sortedReverseKeyKey(Iter, Key)
+       ... </k>
+  rule <k> Reverse:Val ~> sortedReverseKeyKey(Iter:Val, Key:Exp) =>
+           Key ~> sortedKeyApplyReverse(Iter, Reverse)
+       ... </k>
+  rule <k> Reverse:Val ~> sortedKeyReverseApply(Iter:Val, Key:Val) =>
+           Reverse ~> sortedReverseApply(Iter)
+       ... </k>
+    requires isNoneVal(Key)
+  rule <k> Key:Val ~> sortedKeyApplyReverse(Iter:Val, Reverse:Val) =>
+           Reverse ~> sortedReverseApply(Iter)
+       ... </k>
+    requires isNoneVal(Key)
+  rule <k> Reverse:Val ~> sortedKeyReverseApply(Iter:Val, Key:Val) =>
+           sortedKeyCollectReverse(iterableArgVals(Iter), #noKeyedVals, Key, Reverse)
+       ... </k>
+    requires sortedIterableSupported(Iter)
+      andBool notBool isNoneVal(Key)
+  rule <k> Key:Val ~> sortedKeyApplyReverse(Iter:Val, Reverse:Val) =>
+           sortedKeyCollectReverse(iterableArgVals(Iter), #noKeyedVals, Key, Reverse)
+       ... </k>
+    requires sortedIterableSupported(Iter)
+      andBool notBool isNoneVal(Key)
+  rule <k> _Reverse:Val ~> sortedKeyReverseApply(Iter:Val, Key:Val) =>
+           exceptionSignal(#exception(#token("TypeError", "Id")))
+       ... </k>
+    requires (notBool sortedIterableSupported(Iter))
+      andBool notBool isNoneVal(Key)
+  rule <k> Key:Val ~> sortedKeyApplyReverse(Iter:Val, _Reverse:Val) =>
+           exceptionSignal(#exception(#token("TypeError", "Id")))
+       ... </k>
+    requires (notBool sortedIterableSupported(Iter))
+      andBool notBool isNoneVal(Key)
+  rule <k> sortedKeyCollect(#noArgVals, Acc:KeyedVals, _Key:Val) =>
+           sortedKeyedListVal(Acc)
+       ... </k>
+    requires keyedValsAllOrderComparable(Acc)
+  rule <k> sortedKeyCollect(#noArgVals, Acc:KeyedVals, _Key:Val) =>
+           exceptionSignal(#exception(#token("TypeError", "Id")))
+       ... </k>
+    requires notBool keyedValsAllOrderComparable(Acc)
+  rule <k> sortedKeyCollect(argValsCons(Item:Val, Rest:ArgVals), Acc:KeyedVals, Key:Val) =>
+           callExp(Key, Item) ~> sortedKeyAdd(Item, Rest, Acc, Key)
+       ... </k>
+  rule <k> KeyResult:Val ~> sortedKeyAdd(Item:Val, Rest:ArgVals, Acc:KeyedVals, Key:Val) =>
+           sortedKeyCollect(Rest, appendKeyedVal(Acc, Item, KeyResult), Key)
+       ... </k>
+  rule <k> sortedKeyCollectReverse(#noArgVals, Acc:KeyedVals, _Key:Val, Reverse:Val) =>
+           sortedKeyedReverseListVal(Acc)
+       ... </k>
+    requires keyedValsAllOrderComparable(Acc)
+      andBool truthy(Reverse)
+  rule <k> sortedKeyCollectReverse(#noArgVals, Acc:KeyedVals, _Key:Val, Reverse:Val) =>
+           sortedKeyedListVal(Acc)
+       ... </k>
+    requires keyedValsAllOrderComparable(Acc)
+      andBool notBool truthy(Reverse)
+  rule <k> sortedKeyCollectReverse(#noArgVals, Acc:KeyedVals, _Key:Val, _Reverse:Val) =>
+           exceptionSignal(#exception(#token("TypeError", "Id")))
+       ... </k>
+    requires notBool keyedValsAllOrderComparable(Acc)
+  rule <k> sortedKeyCollectReverse(argValsCons(Item:Val, Rest:ArgVals), Acc:KeyedVals, Key:Val, Reverse:Val) =>
+           callExp(Key, Item) ~> sortedKeyAddReverse(Item, Rest, Acc, Key, Reverse)
+       ... </k>
+  rule <k> KeyResult:Val ~> sortedKeyAddReverse(Item:Val, Rest:ArgVals, Acc:KeyedVals, Key:Val, Reverse:Val) =>
+           sortedKeyCollectReverse(Rest, appendKeyedVal(Acc, Item, KeyResult), Key, Reverse)
+       ... </k>
   rule bytesStringUtf8(S:String) => #bytes()
     requires lengthString(S) ==Int 0
   rule bytesStringUtf8(S:String) => bytesVal(stringBytesToValItems(S, 0, lengthString(S)))
@@ -18728,6 +18915,16 @@ module PYTHON
   rule <k> exceptionSignal(V:Val) ~> formatApply(_:Val) => exceptionSignal(V) ... </k>
   rule <k> exceptionSignal(V:Val) ~> sortedReverseFlag(_:Exp) => exceptionSignal(V) ... </k>
   rule <k> exceptionSignal(V:Val) ~> sortedReverseApply(_:Val) => exceptionSignal(V) ... </k>
+  rule <k> exceptionSignal(V:Val) ~> sortedKeyEval(_:Exp) => exceptionSignal(V) ... </k>
+  rule <k> exceptionSignal(V:Val) ~> sortedKeyApply(_:Val) => exceptionSignal(V) ... </k>
+  rule <k> exceptionSignal(V:Val) ~> sortedKeyReverseKey(_:Exp, _:Exp) => exceptionSignal(V) ... </k>
+  rule <k> exceptionSignal(V:Val) ~> sortedKeyReverseReverse(_:Val, _:Exp) => exceptionSignal(V) ... </k>
+  rule <k> exceptionSignal(V:Val) ~> sortedKeyReverseApply(_:Val, _:Val) => exceptionSignal(V) ... </k>
+  rule <k> exceptionSignal(V:Val) ~> sortedReverseKeyReverse(_:Exp, _:Exp) => exceptionSignal(V) ... </k>
+  rule <k> exceptionSignal(V:Val) ~> sortedReverseKeyKey(_:Val, _:Exp) => exceptionSignal(V) ... </k>
+  rule <k> exceptionSignal(V:Val) ~> sortedKeyApplyReverse(_:Val, _:Val) => exceptionSignal(V) ... </k>
+  rule <k> exceptionSignal(V:Val) ~> sortedKeyAdd(_:Val, _:ArgVals, _:KeyedVals, _:Val) => exceptionSignal(V) ... </k>
+  rule <k> exceptionSignal(V:Val) ~> sortedKeyAddReverse(_:Val, _:ArgVals, _:KeyedVals, _:Val, _:Val) => exceptionSignal(V) ... </k>
   rule <k> exceptionSignal(V:Val) ~> roundDefault() => exceptionSignal(V) ... </k>
   rule <k> exceptionSignal(V:Val) ~> roundNdigits(_:Exp) => exceptionSignal(V) ... </k>
   rule <k> exceptionSignal(V:Val) ~> roundApply(_:Val) => exceptionSignal(V) ... </k>

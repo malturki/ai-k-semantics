@@ -3337,6 +3337,7 @@ module PYTHON
   rule isIntLike(bytesVal(_:ValItems)) => false
   rule isIntLike(#bytearray()) => false
   rule isIntLike(bytearrayVal(_:ValItems)) => false
+  rule isIntLike(#memoryviewVal(_:Val)) => false
   rule isIntLike(True) => true
   rule isIntLike(False) => true
   rule isIntLike(None) => false
@@ -6975,6 +6976,7 @@ module PYTHON
   rule bytesCtorSourceSupported(bytesVal(_:ValItems)) => true
   rule bytesCtorSourceSupported(#bytearray()) => true
   rule bytesCtorSourceSupported(bytearrayVal(_:ValItems)) => true
+  rule bytesCtorSourceSupported(#memoryviewVal(V:Val)) => bytesCtorSourceSupported(V)
   rule bytesCtorSourceSupported([]) => true
   rule bytesCtorSourceSupported(listVal(_:ValItems)) => true
   rule bytesCtorSourceSupported(()) => true
@@ -13952,6 +13954,7 @@ module PYTHON
   rule #bytesCtor(bytesVal(VS:ValItems)) => bytesVal(VS)
   rule #bytesCtor(#bytearray()) => #bytes()
   rule #bytesCtor(bytearrayVal(VS:ValItems)) => bytesVal(VS)
+  rule #bytesCtor(#memoryviewVal(V:Val)) => #bytesCtor(V)
   rule #bytesCtor([]) => #bytes()
   rule #bytesCtor(listVal(VS:ValItems)) => bytesVal(byteItems(VS))
     requires valItemsAllByteInts(VS)
@@ -14098,6 +14101,7 @@ module PYTHON
   rule #bytearrayCtor(bytesVal(VS:ValItems)) => bytearrayVal(VS)
   rule #bytearrayCtor(#bytearray()) => #bytearray()
   rule #bytearrayCtor(bytearrayVal(VS:ValItems)) => bytearrayVal(VS)
+  rule #bytearrayCtor(#memoryviewVal(V:Val)) => #bytearrayCtor(V)
   rule #bytearrayCtor([]) => #bytearray()
   rule #bytearrayCtor(listVal(VS:ValItems)) => bytearrayVal(byteItems(VS))
     requires valItemsAllByteInts(VS)

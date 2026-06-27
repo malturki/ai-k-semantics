@@ -326,6 +326,13 @@
       "coverage": ["memoryview-builtin", "memoryview-iteration", "memoryview-bytearray-source", "for-statement", "for-else", "bytearray-constructor", "list-constructor", "tuple-constructor", "set-constructor", "sorted-builtin", "all-any-builtins", "sum-builtin", "min-max-builtins", "list-comprehension", "ordinary-python-source-adapter"]
     },
     {
+      "id": "adapter-memoryview-constructors",
+      "source": "../adapter/adapter-memoryview-constructors.py",
+      "reference": "Python Standard Library Built-in Types memoryview; Python Standard Library Built-in Functions bytes and bytearray",
+      "expected_result": "True ~> .K",
+      "coverage": ["memoryview-builtin", "memoryview-bytearray-source", "bytes-constructor", "bytearray-constructor", "ordinary-python-source-adapter"]
+    },
+    {
       "id": "adapter-format-builtin",
       "source": "../adapter/adapter-format-builtin.py",
       "reference": "Python Standard Library Built-in Functions format; empty format_spec over current K string-conversion values",

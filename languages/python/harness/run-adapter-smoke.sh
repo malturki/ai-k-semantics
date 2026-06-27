@@ -260,6 +260,7 @@ run_case "adapter-function-recursion" "$ROOT/tests/adapter/adapter-function-recu
 run_case "adapter-function-zero-arg" "$ROOT/tests/adapter/adapter-function-zero-arg.py" "True ~> .K"
 run_case "adapter-function-multi-arg" "$ROOT/tests/adapter/adapter-function-multi-arg.py" "True ~> .K"
 run_case "adapter-function-arg-expressions" "$ROOT/tests/adapter/adapter-function-arg-expressions.py" "True ~> .K"
+run_case "adapter-call-arity-errors" "$ROOT/tests/adapter/adapter-call-arity-errors.py" "True ~> .K"
 run_case "adapter-function-defaults" "$ROOT/tests/adapter/adapter-function-defaults.py" "True ~> .K"
 run_case "adapter-function-annotations" "$ROOT/tests/adapter/adapter-function-annotations.py" "True ~> .K"
 run_case "adapter-function-decorators" "$ROOT/tests/adapter/adapter-function-decorators.py" "True ~> .K"

@@ -9151,6 +9151,15 @@ module PYTHON
     requires notBool callableVal(F)
   rule <k> A:Val ~> callApply(closure(X:Id, Body:Exp)) => Body ~> restoreEnv(Rho) ... </k>
        <env> Rho => Rho [ X <- A ] </env>
+  rule <k> A:Val ~> callApply(closureArgs(IDS:IdItems, Body:Exp)) =>
+           Body ~> restoreEnv(Rho)
+       ... </k>
+       <env> Rho => bindArgs(Rho, IDS, argValsCons(A, #noArgVals)) </env>
+    requires sameArity(IDS, argValsCons(A, #noArgVals))
+  rule <k> A:Val ~> callApply(closureArgs(IDS:IdItems, _Body:Exp)) =>
+           exceptionSignal(#exception(#token("TypeError", "Id")))
+       ... </k>
+    requires notBool sameArity(IDS, argValsCons(A, #noArgVals))
   rule <k> A:Val ~> callApply(closureDefaults(IDS:IdItems, Defaults:ArgVals, Body:Exp)) =>
            Body ~> restoreEnv(Rho)
        ... </k>
@@ -9284,6 +9293,20 @@ module PYTHON
            None ~> restoreEnv(Rho)
        ... </k>
        <env> Rho => Rho [ X <- A ] </env>
+  rule <k> A:Val ~> callApply(functionValArgs(IDS:IdItems, block(SS:Stmts))) =>
+           SS ~> functionDone(Rho)
+       ... </k>
+       <env> Rho => bindArgs(Rho, IDS, argValsCons(A, #noArgVals)) </env>
+    requires sameArity(IDS, argValsCons(A, #noArgVals))
+  rule <k> A:Val ~> callApply(functionValArgs(IDS:IdItems, {})) =>
+           None ~> restoreEnv(Rho)
+       ... </k>
+       <env> Rho => bindArgs(Rho, IDS, argValsCons(A, #noArgVals)) </env>
+    requires sameArity(IDS, argValsCons(A, #noArgVals))
+  rule <k> A:Val ~> callApply(functionValArgs(IDS:IdItems, _Body:Block)) =>
+           exceptionSignal(#exception(#token("TypeError", "Id")))
+       ... </k>
+    requires notBool sameArity(IDS, argValsCons(A, #noArgVals))
   rule <k> A:Val ~> callApply(functionValDefaults(IDS:IdItems, Defaults:ArgVals, block(SS:Stmts))) =>
            SS ~> functionDone(Rho)
        ... </k>
@@ -9572,11 +9595,24 @@ module PYTHON
            exceptionSignal(#exception(#token("TypeError", "Id")))
        ... </k>
     requires notBool callableVal(F)
+  rule <k> argsVal(VS:ArgVals) ~> callApplyArgs(closure(X:Id, Body:Exp)) =>
+           Body ~> restoreEnv(Rho)
+       ... </k>
+       <env> Rho => bindArgs(Rho, idItemsLast(X), VS) </env>
+    requires sameArity(idItemsLast(X), VS)
+  rule <k> argsVal(VS:ArgVals) ~> callApplyArgs(closure(X:Id, _Body:Exp)) =>
+           exceptionSignal(#exception(#token("TypeError", "Id")))
+       ... </k>
+    requires notBool sameArity(idItemsLast(X), VS)
   rule <k> argsVal(VS:ArgVals) ~> callApplyArgs(closureArgs(IDS:IdItems, Body:Exp)) =>
            Body ~> restoreEnv(Rho)
        ... </k>
        <env> Rho => bindArgs(Rho, IDS, VS) </env>
     requires sameArity(IDS, VS)
+  rule <k> argsVal(VS:ArgVals) ~> callApplyArgs(closureArgs(IDS:IdItems, _Body:Exp)) =>
+           exceptionSignal(#exception(#token("TypeError", "Id")))
+       ... </k>
+    requires notBool sameArity(IDS, VS)
   rule <k> argsVal(VS:ArgVals) ~> callApplyArgs(closureDefaults(IDS:IdItems, Defaults:ArgVals, Body:Exp)) =>
            Body ~> restoreEnv(Rho)
        ... </k>
@@ -9702,6 +9738,20 @@ module PYTHON
        ... </k>
        <env> Rho => (bindArgs(bindArgs(Rho, Pos, completeDefaultArgs(Pos, VS, PosDefaults)), KwOnly, buildKwDefaultArgs(KwOnly, #noKwArgVals, KwDefaults))) [ Kw <- ({}):Val ] </env>
     requires posKwOnlyArgsDefaultsCallArityOk(Pos, KwOnly, VS, PosDefaults, KwDefaults)
+  rule <k> argsVal(VS:ArgVals) ~> callApplyArgs(functionVal(X:Id, block(SS:Stmts))) =>
+           SS ~> functionDone(Rho)
+       ... </k>
+       <env> Rho => bindArgs(Rho, idItemsLast(X), VS) </env>
+    requires sameArity(idItemsLast(X), VS)
+  rule <k> argsVal(VS:ArgVals) ~> callApplyArgs(functionVal(X:Id, {})) =>
+           None ~> restoreEnv(Rho)
+       ... </k>
+       <env> Rho => bindArgs(Rho, idItemsLast(X), VS) </env>
+    requires sameArity(idItemsLast(X), VS)
+  rule <k> argsVal(VS:ArgVals) ~> callApplyArgs(functionVal(X:Id, _Body:Block)) =>
+           exceptionSignal(#exception(#token("TypeError", "Id")))
+       ... </k>
+    requires notBool sameArity(idItemsLast(X), VS)
   rule <k> argsVal(VS:ArgVals) ~> callApplyArgs(functionValArgs(IDS:IdItems, block(SS:Stmts))) =>
            SS ~> functionDone(Rho)
        ... </k>
@@ -9712,6 +9762,10 @@ module PYTHON
        ... </k>
        <env> Rho => bindArgs(Rho, IDS, VS) </env>
     requires sameArity(IDS, VS)
+  rule <k> argsVal(VS:ArgVals) ~> callApplyArgs(functionValArgs(IDS:IdItems, _Body:Block)) =>
+           exceptionSignal(#exception(#token("TypeError", "Id")))
+       ... </k>
+    requires notBool sameArity(IDS, VS)
   rule <k> argsVal(VS:ArgVals) ~> callApplyArgs(functionValDefaults(IDS:IdItems, Defaults:ArgVals, block(SS:Stmts))) =>
            SS ~> functionDone(Rho)
        ... </k>

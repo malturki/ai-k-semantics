@@ -104,7 +104,7 @@ The base modules should model portable Python semantics from the official docs. 
 - adapter-backed range truthiness, equality, integer-like membership, indexing, nonzero-step slicing, length, and `start`/`stop`/`step` attributes
 - adapter-backed `len(...)` for strings, bytes, lists, tuples, dictionaries, sets, and current range values
 - adapter-backed `getattr` and `hasattr` over the current range/slice/numeric attribute profile, including literal and evaluated string attribute names, missing-attribute behavior, non-string-name `TypeError`, and `getattr` default-argument evaluation order
-- adapter-backed single-parameter `def` functions, `return` with and without an expression, fallthrough to `None`, and recursive calls in the single-environment subset
+- adapter-backed single-parameter `def` functions, `return` with and without an expression, return-expression exception propagation, fallthrough to `None`, and recursive calls in the single-environment subset
 
 The coverage ledger in `../notes/full-language-coverage.md` is the source of truth for what remains.
 

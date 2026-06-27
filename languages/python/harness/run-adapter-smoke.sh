@@ -251,6 +251,7 @@ run_case "adapter-nested-if-while" "$ROOT/tests/adapter/adapter-nested-if-while.
 run_case "adapter-break" "$ROOT/tests/adapter/adapter-break.py" "True ~> .K"
 run_case "adapter-continue" "$ROOT/tests/adapter/adapter-continue.py" "True ~> .K"
 run_case "adapter-function-return" "$ROOT/tests/adapter/adapter-function-return.py" "True ~> .K"
+run_case "adapter-function-return-expression-exceptions" "$ROOT/tests/adapter/adapter-function-return-expression-exceptions.py" "True ~> .K"
 run_case "adapter-function-bare-return" "$ROOT/tests/adapter/adapter-function-bare-return.py" "True ~> .K"
 run_case "adapter-function-local" "$ROOT/tests/adapter/adapter-function-local.py" "True ~> .K"
 run_case "adapter-function-fallthrough" "$ROOT/tests/adapter/adapter-function-fallthrough.py" "True ~> .K"

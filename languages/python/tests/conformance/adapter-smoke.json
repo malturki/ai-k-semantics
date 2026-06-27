@@ -1299,6 +1299,13 @@
       "coverage": ["function-definition", "return-statement", "single-positional-call", "ordinary-python-source-adapter"]
     },
     {
+      "id": "adapter-function-return-expression-exceptions",
+      "source": "../adapter/adapter-function-return-expression-exceptions.py",
+      "reference": "Python Language Reference 8.7 Function definitions; 7.6 The return statement; 8.4 The try statement",
+      "expected_result": "True ~> .K",
+      "coverage": ["function-definition", "return-statement", "return-expression-evaluation", "exception-propagation", "try-except", "ordinary-python-source-adapter"]
+    },
+    {
       "id": "adapter-function-bare-return",
       "source": "../adapter/adapter-function-bare-return.py",
       "reference": "Python Language Reference 8.7 Function definitions; 7.6 The return statement",

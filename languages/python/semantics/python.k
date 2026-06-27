@@ -256,7 +256,7 @@ module PYTHON-SYNTAX
                 | "#annAssign" "(" Id "," Exp ")" [symbol(annAssignStmt), strict(2)]
                 | "#annOnly" "(" Id ")" [symbol(annOnlyStmt)]
                 | "return" [symbol(returnNoneStmt)]
-                | "return" Exp [symbol(returnStmt), strict]
+                | "return" Exp [symbol(returnStmt)]
                 | "#def" "(" Id "," Id "," Block ")" [symbol(functionDefStmt)]
                 | "#defArgs" "(" Id "," IdItems "," Block ")" [symbol(functionDefArgsStmt)]
                 | "#defDefaults" "(" Id "," IdItems "," ArgExps "," Block ")" [symbol(functionDefDefaultsStmt)]
@@ -1173,6 +1173,7 @@ module PYTHON
                  | "forDone" [symbol(forDone)]
                  | "breakSignal" [symbol(breakSignal)]
                  | "continueSignal" [symbol(continueSignal)]
+                 | returnValue() [symbol(returnValue)]
                  | returnSignal(Val) [symbol(returnSignal)]
                  | exceptionSignal(Val) [symbol(exceptionSignal)]
                  | functionDone(Map) [symbol(functionDone)]
@@ -18883,7 +18884,9 @@ module PYTHON
   rule <k> break => breakSignal ... </k>
   rule <k> continue => continueSignal ... </k>
   rule <k> return => returnSignal(None) ... </k>
-  rule <k> returnStmt(V:Val) => returnSignal(V) ... </k>
+  rule <k> returnStmt(E:Exp) => E ~> returnValue() ... </k>
+  rule <k> V:Val ~> returnValue() => returnSignal(V) ... </k>
+  rule <k> exceptionSignal(V:Val) ~> returnValue() => exceptionSignal(V) ... </k>
   rule <k> raise => exceptionSignal(V) ... </k>
        <activeException> currentException(V) </activeException>
   rule <k> raise => exceptionSignal(#exception(#token("RuntimeError", "Id"))) ... </k>

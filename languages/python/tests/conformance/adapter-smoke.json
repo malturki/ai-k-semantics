@@ -403,6 +403,13 @@
       "coverage": ["bytearray-query-methods", "bytearray-replace-method", "bytes-like-arguments", "non-overlapping-subsequence-replacement", "method-call", "type-error", "ordinary-python-source-adapter"]
     },
     {
+      "id": "adapter-bytearray-splitlines-method",
+      "source": "../adapter/adapter-bytearray-splitlines-method.py",
+      "reference": "Python Standard Library Built-in Types bytearray; splitlines over ASCII LF, CR, and CRLF line boundaries with optional keepends truthiness",
+      "expected_result": "True ~> .K",
+      "coverage": ["bytearray-query-methods", "bytearray-splitlines-method", "line-boundary-splitting", "method-call", "ordinary-python-source-adapter"]
+    },
+    {
       "id": "adapter-bytearray-classification-methods",
       "source": "../adapter/adapter-bytearray-classification-methods.py",
       "reference": "Python Standard Library Built-in Types bytearray; ASCII classification methods isascii, isdigit, isalpha, isalnum, islower, isupper, isspace, and istitle",

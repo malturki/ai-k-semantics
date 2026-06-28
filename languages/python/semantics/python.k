@@ -1401,6 +1401,7 @@ module PYTHON
                 | bytearrayAffixNeedleEmpty(Val) [function, symbol(bytearrayAffixNeedleEmpty)]
                 | bytearrayPrefixMatchWindow(Val, Val, Val, Val) [function, symbol(bytearrayPrefixMatchWindow)]
                 | bytearraySuffixMatchWindow(Val, Val, Val, Val) [function, symbol(bytearraySuffixMatchWindow)]
+                | bytearrayItemsStartLF(ValItems) [function, symbol(bytearrayItemsStartLF)]
                 | bytearrayFillByteOk(Val) [function, symbol(bytearrayFillByteOk)]
                 | bytearrayStripArgSupported(Val) [function, symbol(bytearrayStripArgSupported)]
                 | bytearrayStripArgEmpty(Val) [function, symbol(bytearrayStripArgEmpty)]
@@ -1972,6 +1973,9 @@ module PYTHON
                | bytearrayReplaceEmptyItems(ValItems, Val, Int) [function, symbol(bytearrayReplaceEmptyItems)]
                | bytearrayReplaceAllItems(ValItems, Val, Val) [function, symbol(bytearrayReplaceAllItems)]
                | bytearrayReplaceNItems(ValItems, Val, Val, Int) [function, symbol(bytearrayReplaceNItems)]
+               | bytearraySplitLines(Val, Bool) [function, symbol(bytearraySplitLines)]
+               | bytearraySplitLinesScan(ValItems, Val, Bool) [function, symbol(bytearraySplitLinesScan)]
+               | bytearrayLineCons(Val, Val) [function, symbol(bytearrayLineCons)]
                | bytearraySearchWindow(Val, Val, Val) [function, symbol(bytearraySearchWindow)]
                | bytesStringUtf8(String) [function, symbol(bytesStringUtf8)]
                | bytesStringAscii(String) [function, symbol(bytesStringAscii)]
@@ -7205,6 +7209,60 @@ module PYTHON
       andBool Count >Int 0
       andBool valItemsLen(bytearrayAffixNeedleItems(Old)) <=Int valItemsLen(valItemsCons(V, VS))
       andBool notBool bytesPrefix(bytearrayAffixNeedleItems(Old), valItemsCons(V, VS))
+  rule bytearrayItemsStartLF(valItemsLast(V:Val)) =>
+    isIntLike(V) andBool intValue(V) ==Int 10
+  rule bytearrayItemsStartLF(valItemsCons(V:Val, _VS:ValItems)) =>
+    isIntLike(V) andBool intValue(V) ==Int 10
+  rule bytearrayLineCons(Line:Val, []) => listVal(valItemsLast(Line))
+  rule bytearrayLineCons(Line:Val, listVal(VS:ValItems)) => listVal(valItemsCons(Line, VS))
+  rule bytearraySplitLines(#bytearray(), _Keep:Bool) => []
+  rule bytearraySplitLines(bytearrayVal(VS:ValItems), Keep:Bool) =>
+    bytearraySplitLinesScan(VS, #bytearray(), Keep)
+  rule bytearraySplitLinesScan(valItemsLast(V:Val), Acc:Val, _Keep:Bool) =>
+    bytearrayLineCons(bytearrayAppendByte(Acc, V), [])
+    requires isIntLike(V)
+      andBool intValue(V) =/=Int 10
+      andBool intValue(V) =/=Int 13
+  rule bytearraySplitLinesScan(valItemsLast(V:Val), Acc:Val, false) =>
+    bytearrayLineCons(Acc, [])
+    requires isIntLike(V)
+      andBool (intValue(V) ==Int 10 orBool intValue(V) ==Int 13)
+  rule bytearraySplitLinesScan(valItemsLast(V:Val), Acc:Val, true) =>
+    bytearrayLineCons(bytearrayAppendByte(Acc, V), [])
+    requires isIntLike(V)
+      andBool (intValue(V) ==Int 10 orBool intValue(V) ==Int 13)
+  rule bytearraySplitLinesScan(valItemsCons(13, valItemsLast(10)), Acc:Val, false) =>
+    bytearrayLineCons(Acc, [])
+  rule bytearraySplitLinesScan(valItemsCons(13, valItemsLast(10)), Acc:Val, true) =>
+    bytearrayLineCons(bytearrayAppendByte(bytearrayAppendByte(Acc, 13), 10), [])
+  rule bytearraySplitLinesScan(valItemsCons(13, valItemsCons(10, Rest:ValItems)), Acc:Val, false) =>
+    bytearrayLineCons(Acc, bytearraySplitLinesScan(Rest, #bytearray(), false))
+  rule bytearraySplitLinesScan(valItemsCons(13, valItemsCons(10, Rest:ValItems)), Acc:Val, true) =>
+    bytearrayLineCons(bytearrayAppendByte(bytearrayAppendByte(Acc, 13), 10),
+      bytearraySplitLinesScan(Rest, #bytearray(), true))
+  rule bytearraySplitLinesScan(valItemsCons(V:Val, Rest:ValItems), Acc:Val, false) =>
+    bytearrayLineCons(Acc, bytearraySplitLinesScan(Rest, #bytearray(), false))
+    requires isIntLike(V)
+      andBool intValue(V) ==Int 10
+  rule bytearraySplitLinesScan(valItemsCons(V:Val, Rest:ValItems), Acc:Val, true) =>
+    bytearrayLineCons(bytearrayAppendByte(Acc, V), bytearraySplitLinesScan(Rest, #bytearray(), true))
+    requires isIntLike(V)
+      andBool intValue(V) ==Int 10
+  rule bytearraySplitLinesScan(valItemsCons(V:Val, Rest:ValItems), Acc:Val, false) =>
+    bytearrayLineCons(Acc, bytearraySplitLinesScan(Rest, #bytearray(), false))
+    requires isIntLike(V)
+      andBool intValue(V) ==Int 13
+      andBool notBool bytearrayItemsStartLF(Rest)
+  rule bytearraySplitLinesScan(valItemsCons(V:Val, Rest:ValItems), Acc:Val, true) =>
+    bytearrayLineCons(bytearrayAppendByte(Acc, V), bytearraySplitLinesScan(Rest, #bytearray(), true))
+    requires isIntLike(V)
+      andBool intValue(V) ==Int 13
+      andBool notBool bytearrayItemsStartLF(Rest)
+  rule bytearraySplitLinesScan(valItemsCons(V:Val, Rest:ValItems), Acc:Val, Keep:Bool) =>
+    bytearraySplitLinesScan(Rest, bytearrayAppendByte(Acc, V), Keep)
+    requires isIntLike(V)
+      andBool intValue(V) =/=Int 10
+      andBool intValue(V) =/=Int 13
   rule bytearrayDel(valItemsLast(_:Val), 0) => #bytearray()
   rule bytearrayDel(valItemsCons(_:Val, VS:ValItems), 0) => bytearrayVal(VS)
   rule bytearrayDel(valItemsCons(V0:Val, VS:ValItems), I:Int) =>
@@ -16611,6 +16669,10 @@ module PYTHON
        <env> ... X |-> B:Val ... </env>
     requires Id2String(Method) ==String "strip"
       andBool isBytearrayVal(B)
+  rule <k> #methodCall0(X:Id, Method:Id) => bytearraySplitLines(B, false) ... </k>
+       <env> ... X |-> B:Val ... </env>
+    requires Id2String(Method) ==String "splitlines"
+      andBool isBytearrayVal(B)
   rule <k> #methodCall0(X:Id, _Method:Id) =>
            exceptionSignal(#exception(#token("NameError", "Id")))
        ... </k>
@@ -16636,6 +16698,7 @@ module PYTHON
               orBool Id2String(Method) ==String "pop"
               orBool Id2String(Method) ==String "reverse"
               orBool Id2String(Method) ==String "rstrip"
+              orBool Id2String(Method) ==String "splitlines"
               orBool Id2String(Method) ==String "strip"
               orBool Id2String(Method) ==String "swapcase"
               orBool Id2String(Method) ==String "title"
@@ -16721,6 +16784,10 @@ module PYTHON
               orBool Id2String(Method) ==String "rpartition")
       andBool isBytearrayVal(B)
       andBool notBool bytearrayAffixNeedleSupported(Sep)
+  rule <k> #methodCall(X:Id, Method:Id, Keep:Val) => bytearraySplitLines(B, truthy(Keep)) ... </k>
+       <env> ... X |-> B:Val ... </env>
+    requires Id2String(Method) ==String "splitlines"
+      andBool isBytearrayVal(B)
   rule <k> #methodCall(X:Id, Method:Id, W:Val) => bytearrayCenter(B, W, 32) ... </k>
        <env> ... X |-> B:Val ... </env>
     requires Id2String(Method) ==String "center"
@@ -17252,6 +17319,7 @@ module PYTHON
               orBool Id2String(Method) ==String "rjust"
               orBool Id2String(Method) ==String "rpartition"
               orBool Id2String(Method) ==String "rstrip"
+              orBool Id2String(Method) ==String "splitlines"
               orBool Id2String(Method) ==String "startswith"
               orBool Id2String(Method) ==String "strip"
               orBool Id2String(Method) ==String "lstrip"

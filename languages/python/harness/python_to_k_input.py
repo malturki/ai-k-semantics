@@ -917,13 +917,13 @@ def emit_exp(exp: ast.expr) -> str:
             func=ast.Attribute(value=ast.Name(id=name), attr=attr, ctx=ast.Load()),
             args=[],
             keywords=[],
-        ) if attr in {"capitalize", "clear", "copy", "isalnum", "isalpha", "isascii", "isdigit", "islower", "isspace", "istitle", "isupper", "lower", "pop", "reverse", "swapcase", "title", "upper"}:
+        ) if attr in {"capitalize", "clear", "copy", "isalnum", "isalpha", "isascii", "isdigit", "islower", "isspace", "istitle", "isupper", "lower", "lstrip", "pop", "reverse", "rstrip", "strip", "swapcase", "title", "upper"}:
             return f"#methodCall0({emit_id(name)}, {emit_id(attr)})"
         case ast.Call(
             func=ast.Attribute(value=ast.Name(id=name), attr=attr, ctx=ast.Load()),
             args=[arg],
             keywords=[],
-        ) if attr in {"append", "center", "count", "endswith", "extend", "find", "index", "ljust", "pop", "remove", "removeprefix", "removesuffix", "rfind", "rjust", "startswith", "zfill"}:
+        ) if attr in {"append", "center", "count", "endswith", "extend", "find", "index", "ljust", "lstrip", "pop", "remove", "removeprefix", "removesuffix", "rfind", "rjust", "rstrip", "startswith", "strip", "zfill"}:
             return f"#methodCall({emit_id(name)}, {emit_id(attr)}, {emit_exp(arg)})"
         case ast.Call(
             func=ast.Attribute(value=ast.Name(id=name), attr=attr, ctx=ast.Load()),

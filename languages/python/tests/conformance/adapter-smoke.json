@@ -396,6 +396,13 @@
       "coverage": ["bytearray-query-methods", "bytearray-zfill-method", "method-call", "type-error", "ordinary-python-source-adapter"]
     },
     {
+      "id": "adapter-bytearray-justify-methods",
+      "source": "../adapter/adapter-bytearray-justify-methods.py",
+      "reference": "Python Standard Library Built-in Types bytearray; center, ljust, and rjust width padding and fillbyte validation",
+      "expected_result": "True ~> .K",
+      "coverage": ["bytearray-query-methods", "bytearray-center-method", "bytearray-ljust-method", "bytearray-rjust-method", "bytearray-fillbyte-validation", "method-call", "type-error", "ordinary-python-source-adapter"]
+    },
+    {
       "id": "adapter-memoryview-iteration",
       "source": "../adapter/adapter-memoryview-iteration.py",
       "reference": "Python Language Reference 8.3 The for statement and loop else; Python Standard Library Built-in Types memoryview; Python Standard Library Built-in Functions bytearray/list/tuple/set/sorted/all/any/sum/min/max",

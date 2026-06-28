@@ -147,6 +147,7 @@ run_case "adapter-bytearray-removeprefix-removesuffix-methods" "$ROOT/tests/adap
 run_case "adapter-bytearray-classification-methods" "$ROOT/tests/adapter/adapter-bytearray-classification-methods.py" "True ~> .K"
 run_case "adapter-bytearray-case-methods" "$ROOT/tests/adapter/adapter-bytearray-case-methods.py" "True ~> .K"
 run_case "adapter-bytearray-zfill-method" "$ROOT/tests/adapter/adapter-bytearray-zfill-method.py" "True ~> .K"
+run_case "adapter-bytearray-justify-methods" "$ROOT/tests/adapter/adapter-bytearray-justify-methods.py" "True ~> .K"
 run_case "adapter-memoryview-iteration" "$ROOT/tests/adapter/adapter-memoryview-iteration.py" "True ~> .K"
 run_case "adapter-memoryview-constructors" "$ROOT/tests/adapter/adapter-memoryview-constructors.py" "True ~> .K"
 run_case "adapter-list-normal" "$ROOT/tests/adapter/adapter-list-normal.py" "True ~> .K"

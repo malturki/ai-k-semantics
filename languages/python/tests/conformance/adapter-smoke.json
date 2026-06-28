@@ -354,6 +354,13 @@
       "coverage": ["bytearray-query-methods", "bytearray-count-method", "bytearray-index-method", "method-call", "value-error", "type-error", "ordinary-python-source-adapter"]
     },
     {
+      "id": "adapter-bytearray-find-rfind-methods",
+      "source": "../adapter/adapter-bytearray-find-rfind-methods.py",
+      "reference": "Python Standard Library Built-in Types bytearray; sequence methods find and rfind over integer-byte and bytes-like needles",
+      "expected_result": "True ~> .K",
+      "coverage": ["bytearray-query-methods", "bytearray-find-method", "bytearray-rfind-method", "method-call", "value-error", "type-error", "ordinary-python-source-adapter"]
+    },
+    {
       "id": "adapter-memoryview-iteration",
       "source": "../adapter/adapter-memoryview-iteration.py",
       "reference": "Python Language Reference 8.3 The for statement and loop else; Python Standard Library Built-in Types memoryview; Python Standard Library Built-in Functions bytearray/list/tuple/set/sorted/all/any/sum/min/max",

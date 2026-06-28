@@ -142,6 +142,7 @@ run_case "adapter-bytearray-pop-method" "$ROOT/tests/adapter/adapter-bytearray-p
 run_case "adapter-bytearray-remove-insert-methods" "$ROOT/tests/adapter/adapter-bytearray-remove-insert-methods.py" "True ~> .K"
 run_case "adapter-bytearray-count-index-methods" "$ROOT/tests/adapter/adapter-bytearray-count-index-methods.py" "True ~> .K"
 run_case "adapter-bytearray-count-index-byteslike-methods" "$ROOT/tests/adapter/adapter-bytearray-count-index-byteslike-methods.py" "True ~> .K"
+run_case "adapter-bytearray-search-start-end-methods" "$ROOT/tests/adapter/adapter-bytearray-search-start-end-methods.py" "True ~> .K"
 run_case "adapter-bytearray-find-rfind-methods" "$ROOT/tests/adapter/adapter-bytearray-find-rfind-methods.py" "True ~> .K"
 run_case "adapter-bytearray-startsendswith-methods" "$ROOT/tests/adapter/adapter-bytearray-startsendswith-methods.py" "True ~> .K"
 run_case "adapter-bytearray-removeprefix-removesuffix-methods" "$ROOT/tests/adapter/adapter-bytearray-removeprefix-removesuffix-methods.py" "True ~> .K"

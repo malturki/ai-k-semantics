@@ -929,8 +929,14 @@ def emit_exp(exp: ast.expr) -> str:
             func=ast.Attribute(value=ast.Name(id=name), attr=attr, ctx=ast.Load()),
             args=[arg1, arg2],
             keywords=[],
-        ) if attr in {"center", "insert", "ljust", "rjust"}:
+        ) if attr in {"center", "count", "find", "index", "insert", "ljust", "rfind", "rindex", "rjust"}:
             return f"#methodCall2({emit_id(name)}, {emit_id(attr)}, {emit_exp(arg1)}, {emit_exp(arg2)})"
+        case ast.Call(
+            func=ast.Attribute(value=ast.Name(id=name), attr=attr, ctx=ast.Load()),
+            args=[arg1, arg2, arg3],
+            keywords=[],
+        ) if attr in {"count", "find", "index", "rfind", "rindex"}:
+            return f"#methodCall3({emit_id(name)}, {emit_id(attr)}, {emit_exp(arg1)}, {emit_exp(arg2)}, {emit_exp(arg3)})"
         case ast.Call(func=ast.Name(id="abs"), args=[arg], keywords=[]):
             return f"#abs({emit_exp(arg)})"
         case ast.Call(func=ast.Name(id="divmod"), args=[left, right], keywords=[]):

@@ -361,6 +361,13 @@
       "coverage": ["bytearray-query-methods", "bytearray-count-method", "bytearray-index-method", "bytearray-rindex-method", "bytes-like-needle", "method-call", "value-error", "type-error", "ordinary-python-source-adapter"]
     },
     {
+      "id": "adapter-bytearray-search-start-end-methods",
+      "source": "../adapter/adapter-bytearray-search-start-end-methods.py",
+      "reference": "Python Standard Library Built-in Types bytearray; count, find, rfind, index, and rindex optional start/end arguments",
+      "expected_result": "True ~> .K",
+      "coverage": ["bytearray-query-methods", "bytearray-count-method", "bytearray-find-method", "bytearray-rfind-method", "bytearray-index-method", "bytearray-rindex-method", "bytes-like-needle", "slice-style-start-end", "method-call", "value-error", "type-error", "ordinary-python-source-adapter"]
+    },
+    {
       "id": "adapter-bytearray-find-rfind-methods",
       "source": "../adapter/adapter-bytearray-find-rfind-methods.py",
       "reference": "Python Standard Library Built-in Types bytearray; sequence methods find and rfind over integer-byte and bytes-like needles",

@@ -375,6 +375,13 @@
       "coverage": ["bytearray-query-methods", "bytearray-removeprefix-method", "bytearray-removesuffix-method", "method-call", "type-error", "ordinary-python-source-adapter"]
     },
     {
+      "id": "adapter-bytearray-classification-methods",
+      "source": "../adapter/adapter-bytearray-classification-methods.py",
+      "reference": "Python Standard Library Built-in Types bytearray; ASCII classification methods isascii, isdigit, isalpha, isalnum, islower, isupper, isspace, and istitle",
+      "expected_result": "True ~> .K",
+      "coverage": ["bytearray-query-methods", "bytearray-classification-methods", "bytearray-isascii-method", "bytearray-isdigit-method", "bytearray-isalpha-method", "bytearray-isalnum-method", "bytearray-islower-method", "bytearray-isupper-method", "bytearray-isspace-method", "bytearray-istitle-method", "method-call", "ordinary-python-source-adapter"]
+    },
+    {
       "id": "adapter-memoryview-iteration",
       "source": "../adapter/adapter-memoryview-iteration.py",
       "reference": "Python Language Reference 8.3 The for statement and loop else; Python Standard Library Built-in Types memoryview; Python Standard Library Built-in Functions bytearray/list/tuple/set/sorted/all/any/sum/min/max",

@@ -1394,6 +1394,13 @@ module PYTHON
                 | bytearraySearchNeedleEmpty(Val) [function, symbol(bytearraySearchNeedleEmpty)]
                 | bytearrayAffixNeedleSupported(Val) [function, symbol(bytearrayAffixNeedleSupported)]
                 | bytearrayAffixNeedleEmpty(Val) [function, symbol(bytearrayAffixNeedleEmpty)]
+                | byteAscii(Val) [function, symbol(byteAscii)]
+                | byteDigit(Val) [function, symbol(byteDigit)]
+                | byteLower(Val) [function, symbol(byteLower)]
+                | byteUpper(Val) [function, symbol(byteUpper)]
+                | byteAlpha(Val) [function, symbol(byteAlpha)]
+                | byteAlnum(Val) [function, symbol(byteAlnum)]
+                | byteSpace(Val) [function, symbol(byteSpace)]
                 | bytesEncodingUtf8(String) [function, symbol(bytesEncodingUtf8)]
                 | bytesEncodingAscii(String) [function, symbol(bytesEncodingAscii)]
                 | bytesEncodingLatin1(String) [function, symbol(bytesEncodingLatin1)]
@@ -1572,6 +1579,15 @@ module PYTHON
                 | bytearrayStartsWithTupleTypeError(ValItems, Val) [function, symbol(bytearrayStartsWithTupleTypeError)]
                 | bytearrayEndsWithTuple(ValItems, Val) [function, symbol(bytearrayEndsWithTuple)]
                 | bytearrayEndsWithTupleTypeError(ValItems, Val) [function, symbol(bytearrayEndsWithTupleTypeError)]
+                | bytesAllAscii(ValItems) [function, symbol(bytesAllAscii)]
+                | bytesAllDigit(ValItems) [function, symbol(bytesAllDigit)]
+                | bytesAllAlpha(ValItems) [function, symbol(bytesAllAlpha)]
+                | bytesAllAlnum(ValItems) [function, symbol(bytesAllAlnum)]
+                | bytesAllSpace(ValItems) [function, symbol(bytesAllSpace)]
+                | bytesHasLower(ValItems) [function, symbol(bytesHasLower)]
+                | bytesHasUpper(ValItems) [function, symbol(bytesHasUpper)]
+                | bytesTitleOk(ValItems) [function, symbol(bytesTitleOk)]
+                | bytesTitlePatternOk(ValItems, Bool) [function, symbol(bytesTitlePatternOk)]
                 | containsKey(Val, DictItems) [function, symbol(containsKey)]
                 | rangeContains(Val, Int, Int) [function, symbol(rangeContains)]
                 | rangeContains(Val, Int, Int, Int) [function, symbol(rangeContainsStep)]
@@ -7173,6 +7189,57 @@ module PYTHON
   rule bytearrayAffixNeedleItems(bytesVal(VS:ValItems)) => VS
   rule bytearrayAffixNeedleItems(bytearrayVal(VS:ValItems)) => VS
   rule bytearrayAffixNeedleItems(#memoryviewVal(V:Val)) => bytearrayAffixNeedleItems(V)
+
+  rule byteAscii(V:Val) => intValue(V) >=Int 0 andBool intValue(V) <=Int 127
+  rule byteDigit(V:Val) => intValue(V) >=Int 48 andBool intValue(V) <=Int 57
+  rule byteLower(V:Val) => intValue(V) >=Int 97 andBool intValue(V) <=Int 122
+  rule byteUpper(V:Val) => intValue(V) >=Int 65 andBool intValue(V) <=Int 90
+  rule byteAlpha(V:Val) => byteLower(V) orBool byteUpper(V)
+  rule byteAlnum(V:Val) => byteAlpha(V) orBool byteDigit(V)
+  rule byteSpace(V:Val) =>
+    intValue(V) ==Int 32
+      orBool intValue(V) ==Int 9
+      orBool intValue(V) ==Int 10
+      orBool intValue(V) ==Int 11
+      orBool intValue(V) ==Int 12
+      orBool intValue(V) ==Int 13
+
+  rule bytesAllAscii(valItemsLast(V:Val)) => byteAscii(V)
+  rule bytesAllAscii(valItemsCons(V:Val, VS:ValItems)) => byteAscii(V) andBool bytesAllAscii(VS)
+  rule bytesAllDigit(valItemsLast(V:Val)) => byteDigit(V)
+  rule bytesAllDigit(valItemsCons(V:Val, VS:ValItems)) => byteDigit(V) andBool bytesAllDigit(VS)
+  rule bytesAllAlpha(valItemsLast(V:Val)) => byteAlpha(V)
+  rule bytesAllAlpha(valItemsCons(V:Val, VS:ValItems)) => byteAlpha(V) andBool bytesAllAlpha(VS)
+  rule bytesAllAlnum(valItemsLast(V:Val)) => byteAlnum(V)
+  rule bytesAllAlnum(valItemsCons(V:Val, VS:ValItems)) => byteAlnum(V) andBool bytesAllAlnum(VS)
+  rule bytesAllSpace(valItemsLast(V:Val)) => byteSpace(V)
+  rule bytesAllSpace(valItemsCons(V:Val, VS:ValItems)) => byteSpace(V) andBool bytesAllSpace(VS)
+  rule bytesHasLower(valItemsLast(V:Val)) => byteLower(V)
+  rule bytesHasLower(valItemsCons(V:Val, VS:ValItems)) => byteLower(V) orBool bytesHasLower(VS)
+  rule bytesHasUpper(valItemsLast(V:Val)) => byteUpper(V)
+  rule bytesHasUpper(valItemsCons(V:Val, VS:ValItems)) => byteUpper(V) orBool bytesHasUpper(VS)
+
+  rule bytesTitleOk(VS:ValItems) =>
+    bytesTitlePatternOk(VS, false) andBool (bytesHasLower(VS) orBool bytesHasUpper(VS))
+  rule bytesTitlePatternOk(valItemsLast(V:Val), PrevCased:Bool) => true
+    requires byteUpper(V) andBool notBool PrevCased
+  rule bytesTitlePatternOk(valItemsLast(V:Val), PrevCased:Bool) => true
+    requires byteLower(V) andBool PrevCased
+  rule bytesTitlePatternOk(valItemsLast(V:Val), _PrevCased:Bool) => true
+    requires notBool byteAlpha(V)
+  rule bytesTitlePatternOk(valItemsLast(V:Val), PrevCased:Bool) => false
+    requires (byteUpper(V) andBool PrevCased) orBool (byteLower(V) andBool notBool PrevCased)
+  rule bytesTitlePatternOk(valItemsCons(V:Val, VS:ValItems), PrevCased:Bool) =>
+    bytesTitlePatternOk(VS, true)
+    requires byteUpper(V) andBool notBool PrevCased
+  rule bytesTitlePatternOk(valItemsCons(V:Val, VS:ValItems), PrevCased:Bool) =>
+    bytesTitlePatternOk(VS, true)
+    requires byteLower(V) andBool PrevCased
+  rule bytesTitlePatternOk(valItemsCons(V:Val, VS:ValItems), _PrevCased:Bool) =>
+    bytesTitlePatternOk(VS, false)
+    requires notBool byteAlpha(V)
+  rule bytesTitlePatternOk(valItemsCons(V:Val, _VS:ValItems), PrevCased:Bool) => false
+    requires (byteUpper(V) andBool PrevCased) orBool (byteLower(V) andBool notBool PrevCased)
 
   rule sortedIterableSupported([]) => true
   rule sortedIterableSupported(listVal(_:ValItems)) => true
@@ -15892,6 +15959,42 @@ module PYTHON
        <env> ... X |-> (B:Val => bytearrayReverse(B)) ... </env>
     requires Id2String(Method) ==String "reverse"
       andBool isBytearrayVal(B)
+  rule <k> #methodCall0(X:Id, Method:Id) => True ... </k>
+       <env> ... X |-> #bytearray() ... </env>
+    requires Id2String(Method) ==String "isascii"
+  rule <k> #methodCall0(X:Id, Method:Id) => False ... </k>
+       <env> ... X |-> #bytearray() ... </env>
+    requires Id2String(Method) ==String "isalnum"
+      orBool Id2String(Method) ==String "isalpha"
+      orBool Id2String(Method) ==String "isdigit"
+      orBool Id2String(Method) ==String "islower"
+      orBool Id2String(Method) ==String "isspace"
+      orBool Id2String(Method) ==String "istitle"
+      orBool Id2String(Method) ==String "isupper"
+  rule <k> #methodCall0(X:Id, Method:Id) => boolValue(bytesAllAlnum(VS)) ... </k>
+       <env> ... X |-> bytearrayVal(VS:ValItems) ... </env>
+    requires Id2String(Method) ==String "isalnum"
+  rule <k> #methodCall0(X:Id, Method:Id) => boolValue(bytesAllAlpha(VS)) ... </k>
+       <env> ... X |-> bytearrayVal(VS:ValItems) ... </env>
+    requires Id2String(Method) ==String "isalpha"
+  rule <k> #methodCall0(X:Id, Method:Id) => boolValue(bytesAllAscii(VS)) ... </k>
+       <env> ... X |-> bytearrayVal(VS:ValItems) ... </env>
+    requires Id2String(Method) ==String "isascii"
+  rule <k> #methodCall0(X:Id, Method:Id) => boolValue(bytesAllDigit(VS)) ... </k>
+       <env> ... X |-> bytearrayVal(VS:ValItems) ... </env>
+    requires Id2String(Method) ==String "isdigit"
+  rule <k> #methodCall0(X:Id, Method:Id) => boolValue(bytesHasLower(VS) andBool notBool bytesHasUpper(VS)) ... </k>
+       <env> ... X |-> bytearrayVal(VS:ValItems) ... </env>
+    requires Id2String(Method) ==String "islower"
+  rule <k> #methodCall0(X:Id, Method:Id) => boolValue(bytesAllSpace(VS)) ... </k>
+       <env> ... X |-> bytearrayVal(VS:ValItems) ... </env>
+    requires Id2String(Method) ==String "isspace"
+  rule <k> #methodCall0(X:Id, Method:Id) => boolValue(bytesTitleOk(VS)) ... </k>
+       <env> ... X |-> bytearrayVal(VS:ValItems) ... </env>
+    requires Id2String(Method) ==String "istitle"
+  rule <k> #methodCall0(X:Id, Method:Id) => boolValue(bytesHasUpper(VS) andBool notBool bytesHasLower(VS)) ... </k>
+       <env> ... X |-> bytearrayVal(VS:ValItems) ... </env>
+    requires Id2String(Method) ==String "isupper"
   rule <k> #methodCall0(X:Id, _Method:Id) =>
            exceptionSignal(#exception(#token("NameError", "Id")))
        ... </k>
@@ -15903,6 +16006,14 @@ module PYTHON
        <env> ... X |-> B:Val ... </env>
     requires (Id2String(Method) ==String "clear"
               orBool Id2String(Method) ==String "copy"
+              orBool Id2String(Method) ==String "isalnum"
+              orBool Id2String(Method) ==String "isalpha"
+              orBool Id2String(Method) ==String "isascii"
+              orBool Id2String(Method) ==String "isdigit"
+              orBool Id2String(Method) ==String "islower"
+              orBool Id2String(Method) ==String "isspace"
+              orBool Id2String(Method) ==String "istitle"
+              orBool Id2String(Method) ==String "isupper"
               orBool Id2String(Method) ==String "pop"
               orBool Id2String(Method) ==String "reverse")
       andBool notBool isBytearrayVal(B)

@@ -18,13 +18,15 @@ languages/python/harness/run-smoke.sh
 Compiles `semantics/python.k` and runs the local smoke cases.
 
 ```sh
-PYTHON_REF=/path/to/python3.14 languages/python/harness/run-adapter-smoke.sh
+languages/python/harness/run-adapter-smoke.sh
 ```
 
 Compiles `semantics/python.k`, checks each adapter smoke program with CPython,
 translates it through `python_to_k_input.py`, and runs the adapted K input. This
 is the first construct-preserving bridge from ordinary Python source to the
-current semicolon-terminated K subset.
+current semicolon-terminated K subset. By default this uses the local pinned
+`.external/Python-3.14.6/python` build when present; set `PYTHON_REF` to override
+the reference interpreter.
 
 ```sh
 PYTHON_REF=/path/to/python3.14 CPYTHON_SOURCE=/path/to/cpython languages/python/harness/run-cpython-suite.sh

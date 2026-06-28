@@ -5,7 +5,14 @@ ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 DEF="$ROOT/semantics/python.k"
 WORK="$ROOT/.build"
 KOMPILED="$WORK/python-kompiled"
-PYTHON_REF="${PYTHON_REF:-python3}"
+DEFAULT_PYTHON_REF="$ROOT/../../.external/Python-3.14.6/python"
+if [[ -z "${PYTHON_REF:-}" ]]; then
+  if [[ -x "$DEFAULT_PYTHON_REF" ]]; then
+    PYTHON_REF="$DEFAULT_PYTHON_REF"
+  else
+    PYTHON_REF="python3.14"
+  fi
+fi
 ADAPTER="$ROOT/harness/python_to_k_input.py"
 
 mkdir -p "$WORK"
@@ -138,6 +145,7 @@ run_case "adapter-bytearray-find-rfind-methods" "$ROOT/tests/adapter/adapter-byt
 run_case "adapter-bytearray-startsendswith-methods" "$ROOT/tests/adapter/adapter-bytearray-startsendswith-methods.py" "True ~> .K"
 run_case "adapter-bytearray-removeprefix-removesuffix-methods" "$ROOT/tests/adapter/adapter-bytearray-removeprefix-removesuffix-methods.py" "True ~> .K"
 run_case "adapter-bytearray-classification-methods" "$ROOT/tests/adapter/adapter-bytearray-classification-methods.py" "True ~> .K"
+run_case "adapter-bytearray-case-methods" "$ROOT/tests/adapter/adapter-bytearray-case-methods.py" "True ~> .K"
 run_case "adapter-memoryview-iteration" "$ROOT/tests/adapter/adapter-memoryview-iteration.py" "True ~> .K"
 run_case "adapter-memoryview-constructors" "$ROOT/tests/adapter/adapter-memoryview-constructors.py" "True ~> .K"
 run_case "adapter-list-normal" "$ROOT/tests/adapter/adapter-list-normal.py" "True ~> .K"

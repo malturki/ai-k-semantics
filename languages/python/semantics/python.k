@@ -1576,6 +1576,8 @@ module PYTHON
                 | rangeAnyTruthy(Int, Int, Int) [function, symbol(rangeAnyTruthy)]
 
   syntax Int ::= intValue(Val) [function, symbol(intValue)]
+               | bytearrayCountByte(ValItems, Val) [function, symbol(bytearrayCountByte)]
+               | bytearrayIndexByte(ValItems, Val, Int) [function, symbol(bytearrayIndexByte)]
                | digitValue(String) [function, symbol(digitValue)]
                | intStringValue(String, Int) [function, symbol(intStringValue)]
                | intStringAccum(String, Int, Int, Int) [function, symbol(intStringAccum)]
@@ -7932,6 +7934,25 @@ module PYTHON
   rule bytesPrefix(valItemsCons(_:Val, _:ValItems), valItemsLast(_:Val)) => false
   rule bytesPrefix(valItemsCons(Needle:Val, Needles:ValItems), valItemsCons(Haystack:Val, Haystacks:ValItems)) =>
     valEq(Needle, Haystack) andBool bytesPrefix(Needles, Haystacks)
+
+  rule bytearrayCountByte(valItemsLast(V0:Val), V:Val) => 1
+    requires valEq(V0, V)
+  rule bytearrayCountByte(valItemsLast(V0:Val), V:Val) => 0
+    requires notBool valEq(V0, V)
+  rule bytearrayCountByte(valItemsCons(V0:Val, VS:ValItems), V:Val) =>
+    1 +Int bytearrayCountByte(VS, V)
+    requires valEq(V0, V)
+  rule bytearrayCountByte(valItemsCons(V0:Val, VS:ValItems), V:Val) =>
+    bytearrayCountByte(VS, V)
+    requires notBool valEq(V0, V)
+
+  rule bytearrayIndexByte(valItemsLast(V0:Val), V:Val, I:Int) => I
+    requires valEq(V0, V)
+  rule bytearrayIndexByte(valItemsCons(V0:Val, _VS:ValItems), V:Val, I:Int) => I
+    requires valEq(V0, V)
+  rule bytearrayIndexByte(valItemsCons(V0:Val, VS:ValItems), V:Val, I:Int) =>
+    bytearrayIndexByte(VS, V, I +Int 1)
+    requires notBool valEq(V0, V)
 
   rule containsKey(K:Val, dictItemsLast(K1:Val, _:Val)) => valEq(K, K1)
   rule containsKey(K:Val, dictItemsCons(K1:Val, _:Val, DS:DictItems)) =>
@@ -15675,6 +15696,72 @@ module PYTHON
               orBool Id2String(Method) ==String "pop"
               orBool Id2String(Method) ==String "reverse")
       andBool notBool isBytearrayVal(B)
+  rule <k> #methodCall(X:Id, Method:Id, V:Val) => 0 ... </k>
+       <env> ... X |-> #bytearray() ... </env>
+    requires Id2String(Method) ==String "count"
+      andBool isIntLike(V)
+      andBool intValue(V) >=Int 0
+      andBool intValue(V) <=Int 255
+  rule <k> #methodCall(X:Id, Method:Id, V:Val) => bytearrayCountByte(VS, intValue(V)) ... </k>
+       <env> ... X |-> bytearrayVal(VS:ValItems) ... </env>
+    requires Id2String(Method) ==String "count"
+      andBool isIntLike(V)
+      andBool intValue(V) >=Int 0
+      andBool intValue(V) <=Int 255
+  rule <k> #methodCall(X:Id, Method:Id, V:Val) =>
+           exceptionSignal(#exception(#token("ValueError", "Id")))
+       ... </k>
+       <env> ... X |-> B:Val ... </env>
+    requires Id2String(Method) ==String "count"
+      andBool isBytearrayVal(B)
+      andBool isIntLike(V)
+      andBool (intValue(V) <Int 0 orBool intValue(V) >Int 255)
+  rule <k> #methodCall(X:Id, Method:Id, V:Val) =>
+           exceptionSignal(#exception(#token("TypeError", "Id")))
+       ... </k>
+       <env> ... X |-> B:Val ... </env>
+    requires Id2String(Method) ==String "count"
+      andBool isBytearrayVal(B)
+      andBool notBool isIntLike(V)
+  rule <k> #methodCall(X:Id, Method:Id, V:Val) => bytearrayIndexByte(VS, intValue(V), 0) ... </k>
+       <env> ... X |-> bytearrayVal(VS:ValItems) ... </env>
+    requires Id2String(Method) ==String "index"
+      andBool isIntLike(V)
+      andBool intValue(V) >=Int 0
+      andBool intValue(V) <=Int 255
+      andBool containsVal(intValue(V), VS)
+  rule <k> #methodCall(X:Id, Method:Id, V:Val) =>
+           exceptionSignal(#exception(#token("ValueError", "Id")))
+       ... </k>
+       <env> ... X |-> B:Val ... </env>
+    requires Id2String(Method) ==String "index"
+      andBool isBytearrayVal(B)
+      andBool isIntLike(V)
+      andBool (intValue(V) <Int 0 orBool intValue(V) >Int 255)
+  rule <k> #methodCall(X:Id, Method:Id, V:Val) =>
+           exceptionSignal(#exception(#token("ValueError", "Id")))
+       ... </k>
+       <env> ... X |-> #bytearray() ... </env>
+    requires Id2String(Method) ==String "index"
+      andBool isIntLike(V)
+      andBool intValue(V) >=Int 0
+      andBool intValue(V) <=Int 255
+  rule <k> #methodCall(X:Id, Method:Id, V:Val) =>
+           exceptionSignal(#exception(#token("ValueError", "Id")))
+       ... </k>
+       <env> ... X |-> bytearrayVal(VS:ValItems) ... </env>
+    requires Id2String(Method) ==String "index"
+      andBool isIntLike(V)
+      andBool intValue(V) >=Int 0
+      andBool intValue(V) <=Int 255
+      andBool notBool containsVal(intValue(V), VS)
+  rule <k> #methodCall(X:Id, Method:Id, V:Val) =>
+           exceptionSignal(#exception(#token("TypeError", "Id")))
+       ... </k>
+       <env> ... X |-> B:Val ... </env>
+    requires Id2String(Method) ==String "index"
+      andBool isBytearrayVal(B)
+      andBool notBool isIntLike(V)
   rule <k> #methodCall(X:Id, Method:Id, V:Val) => None ... </k>
        <env> ... X |-> (bytearrayVal(VS:ValItems) => bytearrayRemoveByte(VS, intValue(V))) ... </env>
     requires Id2String(Method) ==String "remove"
@@ -15817,7 +15904,9 @@ module PYTHON
        ... </k>
        <env> ... X |-> B:Val ... </env>
     requires (Id2String(Method) ==String "append"
+              orBool Id2String(Method) ==String "count"
               orBool Id2String(Method) ==String "extend"
+              orBool Id2String(Method) ==String "index"
               orBool Id2String(Method) ==String "pop"
               orBool Id2String(Method) ==String "remove")
       andBool notBool isBytearrayVal(B)

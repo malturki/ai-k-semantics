@@ -347,6 +347,13 @@
       "coverage": ["bytearray-mutating-methods", "bytearray-remove-method", "bytearray-insert-method", "method-call", "value-error", "type-error", "ordinary-python-source-adapter"]
     },
     {
+      "id": "adapter-bytearray-count-index-methods",
+      "source": "../adapter/adapter-bytearray-count-index-methods.py",
+      "reference": "Python Standard Library Built-in Types bytearray; sequence methods count and index over integer-byte values",
+      "expected_result": "True ~> .K",
+      "coverage": ["bytearray-query-methods", "bytearray-count-method", "bytearray-index-method", "method-call", "value-error", "type-error", "ordinary-python-source-adapter"]
+    },
+    {
       "id": "adapter-memoryview-iteration",
       "source": "../adapter/adapter-memoryview-iteration.py",
       "reference": "Python Language Reference 8.3 The for statement and loop else; Python Standard Library Built-in Types memoryview; Python Standard Library Built-in Functions bytearray/list/tuple/set/sorted/all/any/sum/min/max",

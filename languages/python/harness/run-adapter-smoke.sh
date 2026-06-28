@@ -131,6 +131,7 @@ run_case "adapter-bytearray-constructor" "$ROOT/tests/adapter/adapter-bytearray-
 run_case "adapter-bytearray-constructor-errors" "$ROOT/tests/adapter/adapter-bytearray-constructor-errors.py" "True ~> .K"
 run_case "adapter-bytearray-mutating-methods" "$ROOT/tests/adapter/adapter-bytearray-mutating-methods.py" "True ~> .K"
 run_case "adapter-bytearray-zero-arg-methods" "$ROOT/tests/adapter/adapter-bytearray-zero-arg-methods.py" "True ~> .K"
+run_case "adapter-bytearray-pop-method" "$ROOT/tests/adapter/adapter-bytearray-pop-method.py" "True ~> .K"
 run_case "adapter-memoryview-iteration" "$ROOT/tests/adapter/adapter-memoryview-iteration.py" "True ~> .K"
 run_case "adapter-memoryview-constructors" "$ROOT/tests/adapter/adapter-memoryview-constructors.py" "True ~> .K"
 run_case "adapter-list-normal" "$ROOT/tests/adapter/adapter-list-normal.py" "True ~> .K"

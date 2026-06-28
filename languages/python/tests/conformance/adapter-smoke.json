@@ -333,6 +333,13 @@
       "coverage": ["bytearray-mutating-methods", "bytearray-clear-method", "bytearray-copy-method", "bytearray-reverse-method", "method-call", "ordinary-python-source-adapter"]
     },
     {
+      "id": "adapter-bytearray-pop-method",
+      "source": "../adapter/adapter-bytearray-pop-method.py",
+      "reference": "Python Standard Library Built-in Types bytearray; mutable sequence method pop",
+      "expected_result": "True ~> .K",
+      "coverage": ["bytearray-mutating-methods", "bytearray-pop-method", "method-call", "index-error", "type-error", "ordinary-python-source-adapter"]
+    },
+    {
       "id": "adapter-memoryview-iteration",
       "source": "../adapter/adapter-memoryview-iteration.py",
       "reference": "Python Language Reference 8.3 The for statement and loop else; Python Standard Library Built-in Types memoryview; Python Standard Library Built-in Functions bytearray/list/tuple/set/sorted/all/any/sum/min/max",

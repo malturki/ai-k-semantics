@@ -915,6 +915,12 @@ def emit_exp(exp: ast.expr) -> str:
             return f"#conjugate({emit_exp(value)})"
         case ast.Call(
             func=ast.Attribute(value=ast.Name(id=name), attr=attr, ctx=ast.Load()),
+            args=[],
+            keywords=[],
+        ) if attr in {"clear", "copy", "reverse"}:
+            return f"#methodCall0({emit_id(name)}, {emit_id(attr)})"
+        case ast.Call(
+            func=ast.Attribute(value=ast.Name(id=name), attr=attr, ctx=ast.Load()),
             args=[arg],
             keywords=[],
         ) if attr in {"append", "extend"}:

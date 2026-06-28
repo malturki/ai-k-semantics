@@ -480,6 +480,7 @@ module PYTHON-SYNTAX
                | "#complexCtorMixed" "(" Exp "," KwArgExps ")" [symbol(complexCtorMixedExp), strict(1)]
                | "#conjugate" "(" Exp ")" [symbol(conjugateExp), strict]
                | "#methodCall" "(" Id "," Id "," Exp ")" [symbol(methodCall1Exp), strict(3)]
+               | "#methodCall0" "(" Id "," Id ")" [symbol(methodCall0Exp)]
                | "#abs" "(" Exp ")" [symbol(absExp), strict]
                | "#divmod" "(" Exp "," Exp ")" [symbol(divmodExp), strict]
                | "#pow" "(" Exp "," Exp ")" [symbol(powBuiltinExp), strict]
@@ -1859,6 +1860,7 @@ module PYTHON
   syntax ValItems ::= dropValItems(ValItems, Int) [function, symbol(dropValItems)]
   syntax ValItems ::= concatValItems(ValItems, ValItems) [function, symbol(concatValItems)]
   syntax ValItems ::= repeatValItems(ValItems, Int) [function, symbol(repeatValItems)]
+  syntax ValItems ::= reverseValItems(ValItems) [function, symbol(reverseValItems)]
   syntax ValItems ::= byteItems(ValItems) [function, symbol(byteItems)]
   syntax ValItems ::= bytearrayExtendSourceItems(Val) [function, symbol(bytearrayExtendSourceItems)]
   syntax ValItems ::= sliceValItems(ValItems, Int, Int) [function, symbol(sliceValItems)]
@@ -1881,6 +1883,7 @@ module PYTHON
                | subscriptDel(Val, Val) [function, symbol(subscriptDel)]
                | bytearrayAppendByte(Val, Val) [function, symbol(bytearrayAppendByte)]
                | bytearrayExtendBytes(Val, ValItems) [function, symbol(bytearrayExtendBytes)]
+               | bytearrayReverse(Val) [function, symbol(bytearrayReverse)]
   syntax Val ::= dictFromDictVals(DictVals) [function, symbol(dictFromDictVals)]
   syntax Val ::= dictCtorFromPairs(ValItems) [function, symbol(dictCtorFromPairs)]
   syntax Val ::= dictCtorFromKwArgs(KwArgVals) [function, symbol(dictCtorFromKwArgs)]
@@ -6948,6 +6951,8 @@ module PYTHON
   rule bytearrayExtendBytes(#bytearray(), VS:ValItems) => bytearrayVal(VS)
   rule bytearrayExtendBytes(bytearrayVal(VS1:ValItems), VS2:ValItems) =>
     bytearrayVal(concatValItems(VS1, VS2))
+  rule bytearrayReverse(#bytearray()) => #bytearray()
+  rule bytearrayReverse(bytearrayVal(VS:ValItems)) => bytearrayVal(reverseValItems(VS))
 
   rule argValsToSetItems(argValsCons(V:Val, #noArgVals)) => valItemsLast(V)
   rule argValsToSetItems(argValsCons(V:Val, VS:ArgVals)) => argValsToSetItems(VS)
@@ -7414,6 +7419,9 @@ module PYTHON
   rule repeatValItems(VS:ValItems, 1) => VS
   rule repeatValItems(VS:ValItems, N:Int) => concatValItems(VS, repeatValItems(VS, N -Int 1))
     requires N >Int 1
+  rule reverseValItems(valItemsLast(V:Val)) => valItemsLast(V)
+  rule reverseValItems(valItemsCons(V:Val, VS:ValItems)) =>
+    concatValItems(reverseValItems(VS), valItemsLast(V))
 
   rule bytesRepeat(_:ValItems, N:Int) => #bytes() requires N <=Int 0
   rule bytesRepeat(VS:ValItems, 1) => bytesVal(VS)
@@ -15601,6 +15609,31 @@ module PYTHON
   rule #conjugate(F:Float) => F
   rule #conjugate(V:Val) => intValue(V)
     requires isIntLike(V)
+  rule <k> #methodCall0(X:Id, Method:Id) => None ... </k>
+       <env> ... X |-> (B:Val => #bytearray()) ... </env>
+    requires Id2String(Method) ==String "clear"
+      andBool isBytearrayVal(B)
+  rule <k> #methodCall0(X:Id, Method:Id) => B ... </k>
+       <env> ... X |-> B:Val ... </env>
+    requires Id2String(Method) ==String "copy"
+      andBool isBytearrayVal(B)
+  rule <k> #methodCall0(X:Id, Method:Id) => None ... </k>
+       <env> ... X |-> (B:Val => bytearrayReverse(B)) ... </env>
+    requires Id2String(Method) ==String "reverse"
+      andBool isBytearrayVal(B)
+  rule <k> #methodCall0(X:Id, _Method:Id) =>
+           exceptionSignal(#exception(#token("NameError", "Id")))
+       ... </k>
+       <env> Rho </env>
+    requires notBool (X in_keys(Rho))
+  rule <k> #methodCall0(X:Id, Method:Id) =>
+           exceptionSignal(#exception(#token("NotImplementedError", "Id")))
+       ... </k>
+       <env> ... X |-> B:Val ... </env>
+    requires (Id2String(Method) ==String "clear"
+              orBool Id2String(Method) ==String "copy"
+              orBool Id2String(Method) ==String "reverse")
+      andBool notBool isBytearrayVal(B)
   rule <k> #methodCall(X:Id, Method:Id, V:Val) => None ... </k>
        <env> ... X |-> (B:Val => bytearrayAppendByte(B, V)) ... </env>
     requires Id2String(Method) ==String "append"

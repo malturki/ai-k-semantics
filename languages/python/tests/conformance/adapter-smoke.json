@@ -382,6 +382,13 @@
       "coverage": ["bytearray-query-methods", "bytearray-startswith-method", "bytearray-endswith-method", "tuple-affix-short-circuit", "method-call", "type-error", "ordinary-python-source-adapter"]
     },
     {
+      "id": "adapter-bytearray-startsendswith-start-end-methods",
+      "source": "../adapter/adapter-bytearray-startsendswith-start-end-methods.py",
+      "reference": "Python Standard Library Built-in Types bytearray; sequence methods startswith and endswith with optional slice-style start/end bounds",
+      "expected_result": "True ~> .K",
+      "coverage": ["bytearray-query-methods", "bytearray-startswith-method", "bytearray-endswith-method", "bytearray-search-window", "tuple-affix-short-circuit", "method-call", "type-error", "ordinary-python-source-adapter"]
+    },
+    {
       "id": "adapter-bytearray-removeprefix-removesuffix-methods",
       "source": "../adapter/adapter-bytearray-removeprefix-removesuffix-methods.py",
       "reference": "Python Standard Library Built-in Types bytearray; sequence methods removeprefix and removesuffix over bytes-like affixes",

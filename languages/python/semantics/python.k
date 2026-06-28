@@ -1392,6 +1392,8 @@ module PYTHON
                 | bytearrayExtendSourceEmpty(Val) [function, symbol(bytearrayExtendSourceEmpty)]
                 | bytearraySearchNeedleSupported(Val) [function, symbol(bytearraySearchNeedleSupported)]
                 | bytearraySearchNeedleEmpty(Val) [function, symbol(bytearraySearchNeedleEmpty)]
+                | bytearrayAffixNeedleSupported(Val) [function, symbol(bytearrayAffixNeedleSupported)]
+                | bytearrayAffixNeedleEmpty(Val) [function, symbol(bytearrayAffixNeedleEmpty)]
                 | bytesEncodingUtf8(String) [function, symbol(bytesEncodingUtf8)]
                 | bytesEncodingAscii(String) [function, symbol(bytesEncodingAscii)]
                 | bytesEncodingLatin1(String) [function, symbol(bytesEncodingLatin1)]
@@ -1563,6 +1565,13 @@ module PYTHON
                 | containsVal(Val, ValItems) [function, symbol(containsVal)]
                 | bytesContains(ValItems, ValItems) [function, symbol(bytesContains)]
                 | bytesPrefix(ValItems, ValItems) [function, symbol(bytesPrefix)]
+                | bytesSuffix(ValItems, ValItems) [function, symbol(bytesSuffix)]
+                | bytearrayPrefixMatch(Val, Val) [function, symbol(bytearrayPrefixMatch)]
+                | bytearraySuffixMatch(Val, Val) [function, symbol(bytearraySuffixMatch)]
+                | bytearrayStartsWithTuple(ValItems, Val) [function, symbol(bytearrayStartsWithTuple)]
+                | bytearrayStartsWithTupleTypeError(ValItems, Val) [function, symbol(bytearrayStartsWithTupleTypeError)]
+                | bytearrayEndsWithTuple(ValItems, Val) [function, symbol(bytearrayEndsWithTuple)]
+                | bytearrayEndsWithTupleTypeError(ValItems, Val) [function, symbol(bytearrayEndsWithTupleTypeError)]
                 | containsKey(Val, DictItems) [function, symbol(containsKey)]
                 | rangeContains(Val, Int, Int) [function, symbol(rangeContains)]
                 | rangeContains(Val, Int, Int, Int) [function, symbol(rangeContainsStep)]
@@ -1871,6 +1880,7 @@ module PYTHON
   syntax ValItems ::= byteItems(ValItems) [function, symbol(byteItems)]
   syntax ValItems ::= bytearrayExtendSourceItems(Val) [function, symbol(bytearrayExtendSourceItems)]
   syntax ValItems ::= bytearraySearchNeedleItems(Val) [function, symbol(bytearraySearchNeedleItems)]
+  syntax ValItems ::= bytearrayAffixNeedleItems(Val) [function, symbol(bytearrayAffixNeedleItems)]
   syntax ValItems ::= sliceValItems(ValItems, Int, Int) [function, symbol(sliceValItems)]
   syntax ValItems ::= sliceStepValItems(ValItems, Int, Int, Int) [function, symbol(sliceStepValItems)]
   syntax ValItems ::= listSet(ValItems, Int, Val) [function, symbol(listSet)]
@@ -7124,6 +7134,20 @@ module PYTHON
   rule bytearraySearchNeedleEmpty(#memoryviewVal(V:Val)) => bytearraySearchNeedleEmpty(V)
   rule bytearraySearchNeedleEmpty(_:Val) => false [owise]
 
+  rule bytearrayAffixNeedleSupported(#bytes()) => true
+  rule bytearrayAffixNeedleSupported(bytesVal(_:ValItems)) => true
+  rule bytearrayAffixNeedleSupported(#bytearray()) => true
+  rule bytearrayAffixNeedleSupported(bytearrayVal(_:ValItems)) => true
+  rule bytearrayAffixNeedleSupported(#memoryviewVal(V:Val)) => isBytesSequence(V)
+  rule bytearrayAffixNeedleSupported(_:Val) => false [owise]
+
+  rule bytearrayAffixNeedleEmpty(#bytes()) => true
+  rule bytearrayAffixNeedleEmpty(bytesVal(_:ValItems)) => false
+  rule bytearrayAffixNeedleEmpty(#bytearray()) => true
+  rule bytearrayAffixNeedleEmpty(bytearrayVal(_:ValItems)) => false
+  rule bytearrayAffixNeedleEmpty(#memoryviewVal(V:Val)) => bytearrayAffixNeedleEmpty(V)
+  rule bytearrayAffixNeedleEmpty(_:Val) => false [owise]
+
   rule bytearrayExtendSourceItems(bytesVal(VS:ValItems)) => VS
   rule bytearrayExtendSourceItems(bytearrayVal(VS:ValItems)) => VS
   rule bytearrayExtendSourceItems(#memoryviewVal(V:Val)) => bytearrayExtendSourceItems(V)
@@ -7143,6 +7167,10 @@ module PYTHON
   rule bytearraySearchNeedleItems(bytesVal(VS:ValItems)) => VS
   rule bytearraySearchNeedleItems(bytearrayVal(VS:ValItems)) => VS
   rule bytearraySearchNeedleItems(#memoryviewVal(V:Val)) => bytearraySearchNeedleItems(V)
+
+  rule bytearrayAffixNeedleItems(bytesVal(VS:ValItems)) => VS
+  rule bytearrayAffixNeedleItems(bytearrayVal(VS:ValItems)) => VS
+  rule bytearrayAffixNeedleItems(#memoryviewVal(V:Val)) => bytearrayAffixNeedleItems(V)
 
   rule sortedIterableSupported([]) => true
   rule sortedIterableSupported(listVal(_:ValItems)) => true
@@ -7961,6 +7989,95 @@ module PYTHON
   rule bytesPrefix(valItemsCons(_:Val, _:ValItems), valItemsLast(_:Val)) => false
   rule bytesPrefix(valItemsCons(Needle:Val, Needles:ValItems), valItemsCons(Haystack:Val, Haystacks:ValItems)) =>
     valEq(Needle, Haystack) andBool bytesPrefix(Needles, Haystacks)
+
+  rule bytesSuffix(Needle:ValItems, Haystack:ValItems) =>
+    bytesPrefix(reverseValItems(Needle), reverseValItems(Haystack))
+    requires valItemsLen(Needle) <=Int valItemsLen(Haystack)
+  rule bytesSuffix(Needle:ValItems, Haystack:ValItems) => false
+    requires valItemsLen(Needle) >Int valItemsLen(Haystack)
+
+  rule bytearrayPrefixMatch(Needle:Val, B:Val) => true
+    requires isBytearrayVal(B)
+      andBool bytearrayAffixNeedleSupported(Needle)
+      andBool bytearrayAffixNeedleEmpty(Needle)
+  rule bytearrayPrefixMatch(Needle:Val, #bytearray()) => false
+    requires bytearrayAffixNeedleSupported(Needle)
+      andBool notBool bytearrayAffixNeedleEmpty(Needle)
+  rule bytearrayPrefixMatch(Needle:Val, bytearrayVal(VS:ValItems)) =>
+    bytesPrefix(bytearrayAffixNeedleItems(Needle), VS)
+    requires bytearrayAffixNeedleSupported(Needle)
+      andBool notBool bytearrayAffixNeedleEmpty(Needle)
+      andBool valItemsLen(bytearrayAffixNeedleItems(Needle)) <=Int valItemsLen(VS)
+  rule bytearrayPrefixMatch(Needle:Val, bytearrayVal(VS:ValItems)) => false
+    requires bytearrayAffixNeedleSupported(Needle)
+      andBool notBool bytearrayAffixNeedleEmpty(Needle)
+      andBool valItemsLen(bytearrayAffixNeedleItems(Needle)) >Int valItemsLen(VS)
+
+  rule bytearraySuffixMatch(Needle:Val, B:Val) => true
+    requires isBytearrayVal(B)
+      andBool bytearrayAffixNeedleSupported(Needle)
+      andBool bytearrayAffixNeedleEmpty(Needle)
+  rule bytearraySuffixMatch(Needle:Val, #bytearray()) => false
+    requires bytearrayAffixNeedleSupported(Needle)
+      andBool notBool bytearrayAffixNeedleEmpty(Needle)
+  rule bytearraySuffixMatch(Needle:Val, bytearrayVal(VS:ValItems)) =>
+    bytesSuffix(bytearrayAffixNeedleItems(Needle), VS)
+    requires bytearrayAffixNeedleSupported(Needle)
+      andBool notBool bytearrayAffixNeedleEmpty(Needle)
+
+  rule bytearrayStartsWithTuple(valItemsLast(Needle:Val), B:Val) =>
+    bytearrayPrefixMatch(Needle, B)
+    requires bytearrayAffixNeedleSupported(Needle)
+  rule bytearrayStartsWithTuple(valItemsLast(Needle:Val), _B:Val) => false
+    requires notBool bytearrayAffixNeedleSupported(Needle)
+  rule bytearrayStartsWithTuple(valItemsCons(Needle:Val, _Rest:ValItems), B:Val) => true
+    requires bytearrayAffixNeedleSupported(Needle)
+      andBool bytearrayPrefixMatch(Needle, B)
+  rule bytearrayStartsWithTuple(valItemsCons(Needle:Val, Rest:ValItems), B:Val) =>
+    bytearrayStartsWithTuple(Rest, B)
+    requires bytearrayAffixNeedleSupported(Needle)
+      andBool notBool bytearrayPrefixMatch(Needle, B)
+  rule bytearrayStartsWithTuple(valItemsCons(Needle:Val, _Rest:ValItems), _B:Val) => false
+    requires notBool bytearrayAffixNeedleSupported(Needle)
+
+  rule bytearrayStartsWithTupleTypeError(valItemsLast(Needle:Val), _B:Val) =>
+    notBool bytearrayAffixNeedleSupported(Needle)
+  rule bytearrayStartsWithTupleTypeError(valItemsCons(Needle:Val, _Rest:ValItems), B:Val) => false
+    requires bytearrayAffixNeedleSupported(Needle)
+      andBool bytearrayPrefixMatch(Needle, B)
+  rule bytearrayStartsWithTupleTypeError(valItemsCons(Needle:Val, Rest:ValItems), B:Val) =>
+    bytearrayStartsWithTupleTypeError(Rest, B)
+    requires bytearrayAffixNeedleSupported(Needle)
+      andBool notBool bytearrayPrefixMatch(Needle, B)
+  rule bytearrayStartsWithTupleTypeError(valItemsCons(Needle:Val, _Rest:ValItems), _B:Val) => true
+    requires notBool bytearrayAffixNeedleSupported(Needle)
+
+  rule bytearrayEndsWithTuple(valItemsLast(Needle:Val), B:Val) =>
+    bytearraySuffixMatch(Needle, B)
+    requires bytearrayAffixNeedleSupported(Needle)
+  rule bytearrayEndsWithTuple(valItemsLast(Needle:Val), _B:Val) => false
+    requires notBool bytearrayAffixNeedleSupported(Needle)
+  rule bytearrayEndsWithTuple(valItemsCons(Needle:Val, _Rest:ValItems), B:Val) => true
+    requires bytearrayAffixNeedleSupported(Needle)
+      andBool bytearraySuffixMatch(Needle, B)
+  rule bytearrayEndsWithTuple(valItemsCons(Needle:Val, Rest:ValItems), B:Val) =>
+    bytearrayEndsWithTuple(Rest, B)
+    requires bytearrayAffixNeedleSupported(Needle)
+      andBool notBool bytearraySuffixMatch(Needle, B)
+  rule bytearrayEndsWithTuple(valItemsCons(Needle:Val, _Rest:ValItems), _B:Val) => false
+    requires notBool bytearrayAffixNeedleSupported(Needle)
+
+  rule bytearrayEndsWithTupleTypeError(valItemsLast(Needle:Val), _B:Val) =>
+    notBool bytearrayAffixNeedleSupported(Needle)
+  rule bytearrayEndsWithTupleTypeError(valItemsCons(Needle:Val, _Rest:ValItems), B:Val) => false
+    requires bytearrayAffixNeedleSupported(Needle)
+      andBool bytearraySuffixMatch(Needle, B)
+  rule bytearrayEndsWithTupleTypeError(valItemsCons(Needle:Val, Rest:ValItems), B:Val) =>
+    bytearrayEndsWithTupleTypeError(Rest, B)
+    requires bytearrayAffixNeedleSupported(Needle)
+      andBool notBool bytearraySuffixMatch(Needle, B)
+  rule bytearrayEndsWithTupleTypeError(valItemsCons(Needle:Val, _Rest:ValItems), _B:Val) => true
+    requires notBool bytearrayAffixNeedleSupported(Needle)
 
   rule bytesFind(Needle:ValItems, Haystack:ValItems, _I:Int) => -1
     requires valItemsLen(Needle) >Int valItemsLen(Haystack)
@@ -15898,6 +16015,60 @@ module PYTHON
     requires (Id2String(Method) ==String "find" orBool Id2String(Method) ==String "rfind")
       andBool isBytearrayVal(B)
       andBool notBool bytearraySearchNeedleSupported(Needle)
+  rule <k> #methodCall(X:Id, Method:Id, Prefix:Val) => boolValue(bytearrayPrefixMatch(Prefix, B)) ... </k>
+       <env> ... X |-> B:Val ... </env>
+    requires Id2String(Method) ==String "startswith"
+      andBool isBytearrayVal(B)
+      andBool bytearrayAffixNeedleSupported(Prefix)
+  rule <k> #methodCall(X:Id, Method:Id, Suffix:Val) => boolValue(bytearraySuffixMatch(Suffix, B)) ... </k>
+       <env> ... X |-> B:Val ... </env>
+    requires Id2String(Method) ==String "endswith"
+      andBool isBytearrayVal(B)
+      andBool bytearrayAffixNeedleSupported(Suffix)
+  rule <k> #methodCall(X:Id, Method:Id, ()) => False ... </k>
+       <env> ... X |-> B:Val ... </env>
+    requires Id2String(Method) ==String "startswith"
+      andBool isBytearrayVal(B)
+  rule <k> #methodCall(X:Id, Method:Id, ()) => False ... </k>
+       <env> ... X |-> B:Val ... </env>
+    requires Id2String(Method) ==String "endswith"
+      andBool isBytearrayVal(B)
+  rule <k> #methodCall(X:Id, Method:Id, tupleVal(Prefixes:ValItems)) =>
+           exceptionSignal(#exception(#token("TypeError", "Id")))
+       ... </k>
+       <env> ... X |-> B:Val ... </env>
+    requires Id2String(Method) ==String "startswith"
+      andBool isBytearrayVal(B)
+      andBool bytearrayStartsWithTupleTypeError(Prefixes, B)
+  rule <k> #methodCall(X:Id, Method:Id, tupleVal(Prefixes:ValItems)) =>
+           boolValue(bytearrayStartsWithTuple(Prefixes, B))
+       ... </k>
+       <env> ... X |-> B:Val ... </env>
+    requires Id2String(Method) ==String "startswith"
+      andBool isBytearrayVal(B)
+      andBool notBool bytearrayStartsWithTupleTypeError(Prefixes, B)
+  rule <k> #methodCall(X:Id, Method:Id, tupleVal(Suffixes:ValItems)) =>
+           exceptionSignal(#exception(#token("TypeError", "Id")))
+       ... </k>
+       <env> ... X |-> B:Val ... </env>
+    requires Id2String(Method) ==String "endswith"
+      andBool isBytearrayVal(B)
+      andBool bytearrayEndsWithTupleTypeError(Suffixes, B)
+  rule <k> #methodCall(X:Id, Method:Id, tupleVal(Suffixes:ValItems)) =>
+           boolValue(bytearrayEndsWithTuple(Suffixes, B))
+       ... </k>
+       <env> ... X |-> B:Val ... </env>
+    requires Id2String(Method) ==String "endswith"
+      andBool isBytearrayVal(B)
+      andBool notBool bytearrayEndsWithTupleTypeError(Suffixes, B)
+  rule <k> #methodCall(X:Id, Method:Id, Affix:Val) =>
+           exceptionSignal(#exception(#token("TypeError", "Id")))
+       ... </k>
+       <env> ... X |-> B:Val ... </env>
+    requires (Id2String(Method) ==String "startswith" orBool Id2String(Method) ==String "endswith")
+      andBool isBytearrayVal(B)
+      andBool notBool bytearrayAffixNeedleSupported(Affix)
+      andBool notBool isTupleSequence(Affix)
   rule <k> #methodCall(X:Id, Method:Id, V:Val) => None ... </k>
        <env> ... X |-> (bytearrayVal(VS:ValItems) => bytearrayRemoveByte(VS, intValue(V))) ... </env>
     requires Id2String(Method) ==String "remove"
@@ -16041,12 +16212,14 @@ module PYTHON
        <env> ... X |-> B:Val ... </env>
     requires (Id2String(Method) ==String "append"
               orBool Id2String(Method) ==String "count"
+              orBool Id2String(Method) ==String "endswith"
               orBool Id2String(Method) ==String "extend"
               orBool Id2String(Method) ==String "find"
               orBool Id2String(Method) ==String "index"
               orBool Id2String(Method) ==String "pop"
               orBool Id2String(Method) ==String "remove"
-              orBool Id2String(Method) ==String "rfind")
+              orBool Id2String(Method) ==String "rfind"
+              orBool Id2String(Method) ==String "startswith")
       andBool notBool isBytearrayVal(B)
   rule <k> #methodCall2(X:Id, Method:Id, I:Val, V:Val) => None ... </k>
        <env> ... X |-> (#bytearray() => bytearrayInsertByte(#bytearray(), intValue(I), V)) ... </env>

@@ -480,6 +480,7 @@ module PYTHON-SYNTAX
                | "#complexCtorMixed" "(" Exp "," KwArgExps ")" [symbol(complexCtorMixedExp), strict(1)]
                | "#conjugate" "(" Exp ")" [symbol(conjugateExp), strict]
                | "#methodCall" "(" Id "," Id "," Exp ")" [symbol(methodCall1Exp), strict(3)]
+               | "#methodCall2" "(" Id "," Id "," Exp "," Exp ")" [symbol(methodCall2Exp), strict(3, 4)]
                | "#methodCall0" "(" Id "," Id ")" [symbol(methodCall0Exp)]
                | "#abs" "(" Exp ")" [symbol(absExp), strict]
                | "#divmod" "(" Exp "," Exp ")" [symbol(divmodExp), strict]
@@ -1885,6 +1886,8 @@ module PYTHON
                | bytearrayExtendBytes(Val, ValItems) [function, symbol(bytearrayExtendBytes)]
                | bytearrayDel(ValItems, Int) [function, symbol(bytearrayDel)]
                | bytearrayPrepend(Val, Val) [function, symbol(bytearrayPrepend)]
+               | bytearrayRemoveByte(ValItems, Val) [function, symbol(bytearrayRemoveByte)]
+               | bytearrayInsertByte(Val, Int, Val) [function, symbol(bytearrayInsertByte)]
                | bytearrayReverse(Val) [function, symbol(bytearrayReverse)]
   syntax Val ::= dictFromDictVals(DictVals) [function, symbol(dictFromDictVals)]
   syntax Val ::= dictCtorFromPairs(ValItems) [function, symbol(dictCtorFromPairs)]
@@ -6960,6 +6963,26 @@ module PYTHON
     requires I >Int 0
   rule bytearrayPrepend(V:Val, #bytearray()) => bytearrayVal(valItemsLast(V))
   rule bytearrayPrepend(V:Val, bytearrayVal(VS:ValItems)) => bytearrayVal(valItemsCons(V, VS))
+  rule bytearrayRemoveByte(valItemsLast(V0:Val), V:Val) => #bytearray()
+    requires valEq(V0, V)
+  rule bytearrayRemoveByte(valItemsCons(V0:Val, VS:ValItems), V:Val) => bytearrayVal(VS)
+    requires valEq(V0, V)
+  rule bytearrayRemoveByte(valItemsCons(V0:Val, VS:ValItems), V:Val) =>
+    bytearrayPrepend(V0, bytearrayRemoveByte(VS, V))
+    requires notBool valEq(V0, V)
+  rule bytearrayInsertByte(#bytearray(), _I:Int, V:Val) => bytearrayVal(valItemsLast(intValue(V)))
+    requires isIntLike(V)
+  rule bytearrayInsertByte(bytearrayVal(VS:ValItems), I:Int, V:Val) =>
+    bytearrayVal(valItemsCons(intValue(V), VS))
+    requires isIntLike(V) andBool I <=Int 0
+  rule bytearrayInsertByte(bytearrayVal(VS:ValItems), I:Int, V:Val) =>
+    bytearrayVal(concatValItems(VS, valItemsLast(intValue(V))))
+    requires isIntLike(V) andBool I >=Int valItemsLen(VS)
+  rule bytearrayInsertByte(bytearrayVal(valItemsCons(V0:Val, VS:ValItems)), I:Int, V:Val) =>
+    bytearrayPrepend(V0, bytearrayInsertByte(bytearrayVal(VS), I -Int 1, V))
+    requires isIntLike(V)
+      andBool I >Int 0
+      andBool I <Int valItemsLen(valItemsCons(V0, VS))
   rule bytearrayReverse(#bytearray()) => #bytearray()
   rule bytearrayReverse(bytearrayVal(VS:ValItems)) => bytearrayVal(reverseValItems(VS))
 
@@ -15652,6 +15675,45 @@ module PYTHON
               orBool Id2String(Method) ==String "pop"
               orBool Id2String(Method) ==String "reverse")
       andBool notBool isBytearrayVal(B)
+  rule <k> #methodCall(X:Id, Method:Id, V:Val) => None ... </k>
+       <env> ... X |-> (bytearrayVal(VS:ValItems) => bytearrayRemoveByte(VS, intValue(V))) ... </env>
+    requires Id2String(Method) ==String "remove"
+      andBool isIntLike(V)
+      andBool intValue(V) >=Int 0
+      andBool intValue(V) <=Int 255
+      andBool containsVal(intValue(V), VS)
+  rule <k> #methodCall(X:Id, Method:Id, V:Val) =>
+           exceptionSignal(#exception(#token("ValueError", "Id")))
+       ... </k>
+       <env> ... X |-> B:Val ... </env>
+    requires Id2String(Method) ==String "remove"
+      andBool isBytearrayVal(B)
+      andBool isIntLike(V)
+      andBool (intValue(V) <Int 0 orBool intValue(V) >Int 255)
+  rule <k> #methodCall(X:Id, Method:Id, V:Val) =>
+           exceptionSignal(#exception(#token("ValueError", "Id")))
+       ... </k>
+       <env> ... X |-> #bytearray() ... </env>
+    requires Id2String(Method) ==String "remove"
+      andBool isIntLike(V)
+      andBool intValue(V) >=Int 0
+      andBool intValue(V) <=Int 255
+  rule <k> #methodCall(X:Id, Method:Id, V:Val) =>
+           exceptionSignal(#exception(#token("ValueError", "Id")))
+       ... </k>
+       <env> ... X |-> bytearrayVal(VS:ValItems) ... </env>
+    requires Id2String(Method) ==String "remove"
+      andBool isIntLike(V)
+      andBool intValue(V) >=Int 0
+      andBool intValue(V) <=Int 255
+      andBool notBool containsVal(intValue(V), VS)
+  rule <k> #methodCall(X:Id, Method:Id, V:Val) =>
+           exceptionSignal(#exception(#token("TypeError", "Id")))
+       ... </k>
+       <env> ... X |-> B:Val ... </env>
+    requires Id2String(Method) ==String "remove"
+      andBool isBytearrayVal(B)
+      andBool notBool isIntLike(V)
   rule <k> #methodCall(X:Id, Method:Id, I:Val) => listGet(VS, intValue(I)) ... </k>
        <env> ... X |-> (bytearrayVal(VS:ValItems) => bytearrayDel(VS, intValue(I))) ... </env>
     requires Id2String(Method) ==String "pop"
@@ -15756,7 +15818,76 @@ module PYTHON
        <env> ... X |-> B:Val ... </env>
     requires (Id2String(Method) ==String "append"
               orBool Id2String(Method) ==String "extend"
-              orBool Id2String(Method) ==String "pop")
+              orBool Id2String(Method) ==String "pop"
+              orBool Id2String(Method) ==String "remove")
+      andBool notBool isBytearrayVal(B)
+  rule <k> #methodCall2(X:Id, Method:Id, I:Val, V:Val) => None ... </k>
+       <env> ... X |-> (#bytearray() => bytearrayInsertByte(#bytearray(), intValue(I), V)) ... </env>
+    requires Id2String(Method) ==String "insert"
+      andBool isIntLike(I)
+      andBool isIntLike(V)
+      andBool intValue(V) >=Int 0
+      andBool intValue(V) <=Int 255
+  rule <k> #methodCall2(X:Id, Method:Id, I:Val, V:Val) => None ... </k>
+       <env> ... X |-> (bytearrayVal(VS:ValItems) => bytearrayInsertByte(bytearrayVal(VS), 0, V)) ... </env>
+    requires Id2String(Method) ==String "insert"
+      andBool isIntLike(I)
+      andBool intValue(I) <Int 0
+      andBool valItemsLen(VS) +Int intValue(I) <=Int 0
+      andBool isIntLike(V)
+      andBool intValue(V) >=Int 0
+      andBool intValue(V) <=Int 255
+  rule <k> #methodCall2(X:Id, Method:Id, I:Val, V:Val) => None ... </k>
+       <env> ... X |-> (bytearrayVal(VS:ValItems) => bytearrayInsertByte(bytearrayVal(VS), valItemsLen(VS) +Int intValue(I), V)) ... </env>
+    requires Id2String(Method) ==String "insert"
+      andBool isIntLike(I)
+      andBool intValue(I) <Int 0
+      andBool valItemsLen(VS) +Int intValue(I) >Int 0
+      andBool isIntLike(V)
+      andBool intValue(V) >=Int 0
+      andBool intValue(V) <=Int 255
+  rule <k> #methodCall2(X:Id, Method:Id, I:Val, V:Val) => None ... </k>
+       <env> ... X |-> (bytearrayVal(VS:ValItems) => bytearrayInsertByte(bytearrayVal(VS), intValue(I), V)) ... </env>
+    requires Id2String(Method) ==String "insert"
+      andBool isIntLike(I)
+      andBool intValue(I) >=Int 0
+      andBool isIntLike(V)
+      andBool intValue(V) >=Int 0
+      andBool intValue(V) <=Int 255
+  rule <k> #methodCall2(X:Id, Method:Id, I:Val, _V:Val) =>
+           exceptionSignal(#exception(#token("TypeError", "Id")))
+       ... </k>
+       <env> ... X |-> B:Val ... </env>
+    requires Id2String(Method) ==String "insert"
+      andBool isBytearrayVal(B)
+      andBool notBool isIntLike(I)
+  rule <k> #methodCall2(X:Id, Method:Id, I:Val, V:Val) =>
+           exceptionSignal(#exception(#token("TypeError", "Id")))
+       ... </k>
+       <env> ... X |-> B:Val ... </env>
+    requires Id2String(Method) ==String "insert"
+      andBool isBytearrayVal(B)
+      andBool isIntLike(I)
+      andBool notBool isIntLike(V)
+  rule <k> #methodCall2(X:Id, Method:Id, I:Val, V:Val) =>
+           exceptionSignal(#exception(#token("ValueError", "Id")))
+       ... </k>
+       <env> ... X |-> B:Val ... </env>
+    requires Id2String(Method) ==String "insert"
+      andBool isBytearrayVal(B)
+      andBool isIntLike(I)
+      andBool isIntLike(V)
+      andBool (intValue(V) <Int 0 orBool intValue(V) >Int 255)
+  rule <k> #methodCall2(X:Id, _Method:Id, _I:Val, _V:Val) =>
+           exceptionSignal(#exception(#token("NameError", "Id")))
+       ... </k>
+       <env> Rho </env>
+    requires notBool (X in_keys(Rho))
+  rule <k> #methodCall2(X:Id, Method:Id, _I:Val, _V:Val) =>
+           exceptionSignal(#exception(#token("NotImplementedError", "Id")))
+       ... </k>
+       <env> ... X |-> B:Val ... </env>
+    requires Id2String(Method) ==String "insert"
       andBool notBool isBytearrayVal(B)
   rule #abs(V:Val) => 0 -Int intValue(V)
     requires isIntLike(V) andBool intValue(V) <Int 0

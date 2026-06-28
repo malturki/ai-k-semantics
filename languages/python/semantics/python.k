@@ -1965,6 +1965,13 @@ module PYTHON
                | tupleSlice(ValItems, Int, Int) [function, symbol(tupleSlice)]
                | bytesSlice(ValItems, Int, Int) [function, symbol(bytesSlice)]
                | bytesToBytearray(Val) [function, symbol(bytesToBytearray)]
+               | bytearrayBytesLikeValue(Val) [function, symbol(bytearrayBytesLikeValue)]
+               | bytearrayConcat(Val, Val) [function, symbol(bytearrayConcat)]
+               | bytearrayReplace(Val, Val, Val, Int) [function, symbol(bytearrayReplace)]
+               | bytearrayReplaceEmpty(Val, Val, Int) [function, symbol(bytearrayReplaceEmpty)]
+               | bytearrayReplaceEmptyItems(ValItems, Val, Int) [function, symbol(bytearrayReplaceEmptyItems)]
+               | bytearrayReplaceAllItems(ValItems, Val, Val) [function, symbol(bytearrayReplaceAllItems)]
+               | bytearrayReplaceNItems(ValItems, Val, Val, Int) [function, symbol(bytearrayReplaceNItems)]
                | bytearraySearchWindow(Val, Val, Val) [function, symbol(bytearraySearchWindow)]
                | bytesStringUtf8(String) [function, symbol(bytesStringUtf8)]
                | bytesStringAscii(String) [function, symbol(bytesStringAscii)]
@@ -7033,6 +7040,16 @@ module PYTHON
     requires N >Int 1
   rule bytesToBytearray(#bytes()) => #bytearray()
   rule bytesToBytearray(bytesVal(VS:ValItems)) => bytearrayVal(VS)
+  rule bytearrayBytesLikeValue(#bytes()) => #bytearray()
+  rule bytearrayBytesLikeValue(bytesVal(VS:ValItems)) => bytearrayVal(VS)
+  rule bytearrayBytesLikeValue(#bytearray()) => #bytearray()
+  rule bytearrayBytesLikeValue(bytearrayVal(VS:ValItems)) => bytearrayVal(VS)
+  rule bytearrayBytesLikeValue(#memoryviewVal(V:Val)) => bytearrayBytesLikeValue(V)
+  rule bytearrayConcat(#bytearray(), B:Val) => B
+    requires isBytearrayVal(B)
+  rule bytearrayConcat(bytearrayVal(VS:ValItems), #bytearray()) => bytearrayVal(VS)
+  rule bytearrayConcat(bytearrayVal(VS1:ValItems), bytearrayVal(VS2:ValItems)) =>
+    bytearrayVal(concatValItems(VS1, VS2))
   rule bytearrayRepeat(_:ValItems, N:Int) => #bytearray()
     requires N <=Int 0
   rule bytearrayRepeat(VS:ValItems, N:Int) => bytearrayVal(repeatValItems(VS, N))
@@ -7045,6 +7062,149 @@ module PYTHON
   rule bytearrayExtendBytes(#bytearray(), VS:ValItems) => bytearrayVal(VS)
   rule bytearrayExtendBytes(bytearrayVal(VS1:ValItems), VS2:ValItems) =>
     bytearrayVal(concatValItems(VS1, VS2))
+  rule bytearrayReplace(B:Val, Old:Val, New:Val, 0) => B
+    requires isBytearrayVal(B)
+      andBool bytearrayAffixNeedleSupported(Old)
+      andBool bytearrayAffixNeedleSupported(New)
+  rule bytearrayReplace(B:Val, Old:Val, New:Val, Count:Int) =>
+    bytearrayReplaceEmpty(B, New, Count)
+    requires isBytearrayVal(B)
+      andBool bytearrayAffixNeedleSupported(Old)
+      andBool bytearrayAffixNeedleEmpty(Old)
+      andBool bytearrayAffixNeedleSupported(New)
+      andBool Count =/=Int 0
+  rule bytearrayReplace(#bytearray(), Old:Val, New:Val, Count:Int) => #bytearray()
+    requires bytearrayAffixNeedleSupported(Old)
+      andBool notBool bytearrayAffixNeedleEmpty(Old)
+      andBool bytearrayAffixNeedleSupported(New)
+      andBool Count =/=Int 0
+  rule bytearrayReplace(bytearrayVal(VS:ValItems), Old:Val, New:Val, Count:Int) =>
+    bytearrayReplaceAllItems(VS, Old, New)
+    requires bytearrayAffixNeedleSupported(Old)
+      andBool notBool bytearrayAffixNeedleEmpty(Old)
+      andBool bytearrayAffixNeedleSupported(New)
+      andBool Count <Int 0
+  rule bytearrayReplace(bytearrayVal(VS:ValItems), Old:Val, New:Val, Count:Int) =>
+    bytearrayReplaceNItems(VS, Old, New, Count)
+    requires bytearrayAffixNeedleSupported(Old)
+      andBool notBool bytearrayAffixNeedleEmpty(Old)
+      andBool bytearrayAffixNeedleSupported(New)
+      andBool Count >Int 0
+
+  rule bytearrayReplaceEmpty(#bytearray(), New:Val, Count:Int) => bytearrayBytesLikeValue(New)
+    requires bytearrayAffixNeedleSupported(New)
+      andBool Count =/=Int 0
+  rule bytearrayReplaceEmpty(bytearrayVal(VS:ValItems), New:Val, Count:Int) =>
+    bytearrayReplaceEmptyItems(VS, New, Count)
+    requires bytearrayAffixNeedleSupported(New)
+      andBool Count =/=Int 0
+
+  rule bytearrayReplaceEmptyItems(VS:ValItems, New:Val, Count:Int) =>
+    bytearrayReplaceEmptyItems(VS, New, valItemsLen(VS) +Int 1)
+    requires bytearrayAffixNeedleSupported(New)
+      andBool Count <Int 0
+  rule bytearrayReplaceEmptyItems(VS:ValItems, New:Val, 0) => bytearrayVal(VS)
+    requires bytearrayAffixNeedleSupported(New)
+  rule bytearrayReplaceEmptyItems(valItemsLast(V:Val), New:Val, 1) =>
+    bytearrayConcat(bytearrayBytesLikeValue(New), bytearrayVal(valItemsLast(V)))
+    requires bytearrayAffixNeedleSupported(New)
+  rule bytearrayReplaceEmptyItems(valItemsLast(V:Val), New:Val, Count:Int) =>
+    bytearrayConcat(bytearrayBytesLikeValue(New),
+      bytearrayConcat(bytearrayVal(valItemsLast(V)), bytearrayBytesLikeValue(New)))
+    requires bytearrayAffixNeedleSupported(New)
+      andBool Count >Int 1
+  rule bytearrayReplaceEmptyItems(valItemsCons(V:Val, VS:ValItems), New:Val, 1) =>
+    bytearrayConcat(bytearrayBytesLikeValue(New), bytearrayVal(valItemsCons(V, VS)))
+    requires bytearrayAffixNeedleSupported(New)
+  rule bytearrayReplaceEmptyItems(valItemsCons(V:Val, VS:ValItems), New:Val, Count:Int) =>
+    bytearrayConcat(bytearrayBytesLikeValue(New),
+      bytearrayPrepend(V, bytearrayReplaceEmptyItems(VS, New, Count -Int 1)))
+    requires bytearrayAffixNeedleSupported(New)
+      andBool Count >Int 1
+
+  rule bytearrayReplaceAllItems(VS:ValItems, Old:Val, New:Val) => bytearrayVal(VS)
+    requires bytearrayAffixNeedleSupported(Old)
+      andBool notBool bytearrayAffixNeedleEmpty(Old)
+      andBool bytearrayAffixNeedleSupported(New)
+      andBool valItemsLen(bytearrayAffixNeedleItems(Old)) >Int valItemsLen(VS)
+  rule bytearrayReplaceAllItems(VS:ValItems, Old:Val, New:Val) => bytearrayBytesLikeValue(New)
+    requires bytearrayAffixNeedleSupported(Old)
+      andBool notBool bytearrayAffixNeedleEmpty(Old)
+      andBool bytearrayAffixNeedleSupported(New)
+      andBool valItemsLen(bytearrayAffixNeedleItems(Old)) ==Int valItemsLen(VS)
+      andBool bytesPrefix(bytearrayAffixNeedleItems(Old), VS)
+  rule bytearrayReplaceAllItems(VS:ValItems, Old:Val, New:Val) =>
+    bytearrayConcat(bytearrayBytesLikeValue(New),
+      bytearrayReplaceAllItems(dropValItems(VS, valItemsLen(bytearrayAffixNeedleItems(Old))), Old, New))
+    requires bytearrayAffixNeedleSupported(Old)
+      andBool notBool bytearrayAffixNeedleEmpty(Old)
+      andBool bytearrayAffixNeedleSupported(New)
+      andBool valItemsLen(bytearrayAffixNeedleItems(Old)) <Int valItemsLen(VS)
+      andBool bytesPrefix(bytearrayAffixNeedleItems(Old), VS)
+  rule bytearrayReplaceAllItems(valItemsLast(V:Val), Old:Val, New:Val) => bytearrayVal(valItemsLast(V))
+    requires bytearrayAffixNeedleSupported(Old)
+      andBool notBool bytearrayAffixNeedleEmpty(Old)
+      andBool bytearrayAffixNeedleSupported(New)
+      andBool valItemsLen(bytearrayAffixNeedleItems(Old)) <=Int 1
+      andBool notBool bytesPrefix(bytearrayAffixNeedleItems(Old), valItemsLast(V))
+  rule bytearrayReplaceAllItems(valItemsCons(V:Val, VS:ValItems), Old:Val, New:Val) =>
+    bytearrayPrepend(V, bytearrayReplaceAllItems(VS, Old, New))
+    requires bytearrayAffixNeedleSupported(Old)
+      andBool notBool bytearrayAffixNeedleEmpty(Old)
+      andBool bytearrayAffixNeedleSupported(New)
+      andBool valItemsLen(bytearrayAffixNeedleItems(Old)) <=Int valItemsLen(valItemsCons(V, VS))
+      andBool notBool bytesPrefix(bytearrayAffixNeedleItems(Old), valItemsCons(V, VS))
+
+  rule bytearrayReplaceNItems(VS:ValItems, Old:Val, New:Val, Count:Int) => bytearrayVal(VS)
+    requires bytearrayAffixNeedleSupported(Old)
+      andBool notBool bytearrayAffixNeedleEmpty(Old)
+      andBool bytearrayAffixNeedleSupported(New)
+      andBool Count <=Int 0
+  rule bytearrayReplaceNItems(VS:ValItems, Old:Val, New:Val, Count:Int) => bytearrayVal(VS)
+    requires bytearrayAffixNeedleSupported(Old)
+      andBool notBool bytearrayAffixNeedleEmpty(Old)
+      andBool bytearrayAffixNeedleSupported(New)
+      andBool Count >Int 0
+      andBool valItemsLen(bytearrayAffixNeedleItems(Old)) >Int valItemsLen(VS)
+  rule bytearrayReplaceNItems(VS:ValItems, Old:Val, New:Val, Count:Int) => bytearrayBytesLikeValue(New)
+    requires bytearrayAffixNeedleSupported(Old)
+      andBool notBool bytearrayAffixNeedleEmpty(Old)
+      andBool bytearrayAffixNeedleSupported(New)
+      andBool Count >Int 0
+      andBool valItemsLen(bytearrayAffixNeedleItems(Old)) ==Int valItemsLen(VS)
+      andBool bytesPrefix(bytearrayAffixNeedleItems(Old), VS)
+  rule bytearrayReplaceNItems(VS:ValItems, Old:Val, New:Val, 1) =>
+    bytearrayConcat(bytearrayBytesLikeValue(New),
+      bytearrayVal(dropValItems(VS, valItemsLen(bytearrayAffixNeedleItems(Old)))))
+    requires bytearrayAffixNeedleSupported(Old)
+      andBool notBool bytearrayAffixNeedleEmpty(Old)
+      andBool bytearrayAffixNeedleSupported(New)
+      andBool valItemsLen(bytearrayAffixNeedleItems(Old)) <Int valItemsLen(VS)
+      andBool bytesPrefix(bytearrayAffixNeedleItems(Old), VS)
+  rule bytearrayReplaceNItems(VS:ValItems, Old:Val, New:Val, Count:Int) =>
+    bytearrayConcat(bytearrayBytesLikeValue(New),
+      bytearrayReplaceNItems(dropValItems(VS, valItemsLen(bytearrayAffixNeedleItems(Old))), Old, New, Count -Int 1))
+    requires bytearrayAffixNeedleSupported(Old)
+      andBool notBool bytearrayAffixNeedleEmpty(Old)
+      andBool bytearrayAffixNeedleSupported(New)
+      andBool Count >Int 1
+      andBool valItemsLen(bytearrayAffixNeedleItems(Old)) <Int valItemsLen(VS)
+      andBool bytesPrefix(bytearrayAffixNeedleItems(Old), VS)
+  rule bytearrayReplaceNItems(valItemsLast(V:Val), Old:Val, New:Val, Count:Int) => bytearrayVal(valItemsLast(V))
+    requires bytearrayAffixNeedleSupported(Old)
+      andBool notBool bytearrayAffixNeedleEmpty(Old)
+      andBool bytearrayAffixNeedleSupported(New)
+      andBool Count >Int 0
+      andBool valItemsLen(bytearrayAffixNeedleItems(Old)) <=Int 1
+      andBool notBool bytesPrefix(bytearrayAffixNeedleItems(Old), valItemsLast(V))
+  rule bytearrayReplaceNItems(valItemsCons(V:Val, VS:ValItems), Old:Val, New:Val, Count:Int) =>
+    bytearrayPrepend(V, bytearrayReplaceNItems(VS, Old, New, Count))
+    requires bytearrayAffixNeedleSupported(Old)
+      andBool notBool bytearrayAffixNeedleEmpty(Old)
+      andBool bytearrayAffixNeedleSupported(New)
+      andBool Count >Int 0
+      andBool valItemsLen(bytearrayAffixNeedleItems(Old)) <=Int valItemsLen(valItemsCons(V, VS))
+      andBool notBool bytesPrefix(bytearrayAffixNeedleItems(Old), valItemsCons(V, VS))
   rule bytearrayDel(valItemsLast(_:Val), 0) => #bytearray()
   rule bytearrayDel(valItemsCons(_:Val, VS:ValItems), 0) => bytearrayVal(VS)
   rule bytearrayDel(valItemsCons(V0:Val, VS:ValItems), I:Int) =>
@@ -17106,6 +17266,10 @@ module PYTHON
        ... </k>
     requires (Id2String(Method) ==String "startswith"
       orBool Id2String(Method) ==String "endswith")
+  rule <k> #methodCall2(X:Id, Method:Id, Old:Val, New:Val) =>
+           #methodCall3(X, Method, Old, New, -1)
+       ... </k>
+    requires Id2String(Method) ==String "replace"
   rule <k> #methodCall3(X:Id, Method:Id, _Needle:Val, Start:Val, End:Val) =>
            exceptionSignal(#exception(#token("TypeError", "Id")))
        ... </k>
@@ -17439,6 +17603,38 @@ module PYTHON
        ... </k>
        <env> ... X |-> B:Val ... </env>
     requires (Id2String(Method) ==String "startswith" orBool Id2String(Method) ==String "endswith")
+      andBool notBool isBytearrayVal(B)
+  rule <k> #methodCall3(X:Id, Method:Id, Old:Val, New:Val, _Count:Val) =>
+           exceptionSignal(#exception(#token("TypeError", "Id")))
+       ... </k>
+       <env> ... X |-> B:Val ... </env>
+    requires Id2String(Method) ==String "replace"
+      andBool isBytearrayVal(B)
+      andBool (notBool bytearrayAffixNeedleSupported(Old)
+        orBool notBool bytearrayAffixNeedleSupported(New))
+  rule <k> #methodCall3(X:Id, Method:Id, Old:Val, New:Val, Count:Val) =>
+           exceptionSignal(#exception(#token("TypeError", "Id")))
+       ... </k>
+       <env> ... X |-> B:Val ... </env>
+    requires Id2String(Method) ==String "replace"
+      andBool isBytearrayVal(B)
+      andBool bytearrayAffixNeedleSupported(Old)
+      andBool bytearrayAffixNeedleSupported(New)
+      andBool notBool isIntLike(Count)
+  rule <k> #methodCall3(X:Id, Method:Id, Old:Val, New:Val, Count:Val) =>
+           bytearrayReplace(B, Old, New, intValue(Count))
+       ... </k>
+       <env> ... X |-> B:Val ... </env>
+    requires Id2String(Method) ==String "replace"
+      andBool isBytearrayVal(B)
+      andBool bytearrayAffixNeedleSupported(Old)
+      andBool bytearrayAffixNeedleSupported(New)
+      andBool isIntLike(Count)
+  rule <k> #methodCall3(X:Id, Method:Id, _Old:Val, _New:Val, _Count:Val) =>
+           exceptionSignal(#exception(#token("NotImplementedError", "Id")))
+       ... </k>
+       <env> ... X |-> B:Val ... </env>
+    requires Id2String(Method) ==String "replace"
       andBool notBool isBytearrayVal(B)
   rule <k> #methodCall2(X:Id, Method:Id, W:Val, Fill:Val) => bytearrayCenter(B, W, bytearrayFillByteValue(Fill)) ... </k>
        <env> ... X |-> B:Val ... </env>

@@ -147,6 +147,7 @@ run_case "adapter-bytearray-find-rfind-methods" "$ROOT/tests/adapter/adapter-byt
 run_case "adapter-bytearray-startsendswith-methods" "$ROOT/tests/adapter/adapter-bytearray-startsendswith-methods.py" "True ~> .K"
 run_case "adapter-bytearray-startsendswith-start-end-methods" "$ROOT/tests/adapter/adapter-bytearray-startsendswith-start-end-methods.py" "True ~> .K"
 run_case "adapter-bytearray-removeprefix-removesuffix-methods" "$ROOT/tests/adapter/adapter-bytearray-removeprefix-removesuffix-methods.py" "True ~> .K"
+run_case "adapter-bytearray-replace-method" "$ROOT/tests/adapter/adapter-bytearray-replace-method.py" "True ~> .K"
 run_case "adapter-bytearray-classification-methods" "$ROOT/tests/adapter/adapter-bytearray-classification-methods.py" "True ~> .K"
 run_case "adapter-bytearray-case-methods" "$ROOT/tests/adapter/adapter-bytearray-case-methods.py" "True ~> .K"
 run_case "adapter-bytearray-zfill-method" "$ROOT/tests/adapter/adapter-bytearray-zfill-method.py" "True ~> .K"

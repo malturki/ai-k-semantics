@@ -396,6 +396,13 @@
       "coverage": ["bytearray-query-methods", "bytearray-removeprefix-method", "bytearray-removesuffix-method", "method-call", "type-error", "ordinary-python-source-adapter"]
     },
     {
+      "id": "adapter-bytearray-replace-method",
+      "source": "../adapter/adapter-bytearray-replace-method.py",
+      "reference": "Python Standard Library Built-in Types bytearray; replace over bytes-like old/new subsequences with optional count",
+      "expected_result": "True ~> .K",
+      "coverage": ["bytearray-query-methods", "bytearray-replace-method", "bytes-like-arguments", "non-overlapping-subsequence-replacement", "method-call", "type-error", "ordinary-python-source-adapter"]
+    },
+    {
       "id": "adapter-bytearray-classification-methods",
       "source": "../adapter/adapter-bytearray-classification-methods.py",
       "reference": "Python Standard Library Built-in Types bytearray; ASCII classification methods isascii, isdigit, isalpha, isalnum, islower, isupper, isspace, and istitle",

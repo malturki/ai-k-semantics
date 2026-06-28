@@ -1989,6 +1989,9 @@ module PYTHON
                | bytearrayLStripBytes(Val, ValItems) [function, symbol(bytearrayLStripBytes)]
                | bytearrayRStripBytes(Val, ValItems) [function, symbol(bytearrayRStripBytes)]
                | bytearrayLStripBytesItems(ValItems, ValItems) [function, symbol(bytearrayLStripBytesItems)]
+               | bytearrayPartition(Val, Val) [function, symbol(bytearrayPartition)]
+               | bytearrayRPartition(Val, Val) [function, symbol(bytearrayRPartition)]
+               | bytearrayPartitionAt(ValItems, ValItems, Int) [function, symbol(bytearrayPartitionAt)]
                | bytearrayZfill(Val, Val) [function, symbol(bytearrayZfill)]
                | bytearrayZfillItems(ValItems, Int) [function, symbol(bytearrayZfillItems)]
                | byteToLower(Val) [function, symbol(byteToLower)]
@@ -7133,6 +7136,45 @@ module PYTHON
   rule bytearrayStripBytes(B:Val, StripSet:ValItems) =>
     bytearrayRStripBytes(bytearrayLStripBytes(B, StripSet), StripSet)
     requires isBytearrayVal(B)
+
+  rule bytearrayPartition(#bytearray(), Sep:Val) =>
+    tupleVal(valItemsCons(#bytearray(), valItemsCons(#bytearray(), valItemsLast(#bytearray()))))
+    requires bytearrayAffixNeedleSupported(Sep)
+      andBool notBool bytearrayAffixNeedleEmpty(Sep)
+  rule bytearrayPartition(bytearrayVal(VS:ValItems), Sep:Val) =>
+    bytearrayPartitionAt(VS, bytearrayAffixNeedleItems(Sep), bytesFind(bytearrayAffixNeedleItems(Sep), VS, 0))
+    requires bytearrayAffixNeedleSupported(Sep)
+      andBool notBool bytearrayAffixNeedleEmpty(Sep)
+      andBool bytesFind(bytearrayAffixNeedleItems(Sep), VS, 0) >=Int 0
+  rule bytearrayPartition(bytearrayVal(VS:ValItems), Sep:Val) =>
+    tupleVal(valItemsCons(bytearrayVal(VS), valItemsCons(#bytearray(), valItemsLast(#bytearray()))))
+    requires bytearrayAffixNeedleSupported(Sep)
+      andBool notBool bytearrayAffixNeedleEmpty(Sep)
+      andBool bytesFind(bytearrayAffixNeedleItems(Sep), VS, 0) <Int 0
+
+  rule bytearrayRPartition(#bytearray(), Sep:Val) =>
+    tupleVal(valItemsCons(#bytearray(), valItemsCons(#bytearray(), valItemsLast(#bytearray()))))
+    requires bytearrayAffixNeedleSupported(Sep)
+      andBool notBool bytearrayAffixNeedleEmpty(Sep)
+  rule bytearrayRPartition(bytearrayVal(VS:ValItems), Sep:Val) =>
+    bytearrayPartitionAt(VS, bytearrayAffixNeedleItems(Sep), bytesRFind(bytearrayAffixNeedleItems(Sep), VS, 0, -1))
+    requires bytearrayAffixNeedleSupported(Sep)
+      andBool notBool bytearrayAffixNeedleEmpty(Sep)
+      andBool bytesRFind(bytearrayAffixNeedleItems(Sep), VS, 0, -1) >=Int 0
+  rule bytearrayRPartition(bytearrayVal(VS:ValItems), Sep:Val) =>
+    tupleVal(valItemsCons(#bytearray(), valItemsCons(#bytearray(), valItemsLast(bytearrayVal(VS)))))
+    requires bytearrayAffixNeedleSupported(Sep)
+      andBool notBool bytearrayAffixNeedleEmpty(Sep)
+      andBool bytesRFind(bytearrayAffixNeedleItems(Sep), VS, 0, -1) <Int 0
+
+  rule bytearrayPartitionAt(VS:ValItems, SepItems:ValItems, I:Int) =>
+    tupleVal(
+      valItemsCons(
+        bytesToBytearray(bytesSlice(VS, 0, I)),
+        valItemsCons(
+          bytearrayVal(SepItems),
+          valItemsLast(bytesToBytearray(bytesSlice(VS, I +Int valItemsLen(SepItems), valItemsLen(VS)))))))
+    requires I >=Int 0
 
   rule bytearrayZfill(B:Val, W:Val) => B
     requires isBytearrayVal(B)
@@ -16318,6 +16360,35 @@ module PYTHON
       andBool isBytearrayVal(B)
       andBool notBool isNoneVal(Arg)
       andBool notBool bytearrayStripArgSupported(Arg)
+  rule <k> #methodCall(X:Id, Method:Id, Sep:Val) => bytearrayPartition(B, Sep) ... </k>
+       <env> ... X |-> B:Val ... </env>
+    requires Id2String(Method) ==String "partition"
+      andBool isBytearrayVal(B)
+      andBool bytearrayAffixNeedleSupported(Sep)
+      andBool notBool bytearrayAffixNeedleEmpty(Sep)
+  rule <k> #methodCall(X:Id, Method:Id, Sep:Val) => bytearrayRPartition(B, Sep) ... </k>
+       <env> ... X |-> B:Val ... </env>
+    requires Id2String(Method) ==String "rpartition"
+      andBool isBytearrayVal(B)
+      andBool bytearrayAffixNeedleSupported(Sep)
+      andBool notBool bytearrayAffixNeedleEmpty(Sep)
+  rule <k> #methodCall(X:Id, Method:Id, Sep:Val) =>
+           exceptionSignal(#exception(#token("ValueError", "Id")))
+       ... </k>
+       <env> ... X |-> B:Val ... </env>
+    requires (Id2String(Method) ==String "partition"
+              orBool Id2String(Method) ==String "rpartition")
+      andBool isBytearrayVal(B)
+      andBool bytearrayAffixNeedleSupported(Sep)
+      andBool bytearrayAffixNeedleEmpty(Sep)
+  rule <k> #methodCall(X:Id, Method:Id, Sep:Val) =>
+           exceptionSignal(#exception(#token("TypeError", "Id")))
+       ... </k>
+       <env> ... X |-> B:Val ... </env>
+    requires (Id2String(Method) ==String "partition"
+              orBool Id2String(Method) ==String "rpartition")
+      andBool isBytearrayVal(B)
+      andBool notBool bytearrayAffixNeedleSupported(Sep)
   rule <k> #methodCall(X:Id, Method:Id, W:Val) => bytearrayCenter(B, W, 32) ... </k>
        <env> ... X |-> B:Val ... </env>
     requires Id2String(Method) ==String "center"
@@ -16719,12 +16790,14 @@ module PYTHON
               orBool Id2String(Method) ==String "find"
               orBool Id2String(Method) ==String "index"
               orBool Id2String(Method) ==String "ljust"
+              orBool Id2String(Method) ==String "partition"
               orBool Id2String(Method) ==String "pop"
               orBool Id2String(Method) ==String "remove"
               orBool Id2String(Method) ==String "removeprefix"
               orBool Id2String(Method) ==String "removesuffix"
               orBool Id2String(Method) ==String "rfind"
               orBool Id2String(Method) ==String "rjust"
+              orBool Id2String(Method) ==String "rpartition"
               orBool Id2String(Method) ==String "rstrip"
               orBool Id2String(Method) ==String "startswith"
               orBool Id2String(Method) ==String "strip"

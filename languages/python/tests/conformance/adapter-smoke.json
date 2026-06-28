@@ -389,6 +389,13 @@
       "coverage": ["bytearray-query-methods", "bytearray-case-conversion-methods", "bytearray-lower-method", "bytearray-upper-method", "bytearray-capitalize-method", "bytearray-swapcase-method", "bytearray-title-method", "method-call", "ordinary-python-source-adapter"]
     },
     {
+      "id": "adapter-bytearray-zfill-method",
+      "source": "../adapter/adapter-bytearray-zfill-method.py",
+      "reference": "Python Standard Library Built-in Types bytearray; zfill width padding and leading sign handling",
+      "expected_result": "True ~> .K",
+      "coverage": ["bytearray-query-methods", "bytearray-zfill-method", "method-call", "type-error", "ordinary-python-source-adapter"]
+    },
+    {
       "id": "adapter-memoryview-iteration",
       "source": "../adapter/adapter-memoryview-iteration.py",
       "reference": "Python Language Reference 8.3 The for statement and loop else; Python Standard Library Built-in Types memoryview; Python Standard Library Built-in Functions bytearray/list/tuple/set/sorted/all/any/sum/min/max",

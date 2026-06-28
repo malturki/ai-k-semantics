@@ -1579,6 +1579,7 @@ module PYTHON
                 | bytearrayStartsWithTupleTypeError(ValItems, Val) [function, symbol(bytearrayStartsWithTupleTypeError)]
                 | bytearrayEndsWithTuple(ValItems, Val) [function, symbol(bytearrayEndsWithTuple)]
                 | bytearrayEndsWithTupleTypeError(ValItems, Val) [function, symbol(bytearrayEndsWithTupleTypeError)]
+                | byteSign(Val) [function, symbol(byteSign)]
                 | bytesAllAscii(ValItems) [function, symbol(bytesAllAscii)]
                 | bytesAllDigit(ValItems) [function, symbol(bytesAllDigit)]
                 | bytesAllAlpha(ValItems) [function, symbol(bytesAllAlpha)]
@@ -1897,6 +1898,7 @@ module PYTHON
   syntax ValItems ::= bytearrayExtendSourceItems(Val) [function, symbol(bytearrayExtendSourceItems)]
   syntax ValItems ::= bytearraySearchNeedleItems(Val) [function, symbol(bytearraySearchNeedleItems)]
   syntax ValItems ::= bytearrayAffixNeedleItems(Val) [function, symbol(bytearrayAffixNeedleItems)]
+  syntax ValItems ::= zeroByteItems(Int) [function, symbol(zeroByteItems)]
   syntax ValItems ::= bytesLowerItems(ValItems) [function, symbol(bytesLowerItems)]
                     | bytesUpperItems(ValItems) [function, symbol(bytesUpperItems)]
                     | bytesSwapcaseItems(ValItems) [function, symbol(bytesSwapcaseItems)]
@@ -1970,6 +1972,8 @@ module PYTHON
                | bytearrayRepeat(ValItems, Int) [function, symbol(bytearrayRepeat)]
                | bytearrayRemovePrefix(Val, Val) [function, symbol(bytearrayRemovePrefix)]
                | bytearrayRemoveSuffix(Val, Val) [function, symbol(bytearrayRemoveSuffix)]
+               | bytearrayZfill(Val, Val) [function, symbol(bytearrayZfill)]
+               | bytearrayZfillItems(ValItems, Int) [function, symbol(bytearrayZfillItems)]
                | byteToLower(Val) [function, symbol(byteToLower)]
                | byteToUpper(Val) [function, symbol(byteToUpper)]
                | byteSwapCase(Val) [function, symbol(byteSwapCase)]
@@ -6985,6 +6989,9 @@ module PYTHON
   rule zeroBytes(0) => #bytes()
   rule zeroBytes(N:Int) => bytesVal(repeatValItems(valItemsLast(0), N))
     requires N >Int 0
+  rule zeroByteItems(1) => valItemsLast(48)
+  rule zeroByteItems(N:Int) => valItemsCons(48, zeroByteItems(N -Int 1))
+    requires N >Int 1
   rule bytesToBytearray(#bytes()) => #bytearray()
   rule bytesToBytearray(bytesVal(VS:ValItems)) => bytearrayVal(VS)
   rule bytearrayRepeat(_:ValItems, N:Int) => #bytearray()
@@ -7028,6 +7035,31 @@ module PYTHON
       andBool I <Int valItemsLen(valItemsCons(V0, VS))
   rule bytearrayReverse(#bytearray()) => #bytearray()
   rule bytearrayReverse(bytearrayVal(VS:ValItems)) => bytearrayVal(reverseValItems(VS))
+
+  rule bytearrayZfill(B:Val, W:Val) => B
+    requires isBytearrayVal(B)
+      andBool isIntLike(W)
+      andBool intValue(W) <=Int pyLen(B)
+  rule bytearrayZfill(#bytearray(), W:Val) => bytearrayVal(zeroByteItems(intValue(W)))
+    requires isIntLike(W)
+      andBool intValue(W) >Int 0
+  rule bytearrayZfill(bytearrayVal(VS:ValItems), W:Val) =>
+    bytearrayZfillItems(VS, intValue(W) -Int valItemsLen(VS))
+    requires isIntLike(W)
+      andBool intValue(W) >Int valItemsLen(VS)
+
+  rule bytearrayZfillItems(valItemsLast(V:Val), N:Int) =>
+    bytearrayVal(valItemsCons(V, zeroByteItems(N)))
+    requires byteSign(V) andBool N >Int 0
+  rule bytearrayZfillItems(valItemsCons(V:Val, VS:ValItems), N:Int) =>
+    bytearrayVal(valItemsCons(V, concatValItems(zeroByteItems(N), VS)))
+    requires byteSign(V) andBool N >Int 0
+  rule bytearrayZfillItems(valItemsLast(V:Val), N:Int) =>
+    bytearrayVal(concatValItems(zeroByteItems(N), valItemsLast(V)))
+    requires notBool byteSign(V) andBool N >Int 0
+  rule bytearrayZfillItems(valItemsCons(V:Val, VS:ValItems), N:Int) =>
+    bytearrayVal(concatValItems(zeroByteItems(N), valItemsCons(V, VS)))
+    requires notBool byteSign(V) andBool N >Int 0
 
   rule argValsToSetItems(argValsCons(V:Val, #noArgVals)) => valItemsLast(V)
   rule argValsToSetItems(argValsCons(V:Val, VS:ArgVals)) => argValsToSetItems(VS)
@@ -7204,6 +7236,7 @@ module PYTHON
   rule byteUpper(V:Val) => intValue(V) >=Int 65 andBool intValue(V) <=Int 90
   rule byteAlpha(V:Val) => byteLower(V) orBool byteUpper(V)
   rule byteAlnum(V:Val) => byteAlpha(V) orBool byteDigit(V)
+  rule byteSign(V:Val) => intValue(V) ==Int 43 orBool intValue(V) ==Int 45
   rule byteSpace(V:Val) =>
     intValue(V) ==Int 32
       orBool intValue(V) ==Int 9
@@ -16088,6 +16121,18 @@ module PYTHON
               orBool Id2String(Method) ==String "title"
               orBool Id2String(Method) ==String "upper")
       andBool notBool isBytearrayVal(B)
+  rule <k> #methodCall(X:Id, Method:Id, W:Val) => bytearrayZfill(B, W) ... </k>
+       <env> ... X |-> B:Val ... </env>
+    requires Id2String(Method) ==String "zfill"
+      andBool isBytearrayVal(B)
+      andBool isIntLike(W)
+  rule <k> #methodCall(X:Id, Method:Id, W:Val) =>
+           exceptionSignal(#exception(#token("TypeError", "Id")))
+       ... </k>
+       <env> ... X |-> B:Val ... </env>
+    requires Id2String(Method) ==String "zfill"
+      andBool isBytearrayVal(B)
+      andBool notBool isIntLike(W)
   rule <k> #methodCall(X:Id, Method:Id, V:Val) => 0 ... </k>
        <env> ... X |-> #bytearray() ... </env>
     requires Id2String(Method) ==String "count"
@@ -16456,7 +16501,8 @@ module PYTHON
               orBool Id2String(Method) ==String "removeprefix"
               orBool Id2String(Method) ==String "removesuffix"
               orBool Id2String(Method) ==String "rfind"
-              orBool Id2String(Method) ==String "startswith")
+              orBool Id2String(Method) ==String "startswith"
+              orBool Id2String(Method) ==String "zfill")
       andBool notBool isBytearrayVal(B)
   rule <k> #methodCall2(X:Id, Method:Id, I:Val, V:Val) => None ... </k>
        <env> ... X |-> (#bytearray() => bytearrayInsertByte(#bytearray(), intValue(I), V)) ... </env>

@@ -923,7 +923,7 @@ def emit_exp(exp: ast.expr) -> str:
             func=ast.Attribute(value=ast.Name(id=name), attr=attr, ctx=ast.Load()),
             args=[arg],
             keywords=[],
-        ) if attr in {"append", "count", "endswith", "extend", "find", "index", "pop", "remove", "removeprefix", "removesuffix", "rfind", "startswith"}:
+        ) if attr in {"append", "count", "endswith", "extend", "find", "index", "pop", "remove", "removeprefix", "removesuffix", "rfind", "startswith", "zfill"}:
             return f"#methodCall({emit_id(name)}, {emit_id(attr)}, {emit_exp(arg)})"
         case ast.Call(
             func=ast.Attribute(value=ast.Name(id=name), attr=attr, ctx=ast.Load()),

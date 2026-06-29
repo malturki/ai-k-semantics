@@ -921,6 +921,41 @@
       "coverage": ["bytes-percent-formatting", "bytearray-percent-formatting", "printf-style-bytes-formatting", "integer-formatting", "conversion-flags", "field-width", "type-error", "ordinary-python-source-adapter"]
     },
     {
+      "id": "adapter-bytes-percent-format-numeric-star-width-basic",
+      "source": "../adapter/adapter-bytes-percent-format-numeric-star-width-basic.py",
+      "reference": "Python Standard Library Built-in Types bytes; printf-style bytes formatting dynamic * field width for integer conversions",
+      "expected_result": "True ~> .K",
+      "coverage": ["bytes-percent-formatting", "bytes-methods", "printf-style-bytes-formatting", "integer-formatting", "dynamic-width", "ordinary-python-source-adapter"]
+    },
+    {
+      "id": "adapter-bytes-percent-format-numeric-star-width-flags",
+      "source": "../adapter/adapter-bytes-percent-format-numeric-star-width-flags.py",
+      "reference": "Python Standard Library Built-in Types bytes; printf-style bytes formatting dynamic * field width with numeric flags",
+      "expected_result": "True ~> .K",
+      "coverage": ["bytes-percent-formatting", "bytes-methods", "printf-style-bytes-formatting", "integer-formatting", "dynamic-width", "conversion-flags", "zero-padding", "left-adjustment", "ordinary-python-source-adapter"]
+    },
+    {
+      "id": "adapter-bytes-percent-format-numeric-star-width-precision-length",
+      "source": "../adapter/adapter-bytes-percent-format-numeric-star-width-precision-length.py",
+      "reference": "Python Standard Library Built-in Types bytes; printf-style bytes formatting dynamic * field width with literal numeric precision and ignored length modifier",
+      "expected_result": "True ~> .K",
+      "coverage": ["bytes-percent-formatting", "bytes-methods", "printf-style-bytes-formatting", "integer-formatting", "dynamic-width", "precision", "length-modifier", "ordinary-python-source-adapter"]
+    },
+    {
+      "id": "adapter-bytearray-percent-format-numeric-star-width",
+      "source": "../adapter/adapter-bytearray-percent-format-numeric-star-width.py",
+      "reference": "Python Standard Library Built-in Types bytearray; printf-style bytes formatting dynamic * numeric width preserves bytearray result type",
+      "expected_result": "True ~> .K",
+      "coverage": ["bytearray-percent-formatting", "bytearray-query-methods", "printf-style-bytes-formatting", "integer-formatting", "dynamic-width", "result-type", "ordinary-python-source-adapter"]
+    },
+    {
+      "id": "adapter-bytes-percent-format-numeric-star-width-diagnostics",
+      "source": "../adapter/adapter-bytes-percent-format-numeric-star-width-diagnostics.py",
+      "reference": "Python Standard Library Built-in Types bytes; printf-style bytes formatting dynamic * numeric width TypeError behavior",
+      "expected_result": "True ~> .K",
+      "coverage": ["bytes-percent-formatting", "printf-style-bytes-formatting", "integer-formatting", "dynamic-width", "type-error", "ordinary-python-source-adapter"]
+    },
+    {
       "id": "adapter-bytes-percent-format-length-modifiers-direct",
       "source": "../adapter/adapter-bytes-percent-format-length-modifiers-direct.py",
       "reference": "Python Standard Library Built-in Types bytes; printf-style bytes formatting h, l, and L length modifiers are accepted and ignored for direct conversions",

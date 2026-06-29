@@ -1425,10 +1425,14 @@ module PYTHON
                 | bytesPercentNumericCoreSpec(ValItems) [function, symbol(bytesPercentNumericCoreSpec)]
                 | bytesPercentNumericPrecisionSpec(ValItems) [function, symbol(bytesPercentNumericPrecisionSpec)]
                 | bytesPercentNumericWidthSpec(ValItems) [function, symbol(bytesPercentNumericWidthSpec)]
+                | bytesPercentNumericFieldStarSpec(ValItems) [function, symbol(bytesPercentNumericFieldStarSpec)]
+                | bytesPercentNumericStarWidthSpec(ValItems) [function, symbol(bytesPercentNumericStarWidthSpec)]
                 | bytesPercentNumericAtEnd(ValItems) [function, symbol(bytesPercentNumericAtEnd)]
                 | bytesPercentNumericCoreAtEnd(ValItems) [function, symbol(bytesPercentNumericCoreAtEnd)]
                 | bytesPercentNumericPrecisionAtEnd(ValItems) [function, symbol(bytesPercentNumericPrecisionAtEnd)]
                 | bytesPercentNumericWidthAtEnd(ValItems) [function, symbol(bytesPercentNumericWidthAtEnd)]
+                | bytesPercentNumericFieldStarAtEnd(ValItems) [function, symbol(bytesPercentNumericFieldStarAtEnd)]
+                | bytesPercentNumericStarWidthAtEnd(ValItems) [function, symbol(bytesPercentNumericStarWidthAtEnd)]
                 | bytesPercentNumericHasFlag(ValItems, Int) [function, symbol(bytesPercentNumericHasFlag)]
                 | bytesPercentFieldFlagByte(Val) [function, symbol(bytesPercentFieldFlagByte)]
                 | bytesPercentFieldStarSpec(ValItems) [function, symbol(bytesPercentFieldStarSpec)]
@@ -1796,12 +1800,16 @@ module PYTHON
                | bytesPercentNumericPrecision(ValItems) [function, symbol(bytesPercentNumericPrecision)]
                | bytesPercentNumericCorePrecision(ValItems) [function, symbol(bytesPercentNumericCorePrecision)]
                | bytesPercentNumericWidthPrecision(ValItems) [function, symbol(bytesPercentNumericWidthPrecision)]
+               | bytesPercentNumericFieldStarPrecision(ValItems) [function, symbol(bytesPercentNumericFieldStarPrecision)]
+               | bytesPercentNumericStarWidthPrecision(ValItems) [function, symbol(bytesPercentNumericStarWidthPrecision)]
                | bytesPercentNumericPrecisionValue(ValItems) [function, symbol(bytesPercentNumericPrecisionValue)]
                | bytesPercentNumericPrecisionAccum(ValItems, Int) [function, symbol(bytesPercentNumericPrecisionAccum)]
                | bytesPercentNumericSpecCode(ValItems) [function, symbol(bytesPercentNumericSpecCode)]
                | bytesPercentNumericCoreSpecCode(ValItems) [function, symbol(bytesPercentNumericCoreSpecCode)]
                | bytesPercentNumericPrecisionSpecCode(ValItems) [function, symbol(bytesPercentNumericPrecisionSpecCode)]
                | bytesPercentNumericWidthSpecCode(ValItems) [function, symbol(bytesPercentNumericWidthSpecCode)]
+               | bytesPercentNumericFieldStarSpecCode(ValItems) [function, symbol(bytesPercentNumericFieldStarSpecCode)]
+               | bytesPercentNumericStarWidthSpecCode(ValItems) [function, symbol(bytesPercentNumericStarWidthSpecCode)]
                | bytesPercentNumericInt(Int, Val) [function, symbol(bytesPercentNumericInt)]
                | bytesPercentFieldWidth(ValItems) [function, symbol(bytesPercentFieldWidth)]
                | bytesPercentWidthValue(ValItems) [function, symbol(bytesPercentWidthValue)]
@@ -1910,6 +1918,7 @@ module PYTHON
                   | intBaseDigitsUpper(Int, Int) [function, symbol(intBaseDigitsUpper)]
                   | bytesPercentIntString(Int, Val) [function, symbol(bytesPercentIntString)]
                   | bytesPercentNumericRender(ValItems, Val) [function, symbol(bytesPercentNumericRender)]
+                  | bytesPercentNumericRenderDynamicWidth(ValItems, Int, Int, Bool, Val) [function, symbol(bytesPercentNumericRenderDynamicWidth)]
                   | bytesPercentNumericSign(ValItems, Int) [function, symbol(bytesPercentNumericSign)]
                   | bytesPercentNumericAltPrefix(ValItems, Int) [function, symbol(bytesPercentNumericAltPrefix)]
                   | bytesPercentNumericDigits(Int, Int) [function, symbol(bytesPercentNumericDigits)]
@@ -2072,6 +2081,8 @@ module PYTHON
   syntax ValItems ::= bytesPercentNumericCoreRest(ValItems) [function, symbol(bytesPercentNumericCoreRest)]
   syntax ValItems ::= bytesPercentNumericPrecisionRest(ValItems) [function, symbol(bytesPercentNumericPrecisionRest)]
   syntax ValItems ::= bytesPercentNumericWidthRest(ValItems) [function, symbol(bytesPercentNumericWidthRest)]
+  syntax ValItems ::= bytesPercentNumericFieldStarRest(ValItems) [function, symbol(bytesPercentNumericFieldStarRest)]
+  syntax ValItems ::= bytesPercentNumericStarWidthRest(ValItems) [function, symbol(bytesPercentNumericStarWidthRest)]
   syntax ValItems ::= bytesPercentFieldStarRest(ValItems) [function, symbol(bytesPercentFieldStarRest)]
   syntax ValItems ::= bytesPercentStarWidthRest(ValItems) [function, symbol(bytesPercentStarWidthRest)]
   syntax ValItems ::= bytesPercentPrecisionStarRest(ValItems) [function, symbol(bytesPercentPrecisionStarRest)]
@@ -8219,6 +8230,87 @@ module PYTHON
     bytesPercentNumericWidthRest(valItemsCons(D2, Rest))
     requires bytesPercentDigitByte(D) andBool bytesPercentDigitByte(D2)
 
+  rule bytesPercentNumericStarWidthSpec(valItemsCons(42, Rest:ValItems)) =>
+    bytesPercentNumericStarWidthSpec(valItemsCons(42, bytesPercentLengthless(Rest)))
+    requires bytesPercentLengthlessChanged(Rest)
+  rule bytesPercentNumericStarWidthSpec(valItemsCons(42, valItemsLast(C:Val))) =>
+    bytesPercentDecimalCode(intValue(C)) orBool bytesPercentIntegralCode(intValue(C))
+  rule bytesPercentNumericStarWidthSpec(valItemsCons(42, valItemsCons(C:Val, _Rest:ValItems))) =>
+    bytesPercentDecimalCode(intValue(C)) orBool bytesPercentIntegralCode(intValue(C))
+    requires notBool bytesPercentDigitByte(C)
+      andBool intValue(C) =/=Int 46
+  rule bytesPercentNumericStarWidthSpec(valItemsCons(42, valItemsCons(46, Rest:ValItems))) =>
+    bytesPercentNumericPrecisionSpec(Rest)
+  rule bytesPercentNumericStarWidthSpec(_VS:ValItems) => false [owise]
+
+  rule bytesPercentNumericStarWidthAtEnd(valItemsCons(42, Rest:ValItems)) =>
+    bytesPercentNumericStarWidthAtEnd(valItemsCons(42, bytesPercentLengthless(Rest)))
+    requires bytesPercentLengthlessChanged(Rest)
+  rule bytesPercentNumericStarWidthAtEnd(valItemsCons(42, valItemsLast(C:Val))) =>
+    bytesPercentDecimalCode(intValue(C)) orBool bytesPercentIntegralCode(intValue(C))
+  rule bytesPercentNumericStarWidthAtEnd(valItemsCons(42, valItemsCons(C:Val, _Rest:ValItems))) => false
+    requires (bytesPercentDecimalCode(intValue(C)) orBool bytesPercentIntegralCode(intValue(C)))
+      andBool notBool bytesPercentDigitByte(C)
+  rule bytesPercentNumericStarWidthAtEnd(valItemsCons(42, valItemsCons(46, Rest:ValItems))) =>
+    bytesPercentNumericPrecisionAtEnd(Rest)
+  rule bytesPercentNumericStarWidthAtEnd(_VS:ValItems) => false [owise]
+
+  rule bytesPercentNumericStarWidthPrecision(valItemsCons(42, Rest:ValItems)) =>
+    bytesPercentNumericStarWidthPrecision(valItemsCons(42, bytesPercentLengthless(Rest)))
+    requires bytesPercentLengthlessChanged(Rest)
+  rule bytesPercentNumericStarWidthPrecision(valItemsCons(42, valItemsLast(C:Val))) => -1
+    requires bytesPercentDecimalCode(intValue(C)) orBool bytesPercentIntegralCode(intValue(C))
+  rule bytesPercentNumericStarWidthPrecision(valItemsCons(42, valItemsCons(C:Val, _Rest:ValItems))) => -1
+    requires (bytesPercentDecimalCode(intValue(C)) orBool bytesPercentIntegralCode(intValue(C)))
+      andBool notBool bytesPercentDigitByte(C)
+  rule bytesPercentNumericStarWidthPrecision(valItemsCons(42, valItemsCons(46, Rest:ValItems))) =>
+    bytesPercentNumericPrecisionValue(Rest)
+    requires bytesPercentNumericPrecisionSpec(Rest)
+
+  rule bytesPercentNumericStarWidthSpecCode(valItemsCons(42, Rest:ValItems)) =>
+    bytesPercentNumericStarWidthSpecCode(valItemsCons(42, bytesPercentLengthless(Rest)))
+    requires bytesPercentLengthlessChanged(Rest)
+  rule bytesPercentNumericStarWidthSpecCode(valItemsCons(42, valItemsLast(C:Val))) => intValue(C)
+    requires bytesPercentDecimalCode(intValue(C)) orBool bytesPercentIntegralCode(intValue(C))
+  rule bytesPercentNumericStarWidthSpecCode(valItemsCons(42, valItemsCons(C:Val, _Rest:ValItems))) => intValue(C)
+    requires (bytesPercentDecimalCode(intValue(C)) orBool bytesPercentIntegralCode(intValue(C)))
+      andBool notBool bytesPercentDigitByte(C)
+  rule bytesPercentNumericStarWidthSpecCode(valItemsCons(42, valItemsCons(46, Rest:ValItems))) =>
+    bytesPercentNumericPrecisionSpecCode(Rest)
+    requires bytesPercentNumericPrecisionSpec(Rest)
+
+  rule bytesPercentNumericStarWidthRest(valItemsCons(42, Rest:ValItems)) =>
+    bytesPercentNumericStarWidthRest(valItemsCons(42, bytesPercentLengthless(Rest)))
+    requires bytesPercentLengthlessChanged(Rest)
+  rule bytesPercentNumericStarWidthRest(valItemsCons(42, valItemsCons(C:Val, Rest:ValItems))) => Rest
+    requires (bytesPercentDecimalCode(intValue(C)) orBool bytesPercentIntegralCode(intValue(C)))
+      andBool notBool bytesPercentDigitByte(C)
+  rule bytesPercentNumericStarWidthRest(valItemsCons(42, valItemsCons(46, Rest:ValItems))) =>
+    bytesPercentNumericPrecisionRest(Rest)
+    requires bytesPercentNumericPrecisionSpec(Rest)
+      andBool notBool bytesPercentNumericPrecisionAtEnd(Rest)
+
+  rule bytesPercentNumericFieldStarSpec(valItemsCons(42, Rest:ValItems)) =>
+    bytesPercentNumericStarWidthSpec(valItemsCons(42, Rest))
+  rule bytesPercentNumericFieldStarSpec(Tail:ValItems) =>
+    bytesPercentNumericStarWidthSpec(bytesPercentNumericBody(Tail))
+  rule bytesPercentNumericFieldStarAtEnd(valItemsCons(42, Rest:ValItems)) =>
+    bytesPercentNumericStarWidthAtEnd(valItemsCons(42, Rest))
+  rule bytesPercentNumericFieldStarAtEnd(Tail:ValItems) =>
+    bytesPercentNumericStarWidthAtEnd(bytesPercentNumericBody(Tail))
+  rule bytesPercentNumericFieldStarPrecision(valItemsCons(42, Rest:ValItems)) =>
+    bytesPercentNumericStarWidthPrecision(valItemsCons(42, Rest))
+  rule bytesPercentNumericFieldStarPrecision(Tail:ValItems) =>
+    bytesPercentNumericStarWidthPrecision(bytesPercentNumericBody(Tail))
+  rule bytesPercentNumericFieldStarSpecCode(valItemsCons(42, Rest:ValItems)) =>
+    bytesPercentNumericStarWidthSpecCode(valItemsCons(42, Rest))
+  rule bytesPercentNumericFieldStarSpecCode(Tail:ValItems) =>
+    bytesPercentNumericStarWidthSpecCode(bytesPercentNumericBody(Tail))
+  rule bytesPercentNumericFieldStarRest(valItemsCons(42, Rest:ValItems)) =>
+    bytesPercentNumericStarWidthRest(valItemsCons(42, Rest))
+  rule bytesPercentNumericFieldStarRest(Tail:ValItems) =>
+    bytesPercentNumericStarWidthRest(bytesPercentNumericBody(Tail))
+
   rule bytesPercentFieldFlagByte(V:Val) => bytesPercentNumericFlagByte(V)
 
   rule bytesPercentFieldLeft(valItemsLast(V:Val)) => intValue(V) ==Int 45
@@ -8650,6 +8742,17 @@ module PYTHON
       andBool bytesPercentNumericSpec(valItemsCons(C, Tail))
       andBool notBool bytesPercentNumericAtEnd(valItemsCons(C, Tail))
   rule bytesPercentFormatSupported(valItemsCons(37, valItemsCons(C:Val, Tail:ValItems))) =>
+    bytesPercentNumericFieldStarSpec(valItemsCons(C, Tail))
+    requires (bytesPercentNumericFlagByte(C) orBool intValue(C) ==Int 42)
+      andBool bytesPercentNumericFieldStarSpec(valItemsCons(C, Tail))
+      andBool bytesPercentNumericFieldStarAtEnd(valItemsCons(C, Tail))
+  rule bytesPercentFormatSupported(valItemsCons(37, valItemsCons(C:Val, Tail:ValItems))) =>
+    bytesPercentNumericFieldStarSpec(valItemsCons(C, Tail))
+      andBool bytesPercentFormatSupported(bytesPercentNumericFieldStarRest(valItemsCons(C, Tail)))
+    requires (bytesPercentNumericFlagByte(C) orBool intValue(C) ==Int 42)
+      andBool bytesPercentNumericFieldStarSpec(valItemsCons(C, Tail))
+      andBool notBool bytesPercentNumericFieldStarAtEnd(valItemsCons(C, Tail))
+  rule bytesPercentFormatSupported(valItemsCons(37, valItemsCons(C:Val, Tail:ValItems))) =>
     bytesPercentFieldStarPrecisionStarSpec(valItemsCons(C, Tail))
     requires (bytesPercentFieldFlagByte(C) orBool intValue(C) ==Int 42)
       andBool bytesPercentFieldStarPrecisionStarSpec(valItemsCons(C, Tail))
@@ -8749,6 +8852,15 @@ module PYTHON
       andBool notBool (intValue(C) ==Int 46 andBool bytesPercentPrecisionStarSpec(Tail))
       andBool bytesPercentNumericSpec(valItemsCons(C, Tail))
       andBool notBool bytesPercentNumericAtEnd(valItemsCons(C, Tail))
+  rule bytesPercentSpecCount(valItemsCons(37, valItemsCons(C:Val, Tail:ValItems))) => 2
+    requires (bytesPercentNumericFlagByte(C) orBool intValue(C) ==Int 42)
+      andBool bytesPercentNumericFieldStarSpec(valItemsCons(C, Tail))
+      andBool bytesPercentNumericFieldStarAtEnd(valItemsCons(C, Tail))
+  rule bytesPercentSpecCount(valItemsCons(37, valItemsCons(C:Val, Tail:ValItems))) =>
+    2 +Int bytesPercentSpecCount(bytesPercentNumericFieldStarRest(valItemsCons(C, Tail)))
+    requires (bytesPercentNumericFlagByte(C) orBool intValue(C) ==Int 42)
+      andBool bytesPercentNumericFieldStarSpec(valItemsCons(C, Tail))
+      andBool notBool bytesPercentNumericFieldStarAtEnd(valItemsCons(C, Tail))
   rule bytesPercentSpecCount(valItemsCons(37, valItemsCons(C:Val, Tail:ValItems))) => 3
     requires (bytesPercentFieldFlagByte(C) orBool intValue(C) ==Int 42)
       andBool bytesPercentFieldStarPrecisionStarSpec(valItemsCons(C, Tail))
@@ -8903,6 +9015,19 @@ module PYTHON
       andBool notBool bytesPercentNumericAtEnd(valItemsCons(C, Tail))
   rule bytesPercentConversionsOk(valItemsCons(37, valItemsCons(C:Val, Tail:ValItems)), Values:Val, Count:Int, I:Int) =>
     isIntLike(bytesPercentValue(Values, Count, I))
+      andBool bytesPercentConversionOk(bytesPercentNumericFieldStarSpecCode(valItemsCons(C, Tail)), bytesPercentValue(Values, Count, I +Int 1))
+    requires (bytesPercentNumericFlagByte(C) orBool intValue(C) ==Int 42)
+      andBool bytesPercentNumericFieldStarSpec(valItemsCons(C, Tail))
+      andBool bytesPercentNumericFieldStarAtEnd(valItemsCons(C, Tail))
+  rule bytesPercentConversionsOk(valItemsCons(37, valItemsCons(C:Val, Tail:ValItems)), Values:Val, Count:Int, I:Int) =>
+    isIntLike(bytesPercentValue(Values, Count, I))
+      andBool bytesPercentConversionOk(bytesPercentNumericFieldStarSpecCode(valItemsCons(C, Tail)), bytesPercentValue(Values, Count, I +Int 1))
+      andBool bytesPercentConversionsOk(bytesPercentNumericFieldStarRest(valItemsCons(C, Tail)), Values, Count, I +Int 2)
+    requires (bytesPercentNumericFlagByte(C) orBool intValue(C) ==Int 42)
+      andBool bytesPercentNumericFieldStarSpec(valItemsCons(C, Tail))
+      andBool notBool bytesPercentNumericFieldStarAtEnd(valItemsCons(C, Tail))
+  rule bytesPercentConversionsOk(valItemsCons(37, valItemsCons(C:Val, Tail:ValItems)), Values:Val, Count:Int, I:Int) =>
+    isIntLike(bytesPercentValue(Values, Count, I))
       andBool isIntLike(bytesPercentValue(Values, Count, I +Int 1))
       andBool bytesPercentConversionOk(bytesPercentFieldStarPrecisionStarSpecCode(valItemsCons(C, Tail)), bytesPercentValue(Values, Count, I +Int 2))
     requires (bytesPercentFieldFlagByte(C) orBool intValue(C) ==Int 42)
@@ -9017,6 +9142,19 @@ module PYTHON
       andBool notBool bytesPercentNumericAtEnd(valItemsCons(C, Tail))
   rule bytesPercentOverflow(valItemsCons(37, valItemsCons(C:Val, Tail:ValItems)), Values:Val, Count:Int, I:Int) =>
     isIntLike(bytesPercentValue(Values, Count, I))
+      andBool bytesPercentConversionOverflow(bytesPercentNumericFieldStarSpecCode(valItemsCons(C, Tail)), bytesPercentValue(Values, Count, I +Int 1))
+    requires (bytesPercentNumericFlagByte(C) orBool intValue(C) ==Int 42)
+      andBool bytesPercentNumericFieldStarSpec(valItemsCons(C, Tail))
+      andBool bytesPercentNumericFieldStarAtEnd(valItemsCons(C, Tail))
+  rule bytesPercentOverflow(valItemsCons(37, valItemsCons(C:Val, Tail:ValItems)), Values:Val, Count:Int, I:Int) =>
+    (isIntLike(bytesPercentValue(Values, Count, I))
+      andBool bytesPercentConversionOverflow(bytesPercentNumericFieldStarSpecCode(valItemsCons(C, Tail)), bytesPercentValue(Values, Count, I +Int 1)))
+      orBool bytesPercentOverflow(bytesPercentNumericFieldStarRest(valItemsCons(C, Tail)), Values, Count, I +Int 2)
+    requires (bytesPercentNumericFlagByte(C) orBool intValue(C) ==Int 42)
+      andBool bytesPercentNumericFieldStarSpec(valItemsCons(C, Tail))
+      andBool notBool bytesPercentNumericFieldStarAtEnd(valItemsCons(C, Tail))
+  rule bytesPercentOverflow(valItemsCons(37, valItemsCons(C:Val, Tail:ValItems)), Values:Val, Count:Int, I:Int) =>
+    isIntLike(bytesPercentValue(Values, Count, I))
       andBool isIntLike(bytesPercentValue(Values, Count, I +Int 1))
       andBool bytesPercentConversionOverflow(bytesPercentFieldStarPrecisionStarSpecCode(valItemsCons(C, Tail)), bytesPercentValue(Values, Count, I +Int 2))
     requires (bytesPercentFieldFlagByte(C) orBool intValue(C) ==Int 42)
@@ -9129,6 +9267,19 @@ module PYTHON
       andBool notBool (intValue(C) ==Int 46 andBool bytesPercentPrecisionStarSpec(Tail))
       andBool bytesPercentNumericSpec(valItemsCons(C, Tail))
       andBool notBool bytesPercentNumericAtEnd(valItemsCons(C, Tail))
+  rule bytesPercentValueError(valItemsCons(37, valItemsCons(C:Val, Tail:ValItems)), Values:Val, Count:Int, I:Int) =>
+    isIntLike(bytesPercentValue(Values, Count, I))
+      andBool bytesPercentConversionValueError(bytesPercentNumericFieldStarSpecCode(valItemsCons(C, Tail)), bytesPercentValue(Values, Count, I +Int 1))
+    requires (bytesPercentNumericFlagByte(C) orBool intValue(C) ==Int 42)
+      andBool bytesPercentNumericFieldStarSpec(valItemsCons(C, Tail))
+      andBool bytesPercentNumericFieldStarAtEnd(valItemsCons(C, Tail))
+  rule bytesPercentValueError(valItemsCons(37, valItemsCons(C:Val, Tail:ValItems)), Values:Val, Count:Int, I:Int) =>
+    (isIntLike(bytesPercentValue(Values, Count, I))
+      andBool bytesPercentConversionValueError(bytesPercentNumericFieldStarSpecCode(valItemsCons(C, Tail)), bytesPercentValue(Values, Count, I +Int 1)))
+      orBool bytesPercentValueError(bytesPercentNumericFieldStarRest(valItemsCons(C, Tail)), Values, Count, I +Int 2)
+    requires (bytesPercentNumericFlagByte(C) orBool intValue(C) ==Int 42)
+      andBool bytesPercentNumericFieldStarSpec(valItemsCons(C, Tail))
+      andBool notBool bytesPercentNumericFieldStarAtEnd(valItemsCons(C, Tail))
   rule bytesPercentValueError(valItemsCons(37, valItemsCons(C:Val, Tail:ValItems)), Values:Val, Count:Int, I:Int) =>
     isIntLike(bytesPercentValue(Values, Count, I))
       andBool isIntLike(bytesPercentValue(Values, Count, I +Int 1))
@@ -9264,6 +9415,35 @@ module PYTHON
         bytesPercentConvertNumeric(Tail, bytesPercentValue(Values, Count, I))))
     requires bytesPercentNumericSpec(Tail)
       andBool notBool bytesPercentNumericAtEnd(Tail)
+  rule bytesPercentScan(valItemsCons(37, valItemsCons(C:Val, Tail:ValItems)), Values:Val, Count:Int, I:Int, Acc:Val) =>
+    bytesPercentConcat(Acc,
+      bytesStringAscii(
+        bytesPercentNumericRenderDynamicWidth(
+          valItemsCons(C, Tail),
+          intAbs(intValue(bytesPercentValue(Values, Count, I))),
+          bytesPercentNumericFieldStarPrecision(valItemsCons(C, Tail)),
+          bytesPercentNumericHasFlag(valItemsCons(C, Tail), 45)
+            orBool intValue(bytesPercentValue(Values, Count, I)) <Int 0,
+          bytesPercentValue(Values, Count, I +Int 1))))
+    requires (bytesPercentNumericFlagByte(C) orBool intValue(C) ==Int 42)
+      andBool bytesPercentNumericFieldStarSpec(valItemsCons(C, Tail))
+      andBool bytesPercentNumericFieldStarAtEnd(valItemsCons(C, Tail))
+      andBool isIntLike(bytesPercentValue(Values, Count, I))
+  rule bytesPercentScan(valItemsCons(37, valItemsCons(C:Val, Tail:ValItems)), Values:Val, Count:Int, I:Int, Acc:Val) =>
+    bytesPercentScan(bytesPercentNumericFieldStarRest(valItemsCons(C, Tail)), Values, Count, I +Int 2,
+      bytesPercentConcat(Acc,
+        bytesStringAscii(
+          bytesPercentNumericRenderDynamicWidth(
+            valItemsCons(C, Tail),
+            intAbs(intValue(bytesPercentValue(Values, Count, I))),
+            bytesPercentNumericFieldStarPrecision(valItemsCons(C, Tail)),
+            bytesPercentNumericHasFlag(valItemsCons(C, Tail), 45)
+              orBool intValue(bytesPercentValue(Values, Count, I)) <Int 0,
+            bytesPercentValue(Values, Count, I +Int 1)))))
+    requires (bytesPercentNumericFlagByte(C) orBool intValue(C) ==Int 42)
+      andBool bytesPercentNumericFieldStarSpec(valItemsCons(C, Tail))
+      andBool notBool bytesPercentNumericFieldStarAtEnd(valItemsCons(C, Tail))
+      andBool isIntLike(bytesPercentValue(Values, Count, I))
   rule bytesPercentScan(valItemsCons(37, valItemsCons(C:Val, Tail:ValItems)), Values:Val, Count:Int, I:Int, Acc:Val) =>
     bytesPercentConcat(Acc,
       bytesPercentConvertDynamicPrecisionField(
@@ -9503,6 +9683,21 @@ module PYTHON
       bytesPercentNumericHasFlag(Tail, 48))
     requires bytesPercentNumericSpec(Tail)
       andBool bytesPercentConversionOk(bytesPercentNumericSpecCode(Tail), V)
+
+  rule bytesPercentNumericRenderDynamicWidth(Tail:ValItems, W:Int, P:Int, Left:Bool, V:Val) =>
+    bytesPercentNumericPad(
+      bytesPercentNumericSign(Tail, bytesPercentNumericInt(bytesPercentNumericFieldStarSpecCode(Tail), V))
+        +String bytesPercentNumericAltPrefix(Tail, bytesPercentNumericFieldStarSpecCode(Tail)),
+      bytesPercentNumericPrecisionDigits(
+        bytesPercentNumericDigits(
+          bytesPercentNumericFieldStarSpecCode(Tail),
+          bytesPercentNumericInt(bytesPercentNumericFieldStarSpecCode(Tail), V)),
+        P),
+      W,
+      Left,
+      bytesPercentNumericHasFlag(Tail, 48))
+    requires bytesPercentNumericFieldStarSpec(Tail)
+      andBool bytesPercentConversionOk(bytesPercentNumericFieldStarSpecCode(Tail), V)
 
   rule bytesPercentNumericSign(_Tail:ValItems, I:Int) => "-"
     requires I <Int 0

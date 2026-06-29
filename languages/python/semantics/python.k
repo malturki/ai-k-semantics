@@ -1781,10 +1781,15 @@ module PYTHON
                   | bytesDecodeUtf8IgnoreItems(ValItems) [function, symbol(bytesDecodeUtf8IgnoreItems)]
                   | bytesDecodeUtf8ReplaceString(Val) [function, symbol(bytesDecodeUtf8ReplaceString)]
                   | bytesDecodeUtf8ReplaceItems(ValItems) [function, symbol(bytesDecodeUtf8ReplaceItems)]
+                  | bytesDecodeUtf8BackslashString(Val) [function, symbol(bytesDecodeUtf8BackslashString)]
+                  | bytesDecodeUtf8BackslashItems(ValItems) [function, symbol(bytesDecodeUtf8BackslashItems)]
                   | bytesDecodeAsciiIgnoreString(Val) [function, symbol(bytesDecodeAsciiIgnoreString)]
                   | bytesDecodeAsciiIgnoreItems(ValItems) [function, symbol(bytesDecodeAsciiIgnoreItems)]
                   | bytesDecodeAsciiReplaceString(Val) [function, symbol(bytesDecodeAsciiReplaceString)]
                   | bytesDecodeAsciiReplaceItems(ValItems) [function, symbol(bytesDecodeAsciiReplaceItems)]
+                  | bytesDecodeAsciiBackslashString(Val) [function, symbol(bytesDecodeAsciiBackslashString)]
+                  | bytesDecodeAsciiBackslashItems(ValItems) [function, symbol(bytesDecodeAsciiBackslashItems)]
+                  | bytesDecodeBackslashByte(Val) [function, symbol(bytesDecodeBackslashByte)]
                   | stringReprQuoteChar(Int) [function, symbol(stringReprQuoteChar)]
                   | stringReprPayload(String, Int, Int) [function, symbol(stringReprPayload)]
                   | stringReprChar(String, Int) [function, symbol(stringReprChar)]
@@ -3035,6 +3040,11 @@ module PYTHON
   rule bytesDecodeUtf8ReplaceString(bytesVal(VS:ValItems)) => bytesDecodeUtf8ReplaceItems(VS)
   rule bytesDecodeUtf8ReplaceString(bytearrayVal(VS:ValItems)) => bytesDecodeUtf8ReplaceItems(VS)
 
+  rule bytesDecodeUtf8BackslashString(#bytes()) => ""
+  rule bytesDecodeUtf8BackslashString(#bytearray()) => ""
+  rule bytesDecodeUtf8BackslashString(bytesVal(VS:ValItems)) => bytesDecodeUtf8BackslashItems(VS)
+  rule bytesDecodeUtf8BackslashString(bytearrayVal(VS:ValItems)) => bytesDecodeUtf8BackslashItems(VS)
+
   rule bytesDecodeAsciiIgnoreString(#bytes()) => ""
   rule bytesDecodeAsciiIgnoreString(#bytearray()) => ""
   rule bytesDecodeAsciiIgnoreString(bytesVal(VS:ValItems)) => bytesDecodeAsciiIgnoreItems(VS)
@@ -3044,6 +3054,14 @@ module PYTHON
   rule bytesDecodeAsciiReplaceString(#bytearray()) => ""
   rule bytesDecodeAsciiReplaceString(bytesVal(VS:ValItems)) => bytesDecodeAsciiReplaceItems(VS)
   rule bytesDecodeAsciiReplaceString(bytearrayVal(VS:ValItems)) => bytesDecodeAsciiReplaceItems(VS)
+
+  rule bytesDecodeAsciiBackslashString(#bytes()) => ""
+  rule bytesDecodeAsciiBackslashString(#bytearray()) => ""
+  rule bytesDecodeAsciiBackslashString(bytesVal(VS:ValItems)) => bytesDecodeAsciiBackslashItems(VS)
+  rule bytesDecodeAsciiBackslashString(bytearrayVal(VS:ValItems)) => bytesDecodeAsciiBackslashItems(VS)
+
+  rule bytesDecodeBackslashByte(B:Val) => chrChar(92) +String "x" +String byteHex(intValue(B))
+    requires isIntLike(B)
 
   rule bytesDecodeAsciiIgnoreItems(valItemsLast(B:Val)) => unicodeChar(intValue(B))
     requires byteAscii(B)
@@ -3062,6 +3080,15 @@ module PYTHON
     requires byteAscii(B)
   rule bytesDecodeAsciiReplaceItems(valItemsCons(_B:Val, Rest:ValItems)) =>
     unicodeChar(65533) +String bytesDecodeAsciiReplaceItems(Rest) [owise]
+
+  rule bytesDecodeAsciiBackslashItems(valItemsLast(B:Val)) => unicodeChar(intValue(B))
+    requires byteAscii(B)
+  rule bytesDecodeAsciiBackslashItems(valItemsLast(B:Val)) => bytesDecodeBackslashByte(B) [owise]
+  rule bytesDecodeAsciiBackslashItems(valItemsCons(B:Val, Rest:ValItems)) =>
+    unicodeChar(intValue(B)) +String bytesDecodeAsciiBackslashItems(Rest)
+    requires byteAscii(B)
+  rule bytesDecodeAsciiBackslashItems(valItemsCons(B:Val, Rest:ValItems)) =>
+    bytesDecodeBackslashByte(B) +String bytesDecodeAsciiBackslashItems(Rest) [owise]
 
   rule bytesDecodeUtf8IgnoreItems(valItemsLast(B:Val)) => unicodeChar(intValue(B))
     requires byteAscii(B)
@@ -3156,6 +3183,55 @@ module PYTHON
     requires bytesUtf8Prefix4(B1, B2, B3) andBool notBool byteUtf8Cont(B4)
   rule bytesDecodeUtf8ReplaceItems(valItemsCons(_B:Val, Rest:ValItems)) =>
     unicodeChar(65533) +String bytesDecodeUtf8ReplaceItems(Rest) [owise]
+
+  rule bytesDecodeUtf8BackslashItems(valItemsLast(B:Val)) => unicodeChar(intValue(B))
+    requires byteAscii(B)
+  rule bytesDecodeUtf8BackslashItems(valItemsLast(B:Val)) => bytesDecodeBackslashByte(B) [owise]
+  rule bytesDecodeUtf8BackslashItems(valItemsCons(B:Val, Rest:ValItems)) =>
+    unicodeChar(intValue(B)) +String bytesDecodeUtf8BackslashItems(Rest)
+    requires byteAscii(B)
+  rule bytesDecodeUtf8BackslashItems(valItemsCons(B1:Val, valItemsLast(B2:Val))) =>
+    unicodeChar(((intValue(B1) -Int 192) *Int 64) +Int (intValue(B2) -Int 128))
+    requires bytesUtf8Start2(B1, B2)
+  rule bytesDecodeUtf8BackslashItems(valItemsCons(B1:Val, valItemsCons(B2:Val, Rest:ValItems))) =>
+    unicodeChar(((intValue(B1) -Int 192) *Int 64) +Int (intValue(B2) -Int 128)) +String bytesDecodeUtf8BackslashItems(Rest)
+    requires bytesUtf8Start2(B1, B2)
+  rule bytesDecodeUtf8BackslashItems(valItemsCons(B1:Val, valItemsCons(B2:Val, valItemsLast(B3:Val)))) =>
+    unicodeChar(((intValue(B1) -Int 224) *Int 4096) +Int ((intValue(B2) -Int 128) *Int 64) +Int (intValue(B3) -Int 128))
+    requires bytesUtf8Start3(B1, B2, B3)
+  rule bytesDecodeUtf8BackslashItems(valItemsCons(B1:Val, valItemsCons(B2:Val, valItemsCons(B3:Val, Rest:ValItems)))) =>
+    unicodeChar(((intValue(B1) -Int 224) *Int 4096) +Int ((intValue(B2) -Int 128) *Int 64) +Int (intValue(B3) -Int 128))
+      +String bytesDecodeUtf8BackslashItems(Rest)
+    requires bytesUtf8Start3(B1, B2, B3)
+  rule bytesDecodeUtf8BackslashItems(valItemsCons(B1:Val, valItemsCons(B2:Val, valItemsCons(B3:Val, valItemsLast(B4:Val))))) =>
+    unicodeChar(((intValue(B1) -Int 240) *Int 262144) +Int ((intValue(B2) -Int 128) *Int 4096)
+      +Int ((intValue(B3) -Int 128) *Int 64) +Int (intValue(B4) -Int 128))
+    requires bytesUtf8Start4(B1, B2, B3, B4)
+  rule bytesDecodeUtf8BackslashItems(valItemsCons(B1:Val, valItemsCons(B2:Val, valItemsCons(B3:Val, valItemsCons(B4:Val, Rest:ValItems))))) =>
+    unicodeChar(((intValue(B1) -Int 240) *Int 262144) +Int ((intValue(B2) -Int 128) *Int 4096)
+      +Int ((intValue(B3) -Int 128) *Int 64) +Int (intValue(B4) -Int 128))
+      +String bytesDecodeUtf8BackslashItems(Rest)
+    requires bytesUtf8Start4(B1, B2, B3, B4)
+  rule bytesDecodeUtf8BackslashItems(valItemsCons(B1:Val, valItemsLast(B2:Val))) =>
+    bytesDecodeBackslashByte(B1) +String bytesDecodeBackslashByte(B2)
+    requires bytesUtf8Prefix3(B1, B2) orBool bytesUtf8Prefix4(B1, B2)
+  rule bytesDecodeUtf8BackslashItems(valItemsCons(B1:Val, valItemsCons(B2:Val, valItemsLast(B3:Val)))) =>
+    bytesDecodeBackslashByte(B1) +String bytesDecodeBackslashByte(B2) +String bytesDecodeBackslashByte(B3)
+    requires bytesUtf8Prefix4(B1, B2, B3)
+  rule bytesDecodeUtf8BackslashItems(valItemsCons(B1:Val, valItemsCons(B2:Val, valItemsLast(B3:Val)))) =>
+    bytesDecodeBackslashByte(B1) +String bytesDecodeBackslashByte(B2) +String bytesDecodeUtf8BackslashItems(valItemsLast(B3))
+    requires (bytesUtf8Prefix3(B1, B2) orBool bytesUtf8Prefix4(B1, B2)) andBool notBool byteUtf8Cont(B3)
+  rule bytesDecodeUtf8BackslashItems(valItemsCons(B1:Val, valItemsCons(B2:Val, valItemsCons(B3:Val, Rest:ValItems)))) =>
+    bytesDecodeBackslashByte(B1) +String bytesDecodeBackslashByte(B2) +String bytesDecodeUtf8BackslashItems(valItemsCons(B3, Rest))
+    requires (bytesUtf8Prefix3(B1, B2) orBool bytesUtf8Prefix4(B1, B2)) andBool notBool byteUtf8Cont(B3)
+  rule bytesDecodeUtf8BackslashItems(valItemsCons(B1:Val, valItemsCons(B2:Val, valItemsCons(B3:Val, valItemsLast(B4:Val))))) =>
+    bytesDecodeBackslashByte(B1) +String bytesDecodeBackslashByte(B2) +String bytesDecodeBackslashByte(B3) +String bytesDecodeUtf8BackslashItems(valItemsLast(B4))
+    requires bytesUtf8Prefix4(B1, B2, B3) andBool notBool byteUtf8Cont(B4)
+  rule bytesDecodeUtf8BackslashItems(valItemsCons(B1:Val, valItemsCons(B2:Val, valItemsCons(B3:Val, valItemsCons(B4:Val, Rest:ValItems))))) =>
+    bytesDecodeBackslashByte(B1) +String bytesDecodeBackslashByte(B2) +String bytesDecodeBackslashByte(B3) +String bytesDecodeUtf8BackslashItems(valItemsCons(B4, Rest))
+    requires bytesUtf8Prefix4(B1, B2, B3) andBool notBool byteUtf8Cont(B4)
+  rule bytesDecodeUtf8BackslashItems(valItemsCons(B:Val, Rest:ValItems)) =>
+    bytesDecodeBackslashByte(B) +String bytesDecodeUtf8BackslashItems(Rest) [owise]
 
   rule pyIntBaseString(0, _Base:Int, Prefix:String) => Prefix +String "0"
   rule pyIntBaseString(I:Int, Base:Int, Prefix:String) => Prefix +String intBaseDigits(I, Base)
@@ -19548,6 +19624,13 @@ module PYTHON
       andBool bytesEncodingUtf8(Enc)
       andBool notBool bytesDecodeValid(B, Enc)
       andBool bytesErrorsReplace(Errors)
+  rule <k> #methodCall2(X:Id, Method:Id, Enc:String, Errors:String) => bytesDecodeUtf8BackslashString(B) ... </k>
+       <env> ... X |-> B:Val ... </env>
+    requires Id2String(Method) ==String "decode"
+      andBool (isBytesVal(B) orBool isBytearrayVal(B))
+      andBool bytesEncodingUtf8(Enc)
+      andBool notBool bytesDecodeValid(B, Enc)
+      andBool bytesErrorsBackslashReplace(Errors)
   rule <k> #methodCall2(X:Id, Method:Id, Enc:String, Errors:String) => bytesDecodeAsciiIgnoreString(B) ... </k>
        <env> ... X |-> B:Val ... </env>
     requires Id2String(Method) ==String "decode"
@@ -19562,6 +19645,13 @@ module PYTHON
       andBool bytesEncodingAscii(Enc)
       andBool notBool bytesDecodeValid(B, Enc)
       andBool bytesErrorsReplace(Errors)
+  rule <k> #methodCall2(X:Id, Method:Id, Enc:String, Errors:String) => bytesDecodeAsciiBackslashString(B) ... </k>
+       <env> ... X |-> B:Val ... </env>
+    requires Id2String(Method) ==String "decode"
+      andBool (isBytesVal(B) orBool isBytearrayVal(B))
+      andBool bytesEncodingAscii(Enc)
+      andBool notBool bytesDecodeValid(B, Enc)
+      andBool bytesErrorsBackslashReplace(Errors)
   rule <k> #methodCall2(X:Id, Method:Id, Enc:String, _Errors:String) =>
            exceptionSignal(#exception(#token("LookupError", "Id")))
        ... </k>

@@ -781,6 +781,20 @@
       "coverage": ["bytearray-query-methods", "bytearray-decode-method", "ignore-errors", "replace-errors", "utf-8-decoding", "ascii-decoding", "latin-1-decoding", "result-type", "method-call", "ordinary-python-source-adapter"]
     },
     {
+      "id": "adapter-bytes-decode-backslashreplace",
+      "source": "../adapter/adapter-bytes-decode-backslashreplace.py",
+      "reference": "Python Standard Library Built-in Types bytes; decode backslashreplace error handler for invalid UTF-8 and ASCII byte sequences",
+      "expected_result": "True ~> .K",
+      "coverage": ["bytes-methods", "bytes-decode-method", "backslashreplace-errors", "utf-8-decoding", "ascii-decoding", "method-call", "ordinary-python-source-adapter"]
+    },
+    {
+      "id": "adapter-bytearray-decode-backslashreplace",
+      "source": "../adapter/adapter-bytearray-decode-backslashreplace.py",
+      "reference": "Python Standard Library Built-in Types bytearray; decode backslashreplace error handler plus Latin-1 no-error behavior",
+      "expected_result": "True ~> .K",
+      "coverage": ["bytearray-query-methods", "bytearray-decode-method", "backslashreplace-errors", "utf-8-decoding", "ascii-decoding", "latin-1-decoding", "result-type", "method-call", "ordinary-python-source-adapter"]
+    },
+    {
       "id": "adapter-bytes-replace-basic",
       "source": "../adapter/adapter-bytes-replace-basic.py",
       "reference": "Python Standard Library Built-in Types bytes; replace non-overlapping subsequence replacement and count handling",

@@ -270,6 +270,76 @@
       "coverage": ["bytes-literal", "bytes-iteration-yields-int", "bytes-starred-display-unpacking", "bytes-all-any", "bytes-sum", "bytes-min-max", "ordinary-python-source-adapter"]
     },
     {
+      "id": "adapter-bytes-split-rsplit-methods",
+      "source": "../adapter/adapter-bytes-split-rsplit-methods.py",
+      "reference": "Python Standard Library Built-in Types bytes; split with ASCII-whitespace default splitting",
+      "expected_result": "True ~> .K",
+      "coverage": ["bytes-methods", "bytes-split-method", "ascii-whitespace-splitting", "method-call", "ordinary-python-source-adapter"]
+    },
+    {
+      "id": "adapter-bytes-split-rsplit-whitespace-empty",
+      "source": "../adapter/adapter-bytes-split-rsplit-whitespace-empty.py",
+      "reference": "Python Standard Library Built-in Types bytes; split and rsplit returning empty lists for empty or all-whitespace values with default separator",
+      "expected_result": "True ~> .K",
+      "coverage": ["bytes-methods", "bytes-split-method", "bytes-rsplit-method", "ascii-whitespace-splitting", "method-call", "ordinary-python-source-adapter"]
+    },
+    {
+      "id": "adapter-bytes-rsplit-default-method",
+      "source": "../adapter/adapter-bytes-rsplit-default-method.py",
+      "reference": "Python Standard Library Built-in Types bytes; rsplit with None/default separator over ASCII-whitespace runs",
+      "expected_result": "True ~> .K",
+      "coverage": ["bytes-methods", "bytes-rsplit-method", "ascii-whitespace-splitting", "method-call", "ordinary-python-source-adapter"]
+    },
+    {
+      "id": "adapter-bytes-split-rsplit-whitespace-maxsplit",
+      "source": "../adapter/adapter-bytes-split-rsplit-whitespace-maxsplit.py",
+      "reference": "Python Standard Library Built-in Types bytes; split and rsplit with None separator and directional maxsplit",
+      "expected_result": "True ~> .K",
+      "coverage": ["bytes-methods", "bytes-split-method", "bytes-rsplit-method", "ascii-whitespace-splitting", "method-call", "ordinary-python-source-adapter"]
+    },
+    {
+      "id": "adapter-bytes-split-rsplit-separators",
+      "source": "../adapter/adapter-bytes-split-rsplit-separators.py",
+      "reference": "Python Standard Library Built-in Types bytes; split with explicit bytes separators",
+      "expected_result": "True ~> .K",
+      "coverage": ["bytes-methods", "bytes-split-method", "bytes-separator", "method-call", "ordinary-python-source-adapter"]
+    },
+    {
+      "id": "adapter-bytes-split-rsplit-separator-rmaxsplit",
+      "source": "../adapter/adapter-bytes-split-rsplit-separator-rmaxsplit.py",
+      "reference": "Python Standard Library Built-in Types bytes; rsplit with explicit bytes separator and maxsplit",
+      "expected_result": "True ~> .K",
+      "coverage": ["bytes-methods", "bytes-rsplit-method", "bytes-separator", "method-call", "ordinary-python-source-adapter"]
+    },
+    {
+      "id": "adapter-bytes-split-rsplit-multibyte-separator",
+      "source": "../adapter/adapter-bytes-split-rsplit-multibyte-separator.py",
+      "reference": "Python Standard Library Built-in Types bytes; rsplit with a multi-byte separator and maxsplit",
+      "expected_result": "True ~> .K",
+      "coverage": ["bytes-methods", "bytes-rsplit-method", "bytes-separator", "method-call", "ordinary-python-source-adapter"]
+    },
+    {
+      "id": "adapter-bytes-split-rsplit-byteslike",
+      "source": "../adapter/adapter-bytes-split-rsplit-byteslike.py",
+      "reference": "Python Standard Library Built-in Types bytes; split and rsplit with bytearray and memoryview separators",
+      "expected_result": "True ~> .K",
+      "coverage": ["bytes-methods", "bytes-split-method", "bytes-rsplit-method", "bytes-separator", "bytes-like-arguments", "method-call", "ordinary-python-source-adapter"]
+    },
+    {
+      "id": "adapter-bytes-split-rsplit-value-errors",
+      "source": "../adapter/adapter-bytes-split-rsplit-value-errors.py",
+      "reference": "Python Standard Library Built-in Types bytes; split and rsplit empty-separator ValueError diagnostics",
+      "expected_result": "True ~> .K",
+      "coverage": ["bytes-methods", "bytes-split-method", "bytes-rsplit-method", "bytes-separator", "bytes-like-arguments", "method-call", "value-error", "ordinary-python-source-adapter"]
+    },
+    {
+      "id": "adapter-bytes-split-rsplit-diagnostics",
+      "source": "../adapter/adapter-bytes-split-rsplit-diagnostics.py",
+      "reference": "Python Standard Library Built-in Types bytes; split and rsplit bytes-like separator and maxsplit TypeError diagnostics",
+      "expected_result": "True ~> .K",
+      "coverage": ["bytes-methods", "bytes-split-method", "bytes-rsplit-method", "bytes-separator", "bytes-like-arguments", "method-call", "type-error", "ordinary-python-source-adapter"]
+    },
+    {
       "id": "adapter-bytes-constructor",
       "source": "../adapter/adapter-bytes-constructor.py",
       "reference": "Python Standard Library Built-in Functions bytes and bytearray constructor interpretation; Built-in Types binary sequence types; CPython Lib/test/test_bytes.py constructor cases",

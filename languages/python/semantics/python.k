@@ -1267,6 +1267,7 @@ module PYTHON
                 | isIntLike(Val) [function, symbol(isIntLike)]
                 | isFloatLike(Val) [function, symbol(isFloatLike)]
                 | isComplexLike(Val) [function, symbol(isComplexLike)]
+                | isBytesVal(Val) [function, symbol(isBytesVal)]
                 | isBytearrayVal(Val) [function, symbol(isBytearrayVal)]
                 | valEq(Val, Val) [function, symbol(valEq)]
                 | singletonPatternEq(Val, Val) [function, symbol(singletonPatternEq)]
@@ -1977,6 +1978,11 @@ module PYTHON
   syntax Val ::= listSlice(ValItems, Int, Int) [function, symbol(listSlice)]
                | tupleSlice(ValItems, Int, Int) [function, symbol(tupleSlice)]
                | bytesSlice(ValItems, Int, Int) [function, symbol(bytesSlice)]
+               | bytesSegment(ValItems, Int, Int) [function, symbol(bytesSegment)]
+               | bytesReverse(Val) [function, symbol(bytesReverse)]
+               | bytesLStripDefault(Val) [function, symbol(bytesLStripDefault)]
+               | bytesRStripDefault(Val) [function, symbol(bytesRStripDefault)]
+               | bytesLStripDefaultItems(ValItems) [function, symbol(bytesLStripDefaultItems)]
                | bytesToBytearray(Val) [function, symbol(bytesToBytearray)]
                | bytearrayBytesLikeValue(Val) [function, symbol(bytearrayBytesLikeValue)]
                | bytearrayConcat(Val, Val) [function, symbol(bytearrayConcat)]
@@ -2000,6 +2006,16 @@ module PYTHON
                | bytearrayRSplitWhitespaceNonEmpty(Val, Int) [function, symbol(bytearrayRSplitWhitespaceNonEmpty)]
                | bytearraySplitWhitespaceItems(ValItems, Int) [function, symbol(bytearraySplitWhitespaceItems)]
                | bytearrayRSplitWhitespaceItems(ValItems, Int) [function, symbol(bytearrayRSplitWhitespaceItems)]
+               | bytesSplit(Val, Val, Int) [function, symbol(bytesSplit)]
+               | bytesRSplit(Val, Val, Int) [function, symbol(bytesRSplit)]
+               | bytesSplitSep(Val, ValItems, Int) [function, symbol(bytesSplitSep)]
+               | bytesRSplitSep(Val, ValItems, Int) [function, symbol(bytesRSplitSep)]
+               | bytesSplitWhitespace(Val, Int) [function, symbol(bytesSplitWhitespace)]
+               | bytesRSplitWhitespace(Val, Int) [function, symbol(bytesRSplitWhitespace)]
+               | bytesSplitWhitespaceNonEmpty(Val, Int) [function, symbol(bytesSplitWhitespaceNonEmpty)]
+               | bytesRSplitWhitespaceNonEmpty(Val, Int) [function, symbol(bytesRSplitWhitespaceNonEmpty)]
+               | bytesSplitWhitespaceItems(ValItems, Int) [function, symbol(bytesSplitWhitespaceItems)]
+               | bytesRSplitWhitespaceItems(ValItems, Int) [function, symbol(bytesRSplitWhitespaceItems)]
                | bytearrayExpandTabs(Val, Int) [function, symbol(bytearrayExpandTabs)]
                | bytearrayExpandTabsScan(ValItems, Val, Int, Int) [function, symbol(bytearrayExpandTabsScan)]
                | bytearrayAppendSpaces(Val, Int) [function, symbol(bytearrayAppendSpaces)]
@@ -3614,6 +3630,10 @@ module PYTHON
   rule isIntLike(sliceVal(_:Val, _:Val, _:Val)) => false
   rule isIntLike(argsVal(_:ArgVals)) => false
   rule isIntLike(dictArgsVal(_:DictVals)) => false
+
+  rule isBytesVal(#bytes()) => true
+  rule isBytesVal(bytesVal(_:ValItems)) => true
+  rule isBytesVal(_:Val) => false [owise]
 
   rule isBytearrayVal(#bytearray()) => true
   rule isBytearrayVal(bytearrayVal(_:ValItems)) => true
@@ -7461,6 +7481,142 @@ module PYTHON
         bytearraySegment(VS, 0, bytearrayRFindSpace(VS, 0, -1)),
         Count -Int 1),
       bytearraySegment(VS, bytearrayRFindSpace(VS, 0, -1) +Int 1, valItemsLen(VS)))
+    requires Count >Int 0
+      andBool bytearrayRFindSpace(VS, 0, -1) >=Int 0
+
+  rule bytesSegment(VS:ValItems, Start:Int, Stop:Int) => bytesSlice(VS, Start, Stop)
+  rule bytesReverse(#bytes()) => #bytes()
+  rule bytesReverse(bytesVal(VS:ValItems)) => bytesVal(reverseValItems(VS))
+  rule bytesLStripDefault(#bytes()) => #bytes()
+  rule bytesLStripDefault(bytesVal(VS:ValItems)) => bytesLStripDefaultItems(VS)
+  rule bytesLStripDefaultItems(valItemsLast(V:Val)) => #bytes()
+    requires byteSpace(V)
+  rule bytesLStripDefaultItems(valItemsLast(V:Val)) => bytesVal(valItemsLast(V))
+    requires notBool byteSpace(V)
+  rule bytesLStripDefaultItems(valItemsCons(V:Val, VS:ValItems)) => bytesLStripDefaultItems(VS)
+    requires byteSpace(V)
+  rule bytesLStripDefaultItems(valItemsCons(V:Val, VS:ValItems)) => bytesVal(valItemsCons(V, VS))
+    requires notBool byteSpace(V)
+  rule bytesRStripDefault(B:Val) => bytesReverse(bytesLStripDefault(bytesReverse(B)))
+
+  rule bytesSplit(B:Val, Sep:Val, Count:Int) =>
+    bytesSplitSep(B, bytearrayAffixNeedleItems(Sep), Count)
+    requires isBytesVal(B)
+      andBool bytearrayAffixNeedleSupported(Sep)
+      andBool notBool bytearrayAffixNeedleEmpty(Sep)
+  rule bytesRSplit(B:Val, Sep:Val, Count:Int) =>
+    bytesRSplitSep(B, bytearrayAffixNeedleItems(Sep), Count)
+    requires isBytesVal(B)
+      andBool bytearrayAffixNeedleSupported(Sep)
+      andBool notBool bytearrayAffixNeedleEmpty(Sep)
+
+  rule bytesSplitSep(B:Val, _Sep:ValItems, 0) => listVal(valItemsLast(B))
+    requires isBytesVal(B)
+  rule bytesSplitSep(#bytes(), _Sep:ValItems, Count:Int) =>
+    listVal(valItemsLast(#bytes()))
+    requires Count =/=Int 0
+  rule bytesSplitSep(bytesVal(VS:ValItems), Sep:ValItems, Count:Int) =>
+    listVal(valItemsLast(bytesVal(VS)))
+    requires Count =/=Int 0
+      andBool bytesFind(Sep, VS, 0) <Int 0
+  rule bytesSplitSep(bytesVal(VS:ValItems), Sep:ValItems, Count:Int) =>
+    bytearrayLineCons(
+      bytesSegment(VS, 0, bytesFind(Sep, VS, 0)),
+      bytesSplitSep(
+        bytesSegment(VS, bytesFind(Sep, VS, 0) +Int valItemsLen(Sep), valItemsLen(VS)),
+        Sep,
+        Count))
+    requires Count <Int 0
+      andBool bytesFind(Sep, VS, 0) >=Int 0
+  rule bytesSplitSep(bytesVal(VS:ValItems), Sep:ValItems, Count:Int) =>
+    bytearrayLineCons(
+      bytesSegment(VS, 0, bytesFind(Sep, VS, 0)),
+      bytesSplitSep(
+        bytesSegment(VS, bytesFind(Sep, VS, 0) +Int valItemsLen(Sep), valItemsLen(VS)),
+        Sep,
+        Count -Int 1))
+    requires Count >Int 0
+      andBool bytesFind(Sep, VS, 0) >=Int 0
+
+  rule bytesRSplitSep(B:Val, _Sep:ValItems, 0) => listVal(valItemsLast(B))
+    requires isBytesVal(B)
+  rule bytesRSplitSep(B:Val, Sep:ValItems, Count:Int) => bytesSplitSep(B, Sep, Count)
+    requires isBytesVal(B)
+      andBool Count <Int 0
+  rule bytesRSplitSep(#bytes(), _Sep:ValItems, Count:Int) =>
+    listVal(valItemsLast(#bytes()))
+    requires Count >Int 0
+  rule bytesRSplitSep(bytesVal(VS:ValItems), Sep:ValItems, Count:Int) =>
+    listVal(valItemsLast(bytesVal(VS)))
+    requires Count >Int 0
+      andBool bytesRFind(Sep, VS, 0, -1) <Int 0
+  rule bytesRSplitSep(bytesVal(VS:ValItems), Sep:ValItems, Count:Int) =>
+    bytearrayListAppend(
+      bytesRSplitSep(
+        bytesSegment(VS, 0, bytesRFind(Sep, VS, 0, -1)),
+        Sep,
+        Count -Int 1),
+      bytesSegment(
+        VS,
+        bytesRFind(Sep, VS, 0, -1) +Int valItemsLen(Sep),
+        valItemsLen(VS)))
+    requires Count >Int 0
+      andBool bytesRFind(Sep, VS, 0, -1) >=Int 0
+
+  rule bytesSplitWhitespace(B:Val, _Count:Int) => []
+    requires isBytesVal(B)
+      andBool valEq(bytesLStripDefault(B), #bytes())
+  rule bytesSplitWhitespace(B:Val, Count:Int) =>
+    bytesSplitWhitespaceNonEmpty(bytesLStripDefault(B), Count)
+    requires isBytesVal(B)
+      andBool notBool valEq(bytesLStripDefault(B), #bytes())
+  rule bytesSplitWhitespaceNonEmpty(bytesVal(VS:ValItems), 0) =>
+    listVal(valItemsLast(bytesVal(VS)))
+  rule bytesSplitWhitespaceNonEmpty(bytesVal(VS:ValItems), Count:Int) =>
+    bytesSplitWhitespaceItems(VS, Count)
+    requires Count =/=Int 0
+  rule bytesSplitWhitespaceItems(VS:ValItems, _Count:Int) =>
+    listVal(valItemsLast(bytesVal(VS)))
+    requires bytearrayFindSpace(VS, 0) <Int 0
+  rule bytesSplitWhitespaceItems(VS:ValItems, Count:Int) =>
+    bytearrayLineCons(
+      bytesSegment(VS, 0, bytearrayFindSpace(VS, 0)),
+      bytesSplitWhitespace(bytesSegment(VS, bytearrayFindSpace(VS, 0), valItemsLen(VS)), Count))
+    requires Count <Int 0
+      andBool bytearrayFindSpace(VS, 0) >=Int 0
+  rule bytesSplitWhitespaceItems(VS:ValItems, Count:Int) =>
+    bytearrayLineCons(
+      bytesSegment(VS, 0, bytearrayFindSpace(VS, 0)),
+      bytesSplitWhitespace(
+        bytesSegment(VS, bytearrayFindSpace(VS, 0), valItemsLen(VS)),
+        Count -Int 1))
+    requires Count >Int 0
+      andBool bytearrayFindSpace(VS, 0) >=Int 0
+
+  rule bytesRSplitWhitespace(B:Val, _Count:Int) => []
+    requires isBytesVal(B)
+      andBool valEq(bytesRStripDefault(B), #bytes())
+  rule bytesRSplitWhitespace(B:Val, Count:Int) =>
+    bytesRSplitWhitespaceNonEmpty(bytesRStripDefault(B), Count)
+    requires isBytesVal(B)
+      andBool notBool valEq(bytesRStripDefault(B), #bytes())
+  rule bytesRSplitWhitespaceNonEmpty(bytesVal(VS:ValItems), 0) =>
+    listVal(valItemsLast(bytesVal(VS)))
+  rule bytesRSplitWhitespaceNonEmpty(bytesVal(VS:ValItems), Count:Int) =>
+    bytesSplitWhitespace(bytesVal(VS), Count)
+    requires Count <Int 0
+  rule bytesRSplitWhitespaceNonEmpty(bytesVal(VS:ValItems), Count:Int) =>
+    bytesRSplitWhitespaceItems(VS, Count)
+    requires Count >Int 0
+  rule bytesRSplitWhitespaceItems(VS:ValItems, _Count:Int) =>
+    listVal(valItemsLast(bytesVal(VS)))
+    requires bytearrayRFindSpace(VS, 0, -1) <Int 0
+  rule bytesRSplitWhitespaceItems(VS:ValItems, Count:Int) =>
+    bytearrayListAppend(
+      bytesRSplitWhitespace(
+        bytesSegment(VS, 0, bytearrayRFindSpace(VS, 0, -1)),
+        Count -Int 1),
+      bytesSegment(VS, bytearrayRFindSpace(VS, 0, -1) +Int 1, valItemsLen(VS)))
     requires Count >Int 0
       andBool bytearrayRFindSpace(VS, 0, -1) >=Int 0
 
@@ -16967,6 +17123,14 @@ module PYTHON
        <env> ... X |-> B:Val ... </env>
     requires Id2String(Method) ==String "rsplit"
       andBool isBytearrayVal(B)
+  rule <k> #methodCall0(X:Id, Method:Id) => bytesSplitWhitespace(B, -1) ... </k>
+       <env> ... X |-> B:Val ... </env>
+    requires Id2String(Method) ==String "split"
+      andBool isBytesVal(B)
+  rule <k> #methodCall0(X:Id, Method:Id) => bytesRSplitWhitespace(B, -1) ... </k>
+       <env> ... X |-> B:Val ... </env>
+    requires Id2String(Method) ==String "rsplit"
+      andBool isBytesVal(B)
   rule <k> #methodCall0(X:Id, Method:Id) => bytearrayExpandTabs(B, 8) ... </k>
        <env> ... X |-> B:Val ... </env>
     requires Id2String(Method) ==String "expandtabs"
@@ -17010,6 +17174,8 @@ module PYTHON
               orBool Id2String(Method) ==String "title"
               orBool Id2String(Method) ==String "upper")
       andBool notBool isBytearrayVal(B)
+      andBool notBool ((Id2String(Method) ==String "split"
+        orBool Id2String(Method) ==String "rsplit") andBool isBytesVal(B))
   rule <k> #methodCall(X:Id, Method:Id, Arg:Val) => bytearrayLStripDefault(B) ... </k>
        <env> ... X |-> B:Val ... </env>
     requires Id2String(Method) ==String "lstrip"
@@ -17131,6 +17297,49 @@ module PYTHON
     requires (Id2String(Method) ==String "split"
               orBool Id2String(Method) ==String "rsplit")
       andBool isBytearrayVal(B)
+      andBool notBool isNoneVal(Sep)
+      andBool notBool bytearrayAffixNeedleSupported(Sep)
+  rule <k> #methodCall(X:Id, Method:Id, Arg:Val) => bytesSplitWhitespace(B, -1) ... </k>
+       <env> ... X |-> B:Val ... </env>
+    requires Id2String(Method) ==String "split"
+      andBool isBytesVal(B)
+      andBool isNoneVal(Arg)
+  rule <k> #methodCall(X:Id, Method:Id, Arg:Val) => bytesRSplitWhitespace(B, -1) ... </k>
+       <env> ... X |-> B:Val ... </env>
+    requires Id2String(Method) ==String "rsplit"
+      andBool isBytesVal(B)
+      andBool isNoneVal(Arg)
+  rule <k> #methodCall(X:Id, Method:Id, Sep:Val) => bytesSplit(B, Sep, -1) ... </k>
+       <env> ... X |-> B:Val ... </env>
+    requires Id2String(Method) ==String "split"
+      andBool isBytesVal(B)
+      andBool notBool isNoneVal(Sep)
+      andBool bytearrayAffixNeedleSupported(Sep)
+      andBool notBool bytearrayAffixNeedleEmpty(Sep)
+  rule <k> #methodCall(X:Id, Method:Id, Sep:Val) => bytesRSplit(B, Sep, -1) ... </k>
+       <env> ... X |-> B:Val ... </env>
+    requires Id2String(Method) ==String "rsplit"
+      andBool isBytesVal(B)
+      andBool notBool isNoneVal(Sep)
+      andBool bytearrayAffixNeedleSupported(Sep)
+      andBool notBool bytearrayAffixNeedleEmpty(Sep)
+  rule <k> #methodCall(X:Id, Method:Id, Sep:Val) =>
+           exceptionSignal(#exception(#token("ValueError", "Id")))
+       ... </k>
+       <env> ... X |-> B:Val ... </env>
+    requires (Id2String(Method) ==String "split"
+              orBool Id2String(Method) ==String "rsplit")
+      andBool isBytesVal(B)
+      andBool notBool isNoneVal(Sep)
+      andBool bytearrayAffixNeedleSupported(Sep)
+      andBool bytearrayAffixNeedleEmpty(Sep)
+  rule <k> #methodCall(X:Id, Method:Id, Sep:Val) =>
+           exceptionSignal(#exception(#token("TypeError", "Id")))
+       ... </k>
+       <env> ... X |-> B:Val ... </env>
+    requires (Id2String(Method) ==String "split"
+              orBool Id2String(Method) ==String "rsplit")
+      andBool isBytesVal(B)
       andBool notBool isNoneVal(Sep)
       andBool notBool bytearrayAffixNeedleSupported(Sep)
   rule <k> #methodCall(X:Id, Method:Id, Keep:Val) => bytearraySplitLines(B, truthy(Keep)) ... </k>
@@ -17712,6 +17921,8 @@ module PYTHON
               orBool Id2String(Method) ==String "lstrip"
               orBool Id2String(Method) ==String "zfill")
       andBool notBool isBytearrayVal(B)
+      andBool notBool ((Id2String(Method) ==String "split"
+        orBool Id2String(Method) ==String "rsplit") andBool isBytesVal(B))
   rule <k> #methodCall2(X:Id, Method:Id, Needle:Val, Start:Val) =>
            #methodCall3(X, Method, Needle, Start, None)
        ... </k>
@@ -17787,6 +17998,71 @@ module PYTHON
     requires (Id2String(Method) ==String "split"
               orBool Id2String(Method) ==String "rsplit")
       andBool isBytearrayVal(B)
+      andBool notBool isNoneVal(Sep)
+      andBool isIntLike(Maxsplit)
+      andBool notBool bytearrayAffixNeedleSupported(Sep)
+  rule <k> #methodCall2(X:Id, Method:Id, _Sep:Val, Maxsplit:Val) =>
+           exceptionSignal(#exception(#token("TypeError", "Id")))
+       ... </k>
+       <env> ... X |-> B:Val ... </env>
+    requires (Id2String(Method) ==String "split"
+              orBool Id2String(Method) ==String "rsplit")
+      andBool isBytesVal(B)
+      andBool notBool isIntLike(Maxsplit)
+  rule <k> #methodCall2(X:Id, Method:Id, Sep:Val, Maxsplit:Val) =>
+           bytesSplitWhitespace(B, intValue(Maxsplit))
+       ... </k>
+       <env> ... X |-> B:Val ... </env>
+    requires Id2String(Method) ==String "split"
+      andBool isBytesVal(B)
+      andBool isNoneVal(Sep)
+      andBool isIntLike(Maxsplit)
+  rule <k> #methodCall2(X:Id, Method:Id, Sep:Val, Maxsplit:Val) =>
+           bytesRSplitWhitespace(B, intValue(Maxsplit))
+       ... </k>
+       <env> ... X |-> B:Val ... </env>
+    requires Id2String(Method) ==String "rsplit"
+      andBool isBytesVal(B)
+      andBool isNoneVal(Sep)
+      andBool isIntLike(Maxsplit)
+  rule <k> #methodCall2(X:Id, Method:Id, Sep:Val, Maxsplit:Val) =>
+           bytesSplit(B, Sep, intValue(Maxsplit))
+       ... </k>
+       <env> ... X |-> B:Val ... </env>
+    requires Id2String(Method) ==String "split"
+      andBool isBytesVal(B)
+      andBool notBool isNoneVal(Sep)
+      andBool isIntLike(Maxsplit)
+      andBool bytearrayAffixNeedleSupported(Sep)
+      andBool notBool bytearrayAffixNeedleEmpty(Sep)
+  rule <k> #methodCall2(X:Id, Method:Id, Sep:Val, Maxsplit:Val) =>
+           bytesRSplit(B, Sep, intValue(Maxsplit))
+       ... </k>
+       <env> ... X |-> B:Val ... </env>
+    requires Id2String(Method) ==String "rsplit"
+      andBool isBytesVal(B)
+      andBool notBool isNoneVal(Sep)
+      andBool isIntLike(Maxsplit)
+      andBool bytearrayAffixNeedleSupported(Sep)
+      andBool notBool bytearrayAffixNeedleEmpty(Sep)
+  rule <k> #methodCall2(X:Id, Method:Id, Sep:Val, Maxsplit:Val) =>
+           exceptionSignal(#exception(#token("ValueError", "Id")))
+       ... </k>
+       <env> ... X |-> B:Val ... </env>
+    requires (Id2String(Method) ==String "split"
+              orBool Id2String(Method) ==String "rsplit")
+      andBool isBytesVal(B)
+      andBool notBool isNoneVal(Sep)
+      andBool isIntLike(Maxsplit)
+      andBool bytearrayAffixNeedleSupported(Sep)
+      andBool bytearrayAffixNeedleEmpty(Sep)
+  rule <k> #methodCall2(X:Id, Method:Id, Sep:Val, Maxsplit:Val) =>
+           exceptionSignal(#exception(#token("TypeError", "Id")))
+       ... </k>
+       <env> ... X |-> B:Val ... </env>
+    requires (Id2String(Method) ==String "split"
+              orBool Id2String(Method) ==String "rsplit")
+      andBool isBytesVal(B)
       andBool notBool isNoneVal(Sep)
       andBool isIntLike(Maxsplit)
       andBool notBool bytearrayAffixNeedleSupported(Sep)
@@ -18304,6 +18580,8 @@ module PYTHON
               orBool Id2String(Method) ==String "rsplit"
               orBool Id2String(Method) ==String "split")
       andBool notBool isBytearrayVal(B)
+      andBool notBool ((Id2String(Method) ==String "split"
+        orBool Id2String(Method) ==String "rsplit") andBool isBytesVal(B))
   rule #abs(V:Val) => 0 -Int intValue(V)
     requires isIntLike(V) andBool intValue(V) <Int 0
   rule #abs(V:Val) => intValue(V)

@@ -1269,6 +1269,7 @@ module PYTHON
   syntax Bool ::= truthy(Val) [function, symbol(truthy)]
                 | callableVal(Val) [function, symbol(callableVal)]
                 | isIntLike(Val) [function, symbol(isIntLike)]
+                | isFloatVal(Val) [function, symbol(isFloatVal)]
                 | isFloatLike(Val) [function, symbol(isFloatLike)]
                 | isComplexLike(Val) [function, symbol(isComplexLike)]
                 | isBytesVal(Val) [function, symbol(isBytesVal)]
@@ -1408,12 +1409,16 @@ module PYTHON
                 | bytesTranslateTableLengthOk(Val) [function, symbol(bytesTranslateTableLengthOk)]
                 | bytesPercentFormatSupported(ValItems) [function, symbol(bytesPercentFormatSupported)]
                 | bytesPercentConversionCode(Int) [function, symbol(bytesPercentConversionCode)]
+                | bytesPercentDecimalCode(Int) [function, symbol(bytesPercentDecimalCode)]
+                | bytesPercentIntegralCode(Int) [function, symbol(bytesPercentIntegralCode)]
                 | bytesPercentArgsOk(Int, Val) [function, symbol(bytesPercentArgsOk)]
                 | bytesPercentFormatArgsOk(ValItems, Val) [function, symbol(bytesPercentFormatArgsOk)]
                 | bytesPercentConversionsOk(ValItems, Val, Int, Int) [function, symbol(bytesPercentConversionsOk)]
                 | bytesPercentConversionOk(Int, Val) [function, symbol(bytesPercentConversionOk)]
                 | bytesPercentOverflow(ValItems, Val, Int, Int) [function, symbol(bytesPercentOverflow)]
                 | bytesPercentConversionOverflow(Int, Val) [function, symbol(bytesPercentConversionOverflow)]
+                | bytesPercentValueError(ValItems, Val, Int, Int) [function, symbol(bytesPercentValueError)]
+                | bytesPercentConversionValueError(Int, Val) [function, symbol(bytesPercentConversionValueError)]
                 | bytearrayPrefixMatchWindow(Val, Val, Val, Val) [function, symbol(bytearrayPrefixMatchWindow)]
                 | bytearraySuffixMatchWindow(Val, Val, Val, Val) [function, symbol(bytearraySuffixMatchWindow)]
                 | bytearrayItemsStartLF(ValItems) [function, symbol(bytearrayItemsStartLF)]
@@ -1739,6 +1744,7 @@ module PYTHON
                | sumValItems(ValItems) [function, symbol(sumValItems)]
                | rangeSum(Int, Int, Int) [function, symbol(rangeSum)]
                | bytesPercentSpecCount(ValItems) [function, symbol(bytesPercentSpecCount)]
+               | bytesPercentTrunc(Float) [function, symbol(bytesPercentTrunc)]
                | minValItems(ValItems) [function, symbol(minValItems)]
                | maxValItems(ValItems) [function, symbol(maxValItems)]
                | minArgVals(ArgVals) [function, symbol(minArgVals)]
@@ -1826,6 +1832,7 @@ module PYTHON
                   | intBaseDigits(Int, Int) [function, symbol(intBaseDigits)]
                   | pyIntBaseStringUpper(Int, Int, String) [function, symbol(pyIntBaseStringUpper)]
                   | intBaseDigitsUpper(Int, Int) [function, symbol(intBaseDigitsUpper)]
+                  | bytesPercentIntString(Int, Val) [function, symbol(bytesPercentIntString)]
                   | byteHexDigitUpper(Int) [function, symbol(byteHexDigitUpper)]
                   | formatSignPrefix(String, Int) [function, symbol(formatSignPrefix)]
                   | formatAlign(String, String) [function, symbol(formatAlign)]
@@ -4080,6 +4087,9 @@ module PYTHON
   rule isBytearrayVal(#bytearray()) => true
   rule isBytearrayVal(bytearrayVal(_:ValItems)) => true
   rule isBytearrayVal(_:Val) => false [owise]
+
+  rule isFloatVal(_:Float) => true
+  rule isFloatVal(_:Val) => false [owise]
 
   rule isFloatLike(_:Float) => true
   rule isFloatLike(V:Val) => isIntLike(V) [owise]
@@ -7677,8 +7687,16 @@ module PYTHON
   rule bytesTranslateByte(V:Val, Table:Val) => listGet(bytearrayAffixNeedleItems(Table), intValue(V))
     requires notBool isNoneVal(Table)
 
+  rule bytesPercentDecimalCode(C:Int) => C ==Int 100 orBool C ==Int 105 orBool C ==Int 117
+  rule bytesPercentIntegralCode(C:Int) => C ==Int 111 orBool C ==Int 120 orBool C ==Int 88
   rule bytesPercentConversionCode(C:Int) =>
-    C ==Int 98 orBool C ==Int 115 orBool C ==Int 97 orBool C ==Int 114 orBool C ==Int 99
+    bytesPercentDecimalCode(C)
+      orBool bytesPercentIntegralCode(C)
+      orBool C ==Int 98
+      orBool C ==Int 115
+      orBool C ==Int 97
+      orBool C ==Int 114
+      orBool C ==Int 99
 
   rule bytesPercentFormatSupported(valItemsLast(V:Val)) => intValue(V) =/=Int 37
     requires isIntLike(V)
@@ -7737,6 +7755,13 @@ module PYTHON
   rule bytesPercentConversionOk(115, V:Val) => bytearrayAffixNeedleSupported(V)
   rule bytesPercentConversionOk(97, V:Val) => pyStringConversionSupported(V)
   rule bytesPercentConversionOk(114, V:Val) => pyStringConversionSupported(V)
+  rule bytesPercentConversionOk(C:Int, V:Val) => isIntLike(V)
+    requires bytesPercentDecimalCode(C)
+      andBool notBool isFloatVal(V)
+  rule bytesPercentConversionOk(C:Int, F:Float) => notBool isInfinite(F) andBool notBool isNaN(F)
+    requires bytesPercentDecimalCode(C)
+  rule bytesPercentConversionOk(C:Int, V:Val) => isIntLike(V)
+    requires bytesPercentIntegralCode(C)
   rule bytesPercentConversionOk(99, V:Val) =>
     isIntLike(V) andBool intValue(V) >=Int 0 andBool intValue(V) <=Int 255
     requires notBool isBytesVal(V)
@@ -7747,7 +7772,13 @@ module PYTHON
 
   rule bytesPercentConversionOverflow(99, V:Val) =>
     isIntLike(V) andBool (intValue(V) <Int 0 orBool intValue(V) >Int 255)
+  rule bytesPercentConversionOverflow(C:Int, F:Float) => isInfinite(F)
+    requires bytesPercentDecimalCode(C)
   rule bytesPercentConversionOverflow(_C:Int, _V:Val) => false [owise]
+
+  rule bytesPercentConversionValueError(C:Int, F:Float) => isNaN(F)
+    requires bytesPercentDecimalCode(C)
+  rule bytesPercentConversionValueError(_C:Int, _V:Val) => false [owise]
 
   rule bytesPercentConversionsOk(valItemsLast(V:Val), _Values:Val, _Count:Int, _I:Int) => true
     requires isIntLike(V)
@@ -7785,6 +7816,24 @@ module PYTHON
       orBool bytesPercentOverflow(Rest, Values, Count, I +Int 1)
     requires bytesPercentConversionCode(intValue(C))
 
+  rule bytesPercentValueError(valItemsLast(V:Val), _Values:Val, _Count:Int, _I:Int) => false
+    requires isIntLike(V)
+      andBool intValue(V) =/=Int 37
+  rule bytesPercentValueError(valItemsCons(V:Val, Rest:ValItems), Values:Val, Count:Int, I:Int) =>
+    bytesPercentValueError(Rest, Values, Count, I)
+    requires isIntLike(V)
+      andBool intValue(V) =/=Int 37
+  rule bytesPercentValueError(valItemsCons(37, valItemsLast(37)), _Values:Val, _Count:Int, _I:Int) => false
+  rule bytesPercentValueError(valItemsCons(37, valItemsLast(C:Val)), Values:Val, Count:Int, I:Int) =>
+    bytesPercentConversionValueError(intValue(C), bytesPercentValue(Values, Count, I))
+    requires bytesPercentConversionCode(intValue(C))
+  rule bytesPercentValueError(valItemsCons(37, valItemsCons(37, Rest:ValItems)), Values:Val, Count:Int, I:Int) =>
+    bytesPercentValueError(Rest, Values, Count, I)
+  rule bytesPercentValueError(valItemsCons(37, valItemsCons(C:Val, Rest:ValItems)), Values:Val, Count:Int, I:Int) =>
+    bytesPercentConversionValueError(intValue(C), bytesPercentValue(Values, Count, I))
+      orBool bytesPercentValueError(Rest, Values, Count, I +Int 1)
+    requires bytesPercentConversionCode(intValue(C))
+
   rule bytesPercentScan(valItemsLast(V:Val), _Values:Val, _Count:Int, _I:Int, Acc:Val) =>
     bytesPercentAppendByte(Acc, intValue(V))
     requires isIntLike(V)
@@ -7813,6 +7862,9 @@ module PYTHON
     requires pyStringConversionSupported(V)
   rule bytesPercentConvert(114, V:Val) => bytesStringAscii(pyAsciiStr(V))
     requires pyStringConversionSupported(V)
+  rule bytesPercentConvert(C:Int, V:Val) => bytesStringAscii(bytesPercentIntString(C, V))
+    requires (bytesPercentDecimalCode(C) orBool bytesPercentIntegralCode(C))
+      andBool bytesPercentConversionOk(C, V)
   rule bytesPercentConvert(99, V:Val) => bytesVal(valItemsLast(intValue(V)))
     requires isIntLike(V)
       andBool intValue(V) >=Int 0
@@ -7833,6 +7885,30 @@ module PYTHON
     requires isBytesVal(Acc)
   rule bytesPercentAppendByte(Acc:Val, B:Int) => bytearrayAppendByte(Acc, B)
     requires isBytearrayVal(Acc)
+
+  rule bytesPercentTrunc(F:Float) => Float2Int(floorFloat(F))
+    requires F >=Float 0.0
+      andBool notBool isInfinite(F)
+      andBool notBool isNaN(F)
+  rule bytesPercentTrunc(F:Float) => 0 -Int Float2Int(floorFloat(0.0 -Float F))
+    requires F <Float 0.0
+      andBool notBool isInfinite(F)
+      andBool notBool isNaN(F)
+
+  rule bytesPercentIntString(C:Int, V:Val) => pyIntBaseString(intValue(V), 10, "")
+    requires bytesPercentDecimalCode(C)
+      andBool isIntLike(V)
+      andBool notBool isFloatVal(V)
+  rule bytesPercentIntString(C:Int, F:Float) => pyIntBaseString(bytesPercentTrunc(F), 10, "")
+    requires bytesPercentDecimalCode(C)
+      andBool notBool isInfinite(F)
+      andBool notBool isNaN(F)
+  rule bytesPercentIntString(111, V:Val) => pyIntBaseString(intValue(V), 8, "")
+    requires isIntLike(V)
+  rule bytesPercentIntString(120, V:Val) => pyIntBaseString(intValue(V), 16, "")
+    requires isIntLike(V)
+  rule bytesPercentIntString(88, V:Val) => pyIntBaseStringUpper(intValue(V), 16, "")
+    requires isIntLike(V)
 
   rule bytearrayConcat(#bytearray(), B:Val) => B
     requires isBytearrayVal(B)
@@ -11174,11 +11250,19 @@ module PYTHON
       andBool bytesPercentFormatArgsOk(FS, Values)
       andBool bytesPercentOverflow(FS, Values, bytesPercentSpecCount(FS), 0)
   rule <k> bytesVal(FS:ValItems) % Values:Val =>
+           exceptionSignal(#exception(#token("ValueError", "Id")))
+       ... </k>
+    requires bytesPercentFormatSupported(FS)
+      andBool bytesPercentFormatArgsOk(FS, Values)
+      andBool notBool bytesPercentOverflow(FS, Values, bytesPercentSpecCount(FS), 0)
+      andBool bytesPercentValueError(FS, Values, bytesPercentSpecCount(FS), 0)
+  rule <k> bytesVal(FS:ValItems) % Values:Val =>
            exceptionSignal(#exception(#token("TypeError", "Id")))
        ... </k>
     requires bytesPercentFormatSupported(FS)
       andBool bytesPercentFormatArgsOk(FS, Values)
       andBool notBool bytesPercentOverflow(FS, Values, bytesPercentSpecCount(FS), 0)
+      andBool notBool bytesPercentValueError(FS, Values, bytesPercentSpecCount(FS), 0)
       andBool notBool bytesPercentConversionsOk(FS, Values, bytesPercentSpecCount(FS), 0)
   rule bytearrayVal(FS:ValItems) % Values:Val =>
     bytesPercentScan(FS, Values, bytesPercentSpecCount(FS), 0, #bytearray())
@@ -11202,11 +11286,19 @@ module PYTHON
       andBool bytesPercentFormatArgsOk(FS, Values)
       andBool bytesPercentOverflow(FS, Values, bytesPercentSpecCount(FS), 0)
   rule <k> bytearrayVal(FS:ValItems) % Values:Val =>
+           exceptionSignal(#exception(#token("ValueError", "Id")))
+       ... </k>
+    requires bytesPercentFormatSupported(FS)
+      andBool bytesPercentFormatArgsOk(FS, Values)
+      andBool notBool bytesPercentOverflow(FS, Values, bytesPercentSpecCount(FS), 0)
+      andBool bytesPercentValueError(FS, Values, bytesPercentSpecCount(FS), 0)
+  rule <k> bytearrayVal(FS:ValItems) % Values:Val =>
            exceptionSignal(#exception(#token("TypeError", "Id")))
        ... </k>
     requires bytesPercentFormatSupported(FS)
       andBool bytesPercentFormatArgsOk(FS, Values)
       andBool notBool bytesPercentOverflow(FS, Values, bytesPercentSpecCount(FS), 0)
+      andBool notBool bytesPercentValueError(FS, Values, bytesPercentSpecCount(FS), 0)
       andBool notBool bytesPercentConversionsOk(FS, Values, bytesPercentSpecCount(FS), 0)
   rule V1:Val % V2:Val => pyModulo(intValue(V1), intValue(V2))
     requires isIntLike(V1) andBool isIntLike(V2) andBool intValue(V2) =/=Int 0

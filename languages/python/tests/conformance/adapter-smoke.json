@@ -837,6 +837,27 @@
       "coverage": ["bytes-percent-formatting", "bytearray-percent-formatting", "printf-style-bytes-formatting", "type-error", "overflow-error", "ordinary-python-source-adapter"]
     },
     {
+      "id": "adapter-bytes-percent-format-numeric",
+      "source": "../adapter/adapter-bytes-percent-format-numeric.py",
+      "reference": "Python Standard Library Built-in Types bytes and bytearray; printf-style bytes formatting signed integer conversion types d, i, u, o, x, and X",
+      "expected_result": "True ~> .K",
+      "coverage": ["bytes-percent-formatting", "bytes-methods", "printf-style-bytes-formatting", "integer-formatting", "float-truncation", "bool-as-int", "ordinary-python-source-adapter"]
+    },
+    {
+      "id": "adapter-bytearray-percent-format-numeric",
+      "source": "../adapter/adapter-bytearray-percent-format-numeric.py",
+      "reference": "Python Standard Library Built-in Types bytearray; printf-style bytes formatting signed integer conversion types preserve bytearray result type",
+      "expected_result": "True ~> .K",
+      "coverage": ["bytearray-percent-formatting", "bytearray-query-methods", "printf-style-bytes-formatting", "integer-formatting", "result-type", "ordinary-python-source-adapter"]
+    },
+    {
+      "id": "adapter-bytes-percent-format-numeric-diagnostics",
+      "source": "../adapter/adapter-bytes-percent-format-numeric-diagnostics.py",
+      "reference": "Python Standard Library Built-in Types bytes and bytearray; printf-style bytes numeric formatting TypeError, OverflowError, and ValueError diagnostics",
+      "expected_result": "True ~> .K",
+      "coverage": ["bytes-percent-formatting", "bytearray-percent-formatting", "printf-style-bytes-formatting", "integer-formatting", "type-error", "overflow-error", "value-error", "ordinary-python-source-adapter"]
+    },
+    {
       "id": "adapter-bytes-replace-basic",
       "source": "../adapter/adapter-bytes-replace-basic.py",
       "reference": "Python Standard Library Built-in Types bytes; replace non-overlapping subsequence replacement and count handling",

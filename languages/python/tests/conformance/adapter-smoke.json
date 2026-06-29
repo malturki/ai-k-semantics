@@ -389,6 +389,13 @@
       "coverage": ["bytearray-query-methods", "bytearray-startswith-method", "bytearray-endswith-method", "bytearray-search-window", "tuple-affix-short-circuit", "method-call", "type-error", "ordinary-python-source-adapter"]
     },
     {
+      "id": "adapter-bytearray-expandtabs-method",
+      "source": "../adapter/adapter-bytearray-expandtabs-method.py",
+      "reference": "Python Standard Library Built-in Types bytearray; expandtabs over ASCII tabs with current-column tab stops and LF/CR column resets",
+      "expected_result": "True ~> .K",
+      "coverage": ["bytearray-query-methods", "bytearray-expandtabs-method", "tab-expansion", "method-call", "type-error", "ordinary-python-source-adapter"]
+    },
+    {
       "id": "adapter-bytearray-removeprefix-removesuffix-methods",
       "source": "../adapter/adapter-bytearray-removeprefix-removesuffix-methods.py",
       "reference": "Python Standard Library Built-in Types bytearray; sequence methods removeprefix and removesuffix over bytes-like affixes",

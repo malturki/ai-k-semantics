@@ -1402,6 +1402,8 @@ module PYTHON
                 | bytearrayPrefixMatchWindow(Val, Val, Val, Val) [function, symbol(bytearrayPrefixMatchWindow)]
                 | bytearraySuffixMatchWindow(Val, Val, Val, Val) [function, symbol(bytearraySuffixMatchWindow)]
                 | bytearrayItemsStartLF(ValItems) [function, symbol(bytearrayItemsStartLF)]
+                | bytearrayTabByte(Val) [function, symbol(bytearrayTabByte)]
+                | bytearrayNewlineByte(Val) [function, symbol(bytearrayNewlineByte)]
                 | bytearrayFillByteOk(Val) [function, symbol(bytearrayFillByteOk)]
                 | bytearrayStripArgSupported(Val) [function, symbol(bytearrayStripArgSupported)]
                 | bytearrayStripArgEmpty(Val) [function, symbol(bytearrayStripArgEmpty)]
@@ -1976,6 +1978,9 @@ module PYTHON
                | bytearraySplitLines(Val, Bool) [function, symbol(bytearraySplitLines)]
                | bytearraySplitLinesScan(ValItems, Val, Bool) [function, symbol(bytearraySplitLinesScan)]
                | bytearrayLineCons(Val, Val) [function, symbol(bytearrayLineCons)]
+               | bytearrayExpandTabs(Val, Int) [function, symbol(bytearrayExpandTabs)]
+               | bytearrayExpandTabsScan(ValItems, Val, Int, Int) [function, symbol(bytearrayExpandTabsScan)]
+               | bytearrayAppendSpaces(Val, Int) [function, symbol(bytearrayAppendSpaces)]
                | bytearraySearchWindow(Val, Val, Val) [function, symbol(bytearraySearchWindow)]
                | bytesStringUtf8(String) [function, symbol(bytesStringUtf8)]
                | bytesStringAscii(String) [function, symbol(bytesStringAscii)]
@@ -7263,6 +7268,51 @@ module PYTHON
     requires isIntLike(V)
       andBool intValue(V) =/=Int 10
       andBool intValue(V) =/=Int 13
+  rule bytearrayTabByte(V:Val) => isIntLike(V) andBool intValue(V) ==Int 9
+  rule bytearrayNewlineByte(V:Val) => isIntLike(V) andBool (intValue(V) ==Int 10 orBool intValue(V) ==Int 13)
+  rule bytearrayAppendSpaces(B:Val, N:Int) => B
+    requires isBytearrayVal(B)
+      andBool N <=Int 0
+  rule bytearrayAppendSpaces(B:Val, N:Int) => bytearrayConcat(B, bytearrayVal(byteRepeatItems(32, N)))
+    requires isBytearrayVal(B)
+      andBool N >Int 0
+  rule bytearrayExpandTabs(#bytearray(), _Tabsize:Int) => #bytearray()
+  rule bytearrayExpandTabs(bytearrayVal(VS:ValItems), Tabsize:Int) =>
+    bytearrayExpandTabsScan(VS, #bytearray(), Tabsize, 0)
+  rule bytearrayExpandTabsScan(valItemsLast(V:Val), Acc:Val, Tabsize:Int, _Col:Int) => Acc
+    requires bytearrayTabByte(V)
+      andBool Tabsize <=Int 0
+  rule bytearrayExpandTabsScan(valItemsLast(V:Val), Acc:Val, Tabsize:Int, Col:Int) =>
+    bytearrayAppendSpaces(Acc, Tabsize -Int (Col %Int Tabsize))
+    requires bytearrayTabByte(V)
+      andBool Tabsize >Int 0
+  rule bytearrayExpandTabsScan(valItemsLast(V:Val), Acc:Val, _Tabsize:Int, _Col:Int) =>
+    bytearrayAppendByte(Acc, V)
+    requires bytearrayNewlineByte(V)
+  rule bytearrayExpandTabsScan(valItemsLast(V:Val), Acc:Val, _Tabsize:Int, _Col:Int) =>
+    bytearrayAppendByte(Acc, V)
+    requires isIntLike(V)
+      andBool notBool bytearrayTabByte(V)
+      andBool notBool bytearrayNewlineByte(V)
+  rule bytearrayExpandTabsScan(valItemsCons(V:Val, Rest:ValItems), Acc:Val, Tabsize:Int, Col:Int) =>
+    bytearrayExpandTabsScan(Rest, Acc, Tabsize, Col)
+    requires bytearrayTabByte(V)
+      andBool Tabsize <=Int 0
+  rule bytearrayExpandTabsScan(valItemsCons(V:Val, Rest:ValItems), Acc:Val, Tabsize:Int, Col:Int) =>
+    bytearrayExpandTabsScan(Rest,
+      bytearrayAppendSpaces(Acc, Tabsize -Int (Col %Int Tabsize)),
+      Tabsize,
+      Col +Int (Tabsize -Int (Col %Int Tabsize)))
+    requires bytearrayTabByte(V)
+      andBool Tabsize >Int 0
+  rule bytearrayExpandTabsScan(valItemsCons(V:Val, Rest:ValItems), Acc:Val, Tabsize:Int, _Col:Int) =>
+    bytearrayExpandTabsScan(Rest, bytearrayAppendByte(Acc, V), Tabsize, 0)
+    requires bytearrayNewlineByte(V)
+  rule bytearrayExpandTabsScan(valItemsCons(V:Val, Rest:ValItems), Acc:Val, Tabsize:Int, Col:Int) =>
+    bytearrayExpandTabsScan(Rest, bytearrayAppendByte(Acc, V), Tabsize, Col +Int 1)
+    requires isIntLike(V)
+      andBool notBool bytearrayTabByte(V)
+      andBool notBool bytearrayNewlineByte(V)
   rule bytearrayDel(valItemsLast(_:Val), 0) => #bytearray()
   rule bytearrayDel(valItemsCons(_:Val, VS:ValItems), 0) => bytearrayVal(VS)
   rule bytearrayDel(valItemsCons(V0:Val, VS:ValItems), I:Int) =>
@@ -16673,6 +16723,10 @@ module PYTHON
        <env> ... X |-> B:Val ... </env>
     requires Id2String(Method) ==String "splitlines"
       andBool isBytearrayVal(B)
+  rule <k> #methodCall0(X:Id, Method:Id) => bytearrayExpandTabs(B, 8) ... </k>
+       <env> ... X |-> B:Val ... </env>
+    requires Id2String(Method) ==String "expandtabs"
+      andBool isBytearrayVal(B)
   rule <k> #methodCall0(X:Id, _Method:Id) =>
            exceptionSignal(#exception(#token("NameError", "Id")))
        ... </k>
@@ -16685,6 +16739,7 @@ module PYTHON
     requires (Id2String(Method) ==String "clear"
               orBool Id2String(Method) ==String "capitalize"
               orBool Id2String(Method) ==String "copy"
+              orBool Id2String(Method) ==String "expandtabs"
               orBool Id2String(Method) ==String "isalnum"
               orBool Id2String(Method) ==String "isalpha"
               orBool Id2String(Method) ==String "isascii"
@@ -16788,6 +16843,18 @@ module PYTHON
        <env> ... X |-> B:Val ... </env>
     requires Id2String(Method) ==String "splitlines"
       andBool isBytearrayVal(B)
+  rule <k> #methodCall(X:Id, Method:Id, Tabsize:Val) => bytearrayExpandTabs(B, intValue(Tabsize)) ... </k>
+       <env> ... X |-> B:Val ... </env>
+    requires Id2String(Method) ==String "expandtabs"
+      andBool isBytearrayVal(B)
+      andBool isIntLike(Tabsize)
+  rule <k> #methodCall(X:Id, Method:Id, Tabsize:Val) =>
+           exceptionSignal(#exception(#token("TypeError", "Id")))
+       ... </k>
+       <env> ... X |-> B:Val ... </env>
+    requires Id2String(Method) ==String "expandtabs"
+      andBool isBytearrayVal(B)
+      andBool notBool isIntLike(Tabsize)
   rule <k> #methodCall(X:Id, Method:Id, W:Val) => bytearrayCenter(B, W, 32) ... </k>
        <env> ... X |-> B:Val ... </env>
     requires Id2String(Method) ==String "center"
@@ -17305,6 +17372,7 @@ module PYTHON
               orBool Id2String(Method) ==String "center"
               orBool Id2String(Method) ==String "count"
               orBool Id2String(Method) ==String "endswith"
+              orBool Id2String(Method) ==String "expandtabs"
               orBool Id2String(Method) ==String "extend"
               orBool Id2String(Method) ==String "find"
               orBool Id2String(Method) ==String "index"

@@ -1415,10 +1415,18 @@ module PYTHON
                 | bytesPercentMappingFormatSupported(ValItems) [function, symbol(bytesPercentMappingFormatSupported)]
                 | bytesPercentMappingSpecSupported(ValItems) [function, symbol(bytesPercentMappingSpecSupported)]
                 | bytesPercentMappingKeyClosed(ValItems, Int) [function, symbol(bytesPercentMappingKeyClosed)]
+                | bytesPercentMappingRawKeyClosed(ValItems, Int) [function, symbol(bytesPercentMappingRawKeyClosed)]
+                | bytesPercentMappingStarKeyClosed(ValItems, Int) [function, symbol(bytesPercentMappingStarKeyClosed)]
                 | bytesPercentMappingBodyAtEnd(ValItems) [function, symbol(bytesPercentMappingBodyAtEnd)]
                 | bytesPercentMappingBodyHasRest(ValItems) [function, symbol(bytesPercentMappingBodyHasRest)]
+                | bytesPercentMappingBodyHasRawRest(ValItems) [function, symbol(bytesPercentMappingBodyHasRawRest)]
+                | bytesPercentMappingBodyStar(ValItems) [function, symbol(bytesPercentMappingBodyStar)]
+                | bytesPercentMappingBodyStarAfterStar(ValItems) [function, symbol(bytesPercentMappingBodyStarAfterStar)]
+                | bytesPercentMappingStarFormat(ValItems) [function, symbol(bytesPercentMappingStarFormat)]
+                | bytesPercentMappingNoStarFormat(ValItems) [function, symbol(bytesPercentMappingNoStarFormat)]
                 | bytesPercentMappingIncomplete(ValItems) [function, symbol(bytesPercentMappingIncomplete)]
                 | bytesPercentMappingKeysOk(ValItems, DictItems) [function, symbol(bytesPercentMappingKeysOk)]
+                | bytesPercentMappingStarKeysOk(ValItems, DictItems) [function, symbol(bytesPercentMappingStarKeysOk)]
                 | bytesPercentMappingConversionsOk(ValItems, DictItems) [function, symbol(bytesPercentMappingConversionsOk)]
                 | bytesPercentMappingBodyConversionOk(ValItems, Val) [function, symbol(bytesPercentMappingBodyConversionOk)]
                 | bytesPercentMappingOverflow(ValItems, DictItems) [function, symbol(bytesPercentMappingOverflow)]
@@ -2137,6 +2145,7 @@ module PYTHON
   syntax ValItems ::= bytesPercentMappingBody(ValItems) [function, symbol(bytesPercentMappingBody)]
   syntax ValItems ::= bytesPercentMappingBodyFrom(ValItems, Int) [function, symbol(bytesPercentMappingBodyFrom)]
   syntax ValItems ::= bytesPercentMappingBodyRest(ValItems) [function, symbol(bytesPercentMappingBodyRest)]
+  syntax ValItems ::= bytesPercentMappingBodyRestRaw(ValItems) [function, symbol(bytesPercentMappingBodyRestRaw)]
   syntax ValItems ::= bytesPercentMappingRest(ValItems) [function, symbol(bytesPercentMappingRest)]
   syntax ValItems ::= byteItems(ValItems) [function, symbol(byteItems)]
   syntax ValItems ::= bytearrayExtendSourceItems(Val) [function, symbol(bytearrayExtendSourceItems)]
@@ -8889,6 +8898,9 @@ module PYTHON
   rule bytesPercentMappingKeyClosed(valItemsCons(41, Rest:ValItems), 1) =>
     bytesPercentMappingBodyAtEnd(Rest)
       orBool bytesPercentMappingBodyHasRest(Rest)
+    requires notBool bytesPercentMappingBodyStar(Rest)
+  rule bytesPercentMappingKeyClosed(valItemsCons(41, Rest:ValItems), 1) => false
+    requires bytesPercentMappingBodyStar(Rest)
   rule bytesPercentMappingKeyClosed(valItemsCons(41, Rest:ValItems), Depth:Int) =>
     bytesPercentMappingKeyClosed(Rest, Depth -Int 1)
     requires Depth >Int 1
@@ -8899,6 +8911,31 @@ module PYTHON
     requires intValue(C) =/=Int 40
       andBool intValue(C) =/=Int 41
   rule bytesPercentMappingKeyClosed(_VS:ValItems, _Depth:Int) => false [owise]
+
+  rule bytesPercentMappingRawKeyClosed(valItemsCons(41, _Rest:ValItems), 1) => true
+  rule bytesPercentMappingRawKeyClosed(valItemsCons(41, Rest:ValItems), Depth:Int) =>
+    bytesPercentMappingRawKeyClosed(Rest, Depth -Int 1)
+    requires Depth >Int 1
+  rule bytesPercentMappingRawKeyClosed(valItemsCons(40, Rest:ValItems), Depth:Int) =>
+    bytesPercentMappingRawKeyClosed(Rest, Depth +Int 1)
+  rule bytesPercentMappingRawKeyClosed(valItemsCons(C:Val, Rest:ValItems), Depth:Int) =>
+    bytesPercentMappingRawKeyClosed(Rest, Depth)
+    requires intValue(C) =/=Int 40
+      andBool intValue(C) =/=Int 41
+  rule bytesPercentMappingRawKeyClosed(_VS:ValItems, _Depth:Int) => false [owise]
+
+  rule bytesPercentMappingStarKeyClosed(valItemsCons(41, Rest:ValItems), 1) =>
+    bytesPercentMappingBodyStar(Rest)
+  rule bytesPercentMappingStarKeyClosed(valItemsCons(41, Rest:ValItems), Depth:Int) =>
+    bytesPercentMappingStarKeyClosed(Rest, Depth -Int 1)
+    requires Depth >Int 1
+  rule bytesPercentMappingStarKeyClosed(valItemsCons(40, Rest:ValItems), Depth:Int) =>
+    bytesPercentMappingStarKeyClosed(Rest, Depth +Int 1)
+  rule bytesPercentMappingStarKeyClosed(valItemsCons(C:Val, Rest:ValItems), Depth:Int) =>
+    bytesPercentMappingStarKeyClosed(Rest, Depth)
+    requires intValue(C) =/=Int 40
+      andBool intValue(C) =/=Int 41
+  rule bytesPercentMappingStarKeyClosed(_VS:ValItems, _Depth:Int) => false [owise]
 
   rule bytesPercentMappingKey(Tail:ValItems) => bytesPercentMappingKeyFrom(Tail, 1, #bytes())
   rule bytesPercentMappingKeyFrom(valItemsCons(41, _Rest:ValItems), 1, Acc:Val) => Acc
@@ -8952,6 +8989,42 @@ module PYTHON
       andBool notBool bytesPercentFieldAtEnd(Body)
   rule bytesPercentMappingBodyHasRest(_Body:ValItems) => false [owise]
 
+  rule bytesPercentMappingBodyHasRawRest(valItemsLast(C:Val)) => false
+    requires bytesPercentConversionCode(intValue(C))
+  rule bytesPercentMappingBodyHasRawRest(valItemsCons(C:Val, _Rest:ValItems)) => true
+    requires bytesPercentConversionCode(intValue(C))
+  rule bytesPercentMappingBodyHasRawRest(valItemsCons(C:Val, Rest:ValItems)) =>
+    bytesPercentMappingBodyHasRawRest(Rest)
+    requires notBool bytesPercentConversionCode(intValue(C))
+  rule bytesPercentMappingBodyHasRawRest(_Body:ValItems) => false [owise]
+
+  rule bytesPercentMappingBodyStar(valItemsLast(C:Val)) => false
+    requires bytesPercentConversionCode(intValue(C))
+  rule bytesPercentMappingBodyStar(valItemsCons(C:Val, _Rest:ValItems)) => false
+    requires bytesPercentConversionCode(intValue(C))
+  rule bytesPercentMappingBodyStar(valItemsCons(42, Rest:ValItems)) =>
+    bytesPercentMappingBodyStarAfterStar(Rest)
+  rule bytesPercentMappingBodyStar(valItemsCons(C:Val, Rest:ValItems)) =>
+    bytesPercentMappingBodyStar(Rest)
+    requires intValue(C) =/=Int 42
+      andBool notBool bytesPercentConversionCode(intValue(C))
+  rule bytesPercentMappingBodyStar(_Body:ValItems) => false [owise]
+
+  rule bytesPercentMappingBodyStarAfterStar(valItemsLast(C:Val)) =>
+    bytesPercentConversionCode(intValue(C))
+  rule bytesPercentMappingBodyStarAfterStar(valItemsCons(C:Val, _Rest:ValItems)) => true
+    requires bytesPercentConversionCode(intValue(C))
+  rule bytesPercentMappingBodyStarAfterStar(valItemsCons(C:Val, Rest:ValItems)) =>
+    bytesPercentMappingBodyStarAfterStar(Rest)
+    requires notBool bytesPercentConversionCode(intValue(C))
+  rule bytesPercentMappingBodyStarAfterStar(_Body:ValItems) => false [owise]
+
+  rule bytesPercentMappingBodyRestRaw(valItemsCons(C:Val, Rest:ValItems)) => Rest
+    requires bytesPercentConversionCode(intValue(C))
+  rule bytesPercentMappingBodyRestRaw(valItemsCons(C:Val, Rest:ValItems)) =>
+    bytesPercentMappingBodyRestRaw(Rest)
+    requires notBool bytesPercentConversionCode(intValue(C))
+
   rule bytesPercentMappingBodyRest(Body:ValItems) => bytesPercentLengthRest(Body)
     requires bytesPercentLengthSpec(Body)
       andBool notBool bytesPercentLengthAtEnd(Body)
@@ -8990,6 +9063,27 @@ module PYTHON
     requires bytesPercentMappingSpecSupported(Tail)
   rule bytesPercentMappingFormatSupported(_VS:ValItems) => false [owise]
 
+  rule bytesPercentMappingStarFormat(valItemsLast(_V:Val)) => false
+  rule bytesPercentMappingStarFormat(valItemsCons(V:Val, Rest:ValItems)) =>
+    bytesPercentMappingStarFormat(Rest)
+    requires intValue(V) =/=Int 37
+  rule bytesPercentMappingStarFormat(valItemsCons(37, valItemsLast(37))) => false
+  rule bytesPercentMappingStarFormat(valItemsCons(37, valItemsCons(37, Rest:ValItems))) =>
+    bytesPercentMappingStarFormat(Rest)
+  rule bytesPercentMappingStarFormat(valItemsCons(37, valItemsCons(40, Tail:ValItems))) => true
+    requires bytesPercentMappingStarKeyClosed(Tail, 1)
+  rule bytesPercentMappingStarFormat(valItemsCons(37, valItemsCons(40, Tail:ValItems))) =>
+    bytesPercentMappingStarFormat(bytesPercentMappingBodyRestRaw(bytesPercentMappingBody(Tail)))
+    requires bytesPercentMappingRawKeyClosed(Tail, 1)
+      andBool notBool bytesPercentMappingStarKeyClosed(Tail, 1)
+      andBool bytesPercentMappingBodyHasRawRest(bytesPercentMappingBody(Tail))
+  rule bytesPercentMappingStarFormat(_VS:ValItems) => false [owise]
+
+  rule bytesPercentMappingNoStarFormat(FS:ValItems) => true
+    requires notBool bytesContainsByte(FS, 42)
+  rule bytesPercentMappingNoStarFormat(FS:ValItems) => notBool bytesPercentMappingStarFormat(FS)
+    requires bytesContainsByte(FS, 42)
+
   rule bytesPercentMappingIncomplete(valItemsLast(_V:Val)) => false
   rule bytesPercentMappingIncomplete(valItemsCons(V:Val, Rest:ValItems)) =>
     bytesPercentMappingIncomplete(Rest)
@@ -8998,14 +9092,18 @@ module PYTHON
   rule bytesPercentMappingIncomplete(valItemsCons(37, valItemsCons(37, Rest:ValItems))) =>
     bytesPercentMappingIncomplete(Rest)
   rule bytesPercentMappingIncomplete(valItemsCons(37, valItemsCons(40, Tail:ValItems))) => true
-    requires notBool bytesPercentMappingKeyClosed(Tail, 1)
+    requires notBool bytesPercentMappingRawKeyClosed(Tail, 1)
   rule bytesPercentMappingIncomplete(valItemsCons(37, valItemsCons(40, Tail:ValItems))) => false
-    requires bytesPercentMappingKeyClosed(Tail, 1)
-      andBool bytesPercentMappingBodyAtEnd(bytesPercentMappingBody(Tail))
+    requires bytesPercentMappingStarKeyClosed(Tail, 1)
+  rule bytesPercentMappingIncomplete(valItemsCons(37, valItemsCons(40, Tail:ValItems))) => false
+    requires bytesPercentMappingRawKeyClosed(Tail, 1)
+      andBool notBool bytesPercentMappingStarKeyClosed(Tail, 1)
+      andBool notBool bytesPercentMappingBodyHasRawRest(bytesPercentMappingBody(Tail))
   rule bytesPercentMappingIncomplete(valItemsCons(37, valItemsCons(40, Tail:ValItems))) =>
-    bytesPercentMappingIncomplete(bytesPercentMappingRest(Tail))
-    requires bytesPercentMappingKeyClosed(Tail, 1)
-      andBool bytesPercentMappingBodyHasRest(bytesPercentMappingBody(Tail))
+    bytesPercentMappingIncomplete(bytesPercentMappingBodyRestRaw(bytesPercentMappingBody(Tail)))
+    requires bytesPercentMappingRawKeyClosed(Tail, 1)
+      andBool notBool bytesPercentMappingStarKeyClosed(Tail, 1)
+      andBool bytesPercentMappingBodyHasRawRest(bytesPercentMappingBody(Tail))
   rule bytesPercentMappingIncomplete(_VS:ValItems) => false [owise]
 
   rule bytesPercentFormatSupported(valItemsLast(V:Val)) => intValue(V) =/=Int 37
@@ -9317,6 +9415,24 @@ module PYTHON
     requires bytesPercentMappingKeyClosed(Tail, 1)
       andBool bytesPercentMappingBodyHasRest(bytesPercentMappingBody(Tail))
   rule bytesPercentMappingKeysOk(_VS:ValItems, _DS:DictItems) => false [owise]
+
+  rule bytesPercentMappingStarKeysOk(valItemsLast(_V:Val), _DS:DictItems) => true
+  rule bytesPercentMappingStarKeysOk(valItemsCons(V:Val, Rest:ValItems), DS:DictItems) =>
+    bytesPercentMappingStarKeysOk(Rest, DS)
+    requires intValue(V) =/=Int 37
+  rule bytesPercentMappingStarKeysOk(valItemsCons(37, valItemsLast(37)), _DS:DictItems) => true
+  rule bytesPercentMappingStarKeysOk(valItemsCons(37, valItemsCons(37, Rest:ValItems)), DS:DictItems) =>
+    bytesPercentMappingStarKeysOk(Rest, DS)
+  rule bytesPercentMappingStarKeysOk(valItemsCons(37, valItemsCons(40, Tail:ValItems)), DS:DictItems) =>
+    containsKey(bytesPercentMappingKey(Tail), DS)
+    requires bytesPercentMappingStarKeyClosed(Tail, 1)
+  rule bytesPercentMappingStarKeysOk(valItemsCons(37, valItemsCons(40, Tail:ValItems)), DS:DictItems) =>
+    containsKey(bytesPercentMappingKey(Tail), DS)
+      andBool bytesPercentMappingStarKeysOk(bytesPercentMappingBodyRestRaw(bytesPercentMappingBody(Tail)), DS)
+    requires bytesPercentMappingRawKeyClosed(Tail, 1)
+      andBool notBool bytesPercentMappingStarKeyClosed(Tail, 1)
+      andBool bytesPercentMappingBodyHasRawRest(bytesPercentMappingBody(Tail))
+  rule bytesPercentMappingStarKeysOk(_VS:ValItems, _DS:DictItems) => false [owise]
 
   rule bytesPercentMappingBodyConversionOk(Body:ValItems, V:Val) =>
     bytesPercentConversionOk(bytesPercentLengthSpecCode(Body), V)
@@ -13935,12 +14051,30 @@ module PYTHON
        ... </k>
     requires bytesPercentMappingRequiresMapping(FS)
       andBool notBool bytesPercentMappingIncomplete(FS)
+      andBool bytesContainsByte(FS, 42)
+      andBool bytesPercentMappingStarFormat(FS)
+      andBool notBool bytesPercentMappingStarKeysOk(FS, DS)
+  rule <k> bytesVal(FS:ValItems) % dictVal(DS:DictItems) =>
+           exceptionSignal(#exception(#token("TypeError", "Id")))
+       ... </k>
+    requires bytesPercentMappingRequiresMapping(FS)
+      andBool notBool bytesPercentMappingIncomplete(FS)
+      andBool bytesContainsByte(FS, 42)
+      andBool bytesPercentMappingStarFormat(FS)
+      andBool bytesPercentMappingStarKeysOk(FS, DS)
+  rule <k> bytesVal(FS:ValItems) % dictVal(DS:DictItems) =>
+           exceptionSignal(#exception(#token("KeyError", "Id")))
+       ... </k>
+    requires bytesPercentMappingRequiresMapping(FS)
+      andBool notBool bytesPercentMappingIncomplete(FS)
+      andBool bytesPercentMappingNoStarFormat(FS)
       andBool bytesPercentMappingFormatSupported(FS)
       andBool notBool bytesPercentMappingKeysOk(FS, DS)
   rule bytesVal(FS:ValItems) % dictVal(DS:DictItems) =>
     bytesPercentMappingScan(FS, DS, #bytes())
     requires bytesPercentMappingRequiresMapping(FS)
       andBool notBool bytesPercentMappingIncomplete(FS)
+      andBool bytesPercentMappingNoStarFormat(FS)
       andBool bytesPercentMappingFormatSupported(FS)
       andBool bytesPercentMappingKeysOk(FS, DS)
   rule <k> bytesVal(FS:ValItems) % dictVal(_DS:DictItems) =>
@@ -13948,6 +14082,7 @@ module PYTHON
        ... </k>
     requires bytesPercentMappingRequiresMapping(FS)
       andBool notBool bytesPercentMappingIncomplete(FS)
+      andBool bytesPercentMappingNoStarFormat(FS)
       andBool notBool bytesPercentMappingFormatSupported(FS)
 
   rule bytesVal(FS:ValItems) % Values:Val =>
@@ -14006,12 +14141,30 @@ module PYTHON
        ... </k>
     requires bytesPercentMappingRequiresMapping(FS)
       andBool notBool bytesPercentMappingIncomplete(FS)
+      andBool bytesContainsByte(FS, 42)
+      andBool bytesPercentMappingStarFormat(FS)
+      andBool notBool bytesPercentMappingStarKeysOk(FS, DS)
+  rule <k> bytearrayVal(FS:ValItems) % dictVal(DS:DictItems) =>
+           exceptionSignal(#exception(#token("TypeError", "Id")))
+       ... </k>
+    requires bytesPercentMappingRequiresMapping(FS)
+      andBool notBool bytesPercentMappingIncomplete(FS)
+      andBool bytesContainsByte(FS, 42)
+      andBool bytesPercentMappingStarFormat(FS)
+      andBool bytesPercentMappingStarKeysOk(FS, DS)
+  rule <k> bytearrayVal(FS:ValItems) % dictVal(DS:DictItems) =>
+           exceptionSignal(#exception(#token("KeyError", "Id")))
+       ... </k>
+    requires bytesPercentMappingRequiresMapping(FS)
+      andBool notBool bytesPercentMappingIncomplete(FS)
+      andBool bytesPercentMappingNoStarFormat(FS)
       andBool bytesPercentMappingFormatSupported(FS)
       andBool notBool bytesPercentMappingKeysOk(FS, DS)
   rule bytearrayVal(FS:ValItems) % dictVal(DS:DictItems) =>
     bytesPercentMappingScan(FS, DS, #bytearray())
     requires bytesPercentMappingRequiresMapping(FS)
       andBool notBool bytesPercentMappingIncomplete(FS)
+      andBool bytesPercentMappingNoStarFormat(FS)
       andBool bytesPercentMappingFormatSupported(FS)
       andBool bytesPercentMappingKeysOk(FS, DS)
   rule <k> bytearrayVal(FS:ValItems) % dictVal(_DS:DictItems) =>
@@ -14019,6 +14172,7 @@ module PYTHON
        ... </k>
     requires bytesPercentMappingRequiresMapping(FS)
       andBool notBool bytesPercentMappingIncomplete(FS)
+      andBool bytesPercentMappingNoStarFormat(FS)
       andBool notBool bytesPercentMappingFormatSupported(FS)
 
   rule <k> bytesPercentMappingExecEmpty(valItemsLast(_V:Val)) =>

@@ -1772,6 +1772,8 @@ module PYTHON
                   | bytearrayHexSepItems(ValItems, String, Int, Int, Int) [function, symbol(bytearrayHexSepItems)]
                   | bytearrayHexSepPrefix(String, Int, Int, Int) [function, symbol(bytearrayHexSepPrefix)]
                   | bytearrayHexSepString(Val) [function, symbol(bytearrayHexSepString)]
+                  | bytesHex(Val) [function, symbol(bytesHex)]
+                  | bytesHexWithSep(Val, String, Int) [function, symbol(bytesHexWithSep)]
                   | unicodeChar(Int) [function, symbol(unicodeChar)]
                   | utf8ByteString(Int, Int, Int, Int) [function, symbol(utf8ByteString4)]
                   | pyIntBaseString(Int, Int, String) [function, symbol(pyIntBaseString)]
@@ -2037,6 +2039,9 @@ module PYTHON
                | bytearrayExpandTabs(Val, Int) [function, symbol(bytearrayExpandTabs)]
                | bytearrayExpandTabsScan(ValItems, Val, Int, Int) [function, symbol(bytearrayExpandTabsScan)]
                | bytearrayAppendSpaces(Val, Int) [function, symbol(bytearrayAppendSpaces)]
+               | bytesExpandTabs(Val, Int) [function, symbol(bytesExpandTabs)]
+               | bytesExpandTabsScan(ValItems, Val, Int, Int) [function, symbol(bytesExpandTabsScan)]
+               | bytesAppendSpaces(Val, Int) [function, symbol(bytesAppendSpaces)]
                | bytearraySearchWindow(Val, Val, Val) [function, symbol(bytearraySearchWindow)]
                | bytesStringUtf8(String) [function, symbol(bytesStringUtf8)]
                | bytesStringAscii(String) [function, symbol(bytesStringAscii)]
@@ -2834,6 +2839,11 @@ module PYTHON
     requires bytearrayHexSepOk(S)
   rule bytearrayHexSepString(bytesVal(VS:ValItems)) => bytesAsciiString(VS)
     requires bytearrayHexSepOk(bytesVal(VS))
+  rule bytesHex(#bytes()) => ""
+  rule bytesHex(bytesVal(VS:ValItems)) => bytearrayHexItems(VS)
+  rule bytesHexWithSep(#bytes(), _Sep:String, _BytesPerSep:Int) => ""
+  rule bytesHexWithSep(bytesVal(VS:ValItems), Sep:String, BytesPerSep:Int) =>
+    bytearrayHexSepItems(VS, Sep, BytesPerSep, valItemsLen(VS), 0)
 
   rule pyIntBaseString(0, _Base:Int, Prefix:String) => Prefix +String "0"
   rule pyIntBaseString(I:Int, Base:Int, Prefix:String) => Prefix +String intBaseDigits(I, Base)
@@ -7852,6 +7862,49 @@ module PYTHON
     requires bytearrayNewlineByte(V)
   rule bytearrayExpandTabsScan(valItemsCons(V:Val, Rest:ValItems), Acc:Val, Tabsize:Int, Col:Int) =>
     bytearrayExpandTabsScan(Rest, bytearrayAppendByte(Acc, V), Tabsize, Col +Int 1)
+    requires isIntLike(V)
+      andBool notBool bytearrayTabByte(V)
+      andBool notBool bytearrayNewlineByte(V)
+  rule bytesAppendSpaces(B:Val, N:Int) => B
+    requires isBytesVal(B)
+      andBool N <=Int 0
+  rule bytesAppendSpaces(B:Val, N:Int) => bytesConcat(B, bytesVal(byteRepeatItems(32, N)))
+    requires isBytesVal(B)
+      andBool N >Int 0
+  rule bytesExpandTabs(#bytes(), _Tabsize:Int) => #bytes()
+  rule bytesExpandTabs(bytesVal(VS:ValItems), Tabsize:Int) =>
+    bytesExpandTabsScan(VS, #bytes(), Tabsize, 0)
+  rule bytesExpandTabsScan(valItemsLast(V:Val), Acc:Val, Tabsize:Int, _Col:Int) => Acc
+    requires bytearrayTabByte(V)
+      andBool Tabsize <=Int 0
+  rule bytesExpandTabsScan(valItemsLast(V:Val), Acc:Val, Tabsize:Int, Col:Int) =>
+    bytesAppendSpaces(Acc, Tabsize -Int (Col %Int Tabsize))
+    requires bytearrayTabByte(V)
+      andBool Tabsize >Int 0
+  rule bytesExpandTabsScan(valItemsLast(V:Val), Acc:Val, _Tabsize:Int, _Col:Int) =>
+    bytesAppendByte(Acc, V)
+    requires bytearrayNewlineByte(V)
+  rule bytesExpandTabsScan(valItemsLast(V:Val), Acc:Val, _Tabsize:Int, _Col:Int) =>
+    bytesAppendByte(Acc, V)
+    requires isIntLike(V)
+      andBool notBool bytearrayTabByte(V)
+      andBool notBool bytearrayNewlineByte(V)
+  rule bytesExpandTabsScan(valItemsCons(V:Val, Rest:ValItems), Acc:Val, Tabsize:Int, Col:Int) =>
+    bytesExpandTabsScan(Rest, Acc, Tabsize, Col)
+    requires bytearrayTabByte(V)
+      andBool Tabsize <=Int 0
+  rule bytesExpandTabsScan(valItemsCons(V:Val, Rest:ValItems), Acc:Val, Tabsize:Int, Col:Int) =>
+    bytesExpandTabsScan(Rest,
+      bytesAppendSpaces(Acc, Tabsize -Int (Col %Int Tabsize)),
+      Tabsize,
+      Col +Int (Tabsize -Int (Col %Int Tabsize)))
+    requires bytearrayTabByte(V)
+      andBool Tabsize >Int 0
+  rule bytesExpandTabsScan(valItemsCons(V:Val, Rest:ValItems), Acc:Val, Tabsize:Int, _Col:Int) =>
+    bytesExpandTabsScan(Rest, bytesAppendByte(Acc, V), Tabsize, 0)
+    requires bytearrayNewlineByte(V)
+  rule bytesExpandTabsScan(valItemsCons(V:Val, Rest:ValItems), Acc:Val, Tabsize:Int, Col:Int) =>
+    bytesExpandTabsScan(Rest, bytesAppendByte(Acc, V), Tabsize, Col +Int 1)
     requires isIntLike(V)
       andBool notBool bytearrayTabByte(V)
       andBool notBool bytearrayNewlineByte(V)
@@ -17467,6 +17520,14 @@ module PYTHON
        <env> ... X |-> B:Val ... </env>
     requires Id2String(Method) ==String "splitlines"
       andBool isBytesVal(B)
+  rule <k> #methodCall0(X:Id, Method:Id) => bytesExpandTabs(B, 8) ... </k>
+       <env> ... X |-> B:Val ... </env>
+    requires Id2String(Method) ==String "expandtabs"
+      andBool isBytesVal(B)
+  rule <k> #methodCall0(X:Id, Method:Id) => bytesHex(B) ... </k>
+       <env> ... X |-> B:Val ... </env>
+    requires Id2String(Method) ==String "hex"
+      andBool isBytesVal(B)
   rule <k> #methodCall0(X:Id, Method:Id) => bytearrayExpandTabs(B, 8) ... </k>
        <env> ... X |-> B:Val ... </env>
     requires Id2String(Method) ==String "expandtabs"
@@ -17517,6 +17578,8 @@ module PYTHON
         orBool Id2String(Method) ==String "isalpha"
         orBool Id2String(Method) ==String "isascii"
         orBool Id2String(Method) ==String "isdigit"
+        orBool Id2String(Method) ==String "expandtabs"
+        orBool Id2String(Method) ==String "hex"
         orBool Id2String(Method) ==String "islower"
         orBool Id2String(Method) ==String "isspace"
         orBool Id2String(Method) ==String "istitle"
@@ -17815,6 +17878,40 @@ module PYTHON
        <env> ... X |-> B:Val ... </env>
     requires Id2String(Method) ==String "hex"
       andBool isBytearrayVal(B)
+      andBool notBool bytearrayHexSepOk(Sep)
+      andBool notBool bytearrayHexSepValueError(Sep)
+  rule <k> #methodCall(X:Id, Method:Id, Tabsize:Val) => bytesExpandTabs(B, intValue(Tabsize)) ... </k>
+       <env> ... X |-> B:Val ... </env>
+    requires Id2String(Method) ==String "expandtabs"
+      andBool isBytesVal(B)
+      andBool isIntLike(Tabsize)
+  rule <k> #methodCall(X:Id, Method:Id, Tabsize:Val) =>
+           exceptionSignal(#exception(#token("TypeError", "Id")))
+       ... </k>
+       <env> ... X |-> B:Val ... </env>
+    requires Id2String(Method) ==String "expandtabs"
+      andBool isBytesVal(B)
+      andBool notBool isIntLike(Tabsize)
+  rule <k> #methodCall(X:Id, Method:Id, Sep:Val) =>
+           bytesHexWithSep(B, bytearrayHexSepString(Sep), 1)
+       ... </k>
+       <env> ... X |-> B:Val ... </env>
+    requires Id2String(Method) ==String "hex"
+      andBool isBytesVal(B)
+      andBool bytearrayHexSepOk(Sep)
+  rule <k> #methodCall(X:Id, Method:Id, Sep:Val) =>
+           exceptionSignal(#exception(#token("ValueError", "Id")))
+       ... </k>
+       <env> ... X |-> B:Val ... </env>
+    requires Id2String(Method) ==String "hex"
+      andBool isBytesVal(B)
+      andBool bytearrayHexSepValueError(Sep)
+  rule <k> #methodCall(X:Id, Method:Id, Sep:Val) =>
+           exceptionSignal(#exception(#token("TypeError", "Id")))
+       ... </k>
+       <env> ... X |-> B:Val ... </env>
+    requires Id2String(Method) ==String "hex"
+      andBool isBytesVal(B)
       andBool notBool bytearrayHexSepOk(Sep)
       andBool notBool bytearrayHexSepValueError(Sep)
   rule <k> #methodCall(X:Id, Method:Id, W:Val) => bytearrayCenter(B, W, 32) ... </k>
@@ -18735,7 +18832,9 @@ module PYTHON
         orBool Id2String(Method) ==String "removesuffix"
         orBool Id2String(Method) ==String "center"
         orBool Id2String(Method) ==String "count"
+        orBool Id2String(Method) ==String "expandtabs"
         orBool Id2String(Method) ==String "find"
+        orBool Id2String(Method) ==String "hex"
         orBool Id2String(Method) ==String "index"
         orBool Id2String(Method) ==String "ljust"
         orBool Id2String(Method) ==String "rfind"
@@ -18923,12 +19022,45 @@ module PYTHON
       andBool isIntLike(BytesPerSep)
       andBool notBool bytearrayHexSepOk(Sep)
       andBool notBool bytearrayHexSepValueError(Sep)
+  rule <k> #methodCall2(X:Id, Method:Id, _Sep:Val, BytesPerSep:Val) =>
+           exceptionSignal(#exception(#token("TypeError", "Id")))
+       ... </k>
+       <env> ... X |-> B:Val ... </env>
+    requires Id2String(Method) ==String "hex"
+      andBool isBytesVal(B)
+      andBool notBool isIntLike(BytesPerSep)
+  rule <k> #methodCall2(X:Id, Method:Id, Sep:Val, BytesPerSep:Val) =>
+           bytesHexWithSep(B, bytearrayHexSepString(Sep), intValue(BytesPerSep))
+       ... </k>
+       <env> ... X |-> B:Val ... </env>
+    requires Id2String(Method) ==String "hex"
+      andBool isBytesVal(B)
+      andBool isIntLike(BytesPerSep)
+      andBool bytearrayHexSepOk(Sep)
+  rule <k> #methodCall2(X:Id, Method:Id, Sep:Val, BytesPerSep:Val) =>
+           exceptionSignal(#exception(#token("ValueError", "Id")))
+       ... </k>
+       <env> ... X |-> B:Val ... </env>
+    requires Id2String(Method) ==String "hex"
+      andBool isBytesVal(B)
+      andBool isIntLike(BytesPerSep)
+      andBool bytearrayHexSepValueError(Sep)
+  rule <k> #methodCall2(X:Id, Method:Id, Sep:Val, BytesPerSep:Val) =>
+           exceptionSignal(#exception(#token("TypeError", "Id")))
+       ... </k>
+       <env> ... X |-> B:Val ... </env>
+    requires Id2String(Method) ==String "hex"
+      andBool isBytesVal(B)
+      andBool isIntLike(BytesPerSep)
+      andBool notBool bytearrayHexSepOk(Sep)
+      andBool notBool bytearrayHexSepValueError(Sep)
   rule <k> #methodCall2(X:Id, Method:Id, _Sep:Val, _BytesPerSep:Val) =>
            exceptionSignal(#exception(#token("NotImplementedError", "Id")))
        ... </k>
        <env> ... X |-> B:Val ... </env>
     requires Id2String(Method) ==String "hex"
       andBool notBool isBytearrayVal(B)
+      andBool notBool isBytesVal(B)
   rule <k> #methodCall3(X:Id, Method:Id, _Needle:Val, Start:Val, End:Val) =>
            exceptionSignal(#exception(#token("TypeError", "Id")))
        ... </k>

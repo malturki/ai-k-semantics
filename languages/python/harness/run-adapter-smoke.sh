@@ -190,6 +190,8 @@ run_case "adapter-bytes-zfill-signs" "$ROOT/tests/adapter/adapter-bytes-zfill-si
 run_case "adapter-bytes-zfill-diagnostics" "$ROOT/tests/adapter/adapter-bytes-zfill-diagnostics.py" "True ~> .K"
 run_case "adapter-bytes-justify-methods" "$ROOT/tests/adapter/adapter-bytes-justify-methods.py" "True ~> .K"
 run_case "adapter-bytes-justify-diagnostics" "$ROOT/tests/adapter/adapter-bytes-justify-diagnostics.py" "True ~> .K"
+run_case "adapter-bytes-expandtabs-method" "$ROOT/tests/adapter/adapter-bytes-expandtabs-method.py" "True ~> .K"
+run_case "adapter-bytes-hex-method" "$ROOT/tests/adapter/adapter-bytes-hex-method.py" "True ~> .K"
 run_case "adapter-bytes-constructor" "$ROOT/tests/adapter/adapter-bytes-constructor.py" "True ~> .K"
 run_case "adapter-bytes-constructor-errors" "$ROOT/tests/adapter/adapter-bytes-constructor-errors.py" "True ~> .K"
 run_case "adapter-bytes-string-encoding-constructor" "$ROOT/tests/adapter/adapter-bytes-string-encoding-constructor.py" "True ~> .K"

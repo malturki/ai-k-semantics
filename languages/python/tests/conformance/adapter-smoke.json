@@ -697,6 +697,20 @@
       "coverage": ["bytes-methods", "bytes-center-method", "bytes-ljust-method", "bytes-rjust-method", "fillbyte", "type-error", "method-call", "ordinary-python-source-adapter"]
     },
     {
+      "id": "adapter-bytes-expandtabs-method",
+      "source": "../adapter/adapter-bytes-expandtabs-method.py",
+      "reference": "Python Standard Library Built-in Types bytes; expandtabs ASCII tab expansion and LF/CR column reset",
+      "expected_result": "True ~> .K",
+      "coverage": ["bytes-methods", "bytes-expandtabs-method", "ascii-tab-expansion", "method-call", "type-error", "ordinary-python-source-adapter"]
+    },
+    {
+      "id": "adapter-bytes-hex-method",
+      "source": "../adapter/adapter-bytes-hex-method.py",
+      "reference": "Python Standard Library Built-in Types bytes; hex lowercase rendering, separators, grouping, and diagnostics",
+      "expected_result": "True ~> .K",
+      "coverage": ["bytes-methods", "bytes-hex-method", "hexadecimal-rendering", "method-call", "type-error", "value-error", "ordinary-python-source-adapter"]
+    },
+    {
       "id": "adapter-bytes-constructor",
       "source": "../adapter/adapter-bytes-constructor.py",
       "reference": "Python Standard Library Built-in Functions bytes and bytearray constructor interpretation; Built-in Types binary sequence types; CPython Lib/test/test_bytes.py constructor cases",

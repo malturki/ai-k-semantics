@@ -893,6 +893,34 @@
       "coverage": ["bytearray-query-methods", "bytearray-replace-method", "bytes-like-arguments", "non-overlapping-subsequence-replacement", "method-call", "type-error", "ordinary-python-source-adapter"]
     },
     {
+      "id": "adapter-bytearray-join-basic",
+      "source": "../adapter/adapter-bytearray-join-basic.py",
+      "reference": "Python Standard Library Built-in Types bytearray; join iterable concatenation with bytearray separators",
+      "expected_result": "True ~> .K",
+      "coverage": ["bytearray-query-methods", "bytearray-join-method", "bytes-like-arguments", "method-call", "ordinary-python-source-adapter"]
+    },
+    {
+      "id": "adapter-bytearray-join-result-type",
+      "source": "../adapter/adapter-bytearray-join-result-type.py",
+      "reference": "Python Standard Library Built-in Types bytearray; join returns a bytearray object for bytearray separators",
+      "expected_result": "True ~> .K",
+      "coverage": ["bytearray-query-methods", "bytearray-join-method", "result-type", "method-call", "ordinary-python-source-adapter"]
+    },
+    {
+      "id": "adapter-bytearray-join-byteslike",
+      "source": "../adapter/adapter-bytearray-join-byteslike.py",
+      "reference": "Python Standard Library Built-in Types bytearray; join accepts bytearray and memoryview bytes-like items",
+      "expected_result": "True ~> .K",
+      "coverage": ["bytearray-query-methods", "bytearray-join-method", "bytes-like-arguments", "method-call", "ordinary-python-source-adapter"]
+    },
+    {
+      "id": "adapter-bytearray-join-diagnostics",
+      "source": "../adapter/adapter-bytearray-join-diagnostics.py",
+      "reference": "Python Standard Library Built-in Types bytearray; join raises TypeError for non-bytes-like items and non-iterable arguments",
+      "expected_result": "True ~> .K",
+      "coverage": ["bytearray-query-methods", "bytearray-join-method", "bytes-like-arguments", "type-error", "method-call", "ordinary-python-source-adapter"]
+    },
+    {
       "id": "adapter-bytearray-splitlines-method",
       "source": "../adapter/adapter-bytearray-splitlines-method.py",
       "reference": "Python Standard Library Built-in Types bytearray; splitlines over ASCII LF, CR, and CRLF line boundaries with optional keepends truthiness",

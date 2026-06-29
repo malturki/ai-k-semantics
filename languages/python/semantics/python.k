@@ -2041,6 +2041,9 @@ module PYTHON
                | bytesPartitionAt(ValItems, ValItems, Int) [function, symbol(bytesPartitionAt)]
                | bytesRemovePrefix(Val, Val) [function, symbol(bytesRemovePrefix)]
                | bytesRemoveSuffix(Val, Val) [function, symbol(bytesRemoveSuffix)]
+               | bytearrayJoin(Val, Val) [function, symbol(bytearrayJoin)]
+               | bytearrayJoinArgVals(Val, ArgVals) [function, symbol(bytearrayJoinArgVals)]
+               | bytearrayJoinTail(Val, ArgVals) [function, symbol(bytearrayJoinTail)]
                | bytesJoin(Val, Val) [function, symbol(bytesJoin)]
                | bytesJoinArgVals(Val, ArgVals) [function, symbol(bytesJoinArgVals)]
                | bytesJoinTail(Val, ArgVals) [function, symbol(bytesJoinTail)]
@@ -7911,6 +7914,28 @@ module PYTHON
     requires bytearrayAffixNeedleSupported(Suffix)
       andBool notBool bytearrayAffixNeedleEmpty(Suffix)
       andBool notBool bytesSuffix(bytearrayAffixNeedleItems(Suffix), VS)
+
+  rule bytearrayJoin(Sep:Val, Iter:Val) => bytearrayJoinArgVals(Sep, iterableArgVals(Iter))
+    requires isBytearrayVal(Sep)
+      andBool sortedIterableSupported(Iter)
+      andBool argValsAllBytesLike(iterableArgVals(Iter))
+  rule bytearrayJoinArgVals(_Sep:Val, #noArgVals) => #bytearray()
+  rule bytearrayJoinArgVals(_Sep:Val, argValsCons(V:Val, #noArgVals)) => bytearrayBytesLikeValue(V)
+    requires bytearrayAffixNeedleSupported(V)
+  rule bytearrayJoinArgVals(Sep:Val, argValsCons(V:Val, argValsCons(W:Val, VS:ArgVals))) =>
+    bytearrayConcat(bytearrayBytesLikeValue(V), bytearrayJoinTail(Sep, argValsCons(W, VS)))
+    requires isBytearrayVal(Sep)
+      andBool bytearrayAffixNeedleSupported(V)
+      andBool argValsAllBytesLike(argValsCons(W, VS))
+  rule bytearrayJoinTail(Sep:Val, argValsCons(V:Val, #noArgVals)) =>
+    bytearrayConcat(Sep, bytearrayBytesLikeValue(V))
+    requires isBytearrayVal(Sep)
+      andBool bytearrayAffixNeedleSupported(V)
+  rule bytearrayJoinTail(Sep:Val, argValsCons(V:Val, argValsCons(W:Val, VS:ArgVals))) =>
+    bytearrayConcat(Sep, bytearrayConcat(bytearrayBytesLikeValue(V), bytearrayJoinTail(Sep, argValsCons(W, VS))))
+    requires isBytearrayVal(Sep)
+      andBool bytearrayAffixNeedleSupported(V)
+      andBool argValsAllBytesLike(argValsCons(W, VS))
 
   rule bytesJoin(Sep:Val, Iter:Val) => bytesJoinArgVals(Sep, iterableArgVals(Iter))
     requires isBytesVal(Sep)
@@ -17948,6 +17973,12 @@ module PYTHON
       andBool isBytesVal(B)
       andBool sortedIterableSupported(Iter)
       andBool argValsAllBytesLike(iterableArgVals(Iter))
+  rule <k> #methodCall(X:Id, Method:Id, Iter:Val) => bytearrayJoin(B, Iter) ... </k>
+       <env> ... X |-> B:Val ... </env>
+    requires Id2String(Method) ==String "join"
+      andBool isBytearrayVal(B)
+      andBool sortedIterableSupported(Iter)
+      andBool argValsAllBytesLike(iterableArgVals(Iter))
   rule <k> #methodCall(X:Id, Method:Id, Iter:Val) =>
            exceptionSignal(#exception(#token("TypeError", "Id")))
        ... </k>
@@ -17960,7 +17991,22 @@ module PYTHON
        ... </k>
        <env> ... X |-> B:Val ... </env>
     requires Id2String(Method) ==String "join"
+      andBool isBytearrayVal(B)
+      andBool notBool sortedIterableSupported(Iter)
+  rule <k> #methodCall(X:Id, Method:Id, Iter:Val) =>
+           exceptionSignal(#exception(#token("TypeError", "Id")))
+       ... </k>
+       <env> ... X |-> B:Val ... </env>
+    requires Id2String(Method) ==String "join"
       andBool isBytesVal(B)
+      andBool sortedIterableSupported(Iter)
+      andBool notBool argValsAllBytesLike(iterableArgVals(Iter))
+  rule <k> #methodCall(X:Id, Method:Id, Iter:Val) =>
+           exceptionSignal(#exception(#token("TypeError", "Id")))
+       ... </k>
+       <env> ... X |-> B:Val ... </env>
+    requires Id2String(Method) ==String "join"
+      andBool isBytearrayVal(B)
       andBool sortedIterableSupported(Iter)
       andBool notBool argValsAllBytesLike(iterableArgVals(Iter))
   rule <k> #methodCall(X:Id, Method:Id, Arg:Val) => bytearraySplitWhitespace(B, -1) ... </k>

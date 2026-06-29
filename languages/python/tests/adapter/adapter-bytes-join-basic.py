@@ -16,7 +16,7 @@ multi_ok = (
     dash.join([b"a", b"b", b"c"]) == b"a-b-c"
     and empty.join([b"a", b"b", b"c"]) == b"abc"
     and wide.join((b"a", b"b", b"c")) == b"a--b--c"
-    and b"".join([b"", b"a", b""]) == b"a"
+    and empty.join([b"", b"a", b""]) == b"a"
 )
 
 unchanged_ok = dash == b"-" and empty == b"" and wide == b"--"

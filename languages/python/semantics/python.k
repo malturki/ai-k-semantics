@@ -1988,6 +1988,8 @@ module PYTHON
                | bytesLStripBytes(Val, ValItems) [function, symbol(bytesLStripBytes)]
                | bytesRStripBytes(Val, ValItems) [function, symbol(bytesRStripBytes)]
                | bytesLStripBytesItems(ValItems, ValItems) [function, symbol(bytesLStripBytesItems)]
+               | bytesZfill(Val, Val) [function, symbol(bytesZfill)]
+               | bytesZfillItems(ValItems, Int) [function, symbol(bytesZfillItems)]
                | bytesToBytearray(Val) [function, symbol(bytesToBytearray)]
                | bytearrayBytesLikeValue(Val) [function, symbol(bytearrayBytesLikeValue)]
                | bytearrayConcat(Val, Val) [function, symbol(bytearrayConcat)]
@@ -8020,6 +8022,31 @@ module PYTHON
     requires notBool byteSign(V) andBool N >Int 0
   rule bytearrayZfillItems(valItemsCons(V:Val, VS:ValItems), N:Int) =>
     bytearrayVal(concatValItems(zeroByteItems(N), valItemsCons(V, VS)))
+    requires notBool byteSign(V) andBool N >Int 0
+
+  rule bytesZfill(B:Val, W:Val) => B
+    requires isBytesVal(B)
+      andBool isIntLike(W)
+      andBool intValue(W) <=Int pyLen(B)
+  rule bytesZfill(#bytes(), W:Val) => bytesVal(zeroByteItems(intValue(W)))
+    requires isIntLike(W)
+      andBool intValue(W) >Int 0
+  rule bytesZfill(bytesVal(VS:ValItems), W:Val) =>
+    bytesZfillItems(VS, intValue(W) -Int valItemsLen(VS))
+    requires isIntLike(W)
+      andBool intValue(W) >Int valItemsLen(VS)
+
+  rule bytesZfillItems(valItemsLast(V:Val), N:Int) =>
+    bytesVal(valItemsCons(V, zeroByteItems(N)))
+    requires byteSign(V) andBool N >Int 0
+  rule bytesZfillItems(valItemsCons(V:Val, VS:ValItems), N:Int) =>
+    bytesVal(valItemsCons(V, concatValItems(zeroByteItems(N), VS)))
+    requires byteSign(V) andBool N >Int 0
+  rule bytesZfillItems(valItemsLast(V:Val), N:Int) =>
+    bytesVal(concatValItems(zeroByteItems(N), valItemsLast(V)))
+    requires notBool byteSign(V) andBool N >Int 0
+  rule bytesZfillItems(valItemsCons(V:Val, VS:ValItems), N:Int) =>
+    bytesVal(concatValItems(zeroByteItems(N), valItemsCons(V, VS)))
     requires notBool byteSign(V) andBool N >Int 0
 
   rule argValsToSetItems(argValsCons(V:Val, #noArgVals)) => valItemsLast(V)
@@ -17780,6 +17807,18 @@ module PYTHON
     requires Id2String(Method) ==String "zfill"
       andBool isBytearrayVal(B)
       andBool notBool isIntLike(W)
+  rule <k> #methodCall(X:Id, Method:Id, W:Val) => bytesZfill(B, W) ... </k>
+       <env> ... X |-> B:Val ... </env>
+    requires Id2String(Method) ==String "zfill"
+      andBool isBytesVal(B)
+      andBool isIntLike(W)
+  rule <k> #methodCall(X:Id, Method:Id, W:Val) =>
+           exceptionSignal(#exception(#token("TypeError", "Id")))
+       ... </k>
+       <env> ... X |-> B:Val ... </env>
+    requires Id2String(Method) ==String "zfill"
+      andBool isBytesVal(B)
+      andBool notBool isIntLike(W)
   rule <k> #methodCall(X:Id, Method:Id, V:Val) => 0 ... </k>
        <env> ... X |-> #bytearray() ... </env>
     requires Id2String(Method) ==String "count"
@@ -18362,7 +18401,13 @@ module PYTHON
         orBool Id2String(Method) ==String "rpartition"
         orBool Id2String(Method) ==String "removeprefix"
         orBool Id2String(Method) ==String "removesuffix"
-        orBool Id2String(Method) ==String "splitlines") andBool isBytesVal(B))
+        orBool Id2String(Method) ==String "splitlines"
+        orBool Id2String(Method) ==String "lstrip"
+        orBool Id2String(Method) ==String "rstrip"
+        orBool Id2String(Method) ==String "strip"
+        orBool Id2String(Method) ==String "startswith"
+        orBool Id2String(Method) ==String "endswith"
+        orBool Id2String(Method) ==String "zfill") andBool isBytesVal(B))
   rule <k> #methodCall2(X:Id, Method:Id, Needle:Val, Start:Val) =>
            #methodCall3(X, Method, Needle, Start, None)
        ... </k>

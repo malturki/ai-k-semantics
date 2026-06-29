@@ -599,6 +599,27 @@
       "coverage": ["bytes-methods", "bytes-startswith-method", "bytes-endswith-method", "tuple-affixes", "type-error", "method-call", "ordinary-python-source-adapter"]
     },
     {
+      "id": "adapter-bytes-zfill-basic",
+      "source": "../adapter/adapter-bytes-zfill-basic.py",
+      "reference": "Python Standard Library Built-in Types bytes; zfill width padding and no-padding behavior",
+      "expected_result": "True ~> .K",
+      "coverage": ["bytes-methods", "bytes-zfill-method", "width-padding", "method-call", "ordinary-python-source-adapter"]
+    },
+    {
+      "id": "adapter-bytes-zfill-signs",
+      "source": "../adapter/adapter-bytes-zfill-signs.py",
+      "reference": "Python Standard Library Built-in Types bytes; zfill leading sign handling and integer-like widths",
+      "expected_result": "True ~> .K",
+      "coverage": ["bytes-methods", "bytes-zfill-method", "leading-sign", "width-padding", "method-call", "ordinary-python-source-adapter"]
+    },
+    {
+      "id": "adapter-bytes-zfill-diagnostics",
+      "source": "../adapter/adapter-bytes-zfill-diagnostics.py",
+      "reference": "Python Standard Library Built-in Types bytes; zfill non-integer width TypeError diagnostics",
+      "expected_result": "True ~> .K",
+      "coverage": ["bytes-methods", "bytes-zfill-method", "type-error", "method-call", "ordinary-python-source-adapter"]
+    },
+    {
       "id": "adapter-bytes-constructor",
       "source": "../adapter/adapter-bytes-constructor.py",
       "reference": "Python Standard Library Built-in Functions bytes and bytearray constructor interpretation; Built-in Types binary sequence types; CPython Lib/test/test_bytes.py constructor cases",

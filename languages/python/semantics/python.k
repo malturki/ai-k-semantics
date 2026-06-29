@@ -1980,9 +1980,14 @@ module PYTHON
                | bytesSlice(ValItems, Int, Int) [function, symbol(bytesSlice)]
                | bytesSegment(ValItems, Int, Int) [function, symbol(bytesSegment)]
                | bytesReverse(Val) [function, symbol(bytesReverse)]
+               | bytesStripDefault(Val) [function, symbol(bytesStripDefault)]
                | bytesLStripDefault(Val) [function, symbol(bytesLStripDefault)]
                | bytesRStripDefault(Val) [function, symbol(bytesRStripDefault)]
                | bytesLStripDefaultItems(ValItems) [function, symbol(bytesLStripDefaultItems)]
+               | bytesStripBytes(Val, ValItems) [function, symbol(bytesStripBytes)]
+               | bytesLStripBytes(Val, ValItems) [function, symbol(bytesLStripBytes)]
+               | bytesRStripBytes(Val, ValItems) [function, symbol(bytesRStripBytes)]
+               | bytesLStripBytesItems(ValItems, ValItems) [function, symbol(bytesLStripBytesItems)]
                | bytesToBytearray(Val) [function, symbol(bytesToBytearray)]
                | bytearrayBytesLikeValue(Val) [function, symbol(bytearrayBytesLikeValue)]
                | bytearrayConcat(Val, Val) [function, symbol(bytearrayConcat)]
@@ -7506,6 +7511,29 @@ module PYTHON
   rule bytesLStripDefaultItems(valItemsCons(V:Val, VS:ValItems)) => bytesVal(valItemsCons(V, VS))
     requires notBool byteSpace(V)
   rule bytesRStripDefault(B:Val) => bytesReverse(bytesLStripDefault(bytesReverse(B)))
+    requires isBytesVal(B)
+  rule bytesStripDefault(B:Val) => bytesRStripDefault(bytesLStripDefault(B))
+    requires isBytesVal(B)
+
+  rule bytesLStripBytes(#bytes(), _StripSet:ValItems) => #bytes()
+  rule bytesLStripBytes(bytesVal(VS:ValItems), StripSet:ValItems) =>
+    bytesLStripBytesItems(VS, StripSet)
+  rule bytesLStripBytesItems(valItemsLast(V:Val), StripSet:ValItems) => #bytes()
+    requires containsVal(V, StripSet)
+  rule bytesLStripBytesItems(valItemsLast(V:Val), StripSet:ValItems) => bytesVal(valItemsLast(V))
+    requires notBool containsVal(V, StripSet)
+  rule bytesLStripBytesItems(valItemsCons(V:Val, VS:ValItems), StripSet:ValItems) =>
+    bytesLStripBytesItems(VS, StripSet)
+    requires containsVal(V, StripSet)
+  rule bytesLStripBytesItems(valItemsCons(V:Val, VS:ValItems), StripSet:ValItems) =>
+    bytesVal(valItemsCons(V, VS))
+    requires notBool containsVal(V, StripSet)
+  rule bytesRStripBytes(B:Val, StripSet:ValItems) =>
+    bytesReverse(bytesLStripBytes(bytesReverse(B), StripSet))
+    requires isBytesVal(B)
+  rule bytesStripBytes(B:Val, StripSet:ValItems) =>
+    bytesRStripBytes(bytesLStripBytes(B, StripSet), StripSet)
+    requires isBytesVal(B)
 
   rule bytesSplit(B:Val, Sep:Val, Count:Int) =>
     bytesSplitSep(B, bytearrayAffixNeedleItems(Sep), Count)
@@ -17293,6 +17321,18 @@ module PYTHON
   rule <k> #methodCall0(X:Id, Method:Id) => bytesVal(bytesUpperItems(VS)) ... </k>
        <env> ... X |-> bytesVal(VS:ValItems) ... </env>
     requires Id2String(Method) ==String "upper"
+  rule <k> #methodCall0(X:Id, Method:Id) => bytesLStripDefault(B) ... </k>
+       <env> ... X |-> B:Val ... </env>
+    requires Id2String(Method) ==String "lstrip"
+      andBool isBytesVal(B)
+  rule <k> #methodCall0(X:Id, Method:Id) => bytesRStripDefault(B) ... </k>
+       <env> ... X |-> B:Val ... </env>
+    requires Id2String(Method) ==String "rstrip"
+      andBool isBytesVal(B)
+  rule <k> #methodCall0(X:Id, Method:Id) => bytesStripDefault(B) ... </k>
+       <env> ... X |-> B:Val ... </env>
+    requires Id2String(Method) ==String "strip"
+      andBool isBytesVal(B)
   rule <k> #methodCall0(X:Id, Method:Id) => bytearrayLStripDefault(B) ... </k>
        <env> ... X |-> B:Val ... </env>
     requires Id2String(Method) ==String "lstrip"
@@ -17385,7 +17425,10 @@ module PYTHON
         orBool Id2String(Method) ==String "isupper"
         orBool Id2String(Method) ==String "capitalize"
         orBool Id2String(Method) ==String "lower"
+        orBool Id2String(Method) ==String "lstrip"
+        orBool Id2String(Method) ==String "rstrip"
         orBool Id2String(Method) ==String "swapcase"
+        orBool Id2String(Method) ==String "strip"
         orBool Id2String(Method) ==String "title"
         orBool Id2String(Method) ==String "upper") andBool isBytesVal(B))
   rule <k> #methodCall(X:Id, Method:Id, Arg:Val) => bytearrayLStripDefault(B) ... </k>
@@ -17437,6 +17480,57 @@ module PYTHON
               orBool Id2String(Method) ==String "rstrip"
               orBool Id2String(Method) ==String "strip")
       andBool isBytearrayVal(B)
+      andBool notBool isNoneVal(Arg)
+      andBool notBool bytearrayStripArgSupported(Arg)
+  rule <k> #methodCall(X:Id, Method:Id, Arg:Val) => bytesLStripDefault(B) ... </k>
+       <env> ... X |-> B:Val ... </env>
+    requires Id2String(Method) ==String "lstrip"
+      andBool isBytesVal(B)
+      andBool isNoneVal(Arg)
+  rule <k> #methodCall(X:Id, Method:Id, Arg:Val) => bytesRStripDefault(B) ... </k>
+       <env> ... X |-> B:Val ... </env>
+    requires Id2String(Method) ==String "rstrip"
+      andBool isBytesVal(B)
+      andBool isNoneVal(Arg)
+  rule <k> #methodCall(X:Id, Method:Id, Arg:Val) => bytesStripDefault(B) ... </k>
+       <env> ... X |-> B:Val ... </env>
+    requires Id2String(Method) ==String "strip"
+      andBool isBytesVal(B)
+      andBool isNoneVal(Arg)
+  rule <k> #methodCall(X:Id, Method:Id, Arg:Val) => B ... </k>
+       <env> ... X |-> B:Val ... </env>
+    requires (Id2String(Method) ==String "lstrip"
+              orBool Id2String(Method) ==String "rstrip"
+              orBool Id2String(Method) ==String "strip")
+      andBool isBytesVal(B)
+      andBool bytearrayStripArgSupported(Arg)
+      andBool bytearrayStripArgEmpty(Arg)
+  rule <k> #methodCall(X:Id, Method:Id, Arg:Val) => bytesLStripBytes(B, bytearrayStripArgItems(Arg)) ... </k>
+       <env> ... X |-> B:Val ... </env>
+    requires Id2String(Method) ==String "lstrip"
+      andBool isBytesVal(B)
+      andBool bytearrayStripArgSupported(Arg)
+      andBool notBool bytearrayStripArgEmpty(Arg)
+  rule <k> #methodCall(X:Id, Method:Id, Arg:Val) => bytesRStripBytes(B, bytearrayStripArgItems(Arg)) ... </k>
+       <env> ... X |-> B:Val ... </env>
+    requires Id2String(Method) ==String "rstrip"
+      andBool isBytesVal(B)
+      andBool bytearrayStripArgSupported(Arg)
+      andBool notBool bytearrayStripArgEmpty(Arg)
+  rule <k> #methodCall(X:Id, Method:Id, Arg:Val) => bytesStripBytes(B, bytearrayStripArgItems(Arg)) ... </k>
+       <env> ... X |-> B:Val ... </env>
+    requires Id2String(Method) ==String "strip"
+      andBool isBytesVal(B)
+      andBool bytearrayStripArgSupported(Arg)
+      andBool notBool bytearrayStripArgEmpty(Arg)
+  rule <k> #methodCall(X:Id, Method:Id, Arg:Val) =>
+           exceptionSignal(#exception(#token("TypeError", "Id")))
+       ... </k>
+       <env> ... X |-> B:Val ... </env>
+    requires (Id2String(Method) ==String "lstrip"
+              orBool Id2String(Method) ==String "rstrip"
+              orBool Id2String(Method) ==String "strip")
+      andBool isBytesVal(B)
       andBool notBool isNoneVal(Arg)
       andBool notBool bytearrayStripArgSupported(Arg)
   rule <k> #methodCall(X:Id, Method:Id, Sep:Val) => bytearrayPartition(B, Sep) ... </k>

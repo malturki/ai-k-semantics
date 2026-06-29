@@ -515,6 +515,34 @@
       "coverage": ["bytes-methods", "bytes-case-methods", "bytes-title-method", "ascii-case-conversion", "method-call", "ordinary-python-source-adapter"]
     },
     {
+      "id": "adapter-bytes-strip-default",
+      "source": "../adapter/adapter-bytes-strip-default.py",
+      "reference": "Python Standard Library Built-in Types bytes; strip, lstrip, and rstrip default ASCII whitespace behavior",
+      "expected_result": "True ~> .K",
+      "coverage": ["bytes-methods", "bytes-strip-methods", "bytes-strip-method", "bytes-lstrip-method", "bytes-rstrip-method", "ascii-whitespace", "method-call", "ordinary-python-source-adapter"]
+    },
+    {
+      "id": "adapter-bytes-strip-explicit",
+      "source": "../adapter/adapter-bytes-strip-explicit.py",
+      "reference": "Python Standard Library Built-in Types bytes; explicit strip-set behavior for strip, lstrip, and rstrip",
+      "expected_result": "True ~> .K",
+      "coverage": ["bytes-methods", "bytes-strip-methods", "bytes-strip-set", "bytes-like-arguments", "method-call", "ordinary-python-source-adapter"]
+    },
+    {
+      "id": "adapter-bytes-strip-byteslike-empty",
+      "source": "../adapter/adapter-bytes-strip-byteslike-empty.py",
+      "reference": "Python Standard Library Built-in Types bytes; bytes-like strip-set and empty strip-set behavior",
+      "expected_result": "True ~> .K",
+      "coverage": ["bytes-methods", "bytes-strip-methods", "bytes-strip-set", "bytes-like-arguments", "memoryview", "method-call", "ordinary-python-source-adapter"]
+    },
+    {
+      "id": "adapter-bytes-strip-diagnostics",
+      "source": "../adapter/adapter-bytes-strip-diagnostics.py",
+      "reference": "Python Standard Library Built-in Types bytes; strip, lstrip, and rstrip non-bytes-like TypeError diagnostics",
+      "expected_result": "True ~> .K",
+      "coverage": ["bytes-methods", "bytes-strip-methods", "bytes-strip-set", "type-error", "method-call", "ordinary-python-source-adapter"]
+    },
+    {
       "id": "adapter-bytes-constructor",
       "source": "../adapter/adapter-bytes-constructor.py",
       "reference": "Python Standard Library Built-in Functions bytes and bytearray constructor interpretation; Built-in Types binary sequence types; CPython Lib/test/test_bytes.py constructor cases",

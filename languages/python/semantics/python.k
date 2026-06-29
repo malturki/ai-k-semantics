@@ -2019,6 +2019,8 @@ module PYTHON
                | bytesPartition(Val, Val) [function, symbol(bytesPartition)]
                | bytesRPartition(Val, Val) [function, symbol(bytesRPartition)]
                | bytesPartitionAt(ValItems, ValItems, Int) [function, symbol(bytesPartitionAt)]
+               | bytesRemovePrefix(Val, Val) [function, symbol(bytesRemovePrefix)]
+               | bytesRemoveSuffix(Val, Val) [function, symbol(bytesRemoveSuffix)]
                | bytearrayExpandTabs(Val, Int) [function, symbol(bytearrayExpandTabs)]
                | bytearrayExpandTabsScan(ValItems, Val, Int, Int) [function, symbol(bytearrayExpandTabsScan)]
                | bytearrayAppendSpaces(Val, Int) [function, symbol(bytearrayAppendSpaces)]
@@ -7661,6 +7663,40 @@ module PYTHON
           bytesVal(SepItems),
           valItemsLast(bytesSlice(VS, I +Int valItemsLen(SepItems), valItemsLen(VS))))))
     requires I >=Int 0
+
+  rule bytesRemovePrefix(Prefix:Val, B:Val) => B
+    requires isBytesVal(B)
+      andBool bytearrayAffixNeedleSupported(Prefix)
+      andBool bytearrayAffixNeedleEmpty(Prefix)
+  rule bytesRemovePrefix(Prefix:Val, #bytes()) => #bytes()
+    requires bytearrayAffixNeedleSupported(Prefix)
+      andBool notBool bytearrayAffixNeedleEmpty(Prefix)
+  rule bytesRemovePrefix(Prefix:Val, bytesVal(VS:ValItems)) =>
+    bytesSlice(VS, valItemsLen(bytearrayAffixNeedleItems(Prefix)), valItemsLen(VS))
+    requires bytearrayAffixNeedleSupported(Prefix)
+      andBool notBool bytearrayAffixNeedleEmpty(Prefix)
+      andBool bytesPrefix(bytearrayAffixNeedleItems(Prefix), VS)
+  rule bytesRemovePrefix(Prefix:Val, bytesVal(VS:ValItems)) => bytesVal(VS)
+    requires bytearrayAffixNeedleSupported(Prefix)
+      andBool notBool bytearrayAffixNeedleEmpty(Prefix)
+      andBool notBool bytesPrefix(bytearrayAffixNeedleItems(Prefix), VS)
+
+  rule bytesRemoveSuffix(Suffix:Val, B:Val) => B
+    requires isBytesVal(B)
+      andBool bytearrayAffixNeedleSupported(Suffix)
+      andBool bytearrayAffixNeedleEmpty(Suffix)
+  rule bytesRemoveSuffix(Suffix:Val, #bytes()) => #bytes()
+    requires bytearrayAffixNeedleSupported(Suffix)
+      andBool notBool bytearrayAffixNeedleEmpty(Suffix)
+  rule bytesRemoveSuffix(Suffix:Val, bytesVal(VS:ValItems)) =>
+    bytesSlice(VS, 0, valItemsLen(VS) -Int valItemsLen(bytearrayAffixNeedleItems(Suffix)))
+    requires bytearrayAffixNeedleSupported(Suffix)
+      andBool notBool bytearrayAffixNeedleEmpty(Suffix)
+      andBool bytesSuffix(bytearrayAffixNeedleItems(Suffix), VS)
+  rule bytesRemoveSuffix(Suffix:Val, bytesVal(VS:ValItems)) => bytesVal(VS)
+    requires bytearrayAffixNeedleSupported(Suffix)
+      andBool notBool bytearrayAffixNeedleEmpty(Suffix)
+      andBool notBool bytesSuffix(bytearrayAffixNeedleItems(Suffix), VS)
 
   rule bytearrayTabByte(V:Val) => isIntLike(V) andBool intValue(V) ==Int 9
   rule bytearrayNewlineByte(V:Val) => isIntLike(V) andBool (intValue(V) ==Int 10 orBool intValue(V) ==Int 13)
@@ -17823,6 +17859,23 @@ module PYTHON
     requires (Id2String(Method) ==String "removeprefix" orBool Id2String(Method) ==String "removesuffix")
       andBool isBytearrayVal(B)
       andBool notBool bytearrayAffixNeedleSupported(Affix)
+  rule <k> #methodCall(X:Id, Method:Id, Prefix:Val) => bytesRemovePrefix(Prefix, B) ... </k>
+       <env> ... X |-> B:Val ... </env>
+    requires Id2String(Method) ==String "removeprefix"
+      andBool isBytesVal(B)
+      andBool bytearrayAffixNeedleSupported(Prefix)
+  rule <k> #methodCall(X:Id, Method:Id, Suffix:Val) => bytesRemoveSuffix(Suffix, B) ... </k>
+       <env> ... X |-> B:Val ... </env>
+    requires Id2String(Method) ==String "removesuffix"
+      andBool isBytesVal(B)
+      andBool bytearrayAffixNeedleSupported(Suffix)
+  rule <k> #methodCall(X:Id, Method:Id, Affix:Val) =>
+           exceptionSignal(#exception(#token("TypeError", "Id")))
+       ... </k>
+       <env> ... X |-> B:Val ... </env>
+    requires (Id2String(Method) ==String "removeprefix" orBool Id2String(Method) ==String "removesuffix")
+      andBool isBytesVal(B)
+      andBool notBool bytearrayAffixNeedleSupported(Affix)
   rule <k> #methodCall(X:Id, Method:Id, V:Val) => None ... </k>
        <env> ... X |-> (bytearrayVal(VS:ValItems) => bytearrayRemoveByte(VS, intValue(V))) ... </env>
     requires Id2String(Method) ==String "remove"
@@ -17995,7 +18048,9 @@ module PYTHON
       andBool notBool ((Id2String(Method) ==String "split"
         orBool Id2String(Method) ==String "rsplit"
         orBool Id2String(Method) ==String "partition"
-        orBool Id2String(Method) ==String "rpartition") andBool isBytesVal(B))
+        orBool Id2String(Method) ==String "rpartition"
+        orBool Id2String(Method) ==String "removeprefix"
+        orBool Id2String(Method) ==String "removesuffix") andBool isBytesVal(B))
   rule <k> #methodCall2(X:Id, Method:Id, Needle:Val, Start:Val) =>
            #methodCall3(X, Method, Needle, Start, None)
        ... </k>

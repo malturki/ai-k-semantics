@@ -368,6 +368,27 @@
       "coverage": ["bytes-methods", "bytes-partition-method", "bytes-rpartition-method", "bytes-separator", "bytes-like-arguments", "method-call", "value-error", "type-error", "ordinary-python-source-adapter"]
     },
     {
+      "id": "adapter-bytes-removeprefix-removesuffix-methods",
+      "source": "../adapter/adapter-bytes-removeprefix-removesuffix-methods.py",
+      "reference": "Python Standard Library Built-in Types bytes; removeprefix and removesuffix matching and nonmatching bytes-like affixes",
+      "expected_result": "True ~> .K",
+      "coverage": ["bytes-methods", "bytes-removeprefix-method", "bytes-removesuffix-method", "bytes-separator", "method-call", "ordinary-python-source-adapter"]
+    },
+    {
+      "id": "adapter-bytes-removeprefix-removesuffix-byteslike",
+      "source": "../adapter/adapter-bytes-removeprefix-removesuffix-byteslike.py",
+      "reference": "Python Standard Library Built-in Types bytes; removeprefix and removesuffix bytearray, memoryview, and empty affix behavior",
+      "expected_result": "True ~> .K",
+      "coverage": ["bytes-methods", "bytes-removeprefix-method", "bytes-removesuffix-method", "bytes-separator", "bytes-like-arguments", "method-call", "ordinary-python-source-adapter"]
+    },
+    {
+      "id": "adapter-bytes-removeprefix-removesuffix-diagnostics",
+      "source": "../adapter/adapter-bytes-removeprefix-removesuffix-diagnostics.py",
+      "reference": "Python Standard Library Built-in Types bytes; removeprefix and removesuffix non-bytes-like TypeError diagnostics",
+      "expected_result": "True ~> .K",
+      "coverage": ["bytes-methods", "bytes-removeprefix-method", "bytes-removesuffix-method", "bytes-separator", "bytes-like-arguments", "method-call", "type-error", "ordinary-python-source-adapter"]
+    },
+    {
       "id": "adapter-bytes-constructor",
       "source": "../adapter/adapter-bytes-constructor.py",
       "reference": "Python Standard Library Built-in Functions bytes and bytearray constructor interpretation; Built-in Types binary sequence types; CPython Lib/test/test_bytes.py constructor cases",

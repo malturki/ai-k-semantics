@@ -963,6 +963,34 @@
       "coverage": ["bytes-percent-formatting", "bytearray-percent-formatting", "printf-style-bytes-formatting", "length-modifier", "type-error", "overflow-error", "ordinary-python-source-adapter"]
     },
     {
+      "id": "adapter-bytes-percent-format-nonnumeric-flags-direct",
+      "source": "../adapter/adapter-bytes-percent-format-nonnumeric-flags-direct.py",
+      "reference": "Python Standard Library Built-in Types bytes; printf-style bytes formatting conversion flags are accepted for nonnumeric conversions and ignored except for left adjustment",
+      "expected_result": "True ~> .K",
+      "coverage": ["bytes-percent-formatting", "bytes-methods", "printf-style-bytes-formatting", "conversion-flags", "bytes-like-arguments", "repr-formatting", "c-conversion", "ordinary-python-source-adapter"]
+    },
+    {
+      "id": "adapter-bytes-percent-format-nonnumeric-flags-width",
+      "source": "../adapter/adapter-bytes-percent-format-nonnumeric-flags-width.py",
+      "reference": "Python Standard Library Built-in Types bytes; printf-style bytes formatting repeated conversion flags before nonnumeric width specs",
+      "expected_result": "True ~> .K",
+      "coverage": ["bytes-percent-formatting", "bytes-methods", "printf-style-bytes-formatting", "conversion-flags", "field-width", "left-adjustment", "ordinary-python-source-adapter"]
+    },
+    {
+      "id": "adapter-bytearray-percent-format-nonnumeric-flags",
+      "source": "../adapter/adapter-bytearray-percent-format-nonnumeric-flags.py",
+      "reference": "Python Standard Library Built-in Types bytearray; printf-style bytes formatting nonnumeric flags preserve bytearray result type",
+      "expected_result": "True ~> .K",
+      "coverage": ["bytearray-percent-formatting", "bytearray-query-methods", "printf-style-bytes-formatting", "conversion-flags", "field-width", "result-type", "ordinary-python-source-adapter"]
+    },
+    {
+      "id": "adapter-bytes-percent-format-nonnumeric-flags-diagnostics",
+      "source": "../adapter/adapter-bytes-percent-format-nonnumeric-flags-diagnostics.py",
+      "reference": "Python Standard Library Built-in Types bytes; printf-style bytes formatting nonnumeric flags preserve TypeError and OverflowError behavior",
+      "expected_result": "True ~> .K",
+      "coverage": ["bytes-percent-formatting", "printf-style-bytes-formatting", "conversion-flags", "type-error", "overflow-error", "ordinary-python-source-adapter"]
+    },
+    {
       "id": "adapter-bytes-replace-basic",
       "source": "../adapter/adapter-bytes-replace-basic.py",
       "reference": "Python Standard Library Built-in Types bytes; replace non-overlapping subsequence replacement and count handling",

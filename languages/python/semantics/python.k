@@ -1434,6 +1434,12 @@ module PYTHON
                 | bytesErrorsXmlCharRefReplace(String) [function, symbol(bytesErrorsXmlCharRefReplace)]
                 | bytesErrorsUnicodeRaise(String) [function, symbol(bytesErrorsUnicodeRaise)]
                 | bytesErrorsKnown(String) [function, symbol(bytesErrorsKnown)]
+                | bytesDecodeValid(Val, String) [function, symbol(bytesDecodeValid)]
+                | byteUtf8Cont(Val) [function, symbol(byteUtf8Cont)]
+                | bytesUtf8Start2(Val, Val) [function, symbol(bytesUtf8Start2)]
+                | bytesUtf8Start3(Val, Val, Val) [function, symbol(bytesUtf8Start3)]
+                | bytesUtf8Start4(Val, Val, Val, Val) [function, symbol(bytesUtf8Start4)]
+                | bytesUtf8Valid(ValItems) [function, symbol(bytesUtf8Valid)]
                 | stringAsciiEncodable(String, Int) [function, symbol(stringAsciiEncodable)]
                 | stringLatin1Encodable(String, Int) [function, symbol(stringLatin1Encodable)]
                 | lenSupported(Val) [function, symbol(lenSupported)]
@@ -1765,6 +1771,9 @@ module PYTHON
                   | lstripPythonStringSpace(String) [function, symbol(lstripPythonStringSpace)]
                   | rstripPythonStringSpace(String) [function, symbol(rstripPythonStringSpace)]
                   | bytesAsciiString(ValItems) [function, symbol(bytesAsciiString)]
+                  | bytesDecodeString(Val, String) [function, symbol(bytesDecodeString)]
+                  | bytesDecodeUtf8Items(ValItems) [function, symbol(bytesDecodeUtf8Items)]
+                  | bytesLatin1String(ValItems) [function, symbol(bytesLatin1String)]
                   | stringReprQuoteChar(Int) [function, symbol(stringReprQuoteChar)]
                   | stringReprPayload(String, Int, Int) [function, symbol(stringReprPayload)]
                   | stringReprChar(String, Int) [function, symbol(stringReprChar)]
@@ -2889,6 +2898,108 @@ module PYTHON
     requires lengthString(S) >=Int 2
       andBool fromHexDigit(substrString(S, 0, 1))
       andBool fromHexDigit(substrString(S, 1, 2))
+
+  rule bytesDecodeValid(#bytes(), Enc:String) => true
+    requires bytesEncodingSupported(Enc)
+  rule bytesDecodeValid(#bytearray(), Enc:String) => true
+    requires bytesEncodingSupported(Enc)
+  rule bytesDecodeValid(bytesVal(VS:ValItems), Enc:String) => bytesUtf8Valid(VS)
+    requires bytesEncodingUtf8(Enc)
+  rule bytesDecodeValid(bytearrayVal(VS:ValItems), Enc:String) => bytesUtf8Valid(VS)
+    requires bytesEncodingUtf8(Enc)
+  rule bytesDecodeValid(bytesVal(VS:ValItems), Enc:String) => bytesAllAscii(VS)
+    requires bytesEncodingAscii(Enc)
+  rule bytesDecodeValid(bytearrayVal(VS:ValItems), Enc:String) => bytesAllAscii(VS)
+    requires bytesEncodingAscii(Enc)
+  rule bytesDecodeValid(bytesVal(_VS:ValItems), Enc:String) => true
+    requires bytesEncodingLatin1(Enc)
+  rule bytesDecodeValid(bytearrayVal(_VS:ValItems), Enc:String) => true
+    requires bytesEncodingLatin1(Enc)
+  rule bytesDecodeValid(_:Val, _Enc:String) => false [owise]
+
+  rule bytesDecodeString(#bytes(), Enc:String) => ""
+    requires bytesEncodingSupported(Enc)
+  rule bytesDecodeString(#bytearray(), Enc:String) => ""
+    requires bytesEncodingSupported(Enc)
+  rule bytesDecodeString(bytesVal(VS:ValItems), Enc:String) => bytesDecodeUtf8Items(VS)
+    requires bytesEncodingUtf8(Enc) andBool bytesUtf8Valid(VS)
+  rule bytesDecodeString(bytearrayVal(VS:ValItems), Enc:String) => bytesDecodeUtf8Items(VS)
+    requires bytesEncodingUtf8(Enc) andBool bytesUtf8Valid(VS)
+  rule bytesDecodeString(bytesVal(VS:ValItems), Enc:String) => bytesAsciiString(VS)
+    requires bytesEncodingAscii(Enc) andBool bytesAllAscii(VS)
+  rule bytesDecodeString(bytearrayVal(VS:ValItems), Enc:String) => bytesAsciiString(VS)
+    requires bytesEncodingAscii(Enc) andBool bytesAllAscii(VS)
+  rule bytesDecodeString(bytesVal(VS:ValItems), Enc:String) => bytesLatin1String(VS)
+    requires bytesEncodingLatin1(Enc)
+  rule bytesDecodeString(bytearrayVal(VS:ValItems), Enc:String) => bytesLatin1String(VS)
+    requires bytesEncodingLatin1(Enc)
+
+  rule byteUtf8Cont(V:Val) => isIntLike(V) andBool intValue(V) >=Int 128 andBool intValue(V) <=Int 191
+  rule bytesUtf8Start2(B1:Val, B2:Val) =>
+    isIntLike(B1) andBool intValue(B1) >=Int 194 andBool intValue(B1) <=Int 223
+      andBool byteUtf8Cont(B2)
+  rule bytesUtf8Start3(B1:Val, B2:Val, B3:Val) =>
+    isIntLike(B1) andBool byteUtf8Cont(B3)
+      andBool ((intValue(B1) ==Int 224 andBool isIntLike(B2) andBool intValue(B2) >=Int 160 andBool intValue(B2) <=Int 191)
+        orBool (intValue(B1) >=Int 225 andBool intValue(B1) <=Int 236 andBool byteUtf8Cont(B2))
+        orBool (intValue(B1) ==Int 237 andBool isIntLike(B2) andBool intValue(B2) >=Int 128 andBool intValue(B2) <=Int 159)
+        orBool (intValue(B1) >=Int 238 andBool intValue(B1) <=Int 239 andBool byteUtf8Cont(B2)))
+  rule bytesUtf8Start4(B1:Val, B2:Val, B3:Val, B4:Val) =>
+    isIntLike(B1) andBool byteUtf8Cont(B3) andBool byteUtf8Cont(B4)
+      andBool ((intValue(B1) ==Int 240 andBool isIntLike(B2) andBool intValue(B2) >=Int 144 andBool intValue(B2) <=Int 191)
+        orBool (intValue(B1) >=Int 241 andBool intValue(B1) <=Int 243 andBool byteUtf8Cont(B2))
+        orBool (intValue(B1) ==Int 244 andBool isIntLike(B2) andBool intValue(B2) >=Int 128 andBool intValue(B2) <=Int 143))
+
+  rule bytesUtf8Valid(valItemsLast(B:Val)) => byteAscii(B)
+  rule bytesUtf8Valid(valItemsCons(B:Val, Rest:ValItems)) => bytesUtf8Valid(Rest)
+    requires byteAscii(B)
+  rule bytesUtf8Valid(valItemsCons(B1:Val, valItemsLast(B2:Val))) => true
+    requires bytesUtf8Start2(B1, B2)
+  rule bytesUtf8Valid(valItemsCons(B1:Val, valItemsCons(B2:Val, Rest:ValItems))) => bytesUtf8Valid(Rest)
+    requires bytesUtf8Start2(B1, B2)
+  rule bytesUtf8Valid(valItemsCons(B1:Val, valItemsCons(B2:Val, valItemsLast(B3:Val)))) => true
+    requires bytesUtf8Start3(B1, B2, B3)
+  rule bytesUtf8Valid(valItemsCons(B1:Val, valItemsCons(B2:Val, valItemsCons(B3:Val, Rest:ValItems)))) => bytesUtf8Valid(Rest)
+    requires bytesUtf8Start3(B1, B2, B3)
+  rule bytesUtf8Valid(valItemsCons(B1:Val, valItemsCons(B2:Val, valItemsCons(B3:Val, valItemsLast(B4:Val))))) => true
+    requires bytesUtf8Start4(B1, B2, B3, B4)
+  rule bytesUtf8Valid(valItemsCons(B1:Val, valItemsCons(B2:Val, valItemsCons(B3:Val, valItemsCons(B4:Val, Rest:ValItems))))) => bytesUtf8Valid(Rest)
+    requires bytesUtf8Start4(B1, B2, B3, B4)
+  rule bytesUtf8Valid(_:ValItems) => false [owise]
+
+  rule bytesDecodeUtf8Items(valItemsLast(B:Val)) => unicodeChar(intValue(B))
+    requires byteAscii(B)
+  rule bytesDecodeUtf8Items(valItemsCons(B:Val, Rest:ValItems)) =>
+    unicodeChar(intValue(B)) +String bytesDecodeUtf8Items(Rest)
+    requires byteAscii(B)
+  rule bytesDecodeUtf8Items(valItemsCons(B1:Val, valItemsLast(B2:Val))) =>
+    unicodeChar(((intValue(B1) -Int 192) *Int 64) +Int (intValue(B2) -Int 128))
+    requires bytesUtf8Start2(B1, B2)
+  rule bytesDecodeUtf8Items(valItemsCons(B1:Val, valItemsCons(B2:Val, Rest:ValItems))) =>
+    unicodeChar(((intValue(B1) -Int 192) *Int 64) +Int (intValue(B2) -Int 128)) +String bytesDecodeUtf8Items(Rest)
+    requires bytesUtf8Start2(B1, B2)
+  rule bytesDecodeUtf8Items(valItemsCons(B1:Val, valItemsCons(B2:Val, valItemsLast(B3:Val)))) =>
+    unicodeChar(((intValue(B1) -Int 224) *Int 4096) +Int ((intValue(B2) -Int 128) *Int 64) +Int (intValue(B3) -Int 128))
+    requires bytesUtf8Start3(B1, B2, B3)
+  rule bytesDecodeUtf8Items(valItemsCons(B1:Val, valItemsCons(B2:Val, valItemsCons(B3:Val, Rest:ValItems)))) =>
+    unicodeChar(((intValue(B1) -Int 224) *Int 4096) +Int ((intValue(B2) -Int 128) *Int 64) +Int (intValue(B3) -Int 128))
+      +String bytesDecodeUtf8Items(Rest)
+    requires bytesUtf8Start3(B1, B2, B3)
+  rule bytesDecodeUtf8Items(valItemsCons(B1:Val, valItemsCons(B2:Val, valItemsCons(B3:Val, valItemsLast(B4:Val))))) =>
+    unicodeChar(((intValue(B1) -Int 240) *Int 262144) +Int ((intValue(B2) -Int 128) *Int 4096)
+      +Int ((intValue(B3) -Int 128) *Int 64) +Int (intValue(B4) -Int 128))
+    requires bytesUtf8Start4(B1, B2, B3, B4)
+  rule bytesDecodeUtf8Items(valItemsCons(B1:Val, valItemsCons(B2:Val, valItemsCons(B3:Val, valItemsCons(B4:Val, Rest:ValItems))))) =>
+    unicodeChar(((intValue(B1) -Int 240) *Int 262144) +Int ((intValue(B2) -Int 128) *Int 4096)
+      +Int ((intValue(B3) -Int 128) *Int 64) +Int (intValue(B4) -Int 128))
+      +String bytesDecodeUtf8Items(Rest)
+    requires bytesUtf8Start4(B1, B2, B3, B4)
+
+  rule bytesLatin1String(valItemsLast(B:Val)) => unicodeChar(intValue(B))
+    requires isIntLike(B)
+  rule bytesLatin1String(valItemsCons(B:Val, Rest:ValItems)) =>
+    unicodeChar(intValue(B)) +String bytesLatin1String(Rest)
+    requires isIntLike(B)
 
   rule pyIntBaseString(0, _Base:Int, Prefix:String) => Prefix +String "0"
   rule pyIntBaseString(I:Int, Base:Int, Prefix:String) => Prefix +String intBaseDigits(I, Base)
@@ -17839,6 +17950,18 @@ module PYTHON
        <env> ... X |-> B:Val ... </env>
     requires Id2String(Method) ==String "hex"
       andBool isBytearrayVal(B)
+  rule <k> #methodCall0(X:Id, Method:Id) => bytesDecodeString(B, "utf-8") ... </k>
+       <env> ... X |-> B:Val ... </env>
+    requires Id2String(Method) ==String "decode"
+      andBool (isBytesVal(B) orBool isBytearrayVal(B))
+      andBool bytesDecodeValid(B, "utf-8")
+  rule <k> #methodCall0(X:Id, Method:Id) =>
+           exceptionSignal(#exception(#token("UnicodeDecodeError", "Id")))
+       ... </k>
+       <env> ... X |-> B:Val ... </env>
+    requires Id2String(Method) ==String "decode"
+      andBool (isBytesVal(B) orBool isBytearrayVal(B))
+      andBool notBool bytesDecodeValid(B, "utf-8")
   rule <k> #methodCall0(X:Id, _Method:Id) =>
            exceptionSignal(#exception(#token("NameError", "Id")))
        ... </k>
@@ -17851,6 +17974,7 @@ module PYTHON
     requires (Id2String(Method) ==String "clear"
               orBool Id2String(Method) ==String "capitalize"
               orBool Id2String(Method) ==String "copy"
+              orBool Id2String(Method) ==String "decode"
               orBool Id2String(Method) ==String "expandtabs"
               orBool Id2String(Method) ==String "hex"
               orBool Id2String(Method) ==String "isalnum"
@@ -17881,6 +18005,7 @@ module PYTHON
         orBool Id2String(Method) ==String "isalpha"
         orBool Id2String(Method) ==String "isascii"
         orBool Id2String(Method) ==String "isdigit"
+        orBool Id2String(Method) ==String "decode"
         orBool Id2String(Method) ==String "expandtabs"
         orBool Id2String(Method) ==String "hex"
         orBool Id2String(Method) ==String "islower"
@@ -17895,6 +18020,34 @@ module PYTHON
         orBool Id2String(Method) ==String "strip"
         orBool Id2String(Method) ==String "title"
         orBool Id2String(Method) ==String "upper") andBool isBytesVal(B))
+  rule <k> #methodCall(X:Id, Method:Id, Enc:String) => bytesDecodeString(B, Enc) ... </k>
+       <env> ... X |-> B:Val ... </env>
+    requires Id2String(Method) ==String "decode"
+      andBool (isBytesVal(B) orBool isBytearrayVal(B))
+      andBool bytesEncodingSupported(Enc)
+      andBool bytesDecodeValid(B, Enc)
+  rule <k> #methodCall(X:Id, Method:Id, Enc:String) =>
+           exceptionSignal(#exception(#token("UnicodeDecodeError", "Id")))
+       ... </k>
+       <env> ... X |-> B:Val ... </env>
+    requires Id2String(Method) ==String "decode"
+      andBool (isBytesVal(B) orBool isBytearrayVal(B))
+      andBool bytesEncodingSupported(Enc)
+      andBool notBool bytesDecodeValid(B, Enc)
+  rule <k> #methodCall(X:Id, Method:Id, Enc:String) =>
+           exceptionSignal(#exception(#token("LookupError", "Id")))
+       ... </k>
+       <env> ... X |-> B:Val ... </env>
+    requires Id2String(Method) ==String "decode"
+      andBool (isBytesVal(B) orBool isBytearrayVal(B))
+      andBool notBool bytesEncodingSupported(Enc)
+  rule <k> #methodCall(X:Id, Method:Id, Enc:Val) =>
+           exceptionSignal(#exception(#token("TypeError", "Id")))
+       ... </k>
+       <env> ... X |-> B:Val ... </env>
+    requires Id2String(Method) ==String "decode"
+      andBool (isBytesVal(B) orBool isBytearrayVal(B))
+      andBool notBool isStringVal(Enc)
   rule <k> #methodCall(X:Id, Method:Id, Arg:Val) => bytearrayLStripDefault(B) ... </k>
        <env> ... X |-> B:Val ... </env>
     requires Id2String(Method) ==String "lstrip"
@@ -19144,6 +19297,7 @@ module PYTHON
     requires (Id2String(Method) ==String "append"
               orBool Id2String(Method) ==String "center"
               orBool Id2String(Method) ==String "count"
+              orBool Id2String(Method) ==String "decode"
               orBool Id2String(Method) ==String "endswith"
               orBool Id2String(Method) ==String "expandtabs"
               orBool Id2String(Method) ==String "extend"
@@ -19178,6 +19332,7 @@ module PYTHON
         orBool Id2String(Method) ==String "removesuffix"
         orBool Id2String(Method) ==String "center"
         orBool Id2String(Method) ==String "count"
+        orBool Id2String(Method) ==String "decode"
         orBool Id2String(Method) ==String "expandtabs"
         orBool Id2String(Method) ==String "find"
         orBool Id2String(Method) ==String "hex"
@@ -19194,6 +19349,61 @@ module PYTHON
         orBool Id2String(Method) ==String "startswith"
         orBool Id2String(Method) ==String "endswith"
         orBool Id2String(Method) ==String "zfill") andBool isBytesVal(B))
+  rule <k> #methodCall2(X:Id, Method:Id, Enc:Val, _Errors:Val) =>
+           exceptionSignal(#exception(#token("TypeError", "Id")))
+       ... </k>
+       <env> ... X |-> B:Val ... </env>
+    requires Id2String(Method) ==String "decode"
+      andBool (isBytesVal(B) orBool isBytearrayVal(B))
+      andBool notBool isStringVal(Enc)
+  rule <k> #methodCall2(X:Id, Method:Id, _Enc:String, Errors:Val) =>
+           exceptionSignal(#exception(#token("TypeError", "Id")))
+       ... </k>
+       <env> ... X |-> B:Val ... </env>
+    requires Id2String(Method) ==String "decode"
+      andBool (isBytesVal(B) orBool isBytearrayVal(B))
+      andBool notBool isStringVal(Errors)
+  rule <k> #methodCall2(X:Id, Method:Id, Enc:String, _Errors:String) => bytesDecodeString(B, Enc) ... </k>
+       <env> ... X |-> B:Val ... </env>
+    requires Id2String(Method) ==String "decode"
+      andBool (isBytesVal(B) orBool isBytearrayVal(B))
+      andBool bytesEncodingSupported(Enc)
+      andBool bytesDecodeValid(B, Enc)
+  rule <k> #methodCall2(X:Id, Method:Id, Enc:String, Errors:String) =>
+           exceptionSignal(#exception(#token("UnicodeDecodeError", "Id")))
+       ... </k>
+       <env> ... X |-> B:Val ... </env>
+    requires Id2String(Method) ==String "decode"
+      andBool (isBytesVal(B) orBool isBytearrayVal(B))
+      andBool bytesEncodingSupported(Enc)
+      andBool notBool bytesDecodeValid(B, Enc)
+      andBool bytesErrorsStrict(Errors)
+  rule <k> #methodCall2(X:Id, Method:Id, Enc:String, _Errors:String) =>
+           exceptionSignal(#exception(#token("LookupError", "Id")))
+       ... </k>
+       <env> ... X |-> B:Val ... </env>
+    requires Id2String(Method) ==String "decode"
+      andBool (isBytesVal(B) orBool isBytearrayVal(B))
+      andBool notBool bytesEncodingSupported(Enc)
+  rule <k> #methodCall2(X:Id, Method:Id, Enc:String, Errors:String) =>
+           exceptionSignal(#exception(#token("LookupError", "Id")))
+       ... </k>
+       <env> ... X |-> B:Val ... </env>
+    requires Id2String(Method) ==String "decode"
+      andBool (isBytesVal(B) orBool isBytearrayVal(B))
+      andBool bytesEncodingSupported(Enc)
+      andBool notBool bytesDecodeValid(B, Enc)
+      andBool notBool bytesErrorsKnown(Errors)
+  rule <k> #methodCall2(X:Id, Method:Id, Enc:String, Errors:String) =>
+           exceptionSignal(#exception(#token("NotImplementedError", "Id")))
+       ... </k>
+       <env> ... X |-> B:Val ... </env>
+    requires Id2String(Method) ==String "decode"
+      andBool (isBytesVal(B) orBool isBytearrayVal(B))
+      andBool bytesEncodingSupported(Enc)
+      andBool notBool bytesDecodeValid(B, Enc)
+      andBool bytesErrorsKnown(Errors)
+      andBool notBool bytesErrorsStrict(Errors)
   rule <k> #methodCall2(X:Id, Method:Id, Needle:Val, Start:Val) =>
            #methodCall3(X, Method, Needle, Start, None)
        ... </k>
@@ -20136,6 +20346,7 @@ module PYTHON
        ... </k>
        <env> ... X |-> B:Val ... </env>
     requires (Id2String(Method) ==String "center"
+              orBool Id2String(Method) ==String "decode"
               orBool Id2String(Method) ==String "insert"
               orBool Id2String(Method) ==String "ljust"
               orBool Id2String(Method) ==String "rjust"
@@ -20145,6 +20356,7 @@ module PYTHON
       andBool notBool ((Id2String(Method) ==String "split"
         orBool Id2String(Method) ==String "rsplit"
         orBool Id2String(Method) ==String "center"
+        orBool Id2String(Method) ==String "decode"
         orBool Id2String(Method) ==String "ljust"
         orBool Id2String(Method) ==String "rjust") andBool isBytesVal(B))
   rule #abs(V:Val) => 0 -Int intValue(V)

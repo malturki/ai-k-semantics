@@ -739,6 +739,34 @@
       "coverage": ["bytes-methods", "bytearray-query-methods", "bytes-fromhex-method", "bytearray-fromhex-method", "value-error", "type-error", "ordinary-python-source-adapter"]
     },
     {
+      "id": "adapter-bytes-decode-basic",
+      "source": "../adapter/adapter-bytes-decode-basic.py",
+      "reference": "Python Standard Library Built-in Types bytes; decode returns str values using the default UTF-8 codec and explicit UTF-8 aliases",
+      "expected_result": "True ~> .K",
+      "coverage": ["bytes-methods", "bytes-decode-method", "utf-8-decoding", "lazy-error-handler-lookup", "method-call", "ordinary-python-source-adapter"]
+    },
+    {
+      "id": "adapter-bytearray-decode-basic",
+      "source": "../adapter/adapter-bytearray-decode-basic.py",
+      "reference": "Python Standard Library Built-in Types bytearray; decode returns str values without mutating the bytearray receiver",
+      "expected_result": "True ~> .K",
+      "coverage": ["bytearray-query-methods", "bytearray-decode-method", "utf-8-decoding", "latin-1-decoding", "result-type", "method-call", "ordinary-python-source-adapter"]
+    },
+    {
+      "id": "adapter-bytes-decode-encodings",
+      "source": "../adapter/adapter-bytes-decode-encodings.py",
+      "reference": "Python Standard Library Built-in Types bytes and bytearray; decode supports current UTF-8, ASCII, and Latin-1 encoding aliases",
+      "expected_result": "True ~> .K",
+      "coverage": ["bytes-methods", "bytearray-query-methods", "bytes-decode-method", "bytearray-decode-method", "ascii-decoding", "latin-1-decoding", "encoding-aliases", "method-call", "ordinary-python-source-adapter"]
+    },
+    {
+      "id": "adapter-bytes-decode-diagnostics",
+      "source": "../adapter/adapter-bytes-decode-diagnostics.py",
+      "reference": "Python Standard Library Built-in Types bytes; decode strict UnicodeDecodeError, LookupError, lazy error-handler lookup, and TypeError diagnostics",
+      "expected_result": "True ~> .K",
+      "coverage": ["bytes-methods", "bytes-decode-method", "strict-errors", "unicode-decode-error", "lookup-error", "type-error", "lazy-error-handler-lookup", "method-call", "ordinary-python-source-adapter"]
+    },
+    {
       "id": "adapter-bytes-replace-basic",
       "source": "../adapter/adapter-bytes-replace-basic.py",
       "reference": "Python Standard Library Built-in Types bytes; replace non-overlapping subsequence replacement and count handling",

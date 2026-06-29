@@ -816,6 +816,27 @@
       "coverage": ["bytes-methods", "bytearray-query-methods", "bytes-maketrans-method", "bytearray-maketrans-method", "bytes-translate-method", "type-error", "value-error", "method-call", "ordinary-python-source-adapter"]
     },
     {
+      "id": "adapter-bytes-percent-format-basic",
+      "source": "../adapter/adapter-bytes-percent-format-basic.py",
+      "reference": "Python Standard Library Built-in Types bytes and bytearray; printf-style bytes formatting with %b, %s, %a, %r, %c, and %% conversions",
+      "expected_result": "True ~> .K",
+      "coverage": ["bytes-percent-formatting", "bytes-methods", "printf-style-bytes-formatting", "bytes-like-arguments", "ascii-repr-conversion", "ordinary-python-source-adapter"]
+    },
+    {
+      "id": "adapter-bytearray-percent-format-basic",
+      "source": "../adapter/adapter-bytearray-percent-format-basic.py",
+      "reference": "Python Standard Library Built-in Types bytearray; printf-style bytes formatting returns fresh bytearray values",
+      "expected_result": "True ~> .K",
+      "coverage": ["bytearray-percent-formatting", "bytearray-query-methods", "printf-style-bytes-formatting", "result-type", "ordinary-python-source-adapter"]
+    },
+    {
+      "id": "adapter-bytes-percent-format-diagnostics",
+      "source": "../adapter/adapter-bytes-percent-format-diagnostics.py",
+      "reference": "Python Standard Library Built-in Types bytes and bytearray; printf-style bytes formatting TypeError and OverflowError diagnostics",
+      "expected_result": "True ~> .K",
+      "coverage": ["bytes-percent-formatting", "bytearray-percent-formatting", "printf-style-bytes-formatting", "type-error", "overflow-error", "ordinary-python-source-adapter"]
+    },
+    {
       "id": "adapter-bytes-replace-basic",
       "source": "../adapter/adapter-bytes-replace-basic.py",
       "reference": "Python Standard Library Built-in Types bytes; replace non-overlapping subsequence replacement and count handling",

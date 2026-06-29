@@ -35,6 +35,7 @@ The base modules should model portable Python semantics from the official docs. 
 - simple string literals as K `String` tokens
 - adapter-backed bytes literals as integer byte-sequence values, with truthiness, equality, lexicographic ordering, concatenation, repetition, positive/negative indexing, nonzero-step slicing, integer-byte and bytes-subsequence membership, `len`, `list`/`tuple` conversion, starred display/call unpacking, assignment and `for`-target unpacking, simple `for` loops, and `all`/`any`/`sum`/`min`/`max` over yielded integer bytes
 - adapter-backed `bytes.maketrans`, `bytearray.maketrans`, `bytes.translate`, and `bytearray.translate` over current concrete bytes-like values, including deletion-before-translation behavior, 256-byte table validation, `None` delete-only translation, keyword `delete=`, and bytes-vs-bytearray result types
+- adapter-backed `bytes`/`bytearray` `%` formatting for the current literal `%%`, `%b`, `%s`, `%a`, `%r`, and `%c` conversion subset, with tuple and single-argument consumption, bytearray result preservation, and current TypeError/OverflowError diagnostics
 - name lookup in a single environment, including current unbound-name `NameError` behavior
 - unary `+`, unary `-`, and integer/bool `+`, `-`, and `*`
 - integer/bool `%`, `//`, `/`, shifts, bitwise operators, bitwise inversion, and exponentiation

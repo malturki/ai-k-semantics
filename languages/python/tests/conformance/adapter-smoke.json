@@ -396,6 +396,13 @@
       "coverage": ["bytearray-query-methods", "bytearray-expandtabs-method", "tab-expansion", "method-call", "type-error", "ordinary-python-source-adapter"]
     },
     {
+      "id": "adapter-bytearray-hex-method",
+      "source": "../adapter/adapter-bytearray-hex-method.py",
+      "reference": "Python Standard Library Built-in Types bytearray; hex conversion with optional ASCII string/bytes separators and signed bytes_per_sep grouping",
+      "expected_result": "True ~> .K",
+      "coverage": ["bytearray-query-methods", "bytearray-hex-method", "hexadecimal-conversion", "separator-grouping", "method-call", "value-error", "type-error", "ordinary-python-source-adapter"]
+    },
+    {
       "id": "adapter-bytearray-removeprefix-removesuffix-methods",
       "source": "../adapter/adapter-bytearray-removeprefix-removesuffix-methods.py",
       "reference": "Python Standard Library Built-in Types bytearray; sequence methods removeprefix and removesuffix over bytes-like affixes",

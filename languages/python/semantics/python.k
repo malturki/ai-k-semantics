@@ -1404,6 +1404,8 @@ module PYTHON
                 | bytearrayItemsStartLF(ValItems) [function, symbol(bytearrayItemsStartLF)]
                 | bytearrayTabByte(Val) [function, symbol(bytearrayTabByte)]
                 | bytearrayNewlineByte(Val) [function, symbol(bytearrayNewlineByte)]
+                | bytearrayHexSepOk(Val) [function, symbol(bytearrayHexSepOk)]
+                | bytearrayHexSepValueError(Val) [function, symbol(bytearrayHexSepValueError)]
                 | bytearrayFillByteOk(Val) [function, symbol(bytearrayFillByteOk)]
                 | bytearrayStripArgSupported(Val) [function, symbol(bytearrayStripArgSupported)]
                 | bytearrayStripArgEmpty(Val) [function, symbol(bytearrayStripArgEmpty)]
@@ -1761,6 +1763,12 @@ module PYTHON
                   | bytesReprByte(Val, Int) [function, symbol(bytesReprByte)]
                   | byteHex(Int) [function, symbol(byteHex)]
                   | byteHexDigit(Int) [function, symbol(byteHexDigit)]
+                  | bytearrayHex(Val) [function, symbol(bytearrayHex)]
+                  | bytearrayHexItems(ValItems) [function, symbol(bytearrayHexItems)]
+                  | bytearrayHexWithSep(Val, String, Int) [function, symbol(bytearrayHexWithSep)]
+                  | bytearrayHexSepItems(ValItems, String, Int, Int, Int) [function, symbol(bytearrayHexSepItems)]
+                  | bytearrayHexSepPrefix(String, Int, Int, Int) [function, symbol(bytearrayHexSepPrefix)]
+                  | bytearrayHexSepString(Val) [function, symbol(bytearrayHexSepString)]
                   | unicodeChar(Int) [function, symbol(unicodeChar)]
                   | utf8ByteString(Int, Int, Int, Int) [function, symbol(utf8ByteString4)]
                   | pyIntBaseString(Int, Int, String) [function, symbol(pyIntBaseString)]
@@ -2731,6 +2739,53 @@ module PYTHON
   rule byteHexDigit(13) => "d"
   rule byteHexDigit(14) => "e"
   rule byteHexDigit(15) => "f"
+  rule bytearrayHex(#bytearray()) => ""
+  rule bytearrayHex(bytearrayVal(VS:ValItems)) => bytearrayHexItems(VS)
+  rule bytearrayHexItems(valItemsLast(V:Val)) => byteHex(intValue(V))
+    requires isIntLike(V)
+      andBool intValue(V) >=Int 0
+      andBool intValue(V) <=Int 255
+  rule bytearrayHexItems(valItemsCons(V:Val, VS:ValItems)) =>
+    byteHex(intValue(V)) +String bytearrayHexItems(VS)
+    requires isIntLike(V)
+      andBool intValue(V) >=Int 0
+      andBool intValue(V) <=Int 255
+  rule bytearrayHexWithSep(#bytearray(), _Sep:String, _BytesPerSep:Int) => ""
+  rule bytearrayHexWithSep(bytearrayVal(VS:ValItems), Sep:String, BytesPerSep:Int) =>
+    bytearrayHexSepItems(VS, Sep, BytesPerSep, valItemsLen(VS), 0)
+  rule bytearrayHexSepItems(valItemsLast(V:Val), Sep:String, BytesPerSep:Int, Len:Int, I:Int) =>
+    bytearrayHexSepPrefix(Sep, BytesPerSep, Len, I) +String byteHex(intValue(V))
+    requires isIntLike(V)
+      andBool intValue(V) >=Int 0
+      andBool intValue(V) <=Int 255
+  rule bytearrayHexSepItems(valItemsCons(V:Val, VS:ValItems), Sep:String, BytesPerSep:Int, Len:Int, I:Int) =>
+    bytearrayHexSepPrefix(Sep, BytesPerSep, Len, I) +String byteHex(intValue(V))
+      +String bytearrayHexSepItems(VS, Sep, BytesPerSep, Len, I +Int 1)
+    requires isIntLike(V)
+      andBool intValue(V) >=Int 0
+      andBool intValue(V) <=Int 255
+  rule bytearrayHexSepPrefix(_Sep:String, _BytesPerSep:Int, _Len:Int, 0) => ""
+  rule bytearrayHexSepPrefix(_Sep:String, 0, _Len:Int, _I:Int) => ""
+  rule bytearrayHexSepPrefix(Sep:String, BytesPerSep:Int, Len:Int, I:Int) => Sep
+    requires BytesPerSep >Int 0
+      andBool I >Int 0
+      andBool ((Len -Int I) %Int BytesPerSep) ==Int 0
+  rule bytearrayHexSepPrefix(_Sep:String, BytesPerSep:Int, Len:Int, I:Int) => ""
+    requires BytesPerSep >Int 0
+      andBool I >Int 0
+      andBool ((Len -Int I) %Int BytesPerSep) =/=Int 0
+  rule bytearrayHexSepPrefix(Sep:String, BytesPerSep:Int, _Len:Int, I:Int) => Sep
+    requires BytesPerSep <Int 0
+      andBool I >Int 0
+      andBool (I %Int (0 -Int BytesPerSep)) ==Int 0
+  rule bytearrayHexSepPrefix(_Sep:String, BytesPerSep:Int, _Len:Int, I:Int) => ""
+    requires BytesPerSep <Int 0
+      andBool I >Int 0
+      andBool (I %Int (0 -Int BytesPerSep)) =/=Int 0
+  rule bytearrayHexSepString(S:String) => S
+    requires bytearrayHexSepOk(S)
+  rule bytearrayHexSepString(bytesVal(VS:ValItems)) => bytesAsciiString(VS)
+    requires bytearrayHexSepOk(bytesVal(VS))
 
   rule pyIntBaseString(0, _Base:Int, Prefix:String) => Prefix +String "0"
   rule pyIntBaseString(I:Int, Base:Int, Prefix:String) => Prefix +String intBaseDigits(I, Base)
@@ -7270,6 +7325,27 @@ module PYTHON
       andBool intValue(V) =/=Int 13
   rule bytearrayTabByte(V:Val) => isIntLike(V) andBool intValue(V) ==Int 9
   rule bytearrayNewlineByte(V:Val) => isIntLike(V) andBool (intValue(V) ==Int 10 orBool intValue(V) ==Int 13)
+  rule bytearrayHexSepOk(S:String) => true
+    requires lengthString(S) ==Int 1
+      andBool stringCodePointAt(S, 0) <=Int 127
+  rule bytearrayHexSepOk(S:String) => false
+    requires lengthString(S) =/=Int 1
+  rule bytearrayHexSepOk(S:String) => false
+    requires lengthString(S) ==Int 1
+      andBool stringCodePointAt(S, 0) >Int 127
+  rule bytearrayHexSepOk(bytesVal(valItemsLast(V:Val))) =>
+    isIntLike(V) andBool intValue(V) >=Int 0 andBool intValue(V) <=Int 127
+  rule bytearrayHexSepOk(_:Val) => false [owise]
+  rule bytearrayHexSepValueError(S:String) => true
+    requires lengthString(S) =/=Int 1
+  rule bytearrayHexSepValueError(S:String) => true
+    requires lengthString(S) ==Int 1
+      andBool stringCodePointAt(S, 0) >Int 127
+  rule bytearrayHexSepValueError(#bytes()) => true
+  rule bytearrayHexSepValueError(bytesVal(valItemsLast(V:Val))) => true
+    requires isIntLike(V) andBool intValue(V) >Int 127
+  rule bytearrayHexSepValueError(bytesVal(valItemsCons(_:Val, _VS:ValItems))) => true
+  rule bytearrayHexSepValueError(_:Val) => false [owise]
   rule bytearrayAppendSpaces(B:Val, N:Int) => B
     requires isBytearrayVal(B)
       andBool N <=Int 0
@@ -16727,6 +16803,10 @@ module PYTHON
        <env> ... X |-> B:Val ... </env>
     requires Id2String(Method) ==String "expandtabs"
       andBool isBytearrayVal(B)
+  rule <k> #methodCall0(X:Id, Method:Id) => bytearrayHex(B) ... </k>
+       <env> ... X |-> B:Val ... </env>
+    requires Id2String(Method) ==String "hex"
+      andBool isBytearrayVal(B)
   rule <k> #methodCall0(X:Id, _Method:Id) =>
            exceptionSignal(#exception(#token("NameError", "Id")))
        ... </k>
@@ -16740,6 +16820,7 @@ module PYTHON
               orBool Id2String(Method) ==String "capitalize"
               orBool Id2String(Method) ==String "copy"
               orBool Id2String(Method) ==String "expandtabs"
+              orBool Id2String(Method) ==String "hex"
               orBool Id2String(Method) ==String "isalnum"
               orBool Id2String(Method) ==String "isalpha"
               orBool Id2String(Method) ==String "isascii"
@@ -16855,6 +16936,28 @@ module PYTHON
     requires Id2String(Method) ==String "expandtabs"
       andBool isBytearrayVal(B)
       andBool notBool isIntLike(Tabsize)
+  rule <k> #methodCall(X:Id, Method:Id, Sep:Val) =>
+           bytearrayHexWithSep(B, bytearrayHexSepString(Sep), 1)
+       ... </k>
+       <env> ... X |-> B:Val ... </env>
+    requires Id2String(Method) ==String "hex"
+      andBool isBytearrayVal(B)
+      andBool bytearrayHexSepOk(Sep)
+  rule <k> #methodCall(X:Id, Method:Id, Sep:Val) =>
+           exceptionSignal(#exception(#token("ValueError", "Id")))
+       ... </k>
+       <env> ... X |-> B:Val ... </env>
+    requires Id2String(Method) ==String "hex"
+      andBool isBytearrayVal(B)
+      andBool bytearrayHexSepValueError(Sep)
+  rule <k> #methodCall(X:Id, Method:Id, Sep:Val) =>
+           exceptionSignal(#exception(#token("TypeError", "Id")))
+       ... </k>
+       <env> ... X |-> B:Val ... </env>
+    requires Id2String(Method) ==String "hex"
+      andBool isBytearrayVal(B)
+      andBool notBool bytearrayHexSepOk(Sep)
+      andBool notBool bytearrayHexSepValueError(Sep)
   rule <k> #methodCall(X:Id, Method:Id, W:Val) => bytearrayCenter(B, W, 32) ... </k>
        <env> ... X |-> B:Val ... </env>
     requires Id2String(Method) ==String "center"
@@ -17375,6 +17478,7 @@ module PYTHON
               orBool Id2String(Method) ==String "expandtabs"
               orBool Id2String(Method) ==String "extend"
               orBool Id2String(Method) ==String "find"
+              orBool Id2String(Method) ==String "hex"
               orBool Id2String(Method) ==String "index"
               orBool Id2String(Method) ==String "ljust"
               orBool Id2String(Method) ==String "partition"
@@ -17406,6 +17510,44 @@ module PYTHON
            #methodCall3(X, Method, Old, New, -1)
        ... </k>
     requires Id2String(Method) ==String "replace"
+  rule <k> #methodCall2(X:Id, Method:Id, _Sep:Val, BytesPerSep:Val) =>
+           exceptionSignal(#exception(#token("TypeError", "Id")))
+       ... </k>
+       <env> ... X |-> B:Val ... </env>
+    requires Id2String(Method) ==String "hex"
+      andBool isBytearrayVal(B)
+      andBool notBool isIntLike(BytesPerSep)
+  rule <k> #methodCall2(X:Id, Method:Id, Sep:Val, BytesPerSep:Val) =>
+           bytearrayHexWithSep(B, bytearrayHexSepString(Sep), intValue(BytesPerSep))
+       ... </k>
+       <env> ... X |-> B:Val ... </env>
+    requires Id2String(Method) ==String "hex"
+      andBool isBytearrayVal(B)
+      andBool isIntLike(BytesPerSep)
+      andBool bytearrayHexSepOk(Sep)
+  rule <k> #methodCall2(X:Id, Method:Id, Sep:Val, BytesPerSep:Val) =>
+           exceptionSignal(#exception(#token("ValueError", "Id")))
+       ... </k>
+       <env> ... X |-> B:Val ... </env>
+    requires Id2String(Method) ==String "hex"
+      andBool isBytearrayVal(B)
+      andBool isIntLike(BytesPerSep)
+      andBool bytearrayHexSepValueError(Sep)
+  rule <k> #methodCall2(X:Id, Method:Id, Sep:Val, BytesPerSep:Val) =>
+           exceptionSignal(#exception(#token("TypeError", "Id")))
+       ... </k>
+       <env> ... X |-> B:Val ... </env>
+    requires Id2String(Method) ==String "hex"
+      andBool isBytearrayVal(B)
+      andBool isIntLike(BytesPerSep)
+      andBool notBool bytearrayHexSepOk(Sep)
+      andBool notBool bytearrayHexSepValueError(Sep)
+  rule <k> #methodCall2(X:Id, Method:Id, _Sep:Val, _BytesPerSep:Val) =>
+           exceptionSignal(#exception(#token("NotImplementedError", "Id")))
+       ... </k>
+       <env> ... X |-> B:Val ... </env>
+    requires Id2String(Method) ==String "hex"
+      andBool notBool isBytearrayVal(B)
   rule <k> #methodCall3(X:Id, Method:Id, _Needle:Val, Start:Val, End:Val) =>
            exceptionSignal(#exception(#token("TypeError", "Id")))
        ... </k>

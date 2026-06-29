@@ -711,6 +711,27 @@
       "coverage": ["bytes-methods", "bytes-hex-method", "hexadecimal-rendering", "method-call", "type-error", "value-error", "ordinary-python-source-adapter"]
     },
     {
+      "id": "adapter-bytes-replace-basic",
+      "source": "../adapter/adapter-bytes-replace-basic.py",
+      "reference": "Python Standard Library Built-in Types bytes; replace non-overlapping subsequence replacement and count handling",
+      "expected_result": "True ~> .K",
+      "coverage": ["bytes-methods", "bytes-replace-method", "bytes-like-arguments", "method-call", "ordinary-python-source-adapter"]
+    },
+    {
+      "id": "adapter-bytes-replace-empty-old",
+      "source": "../adapter/adapter-bytes-replace-empty-old.py",
+      "reference": "Python Standard Library Built-in Types bytes; replace empty-old boundary insertion and count handling",
+      "expected_result": "True ~> .K",
+      "coverage": ["bytes-methods", "bytes-replace-method", "empty-subsequence", "method-call", "ordinary-python-source-adapter"]
+    },
+    {
+      "id": "adapter-bytes-replace-byteslike-diagnostics",
+      "source": "../adapter/adapter-bytes-replace-byteslike-diagnostics.py",
+      "reference": "Python Standard Library Built-in Types bytes; replace bytes-like old/new arguments and TypeError diagnostics",
+      "expected_result": "True ~> .K",
+      "coverage": ["bytes-methods", "bytes-replace-method", "bytes-like-arguments", "type-error", "method-call", "ordinary-python-source-adapter"]
+    },
+    {
       "id": "adapter-bytes-constructor",
       "source": "../adapter/adapter-bytes-constructor.py",
       "reference": "Python Standard Library Built-in Functions bytes and bytearray constructor interpretation; Built-in Types binary sequence types; CPython Lib/test/test_bytes.py constructor cases",

@@ -9182,12 +9182,24 @@ module PYTHON
     requires valItemsLen(Needle) >Int valItemsLen(Haystack)
 
   rule bytearrayPrefixMatch(Needle:Val, B:Val) => true
-    requires isBytearrayVal(B)
+    requires isBytesSequence(B)
       andBool bytearrayAffixNeedleSupported(Needle)
       andBool bytearrayAffixNeedleEmpty(Needle)
+  rule bytearrayPrefixMatch(Needle:Val, #bytes()) => false
+    requires bytearrayAffixNeedleSupported(Needle)
+      andBool notBool bytearrayAffixNeedleEmpty(Needle)
   rule bytearrayPrefixMatch(Needle:Val, #bytearray()) => false
     requires bytearrayAffixNeedleSupported(Needle)
       andBool notBool bytearrayAffixNeedleEmpty(Needle)
+  rule bytearrayPrefixMatch(Needle:Val, bytesVal(VS:ValItems)) =>
+    bytesPrefix(bytearrayAffixNeedleItems(Needle), VS)
+    requires bytearrayAffixNeedleSupported(Needle)
+      andBool notBool bytearrayAffixNeedleEmpty(Needle)
+      andBool valItemsLen(bytearrayAffixNeedleItems(Needle)) <=Int valItemsLen(VS)
+  rule bytearrayPrefixMatch(Needle:Val, bytesVal(VS:ValItems)) => false
+    requires bytearrayAffixNeedleSupported(Needle)
+      andBool notBool bytearrayAffixNeedleEmpty(Needle)
+      andBool valItemsLen(bytearrayAffixNeedleItems(Needle)) >Int valItemsLen(VS)
   rule bytearrayPrefixMatch(Needle:Val, bytearrayVal(VS:ValItems)) =>
     bytesPrefix(bytearrayAffixNeedleItems(Needle), VS)
     requires bytearrayAffixNeedleSupported(Needle)
@@ -9199,10 +9211,17 @@ module PYTHON
       andBool valItemsLen(bytearrayAffixNeedleItems(Needle)) >Int valItemsLen(VS)
 
   rule bytearraySuffixMatch(Needle:Val, B:Val) => true
-    requires isBytearrayVal(B)
+    requires isBytesSequence(B)
       andBool bytearrayAffixNeedleSupported(Needle)
       andBool bytearrayAffixNeedleEmpty(Needle)
+  rule bytearraySuffixMatch(Needle:Val, #bytes()) => false
+    requires bytearrayAffixNeedleSupported(Needle)
+      andBool notBool bytearrayAffixNeedleEmpty(Needle)
   rule bytearraySuffixMatch(Needle:Val, #bytearray()) => false
+    requires bytearrayAffixNeedleSupported(Needle)
+      andBool notBool bytearrayAffixNeedleEmpty(Needle)
+  rule bytearraySuffixMatch(Needle:Val, bytesVal(VS:ValItems)) =>
+    bytesSuffix(bytearrayAffixNeedleItems(Needle), VS)
     requires bytearrayAffixNeedleSupported(Needle)
       andBool notBool bytearrayAffixNeedleEmpty(Needle)
   rule bytearraySuffixMatch(Needle:Val, bytearrayVal(VS:ValItems)) =>
@@ -9211,7 +9230,7 @@ module PYTHON
       andBool notBool bytearrayAffixNeedleEmpty(Needle)
 
   rule bytearrayPrefixMatchWindow(Needle:Val, B:Val, Start:Val, End:Val) => true
-    requires isBytearrayVal(B)
+    requires isBytesSequence(B)
       andBool bytearraySearchBoundOk(Start)
       andBool bytearraySearchBoundOk(End)
       andBool bytearrayAffixNeedleSupported(Needle)
@@ -9219,7 +9238,7 @@ module PYTHON
       andBool bytearraySearchEmptyStartOk(B, Start)
       andBool bytearraySearchWindowLen(B, Start, End) >=Int 0
   rule bytearrayPrefixMatchWindow(Needle:Val, B:Val, Start:Val, End:Val) => false
-    requires isBytearrayVal(B)
+    requires isBytesSequence(B)
       andBool bytearraySearchBoundOk(Start)
       andBool bytearraySearchBoundOk(End)
       andBool bytearrayAffixNeedleSupported(Needle)
@@ -9228,14 +9247,14 @@ module PYTHON
         orBool notBool bytearraySearchEmptyStartOk(B, Start))
   rule bytearrayPrefixMatchWindow(Needle:Val, B:Val, Start:Val, End:Val) =>
     bytearrayPrefixMatch(Needle, bytearraySearchWindow(B, Start, End))
-    requires isBytearrayVal(B)
+    requires isBytesSequence(B)
       andBool bytearraySearchBoundOk(Start)
       andBool bytearraySearchBoundOk(End)
       andBool bytearrayAffixNeedleSupported(Needle)
       andBool notBool bytearrayAffixNeedleEmpty(Needle)
 
   rule bytearraySuffixMatchWindow(Needle:Val, B:Val, Start:Val, End:Val) => true
-    requires isBytearrayVal(B)
+    requires isBytesSequence(B)
       andBool bytearraySearchBoundOk(Start)
       andBool bytearraySearchBoundOk(End)
       andBool bytearrayAffixNeedleSupported(Needle)
@@ -9243,7 +9262,7 @@ module PYTHON
       andBool bytearraySearchEmptyStartOk(B, Start)
       andBool bytearraySearchWindowLen(B, Start, End) >=Int 0
   rule bytearraySuffixMatchWindow(Needle:Val, B:Val, Start:Val, End:Val) => false
-    requires isBytearrayVal(B)
+    requires isBytesSequence(B)
       andBool bytearraySearchBoundOk(Start)
       andBool bytearraySearchBoundOk(End)
       andBool bytearrayAffixNeedleSupported(Needle)
@@ -9252,7 +9271,7 @@ module PYTHON
         orBool notBool bytearraySearchEmptyStartOk(B, Start))
   rule bytearraySuffixMatchWindow(Needle:Val, B:Val, Start:Val, End:Val) =>
     bytearraySuffixMatch(Needle, bytearraySearchWindow(B, Start, End))
-    requires isBytearrayVal(B)
+    requires isBytesSequence(B)
       andBool bytearraySearchBoundOk(Start)
       andBool bytearraySearchBoundOk(End)
       andBool bytearrayAffixNeedleSupported(Needle)
@@ -9454,6 +9473,12 @@ module PYTHON
   rule bytearraySearchWindow(B:Val, Start:Val, End:Val) => #bytearray()
     requires isBytearrayVal(B)
       andBool bytearraySearchWindowLen(B, Start, End) <=Int 0
+  rule bytearraySearchWindow(B:Val, Start:Val, End:Val) => #bytearray()
+    requires isBytesVal(B)
+      andBool bytearraySearchWindowLen(B, Start, End) <=Int 0
+  rule bytearraySearchWindow(bytesVal(VS:ValItems), Start:Val, End:Val) =>
+    bytesToBytearray(bytesSlice(VS, bytearraySearchStart(bytesVal(VS), Start), bytearraySearchEnd(bytesVal(VS), End)))
+    requires bytearraySearchWindowLen(bytesVal(VS), Start, End) >Int 0
   rule bytearraySearchWindow(bytearrayVal(VS:ValItems), Start:Val, End:Val) =>
     bytesToBytearray(bytesSlice(VS, bytearraySearchStart(bytearrayVal(VS), Start), bytearraySearchEnd(bytearrayVal(VS), End)))
     requires bytearraySearchWindowLen(bytearrayVal(VS), Start, End) >Int 0
@@ -18108,6 +18133,60 @@ module PYTHON
     requires (Id2String(Method) ==String "removeprefix" orBool Id2String(Method) ==String "removesuffix")
       andBool isBytesVal(B)
       andBool notBool bytearrayAffixNeedleSupported(Affix)
+  rule <k> #methodCall(X:Id, Method:Id, Prefix:Val) => boolValue(bytearrayPrefixMatch(Prefix, B)) ... </k>
+       <env> ... X |-> B:Val ... </env>
+    requires Id2String(Method) ==String "startswith"
+      andBool isBytesVal(B)
+      andBool bytearrayAffixNeedleSupported(Prefix)
+  rule <k> #methodCall(X:Id, Method:Id, Suffix:Val) => boolValue(bytearraySuffixMatch(Suffix, B)) ... </k>
+       <env> ... X |-> B:Val ... </env>
+    requires Id2String(Method) ==String "endswith"
+      andBool isBytesVal(B)
+      andBool bytearrayAffixNeedleSupported(Suffix)
+  rule <k> #methodCall(X:Id, Method:Id, ()) => False ... </k>
+       <env> ... X |-> B:Val ... </env>
+    requires Id2String(Method) ==String "startswith"
+      andBool isBytesVal(B)
+  rule <k> #methodCall(X:Id, Method:Id, ()) => False ... </k>
+       <env> ... X |-> B:Val ... </env>
+    requires Id2String(Method) ==String "endswith"
+      andBool isBytesVal(B)
+  rule <k> #methodCall(X:Id, Method:Id, tupleVal(Prefixes:ValItems)) =>
+           exceptionSignal(#exception(#token("TypeError", "Id")))
+       ... </k>
+       <env> ... X |-> B:Val ... </env>
+    requires Id2String(Method) ==String "startswith"
+      andBool isBytesVal(B)
+      andBool bytearrayStartsWithTupleTypeError(Prefixes, B)
+  rule <k> #methodCall(X:Id, Method:Id, tupleVal(Prefixes:ValItems)) =>
+           boolValue(bytearrayStartsWithTuple(Prefixes, B))
+       ... </k>
+       <env> ... X |-> B:Val ... </env>
+    requires Id2String(Method) ==String "startswith"
+      andBool isBytesVal(B)
+      andBool notBool bytearrayStartsWithTupleTypeError(Prefixes, B)
+  rule <k> #methodCall(X:Id, Method:Id, tupleVal(Suffixes:ValItems)) =>
+           exceptionSignal(#exception(#token("TypeError", "Id")))
+       ... </k>
+       <env> ... X |-> B:Val ... </env>
+    requires Id2String(Method) ==String "endswith"
+      andBool isBytesVal(B)
+      andBool bytearrayEndsWithTupleTypeError(Suffixes, B)
+  rule <k> #methodCall(X:Id, Method:Id, tupleVal(Suffixes:ValItems)) =>
+           boolValue(bytearrayEndsWithTuple(Suffixes, B))
+       ... </k>
+       <env> ... X |-> B:Val ... </env>
+    requires Id2String(Method) ==String "endswith"
+      andBool isBytesVal(B)
+      andBool notBool bytearrayEndsWithTupleTypeError(Suffixes, B)
+  rule <k> #methodCall(X:Id, Method:Id, Affix:Val) =>
+           exceptionSignal(#exception(#token("TypeError", "Id")))
+       ... </k>
+       <env> ... X |-> B:Val ... </env>
+    requires (Id2String(Method) ==String "startswith" orBool Id2String(Method) ==String "endswith")
+      andBool isBytesVal(B)
+      andBool notBool bytearrayAffixNeedleSupported(Affix)
+      andBool notBool isTupleSequence(Affix)
   rule <k> #methodCall(X:Id, Method:Id, V:Val) => None ... </k>
        <env> ... X |-> (bytearrayVal(VS:ValItems) => bytearrayRemoveByte(VS, intValue(V))) ... </env>
     requires Id2String(Method) ==String "remove"
@@ -18789,6 +18868,89 @@ module PYTHON
        <env> ... X |-> B:Val ... </env>
     requires (Id2String(Method) ==String "startswith" orBool Id2String(Method) ==String "endswith")
       andBool isBytearrayVal(B)
+      andBool bytearraySearchBoundOk(Start)
+      andBool bytearraySearchBoundOk(End)
+      andBool notBool bytearrayAffixNeedleSupported(Affix)
+      andBool notBool isTupleSequence(Affix)
+  rule <k> #methodCall3(X:Id, Method:Id, _Affix:Val, Start:Val, End:Val) =>
+           exceptionSignal(#exception(#token("TypeError", "Id")))
+       ... </k>
+       <env> ... X |-> B:Val ... </env>
+    requires (Id2String(Method) ==String "startswith" orBool Id2String(Method) ==String "endswith")
+      andBool isBytesVal(B)
+      andBool (notBool bytearraySearchBoundOk(Start) orBool notBool bytearraySearchBoundOk(End))
+  rule <k> #methodCall3(X:Id, Method:Id, Prefix:Val, Start:Val, End:Val) =>
+           boolValue(bytearrayPrefixMatchWindow(Prefix, B, Start, End))
+       ... </k>
+       <env> ... X |-> B:Val ... </env>
+    requires Id2String(Method) ==String "startswith"
+      andBool isBytesVal(B)
+      andBool bytearraySearchBoundOk(Start)
+      andBool bytearraySearchBoundOk(End)
+      andBool bytearrayAffixNeedleSupported(Prefix)
+  rule <k> #methodCall3(X:Id, Method:Id, Suffix:Val, Start:Val, End:Val) =>
+           boolValue(bytearraySuffixMatchWindow(Suffix, B, Start, End))
+       ... </k>
+       <env> ... X |-> B:Val ... </env>
+    requires Id2String(Method) ==String "endswith"
+      andBool isBytesVal(B)
+      andBool bytearraySearchBoundOk(Start)
+      andBool bytearraySearchBoundOk(End)
+      andBool bytearrayAffixNeedleSupported(Suffix)
+  rule <k> #methodCall3(X:Id, Method:Id, (), Start:Val, End:Val) => False ... </k>
+       <env> ... X |-> B:Val ... </env>
+    requires Id2String(Method) ==String "startswith"
+      andBool isBytesVal(B)
+      andBool bytearraySearchBoundOk(Start)
+      andBool bytearraySearchBoundOk(End)
+  rule <k> #methodCall3(X:Id, Method:Id, (), Start:Val, End:Val) => False ... </k>
+       <env> ... X |-> B:Val ... </env>
+    requires Id2String(Method) ==String "endswith"
+      andBool isBytesVal(B)
+      andBool bytearraySearchBoundOk(Start)
+      andBool bytearraySearchBoundOk(End)
+  rule <k> #methodCall3(X:Id, Method:Id, tupleVal(Prefixes:ValItems), Start:Val, End:Val) =>
+           exceptionSignal(#exception(#token("TypeError", "Id")))
+       ... </k>
+       <env> ... X |-> B:Val ... </env>
+    requires Id2String(Method) ==String "startswith"
+      andBool isBytesVal(B)
+      andBool bytearraySearchBoundOk(Start)
+      andBool bytearraySearchBoundOk(End)
+      andBool bytearrayStartsWithTupleWindowTypeError(Prefixes, B, Start, End)
+  rule <k> #methodCall3(X:Id, Method:Id, tupleVal(Prefixes:ValItems), Start:Val, End:Val) =>
+           boolValue(bytearrayStartsWithTupleWindow(Prefixes, B, Start, End))
+       ... </k>
+       <env> ... X |-> B:Val ... </env>
+    requires Id2String(Method) ==String "startswith"
+      andBool isBytesVal(B)
+      andBool bytearraySearchBoundOk(Start)
+      andBool bytearraySearchBoundOk(End)
+      andBool notBool bytearrayStartsWithTupleWindowTypeError(Prefixes, B, Start, End)
+  rule <k> #methodCall3(X:Id, Method:Id, tupleVal(Suffixes:ValItems), Start:Val, End:Val) =>
+           exceptionSignal(#exception(#token("TypeError", "Id")))
+       ... </k>
+       <env> ... X |-> B:Val ... </env>
+    requires Id2String(Method) ==String "endswith"
+      andBool isBytesVal(B)
+      andBool bytearraySearchBoundOk(Start)
+      andBool bytearraySearchBoundOk(End)
+      andBool bytearrayEndsWithTupleWindowTypeError(Suffixes, B, Start, End)
+  rule <k> #methodCall3(X:Id, Method:Id, tupleVal(Suffixes:ValItems), Start:Val, End:Val) =>
+           boolValue(bytearrayEndsWithTupleWindow(Suffixes, B, Start, End))
+       ... </k>
+       <env> ... X |-> B:Val ... </env>
+    requires Id2String(Method) ==String "endswith"
+      andBool isBytesVal(B)
+      andBool bytearraySearchBoundOk(Start)
+      andBool bytearraySearchBoundOk(End)
+      andBool notBool bytearrayEndsWithTupleWindowTypeError(Suffixes, B, Start, End)
+  rule <k> #methodCall3(X:Id, Method:Id, Affix:Val, Start:Val, End:Val) =>
+           exceptionSignal(#exception(#token("TypeError", "Id")))
+       ... </k>
+       <env> ... X |-> B:Val ... </env>
+    requires (Id2String(Method) ==String "startswith" orBool Id2String(Method) ==String "endswith")
+      andBool isBytesVal(B)
       andBool bytearraySearchBoundOk(Start)
       andBool bytearraySearchBoundOk(End)
       andBool notBool bytearrayAffixNeedleSupported(Affix)

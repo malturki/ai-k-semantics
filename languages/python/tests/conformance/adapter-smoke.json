@@ -543,6 +543,62 @@
       "coverage": ["bytes-methods", "bytes-strip-methods", "bytes-strip-set", "type-error", "method-call", "ordinary-python-source-adapter"]
     },
     {
+      "id": "adapter-bytes-startsendswith-basic",
+      "source": "../adapter/adapter-bytes-startsendswith-basic.py",
+      "reference": "Python Standard Library Built-in Types bytes; startswith and endswith over bytes-like prefixes and suffixes",
+      "expected_result": "True ~> .K",
+      "coverage": ["bytes-methods", "bytes-startswith-method", "bytes-endswith-method", "bytes-like-arguments", "method-call", "ordinary-python-source-adapter"]
+    },
+    {
+      "id": "adapter-bytes-startsendswith-tuples",
+      "source": "../adapter/adapter-bytes-startsendswith-tuples.py",
+      "reference": "Python Standard Library Built-in Types bytes; startswith and endswith tuple affix behavior",
+      "expected_result": "True ~> .K",
+      "coverage": ["bytes-methods", "bytes-startswith-method", "bytes-endswith-method", "tuple-affixes", "method-call", "ordinary-python-source-adapter"]
+    },
+    {
+      "id": "adapter-bytes-startswith-window-basic",
+      "source": "../adapter/adapter-bytes-startswith-window-basic.py",
+      "reference": "Python Standard Library Built-in Types bytes; startswith start/end window behavior",
+      "expected_result": "True ~> .K",
+      "coverage": ["bytes-methods", "bytes-startswith-method", "slice-style-bounds", "bytes-like-arguments", "method-call", "ordinary-python-source-adapter"]
+    },
+    {
+      "id": "adapter-bytes-startswith-window-empty",
+      "source": "../adapter/adapter-bytes-startswith-window-empty.py",
+      "reference": "Python Standard Library Built-in Types bytes; startswith empty-prefix start/end window behavior",
+      "expected_result": "True ~> .K",
+      "coverage": ["bytes-methods", "bytes-startswith-method", "slice-style-bounds", "empty-affix", "method-call", "ordinary-python-source-adapter"]
+    },
+    {
+      "id": "adapter-bytes-endswith-window-basic",
+      "source": "../adapter/adapter-bytes-endswith-window-basic.py",
+      "reference": "Python Standard Library Built-in Types bytes; endswith start/end window behavior",
+      "expected_result": "True ~> .K",
+      "coverage": ["bytes-methods", "bytes-endswith-method", "slice-style-bounds", "bytes-like-arguments", "method-call", "ordinary-python-source-adapter"]
+    },
+    {
+      "id": "adapter-bytes-endswith-window-empty",
+      "source": "../adapter/adapter-bytes-endswith-window-empty.py",
+      "reference": "Python Standard Library Built-in Types bytes; endswith empty-suffix start/end window behavior",
+      "expected_result": "True ~> .K",
+      "coverage": ["bytes-methods", "bytes-endswith-method", "slice-style-bounds", "empty-affix", "method-call", "ordinary-python-source-adapter"]
+    },
+    {
+      "id": "adapter-bytes-startsendswith-window-tuples",
+      "source": "../adapter/adapter-bytes-startsendswith-window-tuples.py",
+      "reference": "Python Standard Library Built-in Types bytes; startswith and endswith tuple affix behavior with start/end windows",
+      "expected_result": "True ~> .K",
+      "coverage": ["bytes-methods", "bytes-startswith-method", "bytes-endswith-method", "tuple-affixes", "slice-style-bounds", "method-call", "ordinary-python-source-adapter"]
+    },
+    {
+      "id": "adapter-bytes-startsendswith-diagnostics",
+      "source": "../adapter/adapter-bytes-startsendswith-diagnostics.py",
+      "reference": "Python Standard Library Built-in Types bytes; startswith and endswith invalid affix and bound TypeError diagnostics",
+      "expected_result": "True ~> .K",
+      "coverage": ["bytes-methods", "bytes-startswith-method", "bytes-endswith-method", "tuple-affixes", "type-error", "method-call", "ordinary-python-source-adapter"]
+    },
+    {
       "id": "adapter-bytes-constructor",
       "source": "../adapter/adapter-bytes-constructor.py",
       "reference": "Python Standard Library Built-in Functions bytes and bytearray constructor interpretation; Built-in Types binary sequence types; CPython Lib/test/test_bytes.py constructor cases",

@@ -2016,6 +2016,9 @@ module PYTHON
                | bytesRSplitWhitespaceNonEmpty(Val, Int) [function, symbol(bytesRSplitWhitespaceNonEmpty)]
                | bytesSplitWhitespaceItems(ValItems, Int) [function, symbol(bytesSplitWhitespaceItems)]
                | bytesRSplitWhitespaceItems(ValItems, Int) [function, symbol(bytesRSplitWhitespaceItems)]
+               | bytesPartition(Val, Val) [function, symbol(bytesPartition)]
+               | bytesRPartition(Val, Val) [function, symbol(bytesRPartition)]
+               | bytesPartitionAt(ValItems, ValItems, Int) [function, symbol(bytesPartitionAt)]
                | bytearrayExpandTabs(Val, Int) [function, symbol(bytearrayExpandTabs)]
                | bytearrayExpandTabsScan(ValItems, Val, Int, Int) [function, symbol(bytearrayExpandTabsScan)]
                | bytearrayAppendSpaces(Val, Int) [function, symbol(bytearrayAppendSpaces)]
@@ -7619,6 +7622,45 @@ module PYTHON
       bytesSegment(VS, bytearrayRFindSpace(VS, 0, -1) +Int 1, valItemsLen(VS)))
     requires Count >Int 0
       andBool bytearrayRFindSpace(VS, 0, -1) >=Int 0
+
+  rule bytesPartition(#bytes(), Sep:Val) =>
+    tupleVal(valItemsCons(#bytes(), valItemsCons(#bytes(), valItemsLast(#bytes()))))
+    requires bytearrayAffixNeedleSupported(Sep)
+      andBool notBool bytearrayAffixNeedleEmpty(Sep)
+  rule bytesPartition(bytesVal(VS:ValItems), Sep:Val) =>
+    bytesPartitionAt(VS, bytearrayAffixNeedleItems(Sep), bytesFind(bytearrayAffixNeedleItems(Sep), VS, 0))
+    requires bytearrayAffixNeedleSupported(Sep)
+      andBool notBool bytearrayAffixNeedleEmpty(Sep)
+      andBool bytesFind(bytearrayAffixNeedleItems(Sep), VS, 0) >=Int 0
+  rule bytesPartition(bytesVal(VS:ValItems), Sep:Val) =>
+    tupleVal(valItemsCons(bytesVal(VS), valItemsCons(#bytes(), valItemsLast(#bytes()))))
+    requires bytearrayAffixNeedleSupported(Sep)
+      andBool notBool bytearrayAffixNeedleEmpty(Sep)
+      andBool bytesFind(bytearrayAffixNeedleItems(Sep), VS, 0) <Int 0
+
+  rule bytesRPartition(#bytes(), Sep:Val) =>
+    tupleVal(valItemsCons(#bytes(), valItemsCons(#bytes(), valItemsLast(#bytes()))))
+    requires bytearrayAffixNeedleSupported(Sep)
+      andBool notBool bytearrayAffixNeedleEmpty(Sep)
+  rule bytesRPartition(bytesVal(VS:ValItems), Sep:Val) =>
+    bytesPartitionAt(VS, bytearrayAffixNeedleItems(Sep), bytesRFind(bytearrayAffixNeedleItems(Sep), VS, 0, -1))
+    requires bytearrayAffixNeedleSupported(Sep)
+      andBool notBool bytearrayAffixNeedleEmpty(Sep)
+      andBool bytesRFind(bytearrayAffixNeedleItems(Sep), VS, 0, -1) >=Int 0
+  rule bytesRPartition(bytesVal(VS:ValItems), Sep:Val) =>
+    tupleVal(valItemsCons(#bytes(), valItemsCons(#bytes(), valItemsLast(bytesVal(VS)))))
+    requires bytearrayAffixNeedleSupported(Sep)
+      andBool notBool bytearrayAffixNeedleEmpty(Sep)
+      andBool bytesRFind(bytearrayAffixNeedleItems(Sep), VS, 0, -1) <Int 0
+
+  rule bytesPartitionAt(VS:ValItems, SepItems:ValItems, I:Int) =>
+    tupleVal(
+      valItemsCons(
+        bytesSlice(VS, 0, I),
+        valItemsCons(
+          bytesVal(SepItems),
+          valItemsLast(bytesSlice(VS, I +Int valItemsLen(SepItems), valItemsLen(VS))))))
+    requires I >=Int 0
 
   rule bytearrayTabByte(V:Val) => isIntLike(V) andBool intValue(V) ==Int 9
   rule bytearrayNewlineByte(V:Val) => isIntLike(V) andBool (intValue(V) ==Int 10 orBool intValue(V) ==Int 13)
@@ -17256,6 +17298,35 @@ module PYTHON
               orBool Id2String(Method) ==String "rpartition")
       andBool isBytearrayVal(B)
       andBool notBool bytearrayAffixNeedleSupported(Sep)
+  rule <k> #methodCall(X:Id, Method:Id, Sep:Val) => bytesPartition(B, Sep) ... </k>
+       <env> ... X |-> B:Val ... </env>
+    requires Id2String(Method) ==String "partition"
+      andBool isBytesVal(B)
+      andBool bytearrayAffixNeedleSupported(Sep)
+      andBool notBool bytearrayAffixNeedleEmpty(Sep)
+  rule <k> #methodCall(X:Id, Method:Id, Sep:Val) => bytesRPartition(B, Sep) ... </k>
+       <env> ... X |-> B:Val ... </env>
+    requires Id2String(Method) ==String "rpartition"
+      andBool isBytesVal(B)
+      andBool bytearrayAffixNeedleSupported(Sep)
+      andBool notBool bytearrayAffixNeedleEmpty(Sep)
+  rule <k> #methodCall(X:Id, Method:Id, Sep:Val) =>
+           exceptionSignal(#exception(#token("ValueError", "Id")))
+       ... </k>
+       <env> ... X |-> B:Val ... </env>
+    requires (Id2String(Method) ==String "partition"
+              orBool Id2String(Method) ==String "rpartition")
+      andBool isBytesVal(B)
+      andBool bytearrayAffixNeedleSupported(Sep)
+      andBool bytearrayAffixNeedleEmpty(Sep)
+  rule <k> #methodCall(X:Id, Method:Id, Sep:Val) =>
+           exceptionSignal(#exception(#token("TypeError", "Id")))
+       ... </k>
+       <env> ... X |-> B:Val ... </env>
+    requires (Id2String(Method) ==String "partition"
+              orBool Id2String(Method) ==String "rpartition")
+      andBool isBytesVal(B)
+      andBool notBool bytearrayAffixNeedleSupported(Sep)
   rule <k> #methodCall(X:Id, Method:Id, Arg:Val) => bytearraySplitWhitespace(B, -1) ... </k>
        <env> ... X |-> B:Val ... </env>
     requires Id2String(Method) ==String "split"
@@ -17922,7 +17993,9 @@ module PYTHON
               orBool Id2String(Method) ==String "zfill")
       andBool notBool isBytearrayVal(B)
       andBool notBool ((Id2String(Method) ==String "split"
-        orBool Id2String(Method) ==String "rsplit") andBool isBytesVal(B))
+        orBool Id2String(Method) ==String "rsplit"
+        orBool Id2String(Method) ==String "partition"
+        orBool Id2String(Method) ==String "rpartition") andBool isBytesVal(B))
   rule <k> #methodCall2(X:Id, Method:Id, Needle:Val, Start:Val) =>
            #methodCall3(X, Method, Needle, Start, None)
        ... </k>

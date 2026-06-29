@@ -340,6 +340,34 @@
       "coverage": ["bytes-methods", "bytes-split-method", "bytes-rsplit-method", "bytes-separator", "bytes-like-arguments", "method-call", "type-error", "ordinary-python-source-adapter"]
     },
     {
+      "id": "adapter-bytes-partition-methods",
+      "source": "../adapter/adapter-bytes-partition-methods.py",
+      "reference": "Python Standard Library Built-in Types bytes; partition and rpartition first and last separator behavior",
+      "expected_result": "True ~> .K",
+      "coverage": ["bytes-methods", "bytes-partition-method", "bytes-rpartition-method", "bytes-separator", "method-call", "ordinary-python-source-adapter"]
+    },
+    {
+      "id": "adapter-bytes-partition-byteslike",
+      "source": "../adapter/adapter-bytes-partition-byteslike.py",
+      "reference": "Python Standard Library Built-in Types bytes; partition and rpartition bytearray, memoryview, and multi-byte separator behavior",
+      "expected_result": "True ~> .K",
+      "coverage": ["bytes-methods", "bytes-partition-method", "bytes-rpartition-method", "bytes-separator", "bytes-like-arguments", "method-call", "ordinary-python-source-adapter"]
+    },
+    {
+      "id": "adapter-bytes-partition-not-found",
+      "source": "../adapter/adapter-bytes-partition-not-found.py",
+      "reference": "Python Standard Library Built-in Types bytes; partition and rpartition not-found tuple placement",
+      "expected_result": "True ~> .K",
+      "coverage": ["bytes-methods", "bytes-partition-method", "bytes-rpartition-method", "bytes-separator", "method-call", "ordinary-python-source-adapter"]
+    },
+    {
+      "id": "adapter-bytes-partition-diagnostics",
+      "source": "../adapter/adapter-bytes-partition-diagnostics.py",
+      "reference": "Python Standard Library Built-in Types bytes; partition and rpartition empty-separator ValueError and non-bytes-like TypeError diagnostics",
+      "expected_result": "True ~> .K",
+      "coverage": ["bytes-methods", "bytes-partition-method", "bytes-rpartition-method", "bytes-separator", "bytes-like-arguments", "method-call", "value-error", "type-error", "ordinary-python-source-adapter"]
+    },
+    {
       "id": "adapter-bytes-constructor",
       "source": "../adapter/adapter-bytes-constructor.py",
       "reference": "Python Standard Library Built-in Functions bytes and bytearray constructor interpretation; Built-in Types binary sequence types; CPython Lib/test/test_bytes.py constructor cases",

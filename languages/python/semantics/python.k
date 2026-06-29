@@ -1439,6 +1439,9 @@ module PYTHON
                 | bytesUtf8Start2(Val, Val) [function, symbol(bytesUtf8Start2)]
                 | bytesUtf8Start3(Val, Val, Val) [function, symbol(bytesUtf8Start3)]
                 | bytesUtf8Start4(Val, Val, Val, Val) [function, symbol(bytesUtf8Start4)]
+                | bytesUtf8Prefix3(Val, Val) [function, symbol(bytesUtf8Prefix3)]
+                | bytesUtf8Prefix4(Val, Val) [function, symbol(bytesUtf8Prefix4)]
+                | bytesUtf8Prefix4(Val, Val, Val) [function, symbol(bytesUtf8Prefix4_3)]
                 | bytesUtf8Valid(ValItems) [function, symbol(bytesUtf8Valid)]
                 | stringAsciiEncodable(String, Int) [function, symbol(stringAsciiEncodable)]
                 | stringLatin1Encodable(String, Int) [function, symbol(stringLatin1Encodable)]
@@ -1774,6 +1777,14 @@ module PYTHON
                   | bytesDecodeString(Val, String) [function, symbol(bytesDecodeString)]
                   | bytesDecodeUtf8Items(ValItems) [function, symbol(bytesDecodeUtf8Items)]
                   | bytesLatin1String(ValItems) [function, symbol(bytesLatin1String)]
+                  | bytesDecodeUtf8IgnoreString(Val) [function, symbol(bytesDecodeUtf8IgnoreString)]
+                  | bytesDecodeUtf8IgnoreItems(ValItems) [function, symbol(bytesDecodeUtf8IgnoreItems)]
+                  | bytesDecodeUtf8ReplaceString(Val) [function, symbol(bytesDecodeUtf8ReplaceString)]
+                  | bytesDecodeUtf8ReplaceItems(ValItems) [function, symbol(bytesDecodeUtf8ReplaceItems)]
+                  | bytesDecodeAsciiIgnoreString(Val) [function, symbol(bytesDecodeAsciiIgnoreString)]
+                  | bytesDecodeAsciiIgnoreItems(ValItems) [function, symbol(bytesDecodeAsciiIgnoreItems)]
+                  | bytesDecodeAsciiReplaceString(Val) [function, symbol(bytesDecodeAsciiReplaceString)]
+                  | bytesDecodeAsciiReplaceItems(ValItems) [function, symbol(bytesDecodeAsciiReplaceItems)]
                   | stringReprQuoteChar(Int) [function, symbol(stringReprQuoteChar)]
                   | stringReprPayload(String, Int, Int) [function, symbol(stringReprPayload)]
                   | stringReprChar(String, Int) [function, symbol(stringReprChar)]
@@ -2949,6 +2960,19 @@ module PYTHON
       andBool ((intValue(B1) ==Int 240 andBool isIntLike(B2) andBool intValue(B2) >=Int 144 andBool intValue(B2) <=Int 191)
         orBool (intValue(B1) >=Int 241 andBool intValue(B1) <=Int 243 andBool byteUtf8Cont(B2))
         orBool (intValue(B1) ==Int 244 andBool isIntLike(B2) andBool intValue(B2) >=Int 128 andBool intValue(B2) <=Int 143))
+  rule bytesUtf8Prefix3(B1:Val, B2:Val) =>
+    isIntLike(B1)
+      andBool ((intValue(B1) ==Int 224 andBool isIntLike(B2) andBool intValue(B2) >=Int 160 andBool intValue(B2) <=Int 191)
+        orBool (intValue(B1) >=Int 225 andBool intValue(B1) <=Int 236 andBool byteUtf8Cont(B2))
+        orBool (intValue(B1) ==Int 237 andBool isIntLike(B2) andBool intValue(B2) >=Int 128 andBool intValue(B2) <=Int 159)
+        orBool (intValue(B1) >=Int 238 andBool intValue(B1) <=Int 239 andBool byteUtf8Cont(B2)))
+  rule bytesUtf8Prefix4(B1:Val, B2:Val) =>
+    isIntLike(B1)
+      andBool ((intValue(B1) ==Int 240 andBool isIntLike(B2) andBool intValue(B2) >=Int 144 andBool intValue(B2) <=Int 191)
+        orBool (intValue(B1) >=Int 241 andBool intValue(B1) <=Int 243 andBool byteUtf8Cont(B2))
+        orBool (intValue(B1) ==Int 244 andBool isIntLike(B2) andBool intValue(B2) >=Int 128 andBool intValue(B2) <=Int 143))
+  rule bytesUtf8Prefix4(B1:Val, B2:Val, B3:Val) =>
+    bytesUtf8Prefix4(B1, B2) andBool byteUtf8Cont(B3)
 
   rule bytesUtf8Valid(valItemsLast(B:Val)) => byteAscii(B)
   rule bytesUtf8Valid(valItemsCons(B:Val, Rest:ValItems)) => bytesUtf8Valid(Rest)
@@ -3000,6 +3024,138 @@ module PYTHON
   rule bytesLatin1String(valItemsCons(B:Val, Rest:ValItems)) =>
     unicodeChar(intValue(B)) +String bytesLatin1String(Rest)
     requires isIntLike(B)
+
+  rule bytesDecodeUtf8IgnoreString(#bytes()) => ""
+  rule bytesDecodeUtf8IgnoreString(#bytearray()) => ""
+  rule bytesDecodeUtf8IgnoreString(bytesVal(VS:ValItems)) => bytesDecodeUtf8IgnoreItems(VS)
+  rule bytesDecodeUtf8IgnoreString(bytearrayVal(VS:ValItems)) => bytesDecodeUtf8IgnoreItems(VS)
+
+  rule bytesDecodeUtf8ReplaceString(#bytes()) => ""
+  rule bytesDecodeUtf8ReplaceString(#bytearray()) => ""
+  rule bytesDecodeUtf8ReplaceString(bytesVal(VS:ValItems)) => bytesDecodeUtf8ReplaceItems(VS)
+  rule bytesDecodeUtf8ReplaceString(bytearrayVal(VS:ValItems)) => bytesDecodeUtf8ReplaceItems(VS)
+
+  rule bytesDecodeAsciiIgnoreString(#bytes()) => ""
+  rule bytesDecodeAsciiIgnoreString(#bytearray()) => ""
+  rule bytesDecodeAsciiIgnoreString(bytesVal(VS:ValItems)) => bytesDecodeAsciiIgnoreItems(VS)
+  rule bytesDecodeAsciiIgnoreString(bytearrayVal(VS:ValItems)) => bytesDecodeAsciiIgnoreItems(VS)
+
+  rule bytesDecodeAsciiReplaceString(#bytes()) => ""
+  rule bytesDecodeAsciiReplaceString(#bytearray()) => ""
+  rule bytesDecodeAsciiReplaceString(bytesVal(VS:ValItems)) => bytesDecodeAsciiReplaceItems(VS)
+  rule bytesDecodeAsciiReplaceString(bytearrayVal(VS:ValItems)) => bytesDecodeAsciiReplaceItems(VS)
+
+  rule bytesDecodeAsciiIgnoreItems(valItemsLast(B:Val)) => unicodeChar(intValue(B))
+    requires byteAscii(B)
+  rule bytesDecodeAsciiIgnoreItems(valItemsLast(_B:Val)) => "" [owise]
+  rule bytesDecodeAsciiIgnoreItems(valItemsCons(B:Val, Rest:ValItems)) =>
+    unicodeChar(intValue(B)) +String bytesDecodeAsciiIgnoreItems(Rest)
+    requires byteAscii(B)
+  rule bytesDecodeAsciiIgnoreItems(valItemsCons(_B:Val, Rest:ValItems)) =>
+    bytesDecodeAsciiIgnoreItems(Rest) [owise]
+
+  rule bytesDecodeAsciiReplaceItems(valItemsLast(B:Val)) => unicodeChar(intValue(B))
+    requires byteAscii(B)
+  rule bytesDecodeAsciiReplaceItems(valItemsLast(_B:Val)) => unicodeChar(65533) [owise]
+  rule bytesDecodeAsciiReplaceItems(valItemsCons(B:Val, Rest:ValItems)) =>
+    unicodeChar(intValue(B)) +String bytesDecodeAsciiReplaceItems(Rest)
+    requires byteAscii(B)
+  rule bytesDecodeAsciiReplaceItems(valItemsCons(_B:Val, Rest:ValItems)) =>
+    unicodeChar(65533) +String bytesDecodeAsciiReplaceItems(Rest) [owise]
+
+  rule bytesDecodeUtf8IgnoreItems(valItemsLast(B:Val)) => unicodeChar(intValue(B))
+    requires byteAscii(B)
+  rule bytesDecodeUtf8IgnoreItems(valItemsLast(_B:Val)) => "" [owise]
+  rule bytesDecodeUtf8IgnoreItems(valItemsCons(B:Val, Rest:ValItems)) =>
+    unicodeChar(intValue(B)) +String bytesDecodeUtf8IgnoreItems(Rest)
+    requires byteAscii(B)
+  rule bytesDecodeUtf8IgnoreItems(valItemsCons(B1:Val, valItemsLast(B2:Val))) =>
+    unicodeChar(((intValue(B1) -Int 192) *Int 64) +Int (intValue(B2) -Int 128))
+    requires bytesUtf8Start2(B1, B2)
+  rule bytesDecodeUtf8IgnoreItems(valItemsCons(B1:Val, valItemsCons(B2:Val, Rest:ValItems))) =>
+    unicodeChar(((intValue(B1) -Int 192) *Int 64) +Int (intValue(B2) -Int 128)) +String bytesDecodeUtf8IgnoreItems(Rest)
+    requires bytesUtf8Start2(B1, B2)
+  rule bytesDecodeUtf8IgnoreItems(valItemsCons(B1:Val, valItemsCons(B2:Val, valItemsLast(B3:Val)))) =>
+    unicodeChar(((intValue(B1) -Int 224) *Int 4096) +Int ((intValue(B2) -Int 128) *Int 64) +Int (intValue(B3) -Int 128))
+    requires bytesUtf8Start3(B1, B2, B3)
+  rule bytesDecodeUtf8IgnoreItems(valItemsCons(B1:Val, valItemsCons(B2:Val, valItemsCons(B3:Val, Rest:ValItems)))) =>
+    unicodeChar(((intValue(B1) -Int 224) *Int 4096) +Int ((intValue(B2) -Int 128) *Int 64) +Int (intValue(B3) -Int 128))
+      +String bytesDecodeUtf8IgnoreItems(Rest)
+    requires bytesUtf8Start3(B1, B2, B3)
+  rule bytesDecodeUtf8IgnoreItems(valItemsCons(B1:Val, valItemsCons(B2:Val, valItemsCons(B3:Val, valItemsLast(B4:Val))))) =>
+    unicodeChar(((intValue(B1) -Int 240) *Int 262144) +Int ((intValue(B2) -Int 128) *Int 4096)
+      +Int ((intValue(B3) -Int 128) *Int 64) +Int (intValue(B4) -Int 128))
+    requires bytesUtf8Start4(B1, B2, B3, B4)
+  rule bytesDecodeUtf8IgnoreItems(valItemsCons(B1:Val, valItemsCons(B2:Val, valItemsCons(B3:Val, valItemsCons(B4:Val, Rest:ValItems))))) =>
+    unicodeChar(((intValue(B1) -Int 240) *Int 262144) +Int ((intValue(B2) -Int 128) *Int 4096)
+      +Int ((intValue(B3) -Int 128) *Int 64) +Int (intValue(B4) -Int 128))
+      +String bytesDecodeUtf8IgnoreItems(Rest)
+    requires bytesUtf8Start4(B1, B2, B3, B4)
+  rule bytesDecodeUtf8IgnoreItems(valItemsCons(B1:Val, valItemsLast(B2:Val))) => ""
+    requires bytesUtf8Prefix3(B1, B2) orBool bytesUtf8Prefix4(B1, B2)
+  rule bytesDecodeUtf8IgnoreItems(valItemsCons(B1:Val, valItemsCons(B2:Val, valItemsLast(B3:Val)))) => ""
+    requires bytesUtf8Prefix4(B1, B2, B3)
+  rule bytesDecodeUtf8IgnoreItems(valItemsCons(B1:Val, valItemsCons(B2:Val, valItemsLast(B3:Val)))) =>
+    bytesDecodeUtf8IgnoreItems(valItemsLast(B3))
+    requires (bytesUtf8Prefix3(B1, B2) orBool bytesUtf8Prefix4(B1, B2)) andBool notBool byteUtf8Cont(B3)
+  rule bytesDecodeUtf8IgnoreItems(valItemsCons(B1:Val, valItemsCons(B2:Val, valItemsCons(B3:Val, Rest:ValItems)))) =>
+    bytesDecodeUtf8IgnoreItems(valItemsCons(B3, Rest))
+    requires (bytesUtf8Prefix3(B1, B2) orBool bytesUtf8Prefix4(B1, B2)) andBool notBool byteUtf8Cont(B3)
+  rule bytesDecodeUtf8IgnoreItems(valItemsCons(B1:Val, valItemsCons(B2:Val, valItemsCons(B3:Val, valItemsLast(B4:Val))))) =>
+    bytesDecodeUtf8IgnoreItems(valItemsLast(B4))
+    requires bytesUtf8Prefix4(B1, B2, B3) andBool notBool byteUtf8Cont(B4)
+  rule bytesDecodeUtf8IgnoreItems(valItemsCons(B1:Val, valItemsCons(B2:Val, valItemsCons(B3:Val, valItemsCons(B4:Val, Rest:ValItems))))) =>
+    bytesDecodeUtf8IgnoreItems(valItemsCons(B4, Rest))
+    requires bytesUtf8Prefix4(B1, B2, B3) andBool notBool byteUtf8Cont(B4)
+  rule bytesDecodeUtf8IgnoreItems(valItemsCons(_B:Val, Rest:ValItems)) =>
+    bytesDecodeUtf8IgnoreItems(Rest) [owise]
+
+  rule bytesDecodeUtf8ReplaceItems(valItemsLast(B:Val)) => unicodeChar(intValue(B))
+    requires byteAscii(B)
+  rule bytesDecodeUtf8ReplaceItems(valItemsLast(_B:Val)) => unicodeChar(65533) [owise]
+  rule bytesDecodeUtf8ReplaceItems(valItemsCons(B:Val, Rest:ValItems)) =>
+    unicodeChar(intValue(B)) +String bytesDecodeUtf8ReplaceItems(Rest)
+    requires byteAscii(B)
+  rule bytesDecodeUtf8ReplaceItems(valItemsCons(B1:Val, valItemsLast(B2:Val))) =>
+    unicodeChar(((intValue(B1) -Int 192) *Int 64) +Int (intValue(B2) -Int 128))
+    requires bytesUtf8Start2(B1, B2)
+  rule bytesDecodeUtf8ReplaceItems(valItemsCons(B1:Val, valItemsCons(B2:Val, Rest:ValItems))) =>
+    unicodeChar(((intValue(B1) -Int 192) *Int 64) +Int (intValue(B2) -Int 128)) +String bytesDecodeUtf8ReplaceItems(Rest)
+    requires bytesUtf8Start2(B1, B2)
+  rule bytesDecodeUtf8ReplaceItems(valItemsCons(B1:Val, valItemsCons(B2:Val, valItemsLast(B3:Val)))) =>
+    unicodeChar(((intValue(B1) -Int 224) *Int 4096) +Int ((intValue(B2) -Int 128) *Int 64) +Int (intValue(B3) -Int 128))
+    requires bytesUtf8Start3(B1, B2, B3)
+  rule bytesDecodeUtf8ReplaceItems(valItemsCons(B1:Val, valItemsCons(B2:Val, valItemsCons(B3:Val, Rest:ValItems)))) =>
+    unicodeChar(((intValue(B1) -Int 224) *Int 4096) +Int ((intValue(B2) -Int 128) *Int 64) +Int (intValue(B3) -Int 128))
+      +String bytesDecodeUtf8ReplaceItems(Rest)
+    requires bytesUtf8Start3(B1, B2, B3)
+  rule bytesDecodeUtf8ReplaceItems(valItemsCons(B1:Val, valItemsCons(B2:Val, valItemsCons(B3:Val, valItemsLast(B4:Val))))) =>
+    unicodeChar(((intValue(B1) -Int 240) *Int 262144) +Int ((intValue(B2) -Int 128) *Int 4096)
+      +Int ((intValue(B3) -Int 128) *Int 64) +Int (intValue(B4) -Int 128))
+    requires bytesUtf8Start4(B1, B2, B3, B4)
+  rule bytesDecodeUtf8ReplaceItems(valItemsCons(B1:Val, valItemsCons(B2:Val, valItemsCons(B3:Val, valItemsCons(B4:Val, Rest:ValItems))))) =>
+    unicodeChar(((intValue(B1) -Int 240) *Int 262144) +Int ((intValue(B2) -Int 128) *Int 4096)
+      +Int ((intValue(B3) -Int 128) *Int 64) +Int (intValue(B4) -Int 128))
+      +String bytesDecodeUtf8ReplaceItems(Rest)
+    requires bytesUtf8Start4(B1, B2, B3, B4)
+  rule bytesDecodeUtf8ReplaceItems(valItemsCons(B1:Val, valItemsLast(B2:Val))) => unicodeChar(65533)
+    requires bytesUtf8Prefix3(B1, B2) orBool bytesUtf8Prefix4(B1, B2)
+  rule bytesDecodeUtf8ReplaceItems(valItemsCons(B1:Val, valItemsCons(B2:Val, valItemsLast(B3:Val)))) => unicodeChar(65533)
+    requires bytesUtf8Prefix4(B1, B2, B3)
+  rule bytesDecodeUtf8ReplaceItems(valItemsCons(B1:Val, valItemsCons(B2:Val, valItemsLast(B3:Val)))) =>
+    unicodeChar(65533) +String bytesDecodeUtf8ReplaceItems(valItemsLast(B3))
+    requires (bytesUtf8Prefix3(B1, B2) orBool bytesUtf8Prefix4(B1, B2)) andBool notBool byteUtf8Cont(B3)
+  rule bytesDecodeUtf8ReplaceItems(valItemsCons(B1:Val, valItemsCons(B2:Val, valItemsCons(B3:Val, Rest:ValItems)))) =>
+    unicodeChar(65533) +String bytesDecodeUtf8ReplaceItems(valItemsCons(B3, Rest))
+    requires (bytesUtf8Prefix3(B1, B2) orBool bytesUtf8Prefix4(B1, B2)) andBool notBool byteUtf8Cont(B3)
+  rule bytesDecodeUtf8ReplaceItems(valItemsCons(B1:Val, valItemsCons(B2:Val, valItemsCons(B3:Val, valItemsLast(B4:Val))))) =>
+    unicodeChar(65533) +String bytesDecodeUtf8ReplaceItems(valItemsLast(B4))
+    requires bytesUtf8Prefix4(B1, B2, B3) andBool notBool byteUtf8Cont(B4)
+  rule bytesDecodeUtf8ReplaceItems(valItemsCons(B1:Val, valItemsCons(B2:Val, valItemsCons(B3:Val, valItemsCons(B4:Val, Rest:ValItems))))) =>
+    unicodeChar(65533) +String bytesDecodeUtf8ReplaceItems(valItemsCons(B4, Rest))
+    requires bytesUtf8Prefix4(B1, B2, B3) andBool notBool byteUtf8Cont(B4)
+  rule bytesDecodeUtf8ReplaceItems(valItemsCons(_B:Val, Rest:ValItems)) =>
+    unicodeChar(65533) +String bytesDecodeUtf8ReplaceItems(Rest) [owise]
 
   rule pyIntBaseString(0, _Base:Int, Prefix:String) => Prefix +String "0"
   rule pyIntBaseString(I:Int, Base:Int, Prefix:String) => Prefix +String intBaseDigits(I, Base)
@@ -19378,6 +19534,34 @@ module PYTHON
       andBool bytesEncodingSupported(Enc)
       andBool notBool bytesDecodeValid(B, Enc)
       andBool bytesErrorsStrict(Errors)
+  rule <k> #methodCall2(X:Id, Method:Id, Enc:String, Errors:String) => bytesDecodeUtf8IgnoreString(B) ... </k>
+       <env> ... X |-> B:Val ... </env>
+    requires Id2String(Method) ==String "decode"
+      andBool (isBytesVal(B) orBool isBytearrayVal(B))
+      andBool bytesEncodingUtf8(Enc)
+      andBool notBool bytesDecodeValid(B, Enc)
+      andBool bytesErrorsIgnore(Errors)
+  rule <k> #methodCall2(X:Id, Method:Id, Enc:String, Errors:String) => bytesDecodeUtf8ReplaceString(B) ... </k>
+       <env> ... X |-> B:Val ... </env>
+    requires Id2String(Method) ==String "decode"
+      andBool (isBytesVal(B) orBool isBytearrayVal(B))
+      andBool bytesEncodingUtf8(Enc)
+      andBool notBool bytesDecodeValid(B, Enc)
+      andBool bytesErrorsReplace(Errors)
+  rule <k> #methodCall2(X:Id, Method:Id, Enc:String, Errors:String) => bytesDecodeAsciiIgnoreString(B) ... </k>
+       <env> ... X |-> B:Val ... </env>
+    requires Id2String(Method) ==String "decode"
+      andBool (isBytesVal(B) orBool isBytearrayVal(B))
+      andBool bytesEncodingAscii(Enc)
+      andBool notBool bytesDecodeValid(B, Enc)
+      andBool bytesErrorsIgnore(Errors)
+  rule <k> #methodCall2(X:Id, Method:Id, Enc:String, Errors:String) => bytesDecodeAsciiReplaceString(B) ... </k>
+       <env> ... X |-> B:Val ... </env>
+    requires Id2String(Method) ==String "decode"
+      andBool (isBytesVal(B) orBool isBytearrayVal(B))
+      andBool bytesEncodingAscii(Enc)
+      andBool notBool bytesDecodeValid(B, Enc)
+      andBool bytesErrorsReplace(Errors)
   rule <k> #methodCall2(X:Id, Method:Id, Enc:String, _Errors:String) =>
            exceptionSignal(#exception(#token("LookupError", "Id")))
        ... </k>

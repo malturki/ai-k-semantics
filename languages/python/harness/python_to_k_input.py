@@ -917,19 +917,19 @@ def emit_exp(exp: ast.expr) -> str:
             func=ast.Attribute(value=ast.Name(id=name), attr=attr, ctx=ast.Load()),
             args=[],
             keywords=[],
-        ) if attr in {"capitalize", "clear", "copy", "expandtabs", "hex", "isalnum", "isalpha", "isascii", "isdigit", "islower", "isspace", "istitle", "isupper", "lower", "lstrip", "pop", "reverse", "rstrip", "splitlines", "strip", "swapcase", "title", "upper"}:
+        ) if attr in {"capitalize", "clear", "copy", "expandtabs", "hex", "isalnum", "isalpha", "isascii", "isdigit", "islower", "isspace", "istitle", "isupper", "lower", "lstrip", "pop", "reverse", "rsplit", "rstrip", "split", "splitlines", "strip", "swapcase", "title", "upper"}:
             return f"#methodCall0({emit_id(name)}, {emit_id(attr)})"
         case ast.Call(
             func=ast.Attribute(value=ast.Name(id=name), attr=attr, ctx=ast.Load()),
             args=[arg],
             keywords=[],
-        ) if attr in {"append", "center", "count", "endswith", "expandtabs", "extend", "find", "hex", "index", "ljust", "lstrip", "partition", "pop", "remove", "removeprefix", "removesuffix", "rfind", "rindex", "rjust", "rpartition", "rstrip", "splitlines", "startswith", "strip", "zfill"}:
+        ) if attr in {"append", "center", "count", "endswith", "expandtabs", "extend", "find", "hex", "index", "ljust", "lstrip", "partition", "pop", "remove", "removeprefix", "removesuffix", "rfind", "rindex", "rjust", "rpartition", "rsplit", "rstrip", "split", "splitlines", "startswith", "strip", "zfill"}:
             return f"#methodCall({emit_id(name)}, {emit_id(attr)}, {emit_exp(arg)})"
         case ast.Call(
             func=ast.Attribute(value=ast.Name(id=name), attr=attr, ctx=ast.Load()),
             args=[arg1, arg2],
             keywords=[],
-        ) if attr in {"center", "count", "endswith", "find", "hex", "index", "insert", "ljust", "replace", "rfind", "rindex", "rjust", "startswith"}:
+        ) if attr in {"center", "count", "endswith", "find", "hex", "index", "insert", "ljust", "replace", "rfind", "rindex", "rjust", "rsplit", "split", "startswith"}:
             return f"#methodCall2({emit_id(name)}, {emit_id(attr)}, {emit_exp(arg1)}, {emit_exp(arg2)})"
         case ast.Call(
             func=ast.Attribute(value=ast.Name(id=name), attr=attr, ctx=ast.Load()),

@@ -459,6 +459,34 @@
       "coverage": ["bytes-methods", "bytes-splitlines-method", "line-boundary-splitting", "method-call", "ordinary-python-source-adapter"]
     },
     {
+      "id": "adapter-bytes-classification-ascii",
+      "source": "../adapter/adapter-bytes-classification-ascii.py",
+      "reference": "Python Standard Library Built-in Types bytes; isascii over empty, ASCII, and non-ASCII byte sequences",
+      "expected_result": "True ~> .K",
+      "coverage": ["bytes-methods", "bytes-classification-methods", "bytes-isascii-method", "method-call", "ordinary-python-source-adapter"]
+    },
+    {
+      "id": "adapter-bytes-classification-alpha-digit-alnum",
+      "source": "../adapter/adapter-bytes-classification-alpha-digit-alnum.py",
+      "reference": "Python Standard Library Built-in Types bytes; isalpha, isdigit, and isalnum ASCII classification",
+      "expected_result": "True ~> .K",
+      "coverage": ["bytes-methods", "bytes-classification-methods", "bytes-isalpha-method", "bytes-isdigit-method", "bytes-isalnum-method", "method-call", "ordinary-python-source-adapter"]
+    },
+    {
+      "id": "adapter-bytes-classification-case",
+      "source": "../adapter/adapter-bytes-classification-case.py",
+      "reference": "Python Standard Library Built-in Types bytes; islower and isupper ASCII classification",
+      "expected_result": "True ~> .K",
+      "coverage": ["bytes-methods", "bytes-classification-methods", "bytes-islower-method", "bytes-isupper-method", "method-call", "ordinary-python-source-adapter"]
+    },
+    {
+      "id": "adapter-bytes-classification-space-title",
+      "source": "../adapter/adapter-bytes-classification-space-title.py",
+      "reference": "Python Standard Library Built-in Types bytes; isspace and istitle ASCII classification",
+      "expected_result": "True ~> .K",
+      "coverage": ["bytes-methods", "bytes-classification-methods", "bytes-isspace-method", "bytes-istitle-method", "method-call", "ordinary-python-source-adapter"]
+    },
+    {
       "id": "adapter-bytes-constructor",
       "source": "../adapter/adapter-bytes-constructor.py",
       "reference": "Python Standard Library Built-in Functions bytes and bytearray constructor interpretation; Built-in Types binary sequence types; CPython Lib/test/test_bytes.py constructor cases",

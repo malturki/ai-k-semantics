@@ -17235,6 +17235,42 @@ module PYTHON
   rule <k> #methodCall0(X:Id, Method:Id) => boolValue(bytesHasUpper(VS) andBool notBool bytesHasLower(VS)) ... </k>
        <env> ... X |-> bytearrayVal(VS:ValItems) ... </env>
     requires Id2String(Method) ==String "isupper"
+  rule <k> #methodCall0(X:Id, Method:Id) => True ... </k>
+       <env> ... X |-> #bytes() ... </env>
+    requires Id2String(Method) ==String "isascii"
+  rule <k> #methodCall0(X:Id, Method:Id) => False ... </k>
+       <env> ... X |-> #bytes() ... </env>
+    requires Id2String(Method) ==String "isalnum"
+      orBool Id2String(Method) ==String "isalpha"
+      orBool Id2String(Method) ==String "isdigit"
+      orBool Id2String(Method) ==String "islower"
+      orBool Id2String(Method) ==String "isspace"
+      orBool Id2String(Method) ==String "istitle"
+      orBool Id2String(Method) ==String "isupper"
+  rule <k> #methodCall0(X:Id, Method:Id) => boolValue(bytesAllAlnum(VS)) ... </k>
+       <env> ... X |-> bytesVal(VS:ValItems) ... </env>
+    requires Id2String(Method) ==String "isalnum"
+  rule <k> #methodCall0(X:Id, Method:Id) => boolValue(bytesAllAlpha(VS)) ... </k>
+       <env> ... X |-> bytesVal(VS:ValItems) ... </env>
+    requires Id2String(Method) ==String "isalpha"
+  rule <k> #methodCall0(X:Id, Method:Id) => boolValue(bytesAllAscii(VS)) ... </k>
+       <env> ... X |-> bytesVal(VS:ValItems) ... </env>
+    requires Id2String(Method) ==String "isascii"
+  rule <k> #methodCall0(X:Id, Method:Id) => boolValue(bytesAllDigit(VS)) ... </k>
+       <env> ... X |-> bytesVal(VS:ValItems) ... </env>
+    requires Id2String(Method) ==String "isdigit"
+  rule <k> #methodCall0(X:Id, Method:Id) => boolValue(bytesHasLower(VS) andBool notBool bytesHasUpper(VS)) ... </k>
+       <env> ... X |-> bytesVal(VS:ValItems) ... </env>
+    requires Id2String(Method) ==String "islower"
+  rule <k> #methodCall0(X:Id, Method:Id) => boolValue(bytesAllSpace(VS)) ... </k>
+       <env> ... X |-> bytesVal(VS:ValItems) ... </env>
+    requires Id2String(Method) ==String "isspace"
+  rule <k> #methodCall0(X:Id, Method:Id) => boolValue(bytesTitleOk(VS)) ... </k>
+       <env> ... X |-> bytesVal(VS:ValItems) ... </env>
+    requires Id2String(Method) ==String "istitle"
+  rule <k> #methodCall0(X:Id, Method:Id) => boolValue(bytesHasUpper(VS) andBool notBool bytesHasLower(VS)) ... </k>
+       <env> ... X |-> bytesVal(VS:ValItems) ... </env>
+    requires Id2String(Method) ==String "isupper"
   rule <k> #methodCall0(X:Id, Method:Id) => bytearrayLStripDefault(B) ... </k>
        <env> ... X |-> B:Val ... </env>
     requires Id2String(Method) ==String "lstrip"
@@ -17316,7 +17352,15 @@ module PYTHON
       andBool notBool isBytearrayVal(B)
       andBool notBool ((Id2String(Method) ==String "split"
         orBool Id2String(Method) ==String "rsplit"
-        orBool Id2String(Method) ==String "splitlines") andBool isBytesVal(B))
+        orBool Id2String(Method) ==String "splitlines"
+        orBool Id2String(Method) ==String "isalnum"
+        orBool Id2String(Method) ==String "isalpha"
+        orBool Id2String(Method) ==String "isascii"
+        orBool Id2String(Method) ==String "isdigit"
+        orBool Id2String(Method) ==String "islower"
+        orBool Id2String(Method) ==String "isspace"
+        orBool Id2String(Method) ==String "istitle"
+        orBool Id2String(Method) ==String "isupper") andBool isBytesVal(B))
   rule <k> #methodCall(X:Id, Method:Id, Arg:Val) => bytearrayLStripDefault(B) ... </k>
        <env> ... X |-> B:Val ... </env>
     requires Id2String(Method) ==String "lstrip"

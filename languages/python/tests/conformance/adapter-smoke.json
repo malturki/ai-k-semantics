@@ -1161,9 +1161,9 @@
     {
       "id": "adapter-bytes-percent-format-mapping-diagnostics",
       "source": "../adapter/adapter-bytes-percent-format-mapping-diagnostics.py",
-      "reference": "Python Standard Library Built-in Types bytes; printf-style bytes formatting mapping-key TypeError for non-mapping RHS and KeyError for missing keys in empty mappings",
+      "reference": "Python Standard Library Built-in Types bytes; printf-style bytes formatting mapping-key TypeError for non-mapping RHS, KeyError for missing bytes keys, and ValueError for incomplete keys",
       "expected_result": "True ~> .K",
-      "coverage": ["bytes-percent-formatting", "printf-style-bytes-formatting", "mapping-key", "type-error", "key-error", "ordinary-python-source-adapter"]
+      "coverage": ["bytes-percent-formatting", "printf-style-bytes-formatting", "mapping-key", "type-error", "key-error", "value-error", "ordinary-python-source-adapter"]
     },
     {
       "id": "adapter-bytes-replace-basic",

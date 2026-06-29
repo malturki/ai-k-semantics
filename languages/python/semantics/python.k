@@ -13925,8 +13925,30 @@ module PYTHON
   rule <k> bytesVal(valItemsCons(37, valItemsCons(40, Tail:ValItems))) % ({}):Val =>
            bytesPercentMappingExecEmpty(valItemsCons(37, valItemsCons(40, Tail)))
        ... </k>
+  rule <k> bytesVal(FS:ValItems) % dictVal(_DS:DictItems) =>
+           exceptionSignal(#exception(#token("ValueError", "Id")))
+       ... </k>
+    requires bytesPercentMappingRequiresMapping(FS)
+      andBool bytesPercentMappingIncomplete(FS)
+  rule <k> bytesVal(FS:ValItems) % dictVal(DS:DictItems) =>
+           exceptionSignal(#exception(#token("KeyError", "Id")))
+       ... </k>
+    requires bytesPercentMappingRequiresMapping(FS)
+      andBool notBool bytesPercentMappingIncomplete(FS)
+      andBool bytesPercentMappingFormatSupported(FS)
+      andBool notBool bytesPercentMappingKeysOk(FS, DS)
   rule bytesVal(FS:ValItems) % dictVal(DS:DictItems) =>
     bytesPercentMappingScan(FS, DS, #bytes())
+    requires bytesPercentMappingRequiresMapping(FS)
+      andBool notBool bytesPercentMappingIncomplete(FS)
+      andBool bytesPercentMappingFormatSupported(FS)
+      andBool bytesPercentMappingKeysOk(FS, DS)
+  rule <k> bytesVal(FS:ValItems) % dictVal(_DS:DictItems) =>
+           exceptionSignal(#exception(#token("NotImplementedError", "Id")))
+       ... </k>
+    requires bytesPercentMappingRequiresMapping(FS)
+      andBool notBool bytesPercentMappingIncomplete(FS)
+      andBool notBool bytesPercentMappingFormatSupported(FS)
 
   rule bytesVal(FS:ValItems) % Values:Val =>
     bytesPercentScan(FS, Values, bytesPercentSpecCount(FS), 0, #bytes())
@@ -13974,8 +13996,30 @@ module PYTHON
   rule <k> bytearrayVal(valItemsCons(37, valItemsCons(40, Tail:ValItems))) % ({}):Val =>
            bytesPercentMappingExecEmpty(valItemsCons(37, valItemsCons(40, Tail)))
        ... </k>
+  rule <k> bytearrayVal(FS:ValItems) % dictVal(_DS:DictItems) =>
+           exceptionSignal(#exception(#token("ValueError", "Id")))
+       ... </k>
+    requires bytesPercentMappingRequiresMapping(FS)
+      andBool bytesPercentMappingIncomplete(FS)
+  rule <k> bytearrayVal(FS:ValItems) % dictVal(DS:DictItems) =>
+           exceptionSignal(#exception(#token("KeyError", "Id")))
+       ... </k>
+    requires bytesPercentMappingRequiresMapping(FS)
+      andBool notBool bytesPercentMappingIncomplete(FS)
+      andBool bytesPercentMappingFormatSupported(FS)
+      andBool notBool bytesPercentMappingKeysOk(FS, DS)
   rule bytearrayVal(FS:ValItems) % dictVal(DS:DictItems) =>
     bytesPercentMappingScan(FS, DS, #bytearray())
+    requires bytesPercentMappingRequiresMapping(FS)
+      andBool notBool bytesPercentMappingIncomplete(FS)
+      andBool bytesPercentMappingFormatSupported(FS)
+      andBool bytesPercentMappingKeysOk(FS, DS)
+  rule <k> bytearrayVal(FS:ValItems) % dictVal(_DS:DictItems) =>
+           exceptionSignal(#exception(#token("NotImplementedError", "Id")))
+       ... </k>
+    requires bytesPercentMappingRequiresMapping(FS)
+      andBool notBool bytesPercentMappingIncomplete(FS)
+      andBool notBool bytesPercentMappingFormatSupported(FS)
 
   rule <k> bytesPercentMappingExecEmpty(valItemsLast(_V:Val)) =>
            exceptionSignal(#exception(#token("ValueError", "Id")))

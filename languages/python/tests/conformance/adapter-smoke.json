@@ -389,6 +389,76 @@
       "coverage": ["bytes-methods", "bytes-removeprefix-method", "bytes-removesuffix-method", "bytes-separator", "bytes-like-arguments", "method-call", "type-error", "ordinary-python-source-adapter"]
     },
     {
+      "id": "adapter-bytes-splitlines-basic",
+      "source": "../adapter/adapter-bytes-splitlines-basic.py",
+      "reference": "Python Standard Library Built-in Types bytes; splitlines over ASCII universal-newline boundaries",
+      "expected_result": "True ~> .K",
+      "coverage": ["bytes-methods", "bytes-splitlines-method", "line-boundary-splitting", "method-call", "ordinary-python-source-adapter"]
+    },
+    {
+      "id": "adapter-bytes-splitlines-keepends",
+      "source": "../adapter/adapter-bytes-splitlines-keepends.py",
+      "reference": "Python Standard Library Built-in Types bytes; splitlines keepends behavior",
+      "expected_result": "True ~> .K",
+      "coverage": ["bytes-methods", "bytes-splitlines-method", "line-boundary-splitting", "method-call", "ordinary-python-source-adapter"]
+    },
+    {
+      "id": "adapter-bytes-splitlines-truthiness",
+      "source": "../adapter/adapter-bytes-splitlines-truthiness.py",
+      "reference": "Python Standard Library Built-in Types bytes; splitlines keepends argument truthiness",
+      "expected_result": "True ~> .K",
+      "coverage": ["bytes-methods", "bytes-splitlines-method", "line-boundary-splitting", "truthiness", "method-call", "ordinary-python-source-adapter"]
+    },
+    {
+      "id": "adapter-bytes-splitlines-boundaries",
+      "source": "../adapter/adapter-bytes-splitlines-boundaries.py",
+      "reference": "Python Standard Library Built-in Types bytes; splitlines CRLF boundary behavior",
+      "expected_result": "True ~> .K",
+      "coverage": ["bytes-methods", "bytes-splitlines-method", "line-boundary-splitting", "method-call", "ordinary-python-source-adapter"]
+    },
+    {
+      "id": "adapter-bytes-splitlines-terminal",
+      "source": "../adapter/adapter-bytes-splitlines-terminal.py",
+      "reference": "Python Standard Library Built-in Types bytes; splitlines terminal line-break behavior",
+      "expected_result": "True ~> .K",
+      "coverage": ["bytes-methods", "bytes-splitlines-method", "line-boundary-splitting", "method-call", "ordinary-python-source-adapter"]
+    },
+    {
+      "id": "adapter-bytes-splitlines-cr-boundary",
+      "source": "../adapter/adapter-bytes-splitlines-cr-boundary.py",
+      "reference": "Python Standard Library Built-in Types bytes; splitlines CR boundary behavior",
+      "expected_result": "True ~> .K",
+      "coverage": ["bytes-methods", "bytes-splitlines-method", "line-boundary-splitting", "method-call", "ordinary-python-source-adapter"]
+    },
+    {
+      "id": "adapter-bytes-splitlines-lf-boundary",
+      "source": "../adapter/adapter-bytes-splitlines-lf-boundary.py",
+      "reference": "Python Standard Library Built-in Types bytes; splitlines LF boundary behavior",
+      "expected_result": "True ~> .K",
+      "coverage": ["bytes-methods", "bytes-splitlines-method", "line-boundary-splitting", "method-call", "ordinary-python-source-adapter"]
+    },
+    {
+      "id": "adapter-bytes-splitlines-edges",
+      "source": "../adapter/adapter-bytes-splitlines-edges.py",
+      "reference": "Python Standard Library Built-in Types bytes; splitlines empty input",
+      "expected_result": "True ~> .K",
+      "coverage": ["bytes-methods", "bytes-splitlines-method", "line-boundary-splitting", "method-call", "ordinary-python-source-adapter"]
+    },
+    {
+      "id": "adapter-bytes-splitlines-consecutive",
+      "source": "../adapter/adapter-bytes-splitlines-consecutive.py",
+      "reference": "Python Standard Library Built-in Types bytes; splitlines consecutive line breaks",
+      "expected_result": "True ~> .K",
+      "coverage": ["bytes-methods", "bytes-splitlines-method", "line-boundary-splitting", "method-call", "ordinary-python-source-adapter"]
+    },
+    {
+      "id": "adapter-bytes-splitlines-nonboundaries",
+      "source": "../adapter/adapter-bytes-splitlines-nonboundaries.py",
+      "reference": "Python Standard Library Built-in Types bytes; splitlines non-boundary ASCII controls",
+      "expected_result": "True ~> .K",
+      "coverage": ["bytes-methods", "bytes-splitlines-method", "line-boundary-splitting", "method-call", "ordinary-python-source-adapter"]
+    },
+    {
       "id": "adapter-bytes-constructor",
       "source": "../adapter/adapter-bytes-constructor.py",
       "reference": "Python Standard Library Built-in Functions bytes and bytearray constructor interpretation; Built-in Types binary sequence types; CPython Lib/test/test_bytes.py constructor cases",

@@ -2021,6 +2021,9 @@ module PYTHON
                | bytesPartitionAt(ValItems, ValItems, Int) [function, symbol(bytesPartitionAt)]
                | bytesRemovePrefix(Val, Val) [function, symbol(bytesRemovePrefix)]
                | bytesRemoveSuffix(Val, Val) [function, symbol(bytesRemoveSuffix)]
+               | bytesAppendByte(Val, Val) [function, symbol(bytesAppendByte)]
+               | bytesSplitLines(Val, Bool) [function, symbol(bytesSplitLines)]
+               | bytesSplitLinesScan(ValItems, Val, Bool) [function, symbol(bytesSplitLinesScan)]
                | bytearrayExpandTabs(Val, Int) [function, symbol(bytearrayExpandTabs)]
                | bytearrayExpandTabsScan(ValItems, Val, Int, Int) [function, symbol(bytearrayExpandTabsScan)]
                | bytearrayAppendSpaces(Val, Int) [function, symbol(bytearrayAppendSpaces)]
@@ -7697,6 +7700,61 @@ module PYTHON
     requires bytearrayAffixNeedleSupported(Suffix)
       andBool notBool bytearrayAffixNeedleEmpty(Suffix)
       andBool notBool bytesSuffix(bytearrayAffixNeedleItems(Suffix), VS)
+
+  rule bytesAppendByte(#bytes(), V:Val) => bytesVal(valItemsLast(intValue(V)))
+    requires isIntLike(V)
+  rule bytesAppendByte(bytesVal(VS:ValItems), V:Val) =>
+    bytesVal(concatValItems(VS, valItemsLast(intValue(V))))
+    requires isIntLike(V)
+
+  rule bytesSplitLines(#bytes(), _Keep:Bool) => []
+  rule bytesSplitLines(bytesVal(VS:ValItems), Keep:Bool) =>
+    bytesSplitLinesScan(VS, #bytes(), Keep)
+  rule bytesSplitLinesScan(valItemsLast(V:Val), Acc:Val, _Keep:Bool) =>
+    bytearrayLineCons(bytesAppendByte(Acc, V), [])
+    requires isIntLike(V)
+      andBool intValue(V) =/=Int 10
+      andBool intValue(V) =/=Int 13
+  rule bytesSplitLinesScan(valItemsLast(V:Val), Acc:Val, false) =>
+    bytearrayLineCons(Acc, [])
+    requires isIntLike(V)
+      andBool (intValue(V) ==Int 10 orBool intValue(V) ==Int 13)
+  rule bytesSplitLinesScan(valItemsLast(V:Val), Acc:Val, true) =>
+    bytearrayLineCons(bytesAppendByte(Acc, V), [])
+    requires isIntLike(V)
+      andBool (intValue(V) ==Int 10 orBool intValue(V) ==Int 13)
+  rule bytesSplitLinesScan(valItemsCons(13, valItemsLast(10)), Acc:Val, false) =>
+    bytearrayLineCons(Acc, [])
+  rule bytesSplitLinesScan(valItemsCons(13, valItemsLast(10)), Acc:Val, true) =>
+    bytearrayLineCons(bytesAppendByte(bytesAppendByte(Acc, 13), 10), [])
+  rule bytesSplitLinesScan(valItemsCons(13, valItemsCons(10, Rest:ValItems)), Acc:Val, false) =>
+    bytearrayLineCons(Acc, bytesSplitLinesScan(Rest, #bytes(), false))
+  rule bytesSplitLinesScan(valItemsCons(13, valItemsCons(10, Rest:ValItems)), Acc:Val, true) =>
+    bytearrayLineCons(bytesAppendByte(bytesAppendByte(Acc, 13), 10),
+      bytesSplitLinesScan(Rest, #bytes(), true))
+  rule bytesSplitLinesScan(valItemsCons(V:Val, Rest:ValItems), Acc:Val, false) =>
+    bytearrayLineCons(Acc, bytesSplitLinesScan(Rest, #bytes(), false))
+    requires isIntLike(V)
+      andBool intValue(V) ==Int 10
+  rule bytesSplitLinesScan(valItemsCons(V:Val, Rest:ValItems), Acc:Val, true) =>
+    bytearrayLineCons(bytesAppendByte(Acc, V), bytesSplitLinesScan(Rest, #bytes(), true))
+    requires isIntLike(V)
+      andBool intValue(V) ==Int 10
+  rule bytesSplitLinesScan(valItemsCons(V:Val, Rest:ValItems), Acc:Val, false) =>
+    bytearrayLineCons(Acc, bytesSplitLinesScan(Rest, #bytes(), false))
+    requires isIntLike(V)
+      andBool intValue(V) ==Int 13
+      andBool notBool bytearrayItemsStartLF(Rest)
+  rule bytesSplitLinesScan(valItemsCons(V:Val, Rest:ValItems), Acc:Val, true) =>
+    bytearrayLineCons(bytesAppendByte(Acc, V), bytesSplitLinesScan(Rest, #bytes(), true))
+    requires isIntLike(V)
+      andBool intValue(V) ==Int 13
+      andBool notBool bytearrayItemsStartLF(Rest)
+  rule bytesSplitLinesScan(valItemsCons(V:Val, Rest:ValItems), Acc:Val, Keep:Bool) =>
+    bytesSplitLinesScan(Rest, bytesAppendByte(Acc, V), Keep)
+    requires isIntLike(V)
+      andBool intValue(V) =/=Int 10
+      andBool intValue(V) =/=Int 13
 
   rule bytearrayTabByte(V:Val) => isIntLike(V) andBool intValue(V) ==Int 9
   rule bytearrayNewlineByte(V:Val) => isIntLike(V) andBool (intValue(V) ==Int 10 orBool intValue(V) ==Int 13)
@@ -17209,6 +17267,10 @@ module PYTHON
        <env> ... X |-> B:Val ... </env>
     requires Id2String(Method) ==String "rsplit"
       andBool isBytesVal(B)
+  rule <k> #methodCall0(X:Id, Method:Id) => bytesSplitLines(B, false) ... </k>
+       <env> ... X |-> B:Val ... </env>
+    requires Id2String(Method) ==String "splitlines"
+      andBool isBytesVal(B)
   rule <k> #methodCall0(X:Id, Method:Id) => bytearrayExpandTabs(B, 8) ... </k>
        <env> ... X |-> B:Val ... </env>
     requires Id2String(Method) ==String "expandtabs"
@@ -17253,7 +17315,8 @@ module PYTHON
               orBool Id2String(Method) ==String "upper")
       andBool notBool isBytearrayVal(B)
       andBool notBool ((Id2String(Method) ==String "split"
-        orBool Id2String(Method) ==String "rsplit") andBool isBytesVal(B))
+        orBool Id2String(Method) ==String "rsplit"
+        orBool Id2String(Method) ==String "splitlines") andBool isBytesVal(B))
   rule <k> #methodCall(X:Id, Method:Id, Arg:Val) => bytearrayLStripDefault(B) ... </k>
        <env> ... X |-> B:Val ... </env>
     requires Id2String(Method) ==String "lstrip"
@@ -17453,6 +17516,10 @@ module PYTHON
        <env> ... X |-> B:Val ... </env>
     requires Id2String(Method) ==String "splitlines"
       andBool isBytearrayVal(B)
+  rule <k> #methodCall(X:Id, Method:Id, Keep:Val) => bytesSplitLines(B, truthy(Keep)) ... </k>
+       <env> ... X |-> B:Val ... </env>
+    requires Id2String(Method) ==String "splitlines"
+      andBool isBytesVal(B)
   rule <k> #methodCall(X:Id, Method:Id, Tabsize:Val) => bytearrayExpandTabs(B, intValue(Tabsize)) ... </k>
        <env> ... X |-> B:Val ... </env>
     requires Id2String(Method) ==String "expandtabs"
@@ -18050,7 +18117,8 @@ module PYTHON
         orBool Id2String(Method) ==String "partition"
         orBool Id2String(Method) ==String "rpartition"
         orBool Id2String(Method) ==String "removeprefix"
-        orBool Id2String(Method) ==String "removesuffix") andBool isBytesVal(B))
+        orBool Id2String(Method) ==String "removesuffix"
+        orBool Id2String(Method) ==String "splitlines") andBool isBytesVal(B))
   rule <k> #methodCall2(X:Id, Method:Id, Needle:Val, Start:Val) =>
            #methodCall3(X, Method, Needle, Start, None)
        ... </k>

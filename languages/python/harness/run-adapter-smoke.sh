@@ -195,6 +195,8 @@ run_case "adapter-bytes-hex-method" "$ROOT/tests/adapter/adapter-bytes-hex-metho
 run_case "adapter-bytes-replace-basic" "$ROOT/tests/adapter/adapter-bytes-replace-basic.py" "True ~> .K"
 run_case "adapter-bytes-replace-empty-old" "$ROOT/tests/adapter/adapter-bytes-replace-empty-old.py" "True ~> .K"
 run_case "adapter-bytes-replace-byteslike-diagnostics" "$ROOT/tests/adapter/adapter-bytes-replace-byteslike-diagnostics.py" "True ~> .K"
+run_case "adapter-bytes-join-basic" "$ROOT/tests/adapter/adapter-bytes-join-basic.py" "True ~> .K"
+run_case "adapter-bytes-join-byteslike-diagnostics" "$ROOT/tests/adapter/adapter-bytes-join-byteslike-diagnostics.py" "True ~> .K"
 run_case "adapter-bytes-constructor" "$ROOT/tests/adapter/adapter-bytes-constructor.py" "True ~> .K"
 run_case "adapter-bytes-constructor-errors" "$ROOT/tests/adapter/adapter-bytes-constructor-errors.py" "True ~> .K"
 run_case "adapter-bytes-string-encoding-constructor" "$ROOT/tests/adapter/adapter-bytes-string-encoding-constructor.py" "True ~> .K"

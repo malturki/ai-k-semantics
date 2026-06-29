@@ -732,6 +732,20 @@
       "coverage": ["bytes-methods", "bytes-replace-method", "bytes-like-arguments", "type-error", "method-call", "ordinary-python-source-adapter"]
     },
     {
+      "id": "adapter-bytes-join-basic",
+      "source": "../adapter/adapter-bytes-join-basic.py",
+      "reference": "Python Standard Library Built-in Types bytes; join iterable concatenation with bytes separators",
+      "expected_result": "True ~> .K",
+      "coverage": ["bytes-methods", "bytes-join-method", "bytes-like-arguments", "method-call", "ordinary-python-source-adapter"]
+    },
+    {
+      "id": "adapter-bytes-join-byteslike-diagnostics",
+      "source": "../adapter/adapter-bytes-join-byteslike-diagnostics.py",
+      "reference": "Python Standard Library Built-in Types bytes; join bytearray/memoryview items and TypeError diagnostics",
+      "expected_result": "True ~> .K",
+      "coverage": ["bytes-methods", "bytes-join-method", "bytes-like-arguments", "type-error", "method-call", "ordinary-python-source-adapter"]
+    },
+    {
       "id": "adapter-bytes-constructor",
       "source": "../adapter/adapter-bytes-constructor.py",
       "reference": "Python Standard Library Built-in Functions bytes and bytearray constructor interpretation; Built-in Types binary sequence types; CPython Lib/test/test_bytes.py constructor cases",

@@ -1434,6 +1434,7 @@ module PYTHON
                 | sortedIterableSupported(Val) [function, symbol(sortedIterableSupported)]
                 | isNoneVal(Val) [function, symbol(isNoneVal)]
                 | argValsAllOrderComparable(ArgVals) [function, symbol(argValsAllOrderComparable)]
+                | argValsAllBytesLike(ArgVals) [function, symbol(argValsAllBytesLike)]
                 | valOrderComparableToArgVals(Val, ArgVals) [function, symbol(valOrderComparableToArgVals)]
                 | keyedValsAllOrderComparable(KeyedVals) [function, symbol(keyedValsAllOrderComparable)]
                 | keyedValKeyComparableToKeyedVals(Val, KeyedVals) [function, symbol(keyedValKeyComparableToKeyedVals)]
@@ -2040,6 +2041,9 @@ module PYTHON
                | bytesPartitionAt(ValItems, ValItems, Int) [function, symbol(bytesPartitionAt)]
                | bytesRemovePrefix(Val, Val) [function, symbol(bytesRemovePrefix)]
                | bytesRemoveSuffix(Val, Val) [function, symbol(bytesRemoveSuffix)]
+               | bytesJoin(Val, Val) [function, symbol(bytesJoin)]
+               | bytesJoinArgVals(Val, ArgVals) [function, symbol(bytesJoinArgVals)]
+               | bytesJoinTail(Val, ArgVals) [function, symbol(bytesJoinTail)]
                | bytesAppendByte(Val, Val) [function, symbol(bytesAppendByte)]
                | bytesSplitLines(Val, Bool) [function, symbol(bytesSplitLines)]
                | bytesSplitLinesScan(ValItems, Val, Bool) [function, symbol(bytesSplitLinesScan)]
@@ -6650,6 +6654,9 @@ module PYTHON
   rule argValsAllOrderComparable(#noArgVals) => true
   rule argValsAllOrderComparable(argValsCons(V:Val, VS:ArgVals)) =>
     valOrderComparableToArgVals(V, VS) andBool argValsAllOrderComparable(VS)
+  rule argValsAllBytesLike(#noArgVals) => true
+  rule argValsAllBytesLike(argValsCons(V:Val, VS:ArgVals)) =>
+    bytearrayAffixNeedleSupported(V) andBool argValsAllBytesLike(VS)
 
   rule keyedValKeyComparableToKeyedVals(_Key:Val, #noKeyedVals) => true
   rule keyedValKeyComparableToKeyedVals(Key:Val, keyedValsCons(_Item:Val, Key0:Val, Rest:KeyedVals)) =>
@@ -7904,6 +7911,28 @@ module PYTHON
     requires bytearrayAffixNeedleSupported(Suffix)
       andBool notBool bytearrayAffixNeedleEmpty(Suffix)
       andBool notBool bytesSuffix(bytearrayAffixNeedleItems(Suffix), VS)
+
+  rule bytesJoin(Sep:Val, Iter:Val) => bytesJoinArgVals(Sep, iterableArgVals(Iter))
+    requires isBytesVal(Sep)
+      andBool sortedIterableSupported(Iter)
+      andBool argValsAllBytesLike(iterableArgVals(Iter))
+  rule bytesJoinArgVals(_Sep:Val, #noArgVals) => #bytes()
+  rule bytesJoinArgVals(_Sep:Val, argValsCons(V:Val, #noArgVals)) => bytesBytesLikeValue(V)
+    requires bytearrayAffixNeedleSupported(V)
+  rule bytesJoinArgVals(Sep:Val, argValsCons(V:Val, argValsCons(W:Val, VS:ArgVals))) =>
+    bytesConcat(bytesBytesLikeValue(V), bytesJoinTail(Sep, argValsCons(W, VS)))
+    requires isBytesVal(Sep)
+      andBool bytearrayAffixNeedleSupported(V)
+      andBool argValsAllBytesLike(argValsCons(W, VS))
+  rule bytesJoinTail(Sep:Val, argValsCons(V:Val, #noArgVals)) =>
+    bytesConcat(Sep, bytesBytesLikeValue(V))
+    requires isBytesVal(Sep)
+      andBool bytearrayAffixNeedleSupported(V)
+  rule bytesJoinTail(Sep:Val, argValsCons(V:Val, argValsCons(W:Val, VS:ArgVals))) =>
+    bytesConcat(Sep, bytesConcat(bytesBytesLikeValue(V), bytesJoinTail(Sep, argValsCons(W, VS))))
+    requires isBytesVal(Sep)
+      andBool bytearrayAffixNeedleSupported(V)
+      andBool argValsAllBytesLike(argValsCons(W, VS))
 
   rule bytesAppendByte(#bytes(), V:Val) => bytesVal(valItemsLast(intValue(V)))
     requires isIntLike(V)
@@ -17913,6 +17942,27 @@ module PYTHON
               orBool Id2String(Method) ==String "rpartition")
       andBool isBytesVal(B)
       andBool notBool bytearrayAffixNeedleSupported(Sep)
+  rule <k> #methodCall(X:Id, Method:Id, Iter:Val) => bytesJoin(B, Iter) ... </k>
+       <env> ... X |-> B:Val ... </env>
+    requires Id2String(Method) ==String "join"
+      andBool isBytesVal(B)
+      andBool sortedIterableSupported(Iter)
+      andBool argValsAllBytesLike(iterableArgVals(Iter))
+  rule <k> #methodCall(X:Id, Method:Id, Iter:Val) =>
+           exceptionSignal(#exception(#token("TypeError", "Id")))
+       ... </k>
+       <env> ... X |-> B:Val ... </env>
+    requires Id2String(Method) ==String "join"
+      andBool isBytesVal(B)
+      andBool notBool sortedIterableSupported(Iter)
+  rule <k> #methodCall(X:Id, Method:Id, Iter:Val) =>
+           exceptionSignal(#exception(#token("TypeError", "Id")))
+       ... </k>
+       <env> ... X |-> B:Val ... </env>
+    requires Id2String(Method) ==String "join"
+      andBool isBytesVal(B)
+      andBool sortedIterableSupported(Iter)
+      andBool notBool argValsAllBytesLike(iterableArgVals(Iter))
   rule <k> #methodCall(X:Id, Method:Id, Arg:Val) => bytearraySplitWhitespace(B, -1) ... </k>
        <env> ... X |-> B:Val ... </env>
     requires Id2String(Method) ==String "split"
@@ -18966,6 +19016,7 @@ module PYTHON
               orBool Id2String(Method) ==String "find"
               orBool Id2String(Method) ==String "hex"
               orBool Id2String(Method) ==String "index"
+              orBool Id2String(Method) ==String "join"
               orBool Id2String(Method) ==String "ljust"
               orBool Id2String(Method) ==String "partition"
               orBool Id2String(Method) ==String "pop"
@@ -18997,6 +19048,7 @@ module PYTHON
         orBool Id2String(Method) ==String "find"
         orBool Id2String(Method) ==String "hex"
         orBool Id2String(Method) ==String "index"
+        orBool Id2String(Method) ==String "join"
         orBool Id2String(Method) ==String "ljust"
         orBool Id2String(Method) ==String "rfind"
         orBool Id2String(Method) ==String "rindex"

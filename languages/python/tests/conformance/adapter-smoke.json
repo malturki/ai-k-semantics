@@ -858,6 +858,27 @@
       "coverage": ["bytes-percent-formatting", "bytearray-percent-formatting", "printf-style-bytes-formatting", "integer-formatting", "type-error", "overflow-error", "value-error", "ordinary-python-source-adapter"]
     },
     {
+      "id": "adapter-bytes-percent-format-precision",
+      "source": "../adapter/adapter-bytes-percent-format-precision.py",
+      "reference": "Python Standard Library Built-in Types bytes and bytearray; printf-style bytes formatting literal precision for b, s, a, r, and c conversions",
+      "expected_result": "True ~> .K",
+      "coverage": ["bytes-percent-formatting", "bytes-methods", "printf-style-bytes-formatting", "precision", "bytes-like-arguments", "ascii-repr-conversion", "ordinary-python-source-adapter"]
+    },
+    {
+      "id": "adapter-bytearray-percent-format-precision",
+      "source": "../adapter/adapter-bytearray-percent-format-precision.py",
+      "reference": "Python Standard Library Built-in Types bytearray; printf-style bytes formatting literal precision preserves bytearray result type",
+      "expected_result": "True ~> .K",
+      "coverage": ["bytearray-percent-formatting", "bytearray-query-methods", "printf-style-bytes-formatting", "precision", "result-type", "ordinary-python-source-adapter"]
+    },
+    {
+      "id": "adapter-bytes-percent-format-precision-diagnostics",
+      "source": "../adapter/adapter-bytes-percent-format-precision-diagnostics.py",
+      "reference": "Python Standard Library Built-in Types bytes and bytearray; printf-style bytes precision formatting TypeError and OverflowError diagnostics",
+      "expected_result": "True ~> .K",
+      "coverage": ["bytes-percent-formatting", "bytearray-percent-formatting", "printf-style-bytes-formatting", "precision", "type-error", "overflow-error", "ordinary-python-source-adapter"]
+    },
+    {
       "id": "adapter-bytes-replace-basic",
       "source": "../adapter/adapter-bytes-replace-basic.py",
       "reference": "Python Standard Library Built-in Types bytes; replace non-overlapping subsequence replacement and count handling",

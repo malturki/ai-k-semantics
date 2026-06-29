@@ -900,6 +900,27 @@
       "coverage": ["bytes-percent-formatting", "bytearray-percent-formatting", "printf-style-bytes-formatting", "field-width", "type-error", "overflow-error", "ordinary-python-source-adapter"]
     },
     {
+      "id": "adapter-bytes-percent-format-numeric-options",
+      "source": "../adapter/adapter-bytes-percent-format-numeric-options.py",
+      "reference": "Python Standard Library Built-in Types bytes and bytearray; printf-style bytes formatting flags, field width, precision, and alternate forms for d, i, u, o, x, and X conversions",
+      "expected_result": "True ~> .K",
+      "coverage": ["bytes-percent-formatting", "bytes-methods", "printf-style-bytes-formatting", "integer-formatting", "conversion-flags", "field-width", "precision", "alternate-form", "zero-padding", "ordinary-python-source-adapter"]
+    },
+    {
+      "id": "adapter-bytearray-percent-format-numeric-options",
+      "source": "../adapter/adapter-bytearray-percent-format-numeric-options.py",
+      "reference": "Python Standard Library Built-in Types bytearray; printf-style bytes formatting numeric flags preserve bytearray result type",
+      "expected_result": "True ~> .K",
+      "coverage": ["bytearray-percent-formatting", "bytearray-query-methods", "printf-style-bytes-formatting", "integer-formatting", "conversion-flags", "field-width", "precision", "alternate-form", "result-type", "ordinary-python-source-adapter"]
+    },
+    {
+      "id": "adapter-bytes-percent-format-numeric-options-diagnostics",
+      "source": "../adapter/adapter-bytes-percent-format-numeric-options-diagnostics.py",
+      "reference": "Python Standard Library Built-in Types bytes and bytearray; printf-style bytes numeric formatting options preserve TypeError behavior for unsupported non-float operands",
+      "expected_result": "True ~> .K",
+      "coverage": ["bytes-percent-formatting", "bytearray-percent-formatting", "printf-style-bytes-formatting", "integer-formatting", "conversion-flags", "field-width", "type-error", "ordinary-python-source-adapter"]
+    },
+    {
       "id": "adapter-bytes-replace-basic",
       "source": "../adapter/adapter-bytes-replace-basic.py",
       "reference": "Python Standard Library Built-in Types bytes; replace non-overlapping subsequence replacement and count handling",

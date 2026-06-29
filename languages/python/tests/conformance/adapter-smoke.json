@@ -711,6 +711,34 @@
       "coverage": ["bytes-methods", "bytes-hex-method", "hexadecimal-rendering", "method-call", "type-error", "value-error", "ordinary-python-source-adapter"]
     },
     {
+      "id": "adapter-bytes-fromhex-string",
+      "source": "../adapter/adapter-bytes-fromhex-string.py",
+      "reference": "Python Standard Library Built-in Types bytes; fromhex class method decodes adjacent hexadecimal digit pairs and skips ASCII whitespace between byte pairs",
+      "expected_result": "True ~> .K",
+      "coverage": ["bytes-methods", "bytes-fromhex-method", "hexadecimal-conversion", "ascii-whitespace", "ordinary-python-source-adapter"]
+    },
+    {
+      "id": "adapter-bytearray-fromhex-string",
+      "source": "../adapter/adapter-bytearray-fromhex-string.py",
+      "reference": "Python Standard Library Built-in Types bytearray; fromhex class method returns bytearray values after decoding hexadecimal text",
+      "expected_result": "True ~> .K",
+      "coverage": ["bytearray-query-methods", "bytearray-fromhex-method", "hexadecimal-conversion", "ascii-whitespace", "result-type", "ordinary-python-source-adapter"]
+    },
+    {
+      "id": "adapter-fromhex-byteslike",
+      "source": "../adapter/adapter-fromhex-byteslike.py",
+      "reference": "Python Standard Library Built-in Types bytes and bytearray; fromhex accepts ASCII bytes-like objects in Python 3.14",
+      "expected_result": "True ~> .K",
+      "coverage": ["bytes-methods", "bytearray-query-methods", "bytes-fromhex-method", "bytearray-fromhex-method", "bytes-like-arguments", "hexadecimal-conversion", "ordinary-python-source-adapter"]
+    },
+    {
+      "id": "adapter-fromhex-diagnostics",
+      "source": "../adapter/adapter-fromhex-diagnostics.py",
+      "reference": "Python Standard Library Built-in Types bytes and bytearray; fromhex ValueError and TypeError diagnostics for invalid content and unsupported inputs",
+      "expected_result": "True ~> .K",
+      "coverage": ["bytes-methods", "bytearray-query-methods", "bytes-fromhex-method", "bytearray-fromhex-method", "value-error", "type-error", "ordinary-python-source-adapter"]
+    },
+    {
       "id": "adapter-bytes-replace-basic",
       "source": "../adapter/adapter-bytes-replace-basic.py",
       "reference": "Python Standard Library Built-in Types bytes; replace non-overlapping subsequence replacement and count handling",

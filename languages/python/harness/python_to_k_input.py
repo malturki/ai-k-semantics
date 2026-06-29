@@ -795,6 +795,12 @@ def emit_exp(exp: ast.expr) -> str:
             return f"#bytesCtor({emit_exp(source)}, {emit_exp(encoding)})"
         case ast.Call(func=ast.Name(id="bytes"), args=[source, encoding, errors], keywords=[]):
             return f"#bytesCtor({emit_exp(source)}, {emit_exp(encoding)}, {emit_exp(errors)})"
+        case ast.Call(
+            func=ast.Attribute(value=ast.Name(id="bytes"), attr="fromhex", ctx=ast.Load()),
+            args=[arg],
+            keywords=[],
+        ):
+            return f"#bytesFromHex({emit_exp(arg)})"
         case ast.Call(func=ast.Name(id="bytearray"), args=[], keywords=[]):
             return "#bytearrayCtor()"
         case ast.Call(func=ast.Name(id="bytearray"), args=[arg], keywords=[]):
@@ -803,6 +809,12 @@ def emit_exp(exp: ast.expr) -> str:
             return f"#bytearrayCtor({emit_exp(source)}, {emit_exp(encoding)})"
         case ast.Call(func=ast.Name(id="bytearray"), args=[source, encoding, errors], keywords=[]):
             return f"#bytearrayCtor({emit_exp(source)}, {emit_exp(encoding)}, {emit_exp(errors)})"
+        case ast.Call(
+            func=ast.Attribute(value=ast.Name(id="bytearray"), attr="fromhex", ctx=ast.Load()),
+            args=[arg],
+            keywords=[],
+        ):
+            return f"#bytearrayFromHex({emit_exp(arg)})"
         case ast.Call(func=ast.Name(id="memoryview"), args=[arg], keywords=[]):
             return f"#memoryview({emit_exp(arg)})"
         case ast.Call(func=ast.Name(id="bool"), args=[], keywords=[]):

@@ -415,10 +415,12 @@ module PYTHON-SYNTAX
                | "#bytesCtor" "(" Exp ")" [symbol(bytesCtor1Exp), strict]
                | "#bytesCtor" "(" Exp "," Exp ")" [symbol(bytesCtor2Exp), strict]
                | "#bytesCtor" "(" Exp "," Exp "," Exp ")" [symbol(bytesCtor3Exp), strict]
+               | "#bytesFromHex" "(" Exp ")" [symbol(bytesFromHexExp), strict]
                | "#bytearrayCtor" "(" ")" [symbol(bytearrayCtorExp)]
                | "#bytearrayCtor" "(" Exp ")" [symbol(bytearrayCtor1Exp), strict]
                | "#bytearrayCtor" "(" Exp "," Exp ")" [symbol(bytearrayCtor2Exp), strict]
                | "#bytearrayCtor" "(" Exp "," Exp "," Exp ")" [symbol(bytearrayCtor3Exp), strict]
+               | "#bytearrayFromHex" "(" Exp ")" [symbol(bytearrayFromHexExp), strict]
                | "#memoryview" "(" Exp ")" [symbol(memoryviewExp)]
                | "#boolCtor" "(" ")" [symbol(boolCtor0Exp)]
                | "#boolCtor" "(" Exp ")" [symbol(boolCtor1Exp), strict]
@@ -1407,6 +1409,10 @@ module PYTHON
                 | bytearrayNewlineByte(Val) [function, symbol(bytearrayNewlineByte)]
                 | bytearrayHexSepOk(Val) [function, symbol(bytearrayHexSepOk)]
                 | bytearrayHexSepValueError(Val) [function, symbol(bytearrayHexSepValueError)]
+                | fromHexSourceSupported(Val) [function, symbol(fromHexSourceSupported)]
+                | fromHexSourceValueOk(Val) [function, symbol(fromHexSourceValueOk)]
+                | fromHexStringOk(String) [function, symbol(fromHexStringOk)]
+                | fromHexDigit(String) [function, symbol(fromHexDigit)]
                 | bytearrayFillByteOk(Val) [function, symbol(bytearrayFillByteOk)]
                 | bytearrayStripArgSupported(Val) [function, symbol(bytearrayStripArgSupported)]
                 | bytearrayStripArgEmpty(Val) [function, symbol(bytearrayStripArgEmpty)]
@@ -1773,6 +1779,7 @@ module PYTHON
                   | bytearrayHexSepItems(ValItems, String, Int, Int, Int) [function, symbol(bytearrayHexSepItems)]
                   | bytearrayHexSepPrefix(String, Int, Int, Int) [function, symbol(bytearrayHexSepPrefix)]
                   | bytearrayHexSepString(Val) [function, symbol(bytearrayHexSepString)]
+                  | fromHexSourceString(Val) [function, symbol(fromHexSourceString)]
                   | bytesHex(Val) [function, symbol(bytesHex)]
                   | bytesHexWithSep(Val, String, Int) [function, symbol(bytesHexWithSep)]
                   | unicodeChar(Int) [function, symbol(unicodeChar)]
@@ -2011,6 +2018,7 @@ module PYTHON
                | bytesReplaceEmptyItems(ValItems, Val, Int) [function, symbol(bytesReplaceEmptyItems)]
                | bytesReplaceAllItems(ValItems, Val, Val) [function, symbol(bytesReplaceAllItems)]
                | bytesReplaceNItems(ValItems, Val, Val, Int) [function, symbol(bytesReplaceNItems)]
+               | bytesFromHexString(String) [function, symbol(bytesFromHexString)]
                | bytearraySplitLines(Val, Bool) [function, symbol(bytearraySplitLines)]
                | bytearraySplitLinesScan(ValItems, Val, Bool) [function, symbol(bytearraySplitLinesScan)]
                | bytearrayLineCons(Val, Val) [function, symbol(bytearrayLineCons)]
@@ -2858,6 +2866,29 @@ module PYTHON
   rule bytesHexWithSep(#bytes(), _Sep:String, _BytesPerSep:Int) => ""
   rule bytesHexWithSep(bytesVal(VS:ValItems), Sep:String, BytesPerSep:Int) =>
     bytearrayHexSepItems(VS, Sep, BytesPerSep, valItemsLen(VS), 0)
+
+  rule fromHexSourceString(S:String) => S
+  rule fromHexSourceString(#bytes()) => ""
+  rule fromHexSourceString(bytesVal(VS:ValItems)) => bytesAsciiString(VS)
+    requires bytesAllAscii(VS)
+  rule fromHexSourceString(#bytearray()) => ""
+  rule fromHexSourceString(bytearrayVal(VS:ValItems)) => bytesAsciiString(VS)
+    requires bytesAllAscii(VS)
+  rule fromHexSourceString(#memoryviewVal(V:Val)) => fromHexSourceString(V)
+    requires fromHexSourceSupported(V)
+      andBool fromHexSourceValueOk(V)
+
+  rule bytesFromHexString(S:String) => #bytes()
+    requires lengthString(S) ==Int 0
+  rule bytesFromHexString(S:String) => bytesFromHexString(substrString(S, 1, lengthString(S)))
+    requires lengthString(S) >Int 0
+      andBool asciiSpace(substrString(S, 0, 1))
+  rule bytesFromHexString(S:String) =>
+    bytesPrependByte((digitValue(substrString(S, 0, 1)) *Int 16) +Int digitValue(substrString(S, 1, 2)),
+      bytesFromHexString(substrString(S, 2, lengthString(S))))
+    requires lengthString(S) >=Int 2
+      andBool fromHexDigit(substrString(S, 0, 1))
+      andBool fromHexDigit(substrString(S, 1, 2))
 
   rule pyIntBaseString(0, _Base:Int, Prefix:String) => Prefix +String "0"
   rule pyIntBaseString(I:Int, Base:Int, Prefix:String) => Prefix +String intBaseDigits(I, Base)
@@ -8037,6 +8068,35 @@ module PYTHON
     requires isIntLike(V) andBool intValue(V) >Int 127
   rule bytearrayHexSepValueError(bytesVal(valItemsCons(_:Val, _VS:ValItems))) => true
   rule bytearrayHexSepValueError(_:Val) => false [owise]
+  rule fromHexSourceSupported(_:String) => true
+  rule fromHexSourceSupported(#bytes()) => true
+  rule fromHexSourceSupported(bytesVal(_:ValItems)) => true
+  rule fromHexSourceSupported(#bytearray()) => true
+  rule fromHexSourceSupported(bytearrayVal(_:ValItems)) => true
+  rule fromHexSourceSupported(#memoryviewVal(V:Val)) => fromHexSourceSupported(V)
+  rule fromHexSourceSupported(_:Val) => false [owise]
+
+  rule fromHexSourceValueOk(S:String) => fromHexStringOk(S)
+  rule fromHexSourceValueOk(#bytes()) => true
+  rule fromHexSourceValueOk(bytesVal(VS:ValItems)) =>
+    bytesAllAscii(VS) andBool fromHexStringOk(bytesAsciiString(VS))
+  rule fromHexSourceValueOk(#bytearray()) => true
+  rule fromHexSourceValueOk(bytearrayVal(VS:ValItems)) =>
+    bytesAllAscii(VS) andBool fromHexStringOk(bytesAsciiString(VS))
+  rule fromHexSourceValueOk(#memoryviewVal(V:Val)) => fromHexSourceValueOk(V)
+  rule fromHexSourceValueOk(_:Val) => false [owise]
+
+  rule fromHexDigit(C:String) => digitValue(C) >=Int 0 andBool digitValue(C) <=Int 15
+  rule fromHexStringOk(S:String) => true
+    requires lengthString(S) ==Int 0
+  rule fromHexStringOk(S:String) => fromHexStringOk(substrString(S, 1, lengthString(S)))
+    requires lengthString(S) >Int 0
+      andBool asciiSpace(substrString(S, 0, 1))
+  rule fromHexStringOk(S:String) => fromHexStringOk(substrString(S, 2, lengthString(S)))
+    requires lengthString(S) >=Int 2
+      andBool fromHexDigit(substrString(S, 0, 1))
+      andBool fromHexDigit(substrString(S, 1, 2))
+  rule fromHexStringOk(_:String) => false [owise]
   rule bytearrayAppendSpaces(B:Val, N:Int) => B
     requires isBytearrayVal(B)
       andBool N <=Int 0
@@ -16131,6 +16191,20 @@ module PYTHON
            exceptionSignal(#exception(#token("TypeError", "Id")))
        ... </k>
     requires notBool isStringVal(V)
+
+  rule #bytesFromHex(V:Val) => bytesFromHexString(fromHexSourceString(V))
+    requires fromHexSourceSupported(V)
+      andBool fromHexSourceValueOk(V)
+  rule <k> #bytesFromHex(V:Val) =>
+           exceptionSignal(#exception(#token("ValueError", "Id")))
+       ... </k>
+    requires fromHexSourceSupported(V)
+      andBool notBool fromHexSourceValueOk(V)
+  rule <k> #bytesFromHex(V:Val) =>
+           exceptionSignal(#exception(#token("TypeError", "Id")))
+       ... </k>
+    requires notBool fromHexSourceSupported(V)
+
   rule #bytearrayCtor() => #bytearray()
   rule #bytearrayCtor(V:Val) => bytesToBytearray(zeroBytes(intValue(V)))
     requires isIntLike(V) andBool intValue(V) >=Int 0
@@ -16278,6 +16352,20 @@ module PYTHON
            exceptionSignal(#exception(#token("TypeError", "Id")))
        ... </k>
     requires notBool isStringVal(V)
+
+  rule #bytearrayFromHex(V:Val) => bytesToBytearray(bytesFromHexString(fromHexSourceString(V)))
+    requires fromHexSourceSupported(V)
+      andBool fromHexSourceValueOk(V)
+  rule <k> #bytearrayFromHex(V:Val) =>
+           exceptionSignal(#exception(#token("ValueError", "Id")))
+       ... </k>
+    requires fromHexSourceSupported(V)
+      andBool notBool fromHexSourceValueOk(V)
+  rule <k> #bytearrayFromHex(V:Val) =>
+           exceptionSignal(#exception(#token("TypeError", "Id")))
+       ... </k>
+    requires notBool fromHexSourceSupported(V)
+
   rule <k> #memoryview(E:Exp) => E ~> memoryviewApply ... </k>
     requires notBool isKResult(E)
   rule <k> V:Val ~> memoryviewApply => #memoryview(V) ... </k>

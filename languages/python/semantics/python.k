@@ -416,11 +416,13 @@ module PYTHON-SYNTAX
                | "#bytesCtor" "(" Exp "," Exp ")" [symbol(bytesCtor2Exp), strict]
                | "#bytesCtor" "(" Exp "," Exp "," Exp ")" [symbol(bytesCtor3Exp), strict]
                | "#bytesFromHex" "(" Exp ")" [symbol(bytesFromHexExp), strict]
+               | "#bytesMakeTrans" "(" Exp "," Exp ")" [symbol(bytesMakeTransExp), strict(1, 2)]
                | "#bytearrayCtor" "(" ")" [symbol(bytearrayCtorExp)]
                | "#bytearrayCtor" "(" Exp ")" [symbol(bytearrayCtor1Exp), strict]
                | "#bytearrayCtor" "(" Exp "," Exp ")" [symbol(bytearrayCtor2Exp), strict]
                | "#bytearrayCtor" "(" Exp "," Exp "," Exp ")" [symbol(bytearrayCtor3Exp), strict]
                | "#bytearrayFromHex" "(" Exp ")" [symbol(bytearrayFromHexExp), strict]
+               | "#bytearrayMakeTrans" "(" Exp "," Exp ")" [symbol(bytearrayMakeTransExp), strict(1, 2)]
                | "#memoryview" "(" Exp ")" [symbol(memoryviewExp)]
                | "#boolCtor" "(" ")" [symbol(boolCtor0Exp)]
                | "#boolCtor" "(" Exp ")" [symbol(boolCtor1Exp), strict]
@@ -1402,6 +1404,8 @@ module PYTHON
                 | bytearraySearchMethod(Id) [function, symbol(bytearraySearchMethod)]
                 | bytearrayAffixNeedleSupported(Val) [function, symbol(bytearrayAffixNeedleSupported)]
                 | bytearrayAffixNeedleEmpty(Val) [function, symbol(bytearrayAffixNeedleEmpty)]
+                | bytesTranslateTableSupported(Val) [function, symbol(bytesTranslateTableSupported)]
+                | bytesTranslateTableLengthOk(Val) [function, symbol(bytesTranslateTableLengthOk)]
                 | bytearrayPrefixMatchWindow(Val, Val, Val, Val) [function, symbol(bytearrayPrefixMatchWindow)]
                 | bytearraySuffixMatchWindow(Val, Val, Val, Val) [function, symbol(bytearraySuffixMatchWindow)]
                 | bytearrayItemsStartLF(ValItems) [function, symbol(bytearrayItemsStartLF)]
@@ -1969,6 +1973,8 @@ module PYTHON
   syntax ValItems ::= bytearrayStripArgItems(Val) [function, symbol(bytearrayStripArgItems)]
   syntax ValItems ::= zeroByteItems(Int) [function, symbol(zeroByteItems)]
   syntax ValItems ::= byteRepeatItems(Int, Int) [function, symbol(byteRepeatItems)]
+  syntax ValItems ::= bytesIdentityTableItems(Int) [function, symbol(bytesIdentityTableItems)]
+                    | bytesMakeTransItems(Int, ValItems, ValItems) [function, symbol(bytesMakeTransItems)]
   syntax ValItems ::= bytesLowerItems(ValItems) [function, symbol(bytesLowerItems)]
                     | bytesUpperItems(ValItems) [function, symbol(bytesUpperItems)]
                     | bytesSwapcaseItems(ValItems) [function, symbol(bytesSwapcaseItems)]
@@ -2032,6 +2038,12 @@ module PYTHON
                | bytesBytesLikeValue(Val) [function, symbol(bytesBytesLikeValue)]
                | bytearrayBytesLikeValue(Val) [function, symbol(bytearrayBytesLikeValue)]
                | bytearrayConcat(Val, Val) [function, symbol(bytearrayConcat)]
+               | bytesMakeTrans(Val, Val) [function, symbol(bytesMakeTrans)]
+               | bytesMakeTransByte(Int, ValItems, ValItems) [function, symbol(bytesMakeTransByte)]
+               | bytesTranslate(Val, Val, Val) [function, symbol(bytesTranslate)]
+               | bytesTranslateItems(ValItems, Val, Val, Val) [function, symbol(bytesTranslateItems)]
+               | bytesTranslateAppend(Val, Val) [function, symbol(bytesTranslateAppend)]
+               | bytesTranslateByte(Val, Val) [function, symbol(bytesTranslateByte)]
                | bytearrayReplace(Val, Val, Val, Int) [function, symbol(bytearrayReplace)]
                | bytearrayReplaceEmpty(Val, Val, Int) [function, symbol(bytearrayReplaceEmpty)]
                | bytearrayReplaceEmptyItems(ValItems, Val, Int) [function, symbol(bytearrayReplaceEmptyItems)]
@@ -7567,6 +7579,90 @@ module PYTHON
   rule bytearrayBytesLikeValue(#bytearray()) => #bytearray()
   rule bytearrayBytesLikeValue(bytearrayVal(VS:ValItems)) => bytearrayVal(VS)
   rule bytearrayBytesLikeValue(#memoryviewVal(V:Val)) => bytearrayBytesLikeValue(V)
+
+  rule bytesIdentityTableItems(255) => valItemsLast(255)
+  rule bytesIdentityTableItems(I:Int) => valItemsCons(I, bytesIdentityTableItems(I +Int 1))
+    requires I >=Int 0 andBool I <Int 255
+
+  rule bytesMakeTrans(From:Val, To:Val) => bytesVal(bytesIdentityTableItems(0))
+    requires bytearrayAffixNeedleSupported(From)
+      andBool bytearrayAffixNeedleSupported(To)
+      andBool pyLen(From) ==Int 0
+      andBool pyLen(To) ==Int 0
+  rule bytesMakeTrans(From:Val, To:Val) =>
+    bytesVal(bytesMakeTransItems(0, bytearrayAffixNeedleItems(From), bytearrayAffixNeedleItems(To)))
+    requires bytearrayAffixNeedleSupported(From)
+      andBool bytearrayAffixNeedleSupported(To)
+      andBool pyLen(From) ==Int pyLen(To)
+      andBool pyLen(From) >Int 0
+
+  rule bytesMakeTransItems(255, From:ValItems, To:ValItems) =>
+    valItemsLast(bytesMakeTransByte(255, From, To))
+  rule bytesMakeTransItems(I:Int, From:ValItems, To:ValItems) =>
+    valItemsCons(bytesMakeTransByte(I, From, To), bytesMakeTransItems(I +Int 1, From, To))
+    requires I >=Int 0 andBool I <Int 255
+
+  rule bytesMakeTransByte(I:Int, From:ValItems, To:ValItems) =>
+    listGet(To, bytesRFind(valItemsLast(I), From, 0, -1))
+    requires bytesRFind(valItemsLast(I), From, 0, -1) >=Int 0
+  rule bytesMakeTransByte(I:Int, From:ValItems, _To:ValItems) => I
+    requires bytesRFind(valItemsLast(I), From, 0, -1) <Int 0
+
+  rule bytesTranslateTableSupported(None) => true
+  rule bytesTranslateTableSupported(V:Val) => bytearrayAffixNeedleSupported(V) [owise]
+
+  rule bytesTranslateTableLengthOk(None) => true
+  rule bytesTranslateTableLengthOk(#bytes()) => false
+  rule bytesTranslateTableLengthOk(bytesVal(VS:ValItems)) => valItemsLen(VS) ==Int 256
+  rule bytesTranslateTableLengthOk(#bytearray()) => false
+  rule bytesTranslateTableLengthOk(bytearrayVal(VS:ValItems)) => valItemsLen(VS) ==Int 256
+  rule bytesTranslateTableLengthOk(#memoryviewVal(V:Val)) => bytesTranslateTableLengthOk(V)
+  rule bytesTranslateTableLengthOk(_:Val) => false [owise]
+
+  rule bytesTranslate(#bytes(), _Table:Val, _Delete:Val) => #bytes()
+  rule bytesTranslate(bytesVal(VS:ValItems), Table:Val, Delete:Val) =>
+    bytesTranslateItems(VS, Table, Delete, #bytes())
+  rule bytesTranslate(#bytearray(), _Table:Val, _Delete:Val) => #bytearray()
+  rule bytesTranslate(bytearrayVal(VS:ValItems), Table:Val, Delete:Val) =>
+    bytesTranslateItems(VS, Table, Delete, #bytearray())
+
+  rule bytesTranslateItems(valItemsLast(V:Val), _Table:Val, Delete:Val, Acc:Val) => Acc
+    requires bytearrayAffixNeedleSupported(Delete)
+      andBool notBool bytearrayAffixNeedleEmpty(Delete)
+      andBool containsVal(intValue(V), bytearrayAffixNeedleItems(Delete))
+  rule bytesTranslateItems(valItemsLast(V:Val), Table:Val, Delete:Val, Acc:Val) =>
+    bytesTranslateAppend(Acc, bytesTranslateByte(V, Table))
+    requires bytearrayAffixNeedleSupported(Delete)
+      andBool bytearrayAffixNeedleEmpty(Delete)
+  rule bytesTranslateItems(valItemsLast(V:Val), Table:Val, Delete:Val, Acc:Val) =>
+    bytesTranslateAppend(Acc, bytesTranslateByte(V, Table))
+    requires bytearrayAffixNeedleSupported(Delete)
+      andBool notBool bytearrayAffixNeedleEmpty(Delete)
+      andBool notBool containsVal(intValue(V), bytearrayAffixNeedleItems(Delete))
+  rule bytesTranslateItems(valItemsCons(V:Val, Rest:ValItems), Table:Val, Delete:Val, Acc:Val) =>
+    bytesTranslateItems(Rest, Table, Delete, Acc)
+    requires bytearrayAffixNeedleSupported(Delete)
+      andBool notBool bytearrayAffixNeedleEmpty(Delete)
+      andBool containsVal(intValue(V), bytearrayAffixNeedleItems(Delete))
+  rule bytesTranslateItems(valItemsCons(V:Val, Rest:ValItems), Table:Val, Delete:Val, Acc:Val) =>
+    bytesTranslateItems(Rest, Table, Delete, bytesTranslateAppend(Acc, bytesTranslateByte(V, Table)))
+    requires bytearrayAffixNeedleSupported(Delete)
+      andBool bytearrayAffixNeedleEmpty(Delete)
+  rule bytesTranslateItems(valItemsCons(V:Val, Rest:ValItems), Table:Val, Delete:Val, Acc:Val) =>
+    bytesTranslateItems(Rest, Table, Delete, bytesTranslateAppend(Acc, bytesTranslateByte(V, Table)))
+    requires bytearrayAffixNeedleSupported(Delete)
+      andBool notBool bytearrayAffixNeedleEmpty(Delete)
+      andBool notBool containsVal(intValue(V), bytearrayAffixNeedleItems(Delete))
+
+  rule bytesTranslateAppend(Acc:Val, V:Val) => bytesAppendByte(Acc, V)
+    requires isBytesVal(Acc)
+  rule bytesTranslateAppend(Acc:Val, V:Val) => bytearrayAppendByte(Acc, V)
+    requires isBytearrayVal(Acc)
+
+  rule bytesTranslateByte(V:Val, None) => intValue(V)
+  rule bytesTranslateByte(V:Val, Table:Val) => listGet(bytearrayAffixNeedleItems(Table), intValue(V))
+    requires notBool isNoneVal(Table)
+
   rule bytearrayConcat(#bytearray(), B:Val) => B
     requires isBytearrayVal(B)
   rule bytearrayConcat(bytearrayVal(VS:ValItems), #bytearray()) => bytearrayVal(VS)
@@ -16548,6 +16644,22 @@ module PYTHON
        ... </k>
     requires notBool fromHexSourceSupported(V)
 
+  rule #bytesMakeTrans(From:Val, To:Val) => bytesMakeTrans(From, To)
+    requires bytearrayAffixNeedleSupported(From)
+      andBool bytearrayAffixNeedleSupported(To)
+      andBool pyLen(From) ==Int pyLen(To)
+  rule <k> #bytesMakeTrans(From:Val, To:Val) =>
+           exceptionSignal(#exception(#token("TypeError", "Id")))
+       ... </k>
+    requires notBool bytearrayAffixNeedleSupported(From)
+      orBool notBool bytearrayAffixNeedleSupported(To)
+  rule <k> #bytesMakeTrans(From:Val, To:Val) =>
+           exceptionSignal(#exception(#token("ValueError", "Id")))
+       ... </k>
+    requires bytearrayAffixNeedleSupported(From)
+      andBool bytearrayAffixNeedleSupported(To)
+      andBool pyLen(From) =/=Int pyLen(To)
+
   rule #bytearrayCtor() => #bytearray()
   rule #bytearrayCtor(V:Val) => bytesToBytearray(zeroBytes(intValue(V)))
     requires isIntLike(V) andBool intValue(V) >=Int 0
@@ -16708,6 +16820,22 @@ module PYTHON
            exceptionSignal(#exception(#token("TypeError", "Id")))
        ... </k>
     requires notBool fromHexSourceSupported(V)
+
+  rule #bytearrayMakeTrans(From:Val, To:Val) => bytesMakeTrans(From, To)
+    requires bytearrayAffixNeedleSupported(From)
+      andBool bytearrayAffixNeedleSupported(To)
+      andBool pyLen(From) ==Int pyLen(To)
+  rule <k> #bytearrayMakeTrans(From:Val, To:Val) =>
+           exceptionSignal(#exception(#token("TypeError", "Id")))
+       ... </k>
+    requires notBool bytearrayAffixNeedleSupported(From)
+      orBool notBool bytearrayAffixNeedleSupported(To)
+  rule <k> #bytearrayMakeTrans(From:Val, To:Val) =>
+           exceptionSignal(#exception(#token("ValueError", "Id")))
+       ... </k>
+    requires bytearrayAffixNeedleSupported(From)
+      andBool bytearrayAffixNeedleSupported(To)
+      andBool pyLen(From) =/=Int pyLen(To)
 
   rule <k> #memoryview(E:Exp) => E ~> memoryviewApply ... </k>
     requires notBool isKResult(E)
@@ -19517,6 +19645,27 @@ module PYTHON
     requires Id2String(Method) ==String "extend"
       andBool isBytearrayVal(B)
       andBool notBool bytearrayExtendSourceSupported(Src)
+  rule <k> #methodCall(X:Id, Method:Id, Table:Val) =>
+           exceptionSignal(#exception(#token("TypeError", "Id")))
+       ... </k>
+       <env> ... X |-> B:Val ... </env>
+    requires Id2String(Method) ==String "translate"
+      andBool (isBytesVal(B) orBool isBytearrayVal(B))
+      andBool notBool bytesTranslateTableSupported(Table)
+  rule <k> #methodCall(X:Id, Method:Id, Table:Val) =>
+           exceptionSignal(#exception(#token("ValueError", "Id")))
+       ... </k>
+       <env> ... X |-> B:Val ... </env>
+    requires Id2String(Method) ==String "translate"
+      andBool (isBytesVal(B) orBool isBytearrayVal(B))
+      andBool bytesTranslateTableSupported(Table)
+      andBool notBool bytesTranslateTableLengthOk(Table)
+  rule <k> #methodCall(X:Id, Method:Id, Table:Val) => bytesTranslate(B, Table, #bytes()) ... </k>
+       <env> ... X |-> B:Val ... </env>
+    requires Id2String(Method) ==String "translate"
+      andBool (isBytesVal(B) orBool isBytearrayVal(B))
+      andBool bytesTranslateTableSupported(Table)
+      andBool bytesTranslateTableLengthOk(Table)
   rule <k> #methodCall(X:Id, _Method:Id, _Arg:Val) =>
            exceptionSignal(#exception(#token("NameError", "Id")))
        ... </k>
@@ -19554,6 +19703,7 @@ module PYTHON
               orBool Id2String(Method) ==String "startswith"
               orBool Id2String(Method) ==String "strip"
               orBool Id2String(Method) ==String "lstrip"
+              orBool Id2String(Method) ==String "translate"
               orBool Id2String(Method) ==String "zfill")
       andBool notBool isBytearrayVal(B)
       andBool notBool ((Id2String(Method) ==String "split"
@@ -19580,6 +19730,7 @@ module PYTHON
         orBool Id2String(Method) ==String "strip"
         orBool Id2String(Method) ==String "startswith"
         orBool Id2String(Method) ==String "endswith"
+        orBool Id2String(Method) ==String "translate"
         orBool Id2String(Method) ==String "zfill") andBool isBytesVal(B))
   rule <k> #methodCall2(X:Id, Method:Id, Enc:Val, _Errors:Val) =>
            exceptionSignal(#exception(#token("TypeError", "Id")))
@@ -19687,6 +19838,39 @@ module PYTHON
        ... </k>
     requires (Id2String(Method) ==String "startswith"
       orBool Id2String(Method) ==String "endswith")
+  rule <k> #methodCall2(X:Id, Method:Id, Table:Val, _Delete:Val) =>
+           exceptionSignal(#exception(#token("TypeError", "Id")))
+       ... </k>
+       <env> ... X |-> B:Val ... </env>
+    requires Id2String(Method) ==String "translate"
+      andBool (isBytesVal(B) orBool isBytearrayVal(B))
+      andBool notBool bytesTranslateTableSupported(Table)
+  rule <k> #methodCall2(X:Id, Method:Id, Table:Val, _Delete:Val) =>
+           exceptionSignal(#exception(#token("ValueError", "Id")))
+       ... </k>
+       <env> ... X |-> B:Val ... </env>
+    requires Id2String(Method) ==String "translate"
+      andBool (isBytesVal(B) orBool isBytearrayVal(B))
+      andBool bytesTranslateTableSupported(Table)
+      andBool notBool bytesTranslateTableLengthOk(Table)
+  rule <k> #methodCall2(X:Id, Method:Id, Table:Val, Delete:Val) =>
+           exceptionSignal(#exception(#token("TypeError", "Id")))
+       ... </k>
+       <env> ... X |-> B:Val ... </env>
+    requires Id2String(Method) ==String "translate"
+      andBool (isBytesVal(B) orBool isBytearrayVal(B))
+      andBool bytesTranslateTableSupported(Table)
+      andBool bytesTranslateTableLengthOk(Table)
+      andBool notBool bytearrayAffixNeedleSupported(Delete)
+  rule <k> #methodCall2(X:Id, Method:Id, Table:Val, Delete:Val) =>
+           bytesTranslate(B, Table, Delete)
+       ... </k>
+       <env> ... X |-> B:Val ... </env>
+    requires Id2String(Method) ==String "translate"
+      andBool (isBytesVal(B) orBool isBytearrayVal(B))
+      andBool bytesTranslateTableSupported(Table)
+      andBool bytesTranslateTableLengthOk(Table)
+      andBool bytearrayAffixNeedleSupported(Delete)
   rule <k> #methodCall2(X:Id, Method:Id, Old:Val, New:Val) =>
            #methodCall3(X, Method, Old, New, -1)
        ... </k>
@@ -20625,14 +20809,16 @@ module PYTHON
               orBool Id2String(Method) ==String "ljust"
               orBool Id2String(Method) ==String "rjust"
               orBool Id2String(Method) ==String "rsplit"
-              orBool Id2String(Method) ==String "split")
+              orBool Id2String(Method) ==String "split"
+              orBool Id2String(Method) ==String "translate")
       andBool notBool isBytearrayVal(B)
       andBool notBool ((Id2String(Method) ==String "split"
         orBool Id2String(Method) ==String "rsplit"
         orBool Id2String(Method) ==String "center"
         orBool Id2String(Method) ==String "decode"
         orBool Id2String(Method) ==String "ljust"
-        orBool Id2String(Method) ==String "rjust") andBool isBytesVal(B))
+        orBool Id2String(Method) ==String "rjust"
+        orBool Id2String(Method) ==String "translate") andBool isBytesVal(B))
   rule #abs(V:Val) => 0 -Int intValue(V)
     requires isIntLike(V) andBool intValue(V) <Int 0
   rule #abs(V:Val) => intValue(V)

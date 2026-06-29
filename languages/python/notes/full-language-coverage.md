@@ -16,6 +16,10 @@ Status values:
 - `profile`: only covered in an implementation/profile module
 - `complete`: docs-linked semantics and tests are in place
 
+## Recent Construct Notes
+
+- 2026-06-29: Added adapter-backed `bytes.maketrans`, `bytearray.maketrans`, `bytes.translate`, and `bytearray.translate` for current concrete bytes-like values, using Python 3.14.6 Standard Library Built-in Types as the primary source. Local CPython checks show `translate` accepts `bytearray` and `memoryview` translation tables of length 256 even though the docs phrase the table as a bytes object; the executable semantics follows the reference behavior and records that coverage in `adapter-bytes-maketrans-translate`, `adapter-bytearray-maketrans-translate`, and `adapter-bytes-translate-diagnostics`.
+
 ## Source Chapters
 
 | Source area | Reference | Status | Notes |

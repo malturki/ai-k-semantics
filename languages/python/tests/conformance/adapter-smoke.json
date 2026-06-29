@@ -795,6 +795,27 @@
       "coverage": ["bytearray-query-methods", "bytearray-decode-method", "backslashreplace-errors", "utf-8-decoding", "ascii-decoding", "latin-1-decoding", "result-type", "method-call", "ordinary-python-source-adapter"]
     },
     {
+      "id": "adapter-bytes-maketrans-translate",
+      "source": "../adapter/adapter-bytes-maketrans-translate.py",
+      "reference": "Python Standard Library Built-in Types bytes; maketrans translation-table construction and translate deletion/mapping behavior",
+      "expected_result": "True ~> .K",
+      "coverage": ["bytes-methods", "bytes-maketrans-method", "bytes-translate-method", "bytes-like-arguments", "translation-table", "method-call", "ordinary-python-source-adapter"]
+    },
+    {
+      "id": "adapter-bytearray-maketrans-translate",
+      "source": "../adapter/adapter-bytearray-maketrans-translate.py",
+      "reference": "Python Standard Library Built-in Types bytearray; maketrans returns bytes tables and translate returns fresh bytearray values",
+      "expected_result": "True ~> .K",
+      "coverage": ["bytearray-query-methods", "bytearray-maketrans-method", "bytearray-translate-method", "bytes-like-arguments", "translation-table", "result-type", "method-call", "ordinary-python-source-adapter"]
+    },
+    {
+      "id": "adapter-bytes-translate-diagnostics",
+      "source": "../adapter/adapter-bytes-translate-diagnostics.py",
+      "reference": "Python Standard Library Built-in Types bytes and bytearray; maketrans and translate TypeError/ValueError diagnostics",
+      "expected_result": "True ~> .K",
+      "coverage": ["bytes-methods", "bytearray-query-methods", "bytes-maketrans-method", "bytearray-maketrans-method", "bytes-translate-method", "type-error", "value-error", "method-call", "ordinary-python-source-adapter"]
+    },
+    {
       "id": "adapter-bytes-replace-basic",
       "source": "../adapter/adapter-bytes-replace-basic.py",
       "reference": "Python Standard Library Built-in Types bytes; replace non-overlapping subsequence replacement and count handling",

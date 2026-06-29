@@ -801,6 +801,12 @@ def emit_exp(exp: ast.expr) -> str:
             keywords=[],
         ):
             return f"#bytesFromHex({emit_exp(arg)})"
+        case ast.Call(
+            func=ast.Attribute(value=ast.Name(id="bytes"), attr="maketrans", ctx=ast.Load()),
+            args=[from_arg, to_arg],
+            keywords=[],
+        ):
+            return f"#bytesMakeTrans({emit_exp(from_arg)}, {emit_exp(to_arg)})"
         case ast.Call(func=ast.Name(id="bytearray"), args=[], keywords=[]):
             return "#bytearrayCtor()"
         case ast.Call(func=ast.Name(id="bytearray"), args=[arg], keywords=[]):
@@ -815,6 +821,12 @@ def emit_exp(exp: ast.expr) -> str:
             keywords=[],
         ):
             return f"#bytearrayFromHex({emit_exp(arg)})"
+        case ast.Call(
+            func=ast.Attribute(value=ast.Name(id="bytearray"), attr="maketrans", ctx=ast.Load()),
+            args=[from_arg, to_arg],
+            keywords=[],
+        ):
+            return f"#bytearrayMakeTrans({emit_exp(from_arg)}, {emit_exp(to_arg)})"
         case ast.Call(func=ast.Name(id="memoryview"), args=[arg], keywords=[]):
             return f"#memoryview({emit_exp(arg)})"
         case ast.Call(func=ast.Name(id="bool"), args=[], keywords=[]):
@@ -935,14 +947,20 @@ def emit_exp(exp: ast.expr) -> str:
             func=ast.Attribute(value=ast.Name(id=name), attr=attr, ctx=ast.Load()),
             args=[arg],
             keywords=[],
-        ) if attr in {"append", "center", "count", "decode", "endswith", "expandtabs", "extend", "find", "hex", "index", "join", "ljust", "lstrip", "partition", "pop", "remove", "removeprefix", "removesuffix", "rfind", "rindex", "rjust", "rpartition", "rsplit", "rstrip", "split", "splitlines", "startswith", "strip", "zfill"}:
+        ) if attr in {"append", "center", "count", "decode", "endswith", "expandtabs", "extend", "find", "hex", "index", "join", "ljust", "lstrip", "partition", "pop", "remove", "removeprefix", "removesuffix", "rfind", "rindex", "rjust", "rpartition", "rsplit", "rstrip", "split", "splitlines", "startswith", "strip", "translate", "zfill"}:
             return f"#methodCall({emit_id(name)}, {emit_id(attr)}, {emit_exp(arg)})"
         case ast.Call(
             func=ast.Attribute(value=ast.Name(id=name), attr=attr, ctx=ast.Load()),
             args=[arg1, arg2],
             keywords=[],
-        ) if attr in {"center", "count", "decode", "endswith", "find", "hex", "index", "insert", "ljust", "replace", "rfind", "rindex", "rjust", "rsplit", "split", "startswith"}:
+        ) if attr in {"center", "count", "decode", "endswith", "find", "hex", "index", "insert", "ljust", "replace", "rfind", "rindex", "rjust", "rsplit", "split", "startswith", "translate"}:
             return f"#methodCall2({emit_id(name)}, {emit_id(attr)}, {emit_exp(arg1)}, {emit_exp(arg2)})"
+        case ast.Call(
+            func=ast.Attribute(value=ast.Name(id=name), attr="translate", ctx=ast.Load()),
+            args=[table],
+            keywords=[ast.keyword(arg="delete", value=delete)],
+        ):
+            return f"#methodCall2({emit_id(name)}, {emit_id('translate')}, {emit_exp(table)}, {emit_exp(delete)})"
         case ast.Call(
             func=ast.Attribute(value=ast.Name(id=name), attr=attr, ctx=ast.Load()),
             args=[arg1, arg2, arg3],

@@ -34,6 +34,7 @@ The base modules should model portable Python semantics from the official docs. 
 - `True`, `False`, `None`, adapter-backed ellipsis `...` and shadowable builtins-name `Ellipsis` as the `Ellipsis` singleton, and adapter-backed `__debug__` as `True` in the current non-optimized profile
 - simple string literals as K `String` tokens
 - adapter-backed bytes literals as integer byte-sequence values, with truthiness, equality, lexicographic ordering, concatenation, repetition, positive/negative indexing, nonzero-step slicing, integer-byte and bytes-subsequence membership, `len`, `list`/`tuple` conversion, starred display/call unpacking, assignment and `for`-target unpacking, simple `for` loops, and `all`/`any`/`sum`/`min`/`max` over yielded integer bytes
+- adapter-backed `bytes.maketrans`, `bytearray.maketrans`, `bytes.translate`, and `bytearray.translate` over current concrete bytes-like values, including deletion-before-translation behavior, 256-byte table validation, `None` delete-only translation, keyword `delete=`, and bytes-vs-bytearray result types
 - name lookup in a single environment, including current unbound-name `NameError` behavior
 - unary `+`, unary `-`, and integer/bool `+`, `-`, and `*`
 - integer/bool `%`, `//`, `/`, shifts, bitwise operators, bitwise inversion, and exponentiation

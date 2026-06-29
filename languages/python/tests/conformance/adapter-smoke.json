@@ -1019,6 +1019,41 @@
       "coverage": ["bytearray-percent-formatting", "bytearray-query-methods", "printf-style-bytes-formatting", "dynamic-width", "result-type", "ordinary-python-source-adapter"]
     },
     {
+      "id": "adapter-bytes-percent-format-star-precision-basic",
+      "source": "../adapter/adapter-bytes-percent-format-star-precision-basic.py",
+      "reference": "Python Standard Library Built-in Types bytes; printf-style bytes formatting dynamic * precision for bytes-like conversions",
+      "expected_result": "True ~> .K",
+      "coverage": ["bytes-percent-formatting", "bytes-methods", "printf-style-bytes-formatting", "dynamic-precision", "bytes-like-arguments", "ordinary-python-source-adapter"]
+    },
+    {
+      "id": "adapter-bytes-percent-format-star-precision-width",
+      "source": "../adapter/adapter-bytes-percent-format-star-precision-width.py",
+      "reference": "Python Standard Library Built-in Types bytes; printf-style bytes formatting literal field width plus dynamic * precision",
+      "expected_result": "True ~> .K",
+      "coverage": ["bytes-percent-formatting", "bytes-methods", "printf-style-bytes-formatting", "field-width", "dynamic-precision", "conversion-flags", "ordinary-python-source-adapter"]
+    },
+    {
+      "id": "adapter-bytes-percent-format-star-precision-star-width",
+      "source": "../adapter/adapter-bytes-percent-format-star-precision-star-width.py",
+      "reference": "Python Standard Library Built-in Types bytes; printf-style bytes formatting dynamic * field width plus dynamic * precision",
+      "expected_result": "True ~> .K",
+      "coverage": ["bytes-percent-formatting", "bytes-methods", "printf-style-bytes-formatting", "dynamic-width", "dynamic-precision", "left-adjustment", "ordinary-python-source-adapter"]
+    },
+    {
+      "id": "adapter-bytearray-percent-format-star-precision",
+      "source": "../adapter/adapter-bytearray-percent-format-star-precision.py",
+      "reference": "Python Standard Library Built-in Types bytearray; printf-style bytes formatting dynamic * precision preserves bytearray result type",
+      "expected_result": "True ~> .K",
+      "coverage": ["bytearray-percent-formatting", "bytearray-query-methods", "printf-style-bytes-formatting", "dynamic-precision", "field-width", "result-type", "ordinary-python-source-adapter"]
+    },
+    {
+      "id": "adapter-bytes-percent-format-star-precision-diagnostics",
+      "source": "../adapter/adapter-bytes-percent-format-star-precision-diagnostics.py",
+      "reference": "Python Standard Library Built-in Types bytes; printf-style bytes formatting dynamic * precision TypeError behavior",
+      "expected_result": "True ~> .K",
+      "coverage": ["bytes-percent-formatting", "printf-style-bytes-formatting", "dynamic-precision", "type-error", "ordinary-python-source-adapter"]
+    },
+    {
       "id": "adapter-bytes-percent-format-star-width-diagnostics",
       "source": "../adapter/adapter-bytes-percent-format-star-width-diagnostics.py",
       "reference": "Python Standard Library Built-in Types bytes; printf-style bytes formatting dynamic * width TypeError behavior",

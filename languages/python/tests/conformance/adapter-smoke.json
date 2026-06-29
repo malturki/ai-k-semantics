@@ -1131,6 +1131,41 @@
       "coverage": ["bytes-percent-formatting", "printf-style-bytes-formatting", "dynamic-width", "type-error", "ordinary-python-source-adapter"]
     },
     {
+      "id": "adapter-bytes-percent-format-mapping-basic",
+      "source": "../adapter/adapter-bytes-percent-format-mapping-basic.py",
+      "reference": "Python Standard Library Built-in Types bytes; printf-style bytes formatting mapping-key lookup for bytes-like, repr/ascii, character, literal percent, and repeated mapping keys",
+      "expected_result": "True ~> .K",
+      "coverage": ["bytes-percent-formatting", "bytes-methods", "printf-style-bytes-formatting", "mapping-key", "bytes-like-arguments", "ascii-repr-conversion", "ordinary-python-source-adapter"]
+    },
+    {
+      "id": "adapter-bytes-percent-format-mapping-nested-key",
+      "source": "../adapter/adapter-bytes-percent-format-mapping-nested-key.py",
+      "reference": "Python Standard Library Built-in Types bytes; printf-style bytes formatting mapping keys are bytes keys and may contain balanced parentheses or be empty",
+      "expected_result": "True ~> .K",
+      "coverage": ["bytes-percent-formatting", "bytes-methods", "printf-style-bytes-formatting", "mapping-key", "balanced-parentheses", "ordinary-python-source-adapter"]
+    },
+    {
+      "id": "adapter-bytes-percent-format-mapping-options",
+      "source": "../adapter/adapter-bytes-percent-format-mapping-options.py",
+      "reference": "Python Standard Library Built-in Types bytes; printf-style bytes formatting mapping-key conversions with flags, width, precision, and ignored length modifiers",
+      "expected_result": "True ~> .K",
+      "coverage": ["bytes-percent-formatting", "bytes-methods", "printf-style-bytes-formatting", "mapping-key", "integer-formatting", "conversion-flags", "field-width", "precision", "length-modifier", "ordinary-python-source-adapter"]
+    },
+    {
+      "id": "adapter-bytearray-percent-format-mapping",
+      "source": "../adapter/adapter-bytearray-percent-format-mapping.py",
+      "reference": "Python Standard Library Built-in Types bytearray; printf-style bytes formatting mapping-key lookup preserves bytearray result type",
+      "expected_result": "True ~> .K",
+      "coverage": ["bytearray-percent-formatting", "bytearray-query-methods", "printf-style-bytes-formatting", "mapping-key", "integer-formatting", "result-type", "ordinary-python-source-adapter"]
+    },
+    {
+      "id": "adapter-bytes-percent-format-mapping-diagnostics",
+      "source": "../adapter/adapter-bytes-percent-format-mapping-diagnostics.py",
+      "reference": "Python Standard Library Built-in Types bytes; printf-style bytes formatting mapping-key TypeError for non-mapping RHS and KeyError for missing keys in empty mappings",
+      "expected_result": "True ~> .K",
+      "coverage": ["bytes-percent-formatting", "printf-style-bytes-formatting", "mapping-key", "type-error", "key-error", "ordinary-python-source-adapter"]
+    },
+    {
       "id": "adapter-bytes-replace-basic",
       "source": "../adapter/adapter-bytes-replace-basic.py",
       "reference": "Python Standard Library Built-in Types bytes; replace non-overlapping subsequence replacement and count handling",

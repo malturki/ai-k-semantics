@@ -693,6 +693,8 @@ module PYTHON
                  | fStringAppendConvFormatParts(FStringConversion, FStringParts, FStringParts, String) [symbol(fStringAppendConvFormatParts)]
                  | fStringApplyDynamicFormat(Val, FStringParts, String) [symbol(fStringApplyDynamicFormat)]
                  | fStringAppendFormatted(FStringParts, String) [symbol(fStringAppendFormatted)]
+                 | bytesPercentMappingExecEmpty(ValItems) [symbol(bytesPercentMappingExecEmpty)]
+                 | bytesPercentMappingExecEmptyKey(ValItems, Int) [symbol(bytesPercentMappingExecEmptyKey)]
                  | callArg(Exp) [symbol(callArg)]
                  | callApply(Val) [symbol(callApply)]
                  | getattrDefaultObject(Id, Exp) [symbol(getattrDefaultObject)]
@@ -1408,6 +1410,21 @@ module PYTHON
                 | bytesTranslateTableSupported(Val) [function, symbol(bytesTranslateTableSupported)]
                 | bytesTranslateTableLengthOk(Val) [function, symbol(bytesTranslateTableLengthOk)]
                 | bytesPercentFormatSupported(ValItems) [function, symbol(bytesPercentFormatSupported)]
+                | bytesPercentStartsMapping(ValItems) [function, symbol(bytesPercentStartsMapping)]
+                | bytesPercentMappingRequiresMapping(ValItems) [function, symbol(bytesPercentMappingRequiresMapping)]
+                | bytesPercentMappingFormatSupported(ValItems) [function, symbol(bytesPercentMappingFormatSupported)]
+                | bytesPercentMappingSpecSupported(ValItems) [function, symbol(bytesPercentMappingSpecSupported)]
+                | bytesPercentMappingKeyClosed(ValItems, Int) [function, symbol(bytesPercentMappingKeyClosed)]
+                | bytesPercentMappingBodyAtEnd(ValItems) [function, symbol(bytesPercentMappingBodyAtEnd)]
+                | bytesPercentMappingBodyHasRest(ValItems) [function, symbol(bytesPercentMappingBodyHasRest)]
+                | bytesPercentMappingIncomplete(ValItems) [function, symbol(bytesPercentMappingIncomplete)]
+                | bytesPercentMappingKeysOk(ValItems, DictItems) [function, symbol(bytesPercentMappingKeysOk)]
+                | bytesPercentMappingConversionsOk(ValItems, DictItems) [function, symbol(bytesPercentMappingConversionsOk)]
+                | bytesPercentMappingBodyConversionOk(ValItems, Val) [function, symbol(bytesPercentMappingBodyConversionOk)]
+                | bytesPercentMappingOverflow(ValItems, DictItems) [function, symbol(bytesPercentMappingOverflow)]
+                | bytesPercentMappingBodyOverflow(ValItems, Val) [function, symbol(bytesPercentMappingBodyOverflow)]
+                | bytesPercentMappingValueError(ValItems, DictItems) [function, symbol(bytesPercentMappingValueError)]
+                | bytesPercentMappingBodyValueError(ValItems, Val) [function, symbol(bytesPercentMappingBodyValueError)]
                 | bytesPercentConversionCode(Int) [function, symbol(bytesPercentConversionCode)]
                 | bytesPercentDecimalCode(Int) [function, symbol(bytesPercentDecimalCode)]
                 | bytesPercentIntegralCode(Int) [function, symbol(bytesPercentIntegralCode)]
@@ -1528,6 +1545,7 @@ module PYTHON
                 | subscriptIndexInBounds(Val, Int) [function, symbol(subscriptIndexInBounds)]
                 | isSliceVal(Val) [function, symbol(isSliceVal)]
                 | isRangeVal(Val) [function, symbol(isRangeVal)]
+                | isDictVal(Val) [function, symbol(isDictVal)]
                 | dictLookupKeySupported(Val) [function, symbol(dictLookupKeySupported)]
                 | dictLookupKeyItemsSupported(ValItems) [function, symbol(dictLookupKeyItemsSupported)]
                 | subscriptLookupable(Val, Val) [function, symbol(subscriptLookupable)]
@@ -2116,6 +2134,10 @@ module PYTHON
   syntax ValItems ::= bytesPercentFieldBody(ValItems) [function, symbol(bytesPercentFieldBody)]
   syntax ValItems ::= bytesPercentFieldRest(ValItems) [function, symbol(bytesPercentFieldRest)]
   syntax ValItems ::= bytesPercentWidthRest(ValItems) [function, symbol(bytesPercentWidthRest)]
+  syntax ValItems ::= bytesPercentMappingBody(ValItems) [function, symbol(bytesPercentMappingBody)]
+  syntax ValItems ::= bytesPercentMappingBodyFrom(ValItems, Int) [function, symbol(bytesPercentMappingBodyFrom)]
+  syntax ValItems ::= bytesPercentMappingBodyRest(ValItems) [function, symbol(bytesPercentMappingBodyRest)]
+  syntax ValItems ::= bytesPercentMappingRest(ValItems) [function, symbol(bytesPercentMappingRest)]
   syntax ValItems ::= byteItems(ValItems) [function, symbol(byteItems)]
   syntax ValItems ::= bytearrayExtendSourceItems(Val) [function, symbol(bytearrayExtendSourceItems)]
   syntax ValItems ::= bytearraySearchNeedleItems(Val) [function, symbol(bytearraySearchNeedleItems)]
@@ -2195,7 +2217,13 @@ module PYTHON
                | bytesTranslateAppend(Val, Val) [function, symbol(bytesTranslateAppend)]
                | bytesTranslateByte(Val, Val) [function, symbol(bytesTranslateByte)]
                | bytesPercentScan(ValItems, Val, Int, Int, Val) [function, symbol(bytesPercentScan)]
+               | bytesPercentMappingScan(ValItems, DictItems, Val) [function, symbol(bytesPercentMappingScan)]
+               | bytesPercentMappingScanKey(ValItems, DictItems, Val, Int, Val) [function, symbol(bytesPercentMappingScanKey)]
+               | bytesPercentMappingScanBody(ValItems, DictItems, Val, Val) [function, symbol(bytesPercentMappingScanBody)]
                | bytesPercentValue(Val, Int, Int) [function, symbol(bytesPercentValue)]
+               | bytesPercentMappingKey(ValItems) [function, symbol(bytesPercentMappingKey)]
+               | bytesPercentMappingKeyFrom(ValItems, Int, Val) [function, symbol(bytesPercentMappingKeyFrom)]
+               | bytesPercentMappingRender(ValItems, Val) [function, symbol(bytesPercentMappingRender)]
                | bytesPercentConvert(Int, Val) [function, symbol(bytesPercentConvert)]
                | bytesPercentConvertPrecision(Int, Int, Val) [function, symbol(bytesPercentConvertPrecision)]
                | bytesPercentConvertField(Int, Int, Int, Bool, Val) [function, symbol(bytesPercentConvertField)]
@@ -5241,6 +5269,10 @@ module PYTHON
 
   rule isNoneVal(None) => true
   rule isNoneVal(_:Val) => false [owise]
+
+  rule isDictVal(({}):Val) => true
+  rule isDictVal(dictVal(_:DictItems)) => true
+  rule isDictVal(_:Val) => false [owise]
 
   rule intValue(I:Int) => I
   rule intValue(True) => 1
@@ -8839,6 +8871,143 @@ module PYTHON
     bytesPercentWidthRest(valItemsCons(D2, Rest))
     requires bytesPercentDigitByte(D) andBool bytesPercentDigitByte(D2)
 
+  rule bytesPercentStartsMapping(valItemsCons(37, valItemsCons(40, _Tail:ValItems))) => true
+  rule bytesPercentStartsMapping(_VS:ValItems) => false [owise]
+
+  rule bytesPercentMappingRequiresMapping(valItemsLast(V:Val)) => false
+    requires isIntLike(V)
+  rule bytesPercentMappingRequiresMapping(valItemsCons(V:Val, Rest:ValItems)) =>
+    bytesPercentMappingRequiresMapping(Rest)
+    requires isIntLike(V)
+      andBool intValue(V) =/=Int 37
+  rule bytesPercentMappingRequiresMapping(valItemsCons(37, valItemsLast(37))) => false
+  rule bytesPercentMappingRequiresMapping(valItemsCons(37, valItemsCons(37, Rest:ValItems))) =>
+    bytesPercentMappingRequiresMapping(Rest)
+  rule bytesPercentMappingRequiresMapping(valItemsCons(37, valItemsCons(40, _Tail:ValItems))) => true
+  rule bytesPercentMappingRequiresMapping(_VS:ValItems) => false [owise]
+
+  rule bytesPercentMappingKeyClosed(valItemsCons(41, Rest:ValItems), 1) =>
+    bytesPercentMappingBodyAtEnd(Rest)
+      orBool bytesPercentMappingBodyHasRest(Rest)
+  rule bytesPercentMappingKeyClosed(valItemsCons(41, Rest:ValItems), Depth:Int) =>
+    bytesPercentMappingKeyClosed(Rest, Depth -Int 1)
+    requires Depth >Int 1
+  rule bytesPercentMappingKeyClosed(valItemsCons(40, Rest:ValItems), Depth:Int) =>
+    bytesPercentMappingKeyClosed(Rest, Depth +Int 1)
+  rule bytesPercentMappingKeyClosed(valItemsCons(C:Val, Rest:ValItems), Depth:Int) =>
+    bytesPercentMappingKeyClosed(Rest, Depth)
+    requires intValue(C) =/=Int 40
+      andBool intValue(C) =/=Int 41
+  rule bytesPercentMappingKeyClosed(_VS:ValItems, _Depth:Int) => false [owise]
+
+  rule bytesPercentMappingKey(Tail:ValItems) => bytesPercentMappingKeyFrom(Tail, 1, #bytes())
+  rule bytesPercentMappingKeyFrom(valItemsCons(41, _Rest:ValItems), 1, Acc:Val) => Acc
+  rule bytesPercentMappingKeyFrom(valItemsCons(41, Rest:ValItems), Depth:Int, Acc:Val) =>
+    bytesPercentMappingKeyFrom(Rest, Depth -Int 1, bytesAppendByte(Acc, 41))
+    requires Depth >Int 1
+  rule bytesPercentMappingKeyFrom(valItemsCons(40, Rest:ValItems), Depth:Int, Acc:Val) =>
+    bytesPercentMappingKeyFrom(Rest, Depth +Int 1, bytesAppendByte(Acc, 40))
+  rule bytesPercentMappingKeyFrom(valItemsCons(C:Val, Rest:ValItems), Depth:Int, Acc:Val) =>
+    bytesPercentMappingKeyFrom(Rest, Depth, bytesAppendByte(Acc, intValue(C)))
+    requires intValue(C) =/=Int 40
+      andBool intValue(C) =/=Int 41
+
+  rule bytesPercentMappingBody(Tail:ValItems) => bytesPercentMappingBodyFrom(Tail, 1)
+  rule bytesPercentMappingBodyFrom(valItemsCons(41, Rest:ValItems), 1) => Rest
+  rule bytesPercentMappingBodyFrom(valItemsCons(41, Rest:ValItems), Depth:Int) =>
+    bytesPercentMappingBodyFrom(Rest, Depth -Int 1)
+    requires Depth >Int 1
+  rule bytesPercentMappingBodyFrom(valItemsCons(40, Rest:ValItems), Depth:Int) =>
+    bytesPercentMappingBodyFrom(Rest, Depth +Int 1)
+  rule bytesPercentMappingBodyFrom(valItemsCons(C:Val, Rest:ValItems), Depth:Int) =>
+    bytesPercentMappingBodyFrom(Rest, Depth)
+    requires intValue(C) =/=Int 40
+      andBool intValue(C) =/=Int 41
+
+  rule bytesPercentMappingBodyAtEnd(Body:ValItems) => true
+    requires bytesPercentLengthSpec(Body)
+      andBool bytesPercentLengthAtEnd(Body)
+  rule bytesPercentMappingBodyAtEnd(Body:ValItems) => true
+    requires bytesPercentPrecisionSpec(Body)
+      andBool bytesPercentPrecisionAtEnd(Body)
+  rule bytesPercentMappingBodyAtEnd(Body:ValItems) => true
+    requires bytesPercentNumericSpec(Body)
+      andBool bytesPercentNumericAtEnd(Body)
+  rule bytesPercentMappingBodyAtEnd(Body:ValItems) => true
+    requires bytesPercentFieldSpec(Body)
+      andBool bytesPercentFieldAtEnd(Body)
+  rule bytesPercentMappingBodyAtEnd(_Body:ValItems) => false [owise]
+
+  rule bytesPercentMappingBodyHasRest(Body:ValItems) => true
+    requires bytesPercentLengthSpec(Body)
+      andBool notBool bytesPercentLengthAtEnd(Body)
+  rule bytesPercentMappingBodyHasRest(Body:ValItems) => true
+    requires bytesPercentPrecisionSpec(Body)
+      andBool notBool bytesPercentPrecisionAtEnd(Body)
+  rule bytesPercentMappingBodyHasRest(Body:ValItems) => true
+    requires bytesPercentNumericSpec(Body)
+      andBool notBool bytesPercentNumericAtEnd(Body)
+  rule bytesPercentMappingBodyHasRest(Body:ValItems) => true
+    requires bytesPercentFieldSpec(Body)
+      andBool notBool bytesPercentFieldAtEnd(Body)
+  rule bytesPercentMappingBodyHasRest(_Body:ValItems) => false [owise]
+
+  rule bytesPercentMappingBodyRest(Body:ValItems) => bytesPercentLengthRest(Body)
+    requires bytesPercentLengthSpec(Body)
+      andBool notBool bytesPercentLengthAtEnd(Body)
+  rule bytesPercentMappingBodyRest(Body:ValItems) => bytesPercentPrecisionRest(Body)
+    requires bytesPercentPrecisionSpec(Body)
+      andBool notBool bytesPercentPrecisionAtEnd(Body)
+  rule bytesPercentMappingBodyRest(Body:ValItems) => bytesPercentNumericRest(Body)
+    requires bytesPercentNumericSpec(Body)
+      andBool notBool bytesPercentNumericAtEnd(Body)
+  rule bytesPercentMappingBodyRest(Body:ValItems) => bytesPercentFieldRest(Body)
+    requires bytesPercentFieldSpec(Body)
+      andBool notBool bytesPercentFieldAtEnd(Body)
+  rule bytesPercentMappingRest(Tail:ValItems) => bytesPercentMappingBodyRest(bytesPercentMappingBody(Tail))
+
+  rule bytesPercentMappingSpecSupported(valItemsCons(40, Tail:ValItems)) =>
+    bytesPercentMappingBodyAtEnd(bytesPercentMappingBody(Tail))
+    requires bytesPercentMappingKeyClosed(Tail, 1)
+      andBool bytesPercentMappingBodyAtEnd(bytesPercentMappingBody(Tail))
+  rule bytesPercentMappingSpecSupported(valItemsCons(40, Tail:ValItems)) =>
+    bytesPercentMappingFormatSupported(bytesPercentMappingRest(Tail))
+    requires bytesPercentMappingKeyClosed(Tail, 1)
+      andBool bytesPercentMappingBodyHasRest(bytesPercentMappingBody(Tail))
+  rule bytesPercentMappingSpecSupported(_VS:ValItems) => false [owise]
+
+  rule bytesPercentMappingFormatSupported(valItemsLast(V:Val)) => intValue(V) =/=Int 37
+    requires isIntLike(V)
+  rule bytesPercentMappingFormatSupported(valItemsCons(V:Val, Rest:ValItems)) =>
+    bytesPercentMappingFormatSupported(Rest)
+    requires isIntLike(V)
+      andBool intValue(V) =/=Int 37
+  rule bytesPercentMappingFormatSupported(valItemsCons(37, valItemsLast(37))) => true
+  rule bytesPercentMappingFormatSupported(valItemsCons(37, valItemsCons(37, Rest:ValItems))) =>
+    bytesPercentMappingFormatSupported(Rest)
+  rule bytesPercentMappingFormatSupported(valItemsCons(37, Tail:ValItems)) =>
+    bytesPercentMappingSpecSupported(Tail)
+    requires bytesPercentMappingSpecSupported(Tail)
+  rule bytesPercentMappingFormatSupported(_VS:ValItems) => false [owise]
+
+  rule bytesPercentMappingIncomplete(valItemsLast(_V:Val)) => false
+  rule bytesPercentMappingIncomplete(valItemsCons(V:Val, Rest:ValItems)) =>
+    bytesPercentMappingIncomplete(Rest)
+    requires intValue(V) =/=Int 37
+  rule bytesPercentMappingIncomplete(valItemsCons(37, valItemsLast(37))) => false
+  rule bytesPercentMappingIncomplete(valItemsCons(37, valItemsCons(37, Rest:ValItems))) =>
+    bytesPercentMappingIncomplete(Rest)
+  rule bytesPercentMappingIncomplete(valItemsCons(37, valItemsCons(40, Tail:ValItems))) => true
+    requires notBool bytesPercentMappingKeyClosed(Tail, 1)
+  rule bytesPercentMappingIncomplete(valItemsCons(37, valItemsCons(40, Tail:ValItems))) => false
+    requires bytesPercentMappingKeyClosed(Tail, 1)
+      andBool bytesPercentMappingBodyAtEnd(bytesPercentMappingBody(Tail))
+  rule bytesPercentMappingIncomplete(valItemsCons(37, valItemsCons(40, Tail:ValItems))) =>
+    bytesPercentMappingIncomplete(bytesPercentMappingRest(Tail))
+    requires bytesPercentMappingKeyClosed(Tail, 1)
+      andBool bytesPercentMappingBodyHasRest(bytesPercentMappingBody(Tail))
+  rule bytesPercentMappingIncomplete(_VS:ValItems) => false [owise]
+
   rule bytesPercentFormatSupported(valItemsLast(V:Val)) => intValue(V) =/=Int 37
     requires isIntLike(V)
   rule bytesPercentFormatSupported(valItemsCons(V:Val, Rest:ValItems)) =>
@@ -9130,6 +9299,132 @@ module PYTHON
 
   rule bytesPercentValue(tupleVal(VS:ValItems), _Count:Int, I:Int) => listGet(VS, I)
   rule bytesPercentValue(V:Val, _Count:Int, _I:Int) => V [owise]
+
+  rule bytesPercentMappingKeysOk(valItemsLast(_V:Val), _DS:DictItems) => true
+  rule bytesPercentMappingKeysOk(valItemsCons(V:Val, Rest:ValItems), DS:DictItems) =>
+    bytesPercentMappingKeysOk(Rest, DS)
+    requires intValue(V) =/=Int 37
+  rule bytesPercentMappingKeysOk(valItemsCons(37, valItemsLast(37)), _DS:DictItems) => true
+  rule bytesPercentMappingKeysOk(valItemsCons(37, valItemsCons(37, Rest:ValItems)), DS:DictItems) =>
+    bytesPercentMappingKeysOk(Rest, DS)
+  rule bytesPercentMappingKeysOk(valItemsCons(37, valItemsCons(40, Tail:ValItems)), DS:DictItems) =>
+    containsKey(bytesPercentMappingKey(Tail), DS)
+    requires bytesPercentMappingKeyClosed(Tail, 1)
+      andBool bytesPercentMappingBodyAtEnd(bytesPercentMappingBody(Tail))
+  rule bytesPercentMappingKeysOk(valItemsCons(37, valItemsCons(40, Tail:ValItems)), DS:DictItems) =>
+    containsKey(bytesPercentMappingKey(Tail), DS)
+      andBool bytesPercentMappingKeysOk(bytesPercentMappingRest(Tail), DS)
+    requires bytesPercentMappingKeyClosed(Tail, 1)
+      andBool bytesPercentMappingBodyHasRest(bytesPercentMappingBody(Tail))
+  rule bytesPercentMappingKeysOk(_VS:ValItems, _DS:DictItems) => false [owise]
+
+  rule bytesPercentMappingBodyConversionOk(Body:ValItems, V:Val) =>
+    bytesPercentConversionOk(bytesPercentLengthSpecCode(Body), V)
+    requires bytesPercentLengthSpec(Body)
+  rule bytesPercentMappingBodyConversionOk(Body:ValItems, V:Val) =>
+    bytesPercentConversionOk(bytesPercentPrecisionSpecCode(Body), V)
+    requires bytesPercentPrecisionSpec(Body)
+  rule bytesPercentMappingBodyConversionOk(Body:ValItems, V:Val) =>
+    bytesPercentConversionOk(bytesPercentNumericSpecCode(Body), V)
+    requires bytesPercentNumericSpec(Body)
+  rule bytesPercentMappingBodyConversionOk(Body:ValItems, V:Val) =>
+    bytesPercentConversionOk(bytesPercentFieldSpecCode(Body), V)
+    requires bytesPercentFieldSpec(Body)
+
+  rule bytesPercentMappingConversionsOk(valItemsLast(_V:Val), _DS:DictItems) => true
+  rule bytesPercentMappingConversionsOk(valItemsCons(V:Val, Rest:ValItems), DS:DictItems) =>
+    bytesPercentMappingConversionsOk(Rest, DS)
+    requires intValue(V) =/=Int 37
+  rule bytesPercentMappingConversionsOk(valItemsCons(37, valItemsLast(37)), _DS:DictItems) => true
+  rule bytesPercentMappingConversionsOk(valItemsCons(37, valItemsCons(37, Rest:ValItems)), DS:DictItems) =>
+    bytesPercentMappingConversionsOk(Rest, DS)
+  rule bytesPercentMappingConversionsOk(valItemsCons(37, valItemsCons(40, Tail:ValItems)), DS:DictItems) =>
+    bytesPercentMappingBodyConversionOk(
+      bytesPercentMappingBody(Tail),
+      dictGet(DS, bytesPercentMappingKey(Tail)))
+    requires bytesPercentMappingKeyClosed(Tail, 1)
+      andBool bytesPercentMappingBodyAtEnd(bytesPercentMappingBody(Tail))
+      andBool containsKey(bytesPercentMappingKey(Tail), DS)
+  rule bytesPercentMappingConversionsOk(valItemsCons(37, valItemsCons(40, Tail:ValItems)), DS:DictItems) =>
+    bytesPercentMappingBodyConversionOk(
+      bytesPercentMappingBody(Tail),
+      dictGet(DS, bytesPercentMappingKey(Tail)))
+      andBool bytesPercentMappingConversionsOk(bytesPercentMappingRest(Tail), DS)
+    requires bytesPercentMappingKeyClosed(Tail, 1)
+      andBool bytesPercentMappingBodyHasRest(bytesPercentMappingBody(Tail))
+      andBool containsKey(bytesPercentMappingKey(Tail), DS)
+
+  rule bytesPercentMappingBodyOverflow(Body:ValItems, V:Val) =>
+    bytesPercentConversionOverflow(bytesPercentLengthSpecCode(Body), V)
+    requires bytesPercentLengthSpec(Body)
+  rule bytesPercentMappingBodyOverflow(Body:ValItems, V:Val) =>
+    bytesPercentConversionOverflow(bytesPercentPrecisionSpecCode(Body), V)
+    requires bytesPercentPrecisionSpec(Body)
+  rule bytesPercentMappingBodyOverflow(Body:ValItems, V:Val) =>
+    bytesPercentConversionOverflow(bytesPercentNumericSpecCode(Body), V)
+    requires bytesPercentNumericSpec(Body)
+  rule bytesPercentMappingBodyOverflow(Body:ValItems, V:Val) =>
+    bytesPercentConversionOverflow(bytesPercentFieldSpecCode(Body), V)
+    requires bytesPercentFieldSpec(Body)
+
+  rule bytesPercentMappingOverflow(valItemsLast(_V:Val), _DS:DictItems) => false
+  rule bytesPercentMappingOverflow(valItemsCons(V:Val, Rest:ValItems), DS:DictItems) =>
+    bytesPercentMappingOverflow(Rest, DS)
+    requires intValue(V) =/=Int 37
+  rule bytesPercentMappingOverflow(valItemsCons(37, valItemsLast(37)), _DS:DictItems) => false
+  rule bytesPercentMappingOverflow(valItemsCons(37, valItemsCons(37, Rest:ValItems)), DS:DictItems) =>
+    bytesPercentMappingOverflow(Rest, DS)
+  rule bytesPercentMappingOverflow(valItemsCons(37, valItemsCons(40, Tail:ValItems)), DS:DictItems) =>
+    bytesPercentMappingBodyOverflow(
+      bytesPercentMappingBody(Tail),
+      dictGet(DS, bytesPercentMappingKey(Tail)))
+    requires bytesPercentMappingKeyClosed(Tail, 1)
+      andBool bytesPercentMappingBodyAtEnd(bytesPercentMappingBody(Tail))
+      andBool containsKey(bytesPercentMappingKey(Tail), DS)
+  rule bytesPercentMappingOverflow(valItemsCons(37, valItemsCons(40, Tail:ValItems)), DS:DictItems) =>
+    bytesPercentMappingBodyOverflow(
+      bytesPercentMappingBody(Tail),
+      dictGet(DS, bytesPercentMappingKey(Tail)))
+      orBool bytesPercentMappingOverflow(bytesPercentMappingRest(Tail), DS)
+    requires bytesPercentMappingKeyClosed(Tail, 1)
+      andBool bytesPercentMappingBodyHasRest(bytesPercentMappingBody(Tail))
+      andBool containsKey(bytesPercentMappingKey(Tail), DS)
+
+  rule bytesPercentMappingBodyValueError(Body:ValItems, V:Val) =>
+    bytesPercentConversionValueError(bytesPercentLengthSpecCode(Body), V)
+    requires bytesPercentLengthSpec(Body)
+  rule bytesPercentMappingBodyValueError(Body:ValItems, V:Val) =>
+    bytesPercentConversionValueError(bytesPercentPrecisionSpecCode(Body), V)
+    requires bytesPercentPrecisionSpec(Body)
+  rule bytesPercentMappingBodyValueError(Body:ValItems, V:Val) =>
+    bytesPercentConversionValueError(bytesPercentNumericSpecCode(Body), V)
+    requires bytesPercentNumericSpec(Body)
+  rule bytesPercentMappingBodyValueError(Body:ValItems, V:Val) =>
+    bytesPercentConversionValueError(bytesPercentFieldSpecCode(Body), V)
+    requires bytesPercentFieldSpec(Body)
+
+  rule bytesPercentMappingValueError(valItemsLast(_V:Val), _DS:DictItems) => false
+  rule bytesPercentMappingValueError(valItemsCons(V:Val, Rest:ValItems), DS:DictItems) =>
+    bytesPercentMappingValueError(Rest, DS)
+    requires intValue(V) =/=Int 37
+  rule bytesPercentMappingValueError(valItemsCons(37, valItemsLast(37)), _DS:DictItems) => false
+  rule bytesPercentMappingValueError(valItemsCons(37, valItemsCons(37, Rest:ValItems)), DS:DictItems) =>
+    bytesPercentMappingValueError(Rest, DS)
+  rule bytesPercentMappingValueError(valItemsCons(37, valItemsCons(40, Tail:ValItems)), DS:DictItems) =>
+    bytesPercentMappingBodyValueError(
+      bytesPercentMappingBody(Tail),
+      dictGet(DS, bytesPercentMappingKey(Tail)))
+    requires bytesPercentMappingKeyClosed(Tail, 1)
+      andBool bytesPercentMappingBodyAtEnd(bytesPercentMappingBody(Tail))
+      andBool containsKey(bytesPercentMappingKey(Tail), DS)
+  rule bytesPercentMappingValueError(valItemsCons(37, valItemsCons(40, Tail:ValItems)), DS:DictItems) =>
+    bytesPercentMappingBodyValueError(
+      bytesPercentMappingBody(Tail),
+      dictGet(DS, bytesPercentMappingKey(Tail)))
+      orBool bytesPercentMappingValueError(bytesPercentMappingRest(Tail), DS)
+    requires bytesPercentMappingKeyClosed(Tail, 1)
+      andBool bytesPercentMappingBodyHasRest(bytesPercentMappingBody(Tail))
+      andBool containsKey(bytesPercentMappingKey(Tail), DS)
 
   rule bytesPercentConversionOk(98, V:Val) => bytearrayAffixNeedleSupported(V)
   rule bytesPercentConversionOk(115, V:Val) => bytearrayAffixNeedleSupported(V)
@@ -9976,6 +10271,123 @@ module PYTHON
     bytesPercentScan(Rest, Values, Count, I +Int 1,
       bytesPercentConcat(Acc, bytesPercentConvert(intValue(C), bytesPercentValue(Values, Count, I))))
     requires bytesPercentConversionCode(intValue(C))
+
+  rule bytesPercentMappingScan(valItemsLast(V:Val), _DS:DictItems, Acc:Val) =>
+    bytesPercentAppendByte(Acc, intValue(V))
+    requires isIntLike(V)
+      andBool intValue(V) =/=Int 37
+  rule bytesPercentMappingScan(valItemsCons(V:Val, Rest:ValItems), DS:DictItems, Acc:Val) =>
+    bytesPercentMappingScan(Rest, DS, bytesPercentAppendByte(Acc, intValue(V)))
+    requires isIntLike(V)
+      andBool intValue(V) =/=Int 37
+  rule bytesPercentMappingScan(valItemsCons(37, valItemsLast(37)), _DS:DictItems, Acc:Val) =>
+    bytesPercentAppendByte(Acc, 37)
+  rule bytesPercentMappingScan(valItemsCons(37, valItemsCons(37, Rest:ValItems)), DS:DictItems, Acc:Val) =>
+    bytesPercentMappingScan(Rest, DS, bytesPercentAppendByte(Acc, 37))
+  rule bytesPercentMappingScan(valItemsCons(37, valItemsCons(40, Tail:ValItems)), DS:DictItems, Acc:Val) =>
+    bytesPercentMappingScanKey(Tail, DS, Acc, 1, #bytes())
+
+  rule bytesPercentMappingScanKey(valItemsCons(41, Body:ValItems), DS:DictItems, Acc:Val, 1, Key:Val) =>
+    bytesPercentMappingScanBody(Body, DS, Acc, Key)
+  rule bytesPercentMappingScanKey(valItemsCons(41, Rest:ValItems), DS:DictItems, Acc:Val, Depth:Int, Key:Val) =>
+    bytesPercentMappingScanKey(Rest, DS, Acc, Depth -Int 1, bytesAppendByte(Key, 41))
+    requires Depth >Int 1
+  rule bytesPercentMappingScanKey(valItemsCons(40, Rest:ValItems), DS:DictItems, Acc:Val, Depth:Int, Key:Val) =>
+    bytesPercentMappingScanKey(Rest, DS, Acc, Depth +Int 1, bytesAppendByte(Key, 40))
+  rule bytesPercentMappingScanKey(valItemsCons(C:Val, Rest:ValItems), DS:DictItems, Acc:Val, Depth:Int, Key:Val) =>
+    bytesPercentMappingScanKey(Rest, DS, Acc, Depth, bytesAppendByte(Key, intValue(C)))
+    requires isIntLike(C)
+      andBool intValue(C) =/=Int 40
+      andBool intValue(C) =/=Int 41
+
+  rule bytesPercentMappingScanBody(valItemsLast(C:Val), DS:DictItems, Acc:Val, Key:Val) =>
+    bytesPercentConcat(Acc, bytesPercentConvert(intValue(C), dictGet(DS, Key)))
+    requires containsKey(Key, DS)
+      andBool bytesPercentConversionCode(intValue(C))
+  rule bytesPercentMappingScanBody(valItemsCons(C:Val, Rest:ValItems), DS:DictItems, Acc:Val, Key:Val) =>
+    bytesPercentMappingScan(
+      Rest,
+      DS,
+      bytesPercentConcat(Acc, bytesPercentConvert(intValue(C), dictGet(DS, Key))))
+    requires containsKey(Key, DS)
+      andBool bytesPercentConversionCode(intValue(C))
+  rule bytesPercentMappingScanBody(valItemsCons(L:Val, Tail:ValItems), DS:DictItems, Acc:Val, Key:Val) =>
+    bytesPercentConcat(
+      Acc,
+      bytesPercentConvert(bytesPercentLengthSpecCode(valItemsCons(L, Tail)), dictGet(DS, Key)))
+    requires containsKey(Key, DS)
+      andBool bytesPercentLengthSpec(valItemsCons(L, Tail))
+      andBool bytesPercentLengthAtEnd(valItemsCons(L, Tail))
+  rule bytesPercentMappingScanBody(valItemsCons(L:Val, Tail:ValItems), DS:DictItems, Acc:Val, Key:Val) =>
+    bytesPercentMappingScan(
+      bytesPercentLengthRest(valItemsCons(L, Tail)),
+      DS,
+      bytesPercentConcat(
+        Acc,
+        bytesPercentConvert(bytesPercentLengthSpecCode(valItemsCons(L, Tail)), dictGet(DS, Key))))
+    requires containsKey(Key, DS)
+      andBool bytesPercentLengthSpec(valItemsCons(L, Tail))
+      andBool notBool bytesPercentLengthAtEnd(valItemsCons(L, Tail))
+  rule bytesPercentMappingScanBody(Body:ValItems, DS:DictItems, Acc:Val, Key:Val) =>
+    bytesPercentConcat(Acc, bytesPercentConvertNumeric(Body, dictGet(DS, Key)))
+    requires containsKey(Key, DS)
+      andBool bytesPercentNumericSpec(Body)
+      andBool bytesPercentNumericAtEnd(Body)
+  rule bytesPercentMappingScanBody(Body:ValItems, DS:DictItems, Acc:Val, Key:Val) =>
+    bytesPercentMappingScan(
+      bytesPercentNumericRest(Body),
+      DS,
+      bytesPercentConcat(Acc, bytesPercentConvertNumeric(Body, dictGet(DS, Key))))
+    requires containsKey(Key, DS)
+      andBool bytesPercentNumericSpec(Body)
+      andBool notBool bytesPercentNumericAtEnd(Body)
+  rule bytesPercentMappingScanBody(valItemsCons(C:Val, Tail:ValItems), DS:DictItems, Acc:Val, Key:Val) =>
+    bytesPercentConcat(
+      Acc,
+      bytesPercentConvertField(
+        bytesPercentFieldSpecCode(valItemsCons(C, Tail)),
+        bytesPercentFieldWidth(valItemsCons(C, Tail)),
+        bytesPercentFieldPrecision(valItemsCons(C, Tail)),
+        bytesPercentFieldLeft(valItemsCons(C, Tail)),
+        dictGet(DS, Key)))
+    requires containsKey(Key, DS)
+      andBool (bytesPercentDigitByte(C) orBool bytesPercentFieldFlagByte(C))
+      andBool bytesPercentFieldSpec(valItemsCons(C, Tail))
+      andBool bytesPercentFieldAtEnd(valItemsCons(C, Tail))
+  rule bytesPercentMappingScanBody(valItemsCons(C:Val, Tail:ValItems), DS:DictItems, Acc:Val, Key:Val) =>
+    bytesPercentMappingScan(
+      bytesPercentFieldRest(valItemsCons(C, Tail)),
+      DS,
+      bytesPercentConcat(
+        Acc,
+        bytesPercentConvertField(
+          bytesPercentFieldSpecCode(valItemsCons(C, Tail)),
+          bytesPercentFieldWidth(valItemsCons(C, Tail)),
+          bytesPercentFieldPrecision(valItemsCons(C, Tail)),
+          bytesPercentFieldLeft(valItemsCons(C, Tail)),
+          dictGet(DS, Key))))
+    requires containsKey(Key, DS)
+      andBool (bytesPercentDigitByte(C) orBool bytesPercentFieldFlagByte(C))
+      andBool bytesPercentFieldSpec(valItemsCons(C, Tail))
+      andBool notBool bytesPercentFieldAtEnd(valItemsCons(C, Tail))
+
+  rule bytesPercentMappingRender(Body:ValItems, V:Val) =>
+    bytesPercentConvert(bytesPercentLengthSpecCode(Body), V)
+    requires bytesPercentLengthSpec(Body)
+  rule bytesPercentMappingRender(Body:ValItems, V:Val) =>
+    bytesPercentConvertPrecision(bytesPercentPrecisionSpecCode(Body), bytesPercentPrecisionValue(Body), V)
+    requires bytesPercentPrecisionSpec(Body)
+  rule bytesPercentMappingRender(Body:ValItems, V:Val) =>
+    bytesPercentConvertNumeric(Body, V)
+    requires bytesPercentNumericSpec(Body)
+  rule bytesPercentMappingRender(Body:ValItems, V:Val) =>
+    bytesPercentConvertField(
+      bytesPercentFieldSpecCode(Body),
+      bytesPercentFieldWidth(Body),
+      bytesPercentFieldPrecision(Body),
+      bytesPercentFieldLeft(Body),
+      V)
+    requires bytesPercentFieldSpec(Body)
 
   rule bytesPercentConvert(98, V:Val) => bytesBytesLikeValue(V)
     requires bytearrayAffixNeedleSupported(V)
@@ -13505,16 +13917,29 @@ module PYTHON
            exceptionSignal(#exception(#token("TypeError", "Id")))
        ... </k>
     requires notBool bytesPercentArgsOk(0, Values)
+
+  rule <k> bytesVal(valItemsCons(37, valItemsCons(40, _Tail:ValItems))) % Values:Val =>
+           exceptionSignal(#exception(#token("TypeError", "Id")))
+       ... </k>
+    requires notBool isDictVal(Values)
+  rule <k> bytesVal(valItemsCons(37, valItemsCons(40, Tail:ValItems))) % ({}):Val =>
+           bytesPercentMappingExecEmpty(valItemsCons(37, valItemsCons(40, Tail)))
+       ... </k>
+  rule bytesVal(FS:ValItems) % dictVal(DS:DictItems) =>
+    bytesPercentMappingScan(FS, DS, #bytes())
+
   rule bytesVal(FS:ValItems) % Values:Val =>
     bytesPercentScan(FS, Values, bytesPercentSpecCount(FS), 0, #bytes())
     requires bytesPercentFormatSupported(FS)
       andBool bytesPercentFormatArgsOk(FS, Values)
       andBool notBool bytesPercentOverflow(FS, Values, bytesPercentSpecCount(FS), 0)
       andBool bytesPercentConversionsOk(FS, Values, bytesPercentSpecCount(FS), 0)
-  rule <k> bytesVal(FS:ValItems) % _Values:Val =>
+  rule <k> bytesVal(FS:ValItems) % Values:Val =>
            exceptionSignal(#exception(#token("NotImplementedError", "Id")))
        ... </k>
     requires notBool bytesPercentFormatSupported(FS)
+      andBool notBool isDictVal(Values)
+      andBool notBool bytesPercentStartsMapping(FS)
   rule <k> bytesVal(FS:ValItems) % Values:Val =>
            exceptionSignal(#exception(#token("TypeError", "Id")))
        ... </k>
@@ -13541,16 +13966,66 @@ module PYTHON
       andBool notBool bytesPercentOverflow(FS, Values, bytesPercentSpecCount(FS), 0)
       andBool notBool bytesPercentValueError(FS, Values, bytesPercentSpecCount(FS), 0)
       andBool notBool bytesPercentConversionsOk(FS, Values, bytesPercentSpecCount(FS), 0)
+
+  rule <k> bytearrayVal(valItemsCons(37, valItemsCons(40, _Tail:ValItems))) % Values:Val =>
+           exceptionSignal(#exception(#token("TypeError", "Id")))
+       ... </k>
+    requires notBool isDictVal(Values)
+  rule <k> bytearrayVal(valItemsCons(37, valItemsCons(40, Tail:ValItems))) % ({}):Val =>
+           bytesPercentMappingExecEmpty(valItemsCons(37, valItemsCons(40, Tail)))
+       ... </k>
+  rule bytearrayVal(FS:ValItems) % dictVal(DS:DictItems) =>
+    bytesPercentMappingScan(FS, DS, #bytearray())
+
+  rule <k> bytesPercentMappingExecEmpty(valItemsLast(_V:Val)) =>
+           exceptionSignal(#exception(#token("ValueError", "Id")))
+       ... </k>
+  rule <k> bytesPercentMappingExecEmpty(valItemsCons(V:Val, Rest:ValItems)) =>
+           bytesPercentMappingExecEmpty(Rest)
+       ... </k>
+    requires isIntLike(V)
+      andBool intValue(V) =/=Int 37
+  rule <k> bytesPercentMappingExecEmpty(valItemsCons(37, valItemsLast(37))) =>
+           exceptionSignal(#exception(#token("ValueError", "Id")))
+       ... </k>
+  rule <k> bytesPercentMappingExecEmpty(valItemsCons(37, valItemsCons(37, Rest:ValItems))) =>
+           bytesPercentMappingExecEmpty(Rest)
+       ... </k>
+  rule <k> bytesPercentMappingExecEmpty(valItemsCons(37, valItemsCons(40, Tail:ValItems))) =>
+           bytesPercentMappingExecEmptyKey(Tail, 1)
+       ... </k>
+  rule <k> bytesPercentMappingExecEmptyKey(valItemsLast(_V:Val), _Depth:Int) =>
+           exceptionSignal(#exception(#token("ValueError", "Id")))
+       ... </k>
+  rule <k> bytesPercentMappingExecEmptyKey(valItemsCons(41, _Body:ValItems), 1) =>
+           exceptionSignal(#exception(#token("KeyError", "Id")))
+       ... </k>
+  rule <k> bytesPercentMappingExecEmptyKey(valItemsCons(41, Rest:ValItems), Depth:Int) =>
+           bytesPercentMappingExecEmptyKey(Rest, Depth -Int 1)
+       ... </k>
+    requires Depth >Int 1
+  rule <k> bytesPercentMappingExecEmptyKey(valItemsCons(40, Rest:ValItems), Depth:Int) =>
+           bytesPercentMappingExecEmptyKey(Rest, Depth +Int 1)
+       ... </k>
+  rule <k> bytesPercentMappingExecEmptyKey(valItemsCons(C:Val, Rest:ValItems), Depth:Int) =>
+           bytesPercentMappingExecEmptyKey(Rest, Depth)
+       ... </k>
+    requires isIntLike(C)
+      andBool intValue(C) =/=Int 40
+      andBool intValue(C) =/=Int 41
+
   rule bytearrayVal(FS:ValItems) % Values:Val =>
     bytesPercentScan(FS, Values, bytesPercentSpecCount(FS), 0, #bytearray())
     requires bytesPercentFormatSupported(FS)
       andBool bytesPercentFormatArgsOk(FS, Values)
       andBool notBool bytesPercentOverflow(FS, Values, bytesPercentSpecCount(FS), 0)
       andBool bytesPercentConversionsOk(FS, Values, bytesPercentSpecCount(FS), 0)
-  rule <k> bytearrayVal(FS:ValItems) % _Values:Val =>
+  rule <k> bytearrayVal(FS:ValItems) % Values:Val =>
            exceptionSignal(#exception(#token("NotImplementedError", "Id")))
        ... </k>
     requires notBool bytesPercentFormatSupported(FS)
+      andBool notBool isDictVal(Values)
+      andBool notBool bytesPercentStartsMapping(FS)
   rule <k> bytearrayVal(FS:ValItems) % Values:Val =>
            exceptionSignal(#exception(#token("TypeError", "Id")))
        ... </k>

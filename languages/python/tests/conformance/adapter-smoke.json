@@ -487,6 +487,34 @@
       "coverage": ["bytes-methods", "bytes-classification-methods", "bytes-isspace-method", "bytes-istitle-method", "method-call", "ordinary-python-source-adapter"]
     },
     {
+      "id": "adapter-bytes-case-lower-upper",
+      "source": "../adapter/adapter-bytes-case-lower-upper.py",
+      "reference": "Python Standard Library Built-in Types bytes; lower and upper ASCII case conversion",
+      "expected_result": "True ~> .K",
+      "coverage": ["bytes-methods", "bytes-case-methods", "bytes-lower-method", "bytes-upper-method", "ascii-case-conversion", "method-call", "ordinary-python-source-adapter"]
+    },
+    {
+      "id": "adapter-bytes-case-capitalize",
+      "source": "../adapter/adapter-bytes-case-capitalize.py",
+      "reference": "Python Standard Library Built-in Types bytes; capitalize ASCII case conversion",
+      "expected_result": "True ~> .K",
+      "coverage": ["bytes-methods", "bytes-case-methods", "bytes-capitalize-method", "ascii-case-conversion", "method-call", "ordinary-python-source-adapter"]
+    },
+    {
+      "id": "adapter-bytes-case-swapcase",
+      "source": "../adapter/adapter-bytes-case-swapcase.py",
+      "reference": "Python Standard Library Built-in Types bytes; swapcase ASCII case conversion",
+      "expected_result": "True ~> .K",
+      "coverage": ["bytes-methods", "bytes-case-methods", "bytes-swapcase-method", "ascii-case-conversion", "method-call", "ordinary-python-source-adapter"]
+    },
+    {
+      "id": "adapter-bytes-case-title",
+      "source": "../adapter/adapter-bytes-case-title.py",
+      "reference": "Python Standard Library Built-in Types bytes; title ASCII word-boundary case conversion",
+      "expected_result": "True ~> .K",
+      "coverage": ["bytes-methods", "bytes-case-methods", "bytes-title-method", "ascii-case-conversion", "method-call", "ordinary-python-source-adapter"]
+    },
+    {
       "id": "adapter-bytes-constructor",
       "source": "../adapter/adapter-bytes-constructor.py",
       "reference": "Python Standard Library Built-in Functions bytes and bytearray constructor interpretation; Built-in Types binary sequence types; CPython Lib/test/test_bytes.py constructor cases",

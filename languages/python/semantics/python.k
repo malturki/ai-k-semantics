@@ -17271,6 +17271,28 @@ module PYTHON
   rule <k> #methodCall0(X:Id, Method:Id) => boolValue(bytesHasUpper(VS) andBool notBool bytesHasLower(VS)) ... </k>
        <env> ... X |-> bytesVal(VS:ValItems) ... </env>
     requires Id2String(Method) ==String "isupper"
+  rule <k> #methodCall0(X:Id, Method:Id) => #bytes() ... </k>
+       <env> ... X |-> #bytes() ... </env>
+    requires Id2String(Method) ==String "capitalize"
+      orBool Id2String(Method) ==String "lower"
+      orBool Id2String(Method) ==String "swapcase"
+      orBool Id2String(Method) ==String "title"
+      orBool Id2String(Method) ==String "upper"
+  rule <k> #methodCall0(X:Id, Method:Id) => bytesVal(bytesCapitalizeItems(VS)) ... </k>
+       <env> ... X |-> bytesVal(VS:ValItems) ... </env>
+    requires Id2String(Method) ==String "capitalize"
+  rule <k> #methodCall0(X:Id, Method:Id) => bytesVal(bytesLowerItems(VS)) ... </k>
+       <env> ... X |-> bytesVal(VS:ValItems) ... </env>
+    requires Id2String(Method) ==String "lower"
+  rule <k> #methodCall0(X:Id, Method:Id) => bytesVal(bytesSwapcaseItems(VS)) ... </k>
+       <env> ... X |-> bytesVal(VS:ValItems) ... </env>
+    requires Id2String(Method) ==String "swapcase"
+  rule <k> #methodCall0(X:Id, Method:Id) => bytesVal(bytesTitleItems(VS, false)) ... </k>
+       <env> ... X |-> bytesVal(VS:ValItems) ... </env>
+    requires Id2String(Method) ==String "title"
+  rule <k> #methodCall0(X:Id, Method:Id) => bytesVal(bytesUpperItems(VS)) ... </k>
+       <env> ... X |-> bytesVal(VS:ValItems) ... </env>
+    requires Id2String(Method) ==String "upper"
   rule <k> #methodCall0(X:Id, Method:Id) => bytearrayLStripDefault(B) ... </k>
        <env> ... X |-> B:Val ... </env>
     requires Id2String(Method) ==String "lstrip"
@@ -17360,7 +17382,12 @@ module PYTHON
         orBool Id2String(Method) ==String "islower"
         orBool Id2String(Method) ==String "isspace"
         orBool Id2String(Method) ==String "istitle"
-        orBool Id2String(Method) ==String "isupper") andBool isBytesVal(B))
+        orBool Id2String(Method) ==String "isupper"
+        orBool Id2String(Method) ==String "capitalize"
+        orBool Id2String(Method) ==String "lower"
+        orBool Id2String(Method) ==String "swapcase"
+        orBool Id2String(Method) ==String "title"
+        orBool Id2String(Method) ==String "upper") andBool isBytesVal(B))
   rule <k> #methodCall(X:Id, Method:Id, Arg:Val) => bytearrayLStripDefault(B) ... </k>
        <env> ... X |-> B:Val ... </env>
     requires Id2String(Method) ==String "lstrip"

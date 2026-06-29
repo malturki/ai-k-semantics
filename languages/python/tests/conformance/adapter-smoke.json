@@ -683,6 +683,20 @@
       "coverage": ["bytes-methods", "bytes-zfill-method", "type-error", "method-call", "ordinary-python-source-adapter"]
     },
     {
+      "id": "adapter-bytes-justify-methods",
+      "source": "../adapter/adapter-bytes-justify-methods.py",
+      "reference": "Python Standard Library Built-in Types bytes; center, ljust, and rjust width padding and fillbyte behavior",
+      "expected_result": "True ~> .K",
+      "coverage": ["bytes-methods", "bytes-center-method", "bytes-ljust-method", "bytes-rjust-method", "width-padding", "fillbyte", "method-call", "ordinary-python-source-adapter"]
+    },
+    {
+      "id": "adapter-bytes-justify-diagnostics",
+      "source": "../adapter/adapter-bytes-justify-diagnostics.py",
+      "reference": "Python Standard Library Built-in Types bytes; center, ljust, and rjust width and fillbyte TypeError diagnostics",
+      "expected_result": "True ~> .K",
+      "coverage": ["bytes-methods", "bytes-center-method", "bytes-ljust-method", "bytes-rjust-method", "fillbyte", "type-error", "method-call", "ordinary-python-source-adapter"]
+    },
+    {
       "id": "adapter-bytes-constructor",
       "source": "../adapter/adapter-bytes-constructor.py",
       "reference": "Python Standard Library Built-in Functions bytes and bytearray constructor interpretation; Built-in Types binary sequence types; CPython Lib/test/test_bytes.py constructor cases",

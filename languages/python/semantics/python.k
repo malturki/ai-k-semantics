@@ -1988,6 +1988,9 @@ module PYTHON
                | bytesLStripBytes(Val, ValItems) [function, symbol(bytesLStripBytes)]
                | bytesRStripBytes(Val, ValItems) [function, symbol(bytesRStripBytes)]
                | bytesLStripBytesItems(ValItems, ValItems) [function, symbol(bytesLStripBytesItems)]
+               | bytesCenter(Val, Val, Int) [function, symbol(bytesCenter)]
+               | bytesLjust(Val, Val, Int) [function, symbol(bytesLjust)]
+               | bytesRjust(Val, Val, Int) [function, symbol(bytesRjust)]
                | bytesZfill(Val, Val) [function, symbol(bytesZfill)]
                | bytesZfillItems(ValItems, Int) [function, symbol(bytesZfillItems)]
                | bytesToBytearray(Val) [function, symbol(bytesToBytearray)]
@@ -7919,6 +7922,49 @@ module PYTHON
       andBool intValue(W) -Int valItemsLen(VS) ==Int 1
   rule bytearrayCenter(bytearrayVal(VS:ValItems), W:Val, Fill:Int) =>
     bytearrayVal(
+      concatValItems(
+        byteRepeatItems(Fill, (intValue(W) -Int valItemsLen(VS)) /Int 2),
+        concatValItems(VS, byteRepeatItems(Fill, (intValue(W) -Int valItemsLen(VS)) -Int ((intValue(W) -Int valItemsLen(VS)) /Int 2)))))
+    requires isIntLike(W)
+      andBool intValue(W) -Int valItemsLen(VS) >Int 1
+
+  rule bytesLjust(B:Val, W:Val, _Fill:Int) => B
+    requires isBytesVal(B)
+      andBool isIntLike(W)
+      andBool intValue(W) <=Int pyLen(B)
+  rule bytesLjust(#bytes(), W:Val, Fill:Int) => bytesVal(byteRepeatItems(Fill, intValue(W)))
+    requires isIntLike(W)
+      andBool intValue(W) >Int 0
+  rule bytesLjust(bytesVal(VS:ValItems), W:Val, Fill:Int) =>
+    bytesVal(concatValItems(VS, byteRepeatItems(Fill, intValue(W) -Int valItemsLen(VS))))
+    requires isIntLike(W)
+      andBool intValue(W) >Int valItemsLen(VS)
+
+  rule bytesRjust(B:Val, W:Val, _Fill:Int) => B
+    requires isBytesVal(B)
+      andBool isIntLike(W)
+      andBool intValue(W) <=Int pyLen(B)
+  rule bytesRjust(#bytes(), W:Val, Fill:Int) => bytesVal(byteRepeatItems(Fill, intValue(W)))
+    requires isIntLike(W)
+      andBool intValue(W) >Int 0
+  rule bytesRjust(bytesVal(VS:ValItems), W:Val, Fill:Int) =>
+    bytesVal(concatValItems(byteRepeatItems(Fill, intValue(W) -Int valItemsLen(VS)), VS))
+    requires isIntLike(W)
+      andBool intValue(W) >Int valItemsLen(VS)
+
+  rule bytesCenter(B:Val, W:Val, _Fill:Int) => B
+    requires isBytesVal(B)
+      andBool isIntLike(W)
+      andBool intValue(W) <=Int pyLen(B)
+  rule bytesCenter(#bytes(), W:Val, Fill:Int) => bytesVal(byteRepeatItems(Fill, intValue(W)))
+    requires isIntLike(W)
+      andBool intValue(W) >Int 0
+  rule bytesCenter(bytesVal(VS:ValItems), W:Val, Fill:Int) =>
+    bytesVal(concatValItems(VS, byteRepeatItems(Fill, 1)))
+    requires isIntLike(W)
+      andBool intValue(W) -Int valItemsLen(VS) ==Int 1
+  rule bytesCenter(bytesVal(VS:ValItems), W:Val, Fill:Int) =>
+    bytesVal(
       concatValItems(
         byteRepeatItems(Fill, (intValue(W) -Int valItemsLen(VS)) /Int 2),
         concatValItems(VS, byteRepeatItems(Fill, (intValue(W) -Int valItemsLen(VS)) -Int ((intValue(W) -Int valItemsLen(VS)) /Int 2)))))
@@ -17786,6 +17832,21 @@ module PYTHON
     requires Id2String(Method) ==String "rjust"
       andBool isBytearrayVal(B)
       andBool isIntLike(W)
+  rule <k> #methodCall(X:Id, Method:Id, W:Val) => bytesCenter(B, W, 32) ... </k>
+       <env> ... X |-> B:Val ... </env>
+    requires Id2String(Method) ==String "center"
+      andBool isBytesVal(B)
+      andBool isIntLike(W)
+  rule <k> #methodCall(X:Id, Method:Id, W:Val) => bytesLjust(B, W, 32) ... </k>
+       <env> ... X |-> B:Val ... </env>
+    requires Id2String(Method) ==String "ljust"
+      andBool isBytesVal(B)
+      andBool isIntLike(W)
+  rule <k> #methodCall(X:Id, Method:Id, W:Val) => bytesRjust(B, W, 32) ... </k>
+       <env> ... X |-> B:Val ... </env>
+    requires Id2String(Method) ==String "rjust"
+      andBool isBytesVal(B)
+      andBool isIntLike(W)
   rule <k> #methodCall(X:Id, Method:Id, W:Val) =>
            exceptionSignal(#exception(#token("TypeError", "Id")))
        ... </k>
@@ -17794,6 +17855,15 @@ module PYTHON
               orBool Id2String(Method) ==String "ljust"
               orBool Id2String(Method) ==String "rjust")
       andBool isBytearrayVal(B)
+      andBool notBool isIntLike(W)
+  rule <k> #methodCall(X:Id, Method:Id, W:Val) =>
+           exceptionSignal(#exception(#token("TypeError", "Id")))
+       ... </k>
+       <env> ... X |-> B:Val ... </env>
+    requires (Id2String(Method) ==String "center"
+              orBool Id2String(Method) ==String "ljust"
+              orBool Id2String(Method) ==String "rjust")
+      andBool isBytesVal(B)
       andBool notBool isIntLike(W)
   rule <k> #methodCall(X:Id, Method:Id, W:Val) => bytearrayZfill(B, W) ... </k>
        <env> ... X |-> B:Val ... </env>
@@ -18663,11 +18733,14 @@ module PYTHON
         orBool Id2String(Method) ==String "rpartition"
         orBool Id2String(Method) ==String "removeprefix"
         orBool Id2String(Method) ==String "removesuffix"
+        orBool Id2String(Method) ==String "center"
         orBool Id2String(Method) ==String "count"
         orBool Id2String(Method) ==String "find"
         orBool Id2String(Method) ==String "index"
+        orBool Id2String(Method) ==String "ljust"
         orBool Id2String(Method) ==String "rfind"
         orBool Id2String(Method) ==String "rindex"
+        orBool Id2String(Method) ==String "rjust"
         orBool Id2String(Method) ==String "splitlines"
         orBool Id2String(Method) ==String "lstrip"
         orBool Id2String(Method) ==String "rstrip"
@@ -19434,6 +19507,24 @@ module PYTHON
       andBool isBytearrayVal(B)
       andBool isIntLike(W)
       andBool bytearrayFillByteOk(Fill)
+  rule <k> #methodCall2(X:Id, Method:Id, W:Val, Fill:Val) => bytesCenter(B, W, bytearrayFillByteValue(Fill)) ... </k>
+       <env> ... X |-> B:Val ... </env>
+    requires Id2String(Method) ==String "center"
+      andBool isBytesVal(B)
+      andBool isIntLike(W)
+      andBool bytearrayFillByteOk(Fill)
+  rule <k> #methodCall2(X:Id, Method:Id, W:Val, Fill:Val) => bytesLjust(B, W, bytearrayFillByteValue(Fill)) ... </k>
+       <env> ... X |-> B:Val ... </env>
+    requires Id2String(Method) ==String "ljust"
+      andBool isBytesVal(B)
+      andBool isIntLike(W)
+      andBool bytearrayFillByteOk(Fill)
+  rule <k> #methodCall2(X:Id, Method:Id, W:Val, Fill:Val) => bytesRjust(B, W, bytearrayFillByteValue(Fill)) ... </k>
+       <env> ... X |-> B:Val ... </env>
+    requires Id2String(Method) ==String "rjust"
+      andBool isBytesVal(B)
+      andBool isIntLike(W)
+      andBool bytearrayFillByteOk(Fill)
   rule <k> #methodCall2(X:Id, Method:Id, W:Val, _Fill:Val) =>
            exceptionSignal(#exception(#token("TypeError", "Id")))
        ... </k>
@@ -19443,6 +19534,15 @@ module PYTHON
               orBool Id2String(Method) ==String "rjust")
       andBool isBytearrayVal(B)
       andBool notBool isIntLike(W)
+  rule <k> #methodCall2(X:Id, Method:Id, W:Val, _Fill:Val) =>
+           exceptionSignal(#exception(#token("TypeError", "Id")))
+       ... </k>
+       <env> ... X |-> B:Val ... </env>
+    requires (Id2String(Method) ==String "center"
+              orBool Id2String(Method) ==String "ljust"
+              orBool Id2String(Method) ==String "rjust")
+      andBool isBytesVal(B)
+      andBool notBool isIntLike(W)
   rule <k> #methodCall2(X:Id, Method:Id, W:Val, Fill:Val) =>
            exceptionSignal(#exception(#token("TypeError", "Id")))
        ... </k>
@@ -19451,6 +19551,16 @@ module PYTHON
               orBool Id2String(Method) ==String "ljust"
               orBool Id2String(Method) ==String "rjust")
       andBool isBytearrayVal(B)
+      andBool isIntLike(W)
+      andBool notBool bytearrayFillByteOk(Fill)
+  rule <k> #methodCall2(X:Id, Method:Id, W:Val, Fill:Val) =>
+           exceptionSignal(#exception(#token("TypeError", "Id")))
+       ... </k>
+       <env> ... X |-> B:Val ... </env>
+    requires (Id2String(Method) ==String "center"
+              orBool Id2String(Method) ==String "ljust"
+              orBool Id2String(Method) ==String "rjust")
+      andBool isBytesVal(B)
       andBool isIntLike(W)
       andBool notBool bytearrayFillByteOk(Fill)
   rule <k> #methodCall2(X:Id, Method:Id, I:Val, V:Val) => None ... </k>
@@ -19527,7 +19637,10 @@ module PYTHON
               orBool Id2String(Method) ==String "split")
       andBool notBool isBytearrayVal(B)
       andBool notBool ((Id2String(Method) ==String "split"
-        orBool Id2String(Method) ==String "rsplit") andBool isBytesVal(B))
+        orBool Id2String(Method) ==String "rsplit"
+        orBool Id2String(Method) ==String "center"
+        orBool Id2String(Method) ==String "ljust"
+        orBool Id2String(Method) ==String "rjust") andBool isBytesVal(B))
   rule #abs(V:Val) => 0 -Int intValue(V)
     requires isIntLike(V) andBool intValue(V) <Int 0
   rule #abs(V:Val) => intValue(V)

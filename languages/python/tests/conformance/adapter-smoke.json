@@ -991,6 +991,41 @@
       "coverage": ["bytes-percent-formatting", "printf-style-bytes-formatting", "conversion-flags", "type-error", "overflow-error", "ordinary-python-source-adapter"]
     },
     {
+      "id": "adapter-bytes-percent-format-star-width-basic",
+      "source": "../adapter/adapter-bytes-percent-format-star-width-basic.py",
+      "reference": "Python Standard Library Built-in Types bytes; printf-style bytes formatting dynamic * minimum field width for bytes-like conversions",
+      "expected_result": "True ~> .K",
+      "coverage": ["bytes-percent-formatting", "bytes-methods", "printf-style-bytes-formatting", "dynamic-width", "bytes-like-arguments", "ordinary-python-source-adapter"]
+    },
+    {
+      "id": "adapter-bytes-percent-format-star-width-negative",
+      "source": "../adapter/adapter-bytes-percent-format-star-width-negative.py",
+      "reference": "Python Standard Library Built-in Types bytes; printf-style bytes formatting negative dynamic * width left-adjusts nonnumeric conversions",
+      "expected_result": "True ~> .K",
+      "coverage": ["bytes-percent-formatting", "bytes-methods", "printf-style-bytes-formatting", "dynamic-width", "left-adjustment", "ordinary-python-source-adapter"]
+    },
+    {
+      "id": "adapter-bytes-percent-format-star-width-precision-length",
+      "source": "../adapter/adapter-bytes-percent-format-star-width-precision-length.py",
+      "reference": "Python Standard Library Built-in Types bytes; printf-style bytes formatting dynamic * width with literal precision and ignored length modifier",
+      "expected_result": "True ~> .K",
+      "coverage": ["bytes-percent-formatting", "bytes-methods", "printf-style-bytes-formatting", "dynamic-width", "precision", "length-modifier", "ordinary-python-source-adapter"]
+    },
+    {
+      "id": "adapter-bytearray-percent-format-star-width",
+      "source": "../adapter/adapter-bytearray-percent-format-star-width.py",
+      "reference": "Python Standard Library Built-in Types bytearray; printf-style bytes formatting dynamic * width preserves bytearray result type",
+      "expected_result": "True ~> .K",
+      "coverage": ["bytearray-percent-formatting", "bytearray-query-methods", "printf-style-bytes-formatting", "dynamic-width", "result-type", "ordinary-python-source-adapter"]
+    },
+    {
+      "id": "adapter-bytes-percent-format-star-width-diagnostics",
+      "source": "../adapter/adapter-bytes-percent-format-star-width-diagnostics.py",
+      "reference": "Python Standard Library Built-in Types bytes; printf-style bytes formatting dynamic * width TypeError behavior",
+      "expected_result": "True ~> .K",
+      "coverage": ["bytes-percent-formatting", "printf-style-bytes-formatting", "dynamic-width", "type-error", "ordinary-python-source-adapter"]
+    },
+    {
       "id": "adapter-bytes-replace-basic",
       "source": "../adapter/adapter-bytes-replace-basic.py",
       "reference": "Python Standard Library Built-in Types bytes; replace non-overlapping subsequence replacement and count handling",

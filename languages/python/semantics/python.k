@@ -1415,6 +1415,11 @@ module PYTHON
                 | bytesPercentDigitByte(Val) [function, symbol(bytesPercentDigitByte)]
                 | bytesPercentPrecisionSpec(ValItems) [function, symbol(bytesPercentPrecisionSpec)]
                 | bytesPercentPrecisionAtEnd(ValItems) [function, symbol(bytesPercentPrecisionAtEnd)]
+                | bytesPercentFieldSpec(ValItems) [function, symbol(bytesPercentFieldSpec)]
+                | bytesPercentWidthSpec(ValItems) [function, symbol(bytesPercentWidthSpec)]
+                | bytesPercentFieldAtEnd(ValItems) [function, symbol(bytesPercentFieldAtEnd)]
+                | bytesPercentWidthAtEnd(ValItems) [function, symbol(bytesPercentWidthAtEnd)]
+                | bytesPercentFieldLeft(ValItems) [function, symbol(bytesPercentFieldLeft)]
                 | bytesPercentArgsOk(Int, Val) [function, symbol(bytesPercentArgsOk)]
                 | bytesPercentFormatArgsOk(ValItems, Val) [function, symbol(bytesPercentFormatArgsOk)]
                 | bytesPercentConversionsOk(ValItems, Val, Int, Int) [function, symbol(bytesPercentConversionsOk)]
@@ -1753,6 +1758,13 @@ module PYTHON
                | bytesPercentPrecisionValue(ValItems) [function, symbol(bytesPercentPrecisionValue)]
                | bytesPercentPrecisionAccum(ValItems, Int) [function, symbol(bytesPercentPrecisionAccum)]
                | bytesPercentPrecisionSpecCode(ValItems) [function, symbol(bytesPercentPrecisionSpecCode)]
+               | bytesPercentFieldWidth(ValItems) [function, symbol(bytesPercentFieldWidth)]
+               | bytesPercentWidthValue(ValItems) [function, symbol(bytesPercentWidthValue)]
+               | bytesPercentWidthAccum(ValItems, Int) [function, symbol(bytesPercentWidthAccum)]
+               | bytesPercentFieldPrecision(ValItems) [function, symbol(bytesPercentFieldPrecision)]
+               | bytesPercentWidthPrecision(ValItems) [function, symbol(bytesPercentWidthPrecision)]
+               | bytesPercentFieldSpecCode(ValItems) [function, symbol(bytesPercentFieldSpecCode)]
+               | bytesPercentWidthSpecCode(ValItems) [function, symbol(bytesPercentWidthSpecCode)]
                | minValItems(ValItems) [function, symbol(minValItems)]
                | maxValItems(ValItems) [function, symbol(maxValItems)]
                | minArgVals(ArgVals) [function, symbol(minArgVals)]
@@ -1991,6 +2003,9 @@ module PYTHON
   syntax ValItems ::= repeatValItems(ValItems, Int) [function, symbol(repeatValItems)]
   syntax ValItems ::= reverseValItems(ValItems) [function, symbol(reverseValItems)]
   syntax ValItems ::= bytesPercentPrecisionRest(ValItems) [function, symbol(bytesPercentPrecisionRest)]
+  syntax ValItems ::= bytesPercentFieldBody(ValItems) [function, symbol(bytesPercentFieldBody)]
+  syntax ValItems ::= bytesPercentFieldRest(ValItems) [function, symbol(bytesPercentFieldRest)]
+  syntax ValItems ::= bytesPercentWidthRest(ValItems) [function, symbol(bytesPercentWidthRest)]
   syntax ValItems ::= byteItems(ValItems) [function, symbol(byteItems)]
   syntax ValItems ::= bytearrayExtendSourceItems(Val) [function, symbol(bytearrayExtendSourceItems)]
   syntax ValItems ::= bytearraySearchNeedleItems(Val) [function, symbol(bytearraySearchNeedleItems)]
@@ -2073,7 +2088,9 @@ module PYTHON
                | bytesPercentValue(Val, Int, Int) [function, symbol(bytesPercentValue)]
                | bytesPercentConvert(Int, Val) [function, symbol(bytesPercentConvert)]
                | bytesPercentConvertPrecision(Int, Int, Val) [function, symbol(bytesPercentConvertPrecision)]
+               | bytesPercentConvertField(Int, Int, Int, Bool, Val) [function, symbol(bytesPercentConvertField)]
                | bytesPercentClip(Val, Int) [function, symbol(bytesPercentClip)]
+               | bytesPercentPad(Val, Int, Bool) [function, symbol(bytesPercentPad)]
                | bytesPercentConcat(Val, Val) [function, symbol(bytesPercentConcat)]
                | bytesPercentAppendByte(Val, Int) [function, symbol(bytesPercentAppendByte)]
                | bytearrayReplace(Val, Val, Val, Int) [function, symbol(bytearrayReplace)]
@@ -7768,6 +7785,102 @@ module PYTHON
     bytesPercentPrecisionRest(valItemsCons(D2, Rest))
     requires bytesPercentDigitByte(D) andBool bytesPercentDigitByte(D2)
 
+  rule bytesPercentFieldLeft(valItemsCons(V:Val, _Rest:ValItems)) => intValue(V) ==Int 45
+    requires isIntLike(V)
+  rule bytesPercentFieldLeft(valItemsLast(V:Val)) => intValue(V) ==Int 45
+    requires isIntLike(V)
+
+  rule bytesPercentFieldBody(valItemsCons(45, Rest:ValItems)) => Rest
+  rule bytesPercentFieldBody(Tail:ValItems) => Tail [owise]
+
+  rule bytesPercentFieldSpec(Tail:ValItems) => bytesPercentWidthSpec(bytesPercentFieldBody(Tail))
+  rule bytesPercentFieldAtEnd(Tail:ValItems) => bytesPercentWidthAtEnd(bytesPercentFieldBody(Tail))
+  rule bytesPercentFieldWidth(Tail:ValItems) => bytesPercentWidthValue(bytesPercentFieldBody(Tail))
+  rule bytesPercentFieldPrecision(Tail:ValItems) => bytesPercentWidthPrecision(bytesPercentFieldBody(Tail))
+  rule bytesPercentFieldSpecCode(Tail:ValItems) => bytesPercentWidthSpecCode(bytesPercentFieldBody(Tail))
+  rule bytesPercentFieldRest(Tail:ValItems) => bytesPercentWidthRest(bytesPercentFieldBody(Tail))
+
+  rule bytesPercentWidthSpec(valItemsLast(_V:Val)) => false
+  rule bytesPercentWidthSpec(valItemsCons(D:Val, valItemsLast(C:Val))) =>
+    bytesPercentDigitByte(D) andBool bytesPercentPrecisionCode(intValue(C))
+  rule bytesPercentWidthSpec(valItemsCons(D:Val, valItemsCons(C:Val, Rest:ValItems))) =>
+    bytesPercentDigitByte(D)
+      andBool ((bytesPercentPrecisionCode(intValue(C)) andBool notBool bytesPercentDigitByte(C))
+        orBool (intValue(C) ==Int 46 andBool bytesPercentPrecisionSpec(Rest)))
+    requires notBool bytesPercentDigitByte(C)
+  rule bytesPercentWidthSpec(valItemsCons(D:Val, valItemsCons(D2:Val, Rest:ValItems))) =>
+    bytesPercentWidthSpec(valItemsCons(D2, Rest))
+    requires bytesPercentDigitByte(D) andBool bytesPercentDigitByte(D2)
+
+  rule bytesPercentWidthAtEnd(valItemsLast(_V:Val)) => false
+  rule bytesPercentWidthAtEnd(valItemsCons(D:Val, valItemsLast(C:Val))) =>
+    bytesPercentDigitByte(D) andBool bytesPercentPrecisionCode(intValue(C))
+  rule bytesPercentWidthAtEnd(valItemsCons(D:Val, valItemsCons(C:Val, _Rest:ValItems))) => false
+    requires bytesPercentDigitByte(D)
+      andBool bytesPercentPrecisionCode(intValue(C))
+      andBool notBool bytesPercentDigitByte(C)
+  rule bytesPercentWidthAtEnd(valItemsCons(D:Val, valItemsCons(46, Rest:ValItems))) =>
+    bytesPercentPrecisionAtEnd(Rest)
+    requires bytesPercentDigitByte(D)
+  rule bytesPercentWidthAtEnd(valItemsCons(D:Val, valItemsCons(D2:Val, Rest:ValItems))) =>
+    bytesPercentWidthAtEnd(valItemsCons(D2, Rest))
+    requires bytesPercentDigitByte(D) andBool bytesPercentDigitByte(D2)
+
+  rule bytesPercentWidthValue(VS:ValItems) => bytesPercentWidthAccum(VS, 0)
+    requires bytesPercentWidthSpec(VS)
+  rule bytesPercentWidthAccum(valItemsCons(D:Val, valItemsLast(C:Val)), Acc:Int) =>
+    (Acc *Int 10) +Int bytesPercentDigitValue(D)
+    requires bytesPercentDigitByte(D) andBool bytesPercentPrecisionCode(intValue(C))
+  rule bytesPercentWidthAccum(valItemsCons(D:Val, valItemsCons(C:Val, _Rest:ValItems)), Acc:Int) =>
+    (Acc *Int 10) +Int bytesPercentDigitValue(D)
+    requires bytesPercentDigitByte(D)
+      andBool (bytesPercentPrecisionCode(intValue(C)) orBool intValue(C) ==Int 46)
+      andBool notBool bytesPercentDigitByte(C)
+  rule bytesPercentWidthAccum(valItemsCons(D:Val, valItemsCons(D2:Val, Rest:ValItems)), Acc:Int) =>
+    bytesPercentWidthAccum(valItemsCons(D2, Rest), (Acc *Int 10) +Int bytesPercentDigitValue(D))
+    requires bytesPercentDigitByte(D) andBool bytesPercentDigitByte(D2)
+
+  rule bytesPercentWidthPrecision(valItemsCons(D:Val, valItemsLast(C:Val))) => -1
+    requires bytesPercentDigitByte(D) andBool bytesPercentPrecisionCode(intValue(C))
+  rule bytesPercentWidthPrecision(valItemsCons(D:Val, valItemsCons(C:Val, _Rest:ValItems))) => -1
+    requires bytesPercentDigitByte(D)
+      andBool bytesPercentPrecisionCode(intValue(C))
+      andBool notBool bytesPercentDigitByte(C)
+  rule bytesPercentWidthPrecision(valItemsCons(D:Val, valItemsCons(46, Rest:ValItems))) =>
+    bytesPercentPrecisionValue(Rest)
+    requires bytesPercentDigitByte(D)
+      andBool bytesPercentPrecisionSpec(Rest)
+  rule bytesPercentWidthPrecision(valItemsCons(D:Val, valItemsCons(D2:Val, Rest:ValItems))) =>
+    bytesPercentWidthPrecision(valItemsCons(D2, Rest))
+    requires bytesPercentDigitByte(D) andBool bytesPercentDigitByte(D2)
+
+  rule bytesPercentWidthSpecCode(valItemsCons(D:Val, valItemsLast(C:Val))) => intValue(C)
+    requires bytesPercentDigitByte(D) andBool bytesPercentPrecisionCode(intValue(C))
+  rule bytesPercentWidthSpecCode(valItemsCons(D:Val, valItemsCons(C:Val, _Rest:ValItems))) => intValue(C)
+    requires bytesPercentDigitByte(D)
+      andBool bytesPercentPrecisionCode(intValue(C))
+      andBool notBool bytesPercentDigitByte(C)
+  rule bytesPercentWidthSpecCode(valItemsCons(D:Val, valItemsCons(46, Rest:ValItems))) =>
+    bytesPercentPrecisionSpecCode(Rest)
+    requires bytesPercentDigitByte(D)
+      andBool bytesPercentPrecisionSpec(Rest)
+  rule bytesPercentWidthSpecCode(valItemsCons(D:Val, valItemsCons(D2:Val, Rest:ValItems))) =>
+    bytesPercentWidthSpecCode(valItemsCons(D2, Rest))
+    requires bytesPercentDigitByte(D) andBool bytesPercentDigitByte(D2)
+
+  rule bytesPercentWidthRest(valItemsCons(D:Val, valItemsCons(C:Val, Rest:ValItems))) => Rest
+    requires bytesPercentDigitByte(D)
+      andBool bytesPercentPrecisionCode(intValue(C))
+      andBool notBool bytesPercentDigitByte(C)
+  rule bytesPercentWidthRest(valItemsCons(D:Val, valItemsCons(46, Rest:ValItems))) =>
+    bytesPercentPrecisionRest(Rest)
+    requires bytesPercentDigitByte(D)
+      andBool bytesPercentPrecisionSpec(Rest)
+      andBool notBool bytesPercentPrecisionAtEnd(Rest)
+  rule bytesPercentWidthRest(valItemsCons(D:Val, valItemsCons(D2:Val, Rest:ValItems))) =>
+    bytesPercentWidthRest(valItemsCons(D2, Rest))
+    requires bytesPercentDigitByte(D) andBool bytesPercentDigitByte(D2)
+
   rule bytesPercentFormatSupported(valItemsLast(V:Val)) => intValue(V) =/=Int 37
     requires isIntLike(V)
   rule bytesPercentFormatSupported(valItemsCons(V:Val, Rest:ValItems)) =>
@@ -7787,11 +7900,22 @@ module PYTHON
   rule bytesPercentFormatSupported(valItemsCons(37, valItemsCons(46, Tail:ValItems))) =>
     bytesPercentPrecisionSpec(Tail) andBool bytesPercentFormatSupported(bytesPercentPrecisionRest(Tail))
     requires notBool bytesPercentPrecisionAtEnd(Tail)
+  rule bytesPercentFormatSupported(valItemsCons(37, valItemsCons(C:Val, Tail:ValItems))) =>
+    bytesPercentFieldSpec(valItemsCons(C, Tail))
+    requires (bytesPercentDigitByte(C) orBool intValue(C) ==Int 45)
+      andBool bytesPercentFieldAtEnd(valItemsCons(C, Tail))
+  rule bytesPercentFormatSupported(valItemsCons(37, valItemsCons(C:Val, Tail:ValItems))) =>
+    bytesPercentFieldSpec(valItemsCons(C, Tail))
+      andBool bytesPercentFormatSupported(bytesPercentFieldRest(valItemsCons(C, Tail)))
+    requires (bytesPercentDigitByte(C) orBool intValue(C) ==Int 45)
+      andBool notBool bytesPercentFieldAtEnd(valItemsCons(C, Tail))
   rule bytesPercentFormatSupported(valItemsCons(37, valItemsCons(C:Val, Rest:ValItems))) =>
     bytesPercentConversionCode(intValue(C)) andBool bytesPercentFormatSupported(Rest)
     requires isIntLike(C)
       andBool intValue(C) =/=Int 37
       andBool intValue(C) =/=Int 46
+      andBool intValue(C) =/=Int 45
+      andBool notBool bytesPercentDigitByte(C)
 
   rule bytesPercentSpecCount(valItemsLast(V:Val)) => 0
     requires isIntLike(V)
@@ -7811,6 +7935,15 @@ module PYTHON
     1 +Int bytesPercentSpecCount(bytesPercentPrecisionRest(Tail))
     requires bytesPercentPrecisionSpec(Tail)
       andBool notBool bytesPercentPrecisionAtEnd(Tail)
+  rule bytesPercentSpecCount(valItemsCons(37, valItemsCons(C:Val, Tail:ValItems))) => 1
+    requires (bytesPercentDigitByte(C) orBool intValue(C) ==Int 45)
+      andBool bytesPercentFieldSpec(valItemsCons(C, Tail))
+      andBool bytesPercentFieldAtEnd(valItemsCons(C, Tail))
+  rule bytesPercentSpecCount(valItemsCons(37, valItemsCons(C:Val, Tail:ValItems))) =>
+    1 +Int bytesPercentSpecCount(bytesPercentFieldRest(valItemsCons(C, Tail)))
+    requires (bytesPercentDigitByte(C) orBool intValue(C) ==Int 45)
+      andBool bytesPercentFieldSpec(valItemsCons(C, Tail))
+      andBool notBool bytesPercentFieldAtEnd(valItemsCons(C, Tail))
   rule bytesPercentSpecCount(valItemsCons(37, valItemsCons(C:Val, Rest:ValItems))) =>
     1 +Int bytesPercentSpecCount(Rest)
     requires bytesPercentConversionCode(intValue(C))
@@ -7886,6 +8019,17 @@ module PYTHON
       andBool bytesPercentConversionsOk(bytesPercentPrecisionRest(Tail), Values, Count, I +Int 1)
     requires bytesPercentPrecisionSpec(Tail)
       andBool notBool bytesPercentPrecisionAtEnd(Tail)
+  rule bytesPercentConversionsOk(valItemsCons(37, valItemsCons(C:Val, Tail:ValItems)), Values:Val, Count:Int, I:Int) =>
+    bytesPercentConversionOk(bytesPercentFieldSpecCode(valItemsCons(C, Tail)), bytesPercentValue(Values, Count, I))
+    requires (bytesPercentDigitByte(C) orBool intValue(C) ==Int 45)
+      andBool bytesPercentFieldSpec(valItemsCons(C, Tail))
+      andBool bytesPercentFieldAtEnd(valItemsCons(C, Tail))
+  rule bytesPercentConversionsOk(valItemsCons(37, valItemsCons(C:Val, Tail:ValItems)), Values:Val, Count:Int, I:Int) =>
+    bytesPercentConversionOk(bytesPercentFieldSpecCode(valItemsCons(C, Tail)), bytesPercentValue(Values, Count, I))
+      andBool bytesPercentConversionsOk(bytesPercentFieldRest(valItemsCons(C, Tail)), Values, Count, I +Int 1)
+    requires (bytesPercentDigitByte(C) orBool intValue(C) ==Int 45)
+      andBool bytesPercentFieldSpec(valItemsCons(C, Tail))
+      andBool notBool bytesPercentFieldAtEnd(valItemsCons(C, Tail))
   rule bytesPercentConversionsOk(valItemsCons(37, valItemsCons(C:Val, Rest:ValItems)), Values:Val, Count:Int, I:Int) =>
     bytesPercentConversionOk(intValue(C), bytesPercentValue(Values, Count, I))
       andBool bytesPercentConversionsOk(Rest, Values, Count, I +Int 1)
@@ -7913,6 +8057,17 @@ module PYTHON
       orBool bytesPercentOverflow(bytesPercentPrecisionRest(Tail), Values, Count, I +Int 1)
     requires bytesPercentPrecisionSpec(Tail)
       andBool notBool bytesPercentPrecisionAtEnd(Tail)
+  rule bytesPercentOverflow(valItemsCons(37, valItemsCons(C:Val, Tail:ValItems)), Values:Val, Count:Int, I:Int) =>
+    bytesPercentConversionOverflow(bytesPercentFieldSpecCode(valItemsCons(C, Tail)), bytesPercentValue(Values, Count, I))
+    requires (bytesPercentDigitByte(C) orBool intValue(C) ==Int 45)
+      andBool bytesPercentFieldSpec(valItemsCons(C, Tail))
+      andBool bytesPercentFieldAtEnd(valItemsCons(C, Tail))
+  rule bytesPercentOverflow(valItemsCons(37, valItemsCons(C:Val, Tail:ValItems)), Values:Val, Count:Int, I:Int) =>
+    bytesPercentConversionOverflow(bytesPercentFieldSpecCode(valItemsCons(C, Tail)), bytesPercentValue(Values, Count, I))
+      orBool bytesPercentOverflow(bytesPercentFieldRest(valItemsCons(C, Tail)), Values, Count, I +Int 1)
+    requires (bytesPercentDigitByte(C) orBool intValue(C) ==Int 45)
+      andBool bytesPercentFieldSpec(valItemsCons(C, Tail))
+      andBool notBool bytesPercentFieldAtEnd(valItemsCons(C, Tail))
   rule bytesPercentOverflow(valItemsCons(37, valItemsCons(C:Val, Rest:ValItems)), Values:Val, Count:Int, I:Int) =>
     bytesPercentConversionOverflow(intValue(C), bytesPercentValue(Values, Count, I))
       orBool bytesPercentOverflow(Rest, Values, Count, I +Int 1)
@@ -7940,6 +8095,17 @@ module PYTHON
       orBool bytesPercentValueError(bytesPercentPrecisionRest(Tail), Values, Count, I +Int 1)
     requires bytesPercentPrecisionSpec(Tail)
       andBool notBool bytesPercentPrecisionAtEnd(Tail)
+  rule bytesPercentValueError(valItemsCons(37, valItemsCons(C:Val, Tail:ValItems)), Values:Val, Count:Int, I:Int) =>
+    bytesPercentConversionValueError(bytesPercentFieldSpecCode(valItemsCons(C, Tail)), bytesPercentValue(Values, Count, I))
+    requires (bytesPercentDigitByte(C) orBool intValue(C) ==Int 45)
+      andBool bytesPercentFieldSpec(valItemsCons(C, Tail))
+      andBool bytesPercentFieldAtEnd(valItemsCons(C, Tail))
+  rule bytesPercentValueError(valItemsCons(37, valItemsCons(C:Val, Tail:ValItems)), Values:Val, Count:Int, I:Int) =>
+    bytesPercentConversionValueError(bytesPercentFieldSpecCode(valItemsCons(C, Tail)), bytesPercentValue(Values, Count, I))
+      orBool bytesPercentValueError(bytesPercentFieldRest(valItemsCons(C, Tail)), Values, Count, I +Int 1)
+    requires (bytesPercentDigitByte(C) orBool intValue(C) ==Int 45)
+      andBool bytesPercentFieldSpec(valItemsCons(C, Tail))
+      andBool notBool bytesPercentFieldAtEnd(valItemsCons(C, Tail))
   rule bytesPercentValueError(valItemsCons(37, valItemsCons(C:Val, Rest:ValItems)), Values:Val, Count:Int, I:Int) =>
     bytesPercentConversionValueError(intValue(C), bytesPercentValue(Values, Count, I))
       orBool bytesPercentValueError(Rest, Values, Count, I +Int 1)
@@ -7977,6 +8143,29 @@ module PYTHON
           bytesPercentValue(Values, Count, I))))
     requires bytesPercentPrecisionSpec(Tail)
       andBool notBool bytesPercentPrecisionAtEnd(Tail)
+  rule bytesPercentScan(valItemsCons(37, valItemsCons(C:Val, Tail:ValItems)), Values:Val, Count:Int, I:Int, Acc:Val) =>
+    bytesPercentConcat(Acc,
+      bytesPercentConvertField(
+        bytesPercentFieldSpecCode(valItemsCons(C, Tail)),
+        bytesPercentFieldWidth(valItemsCons(C, Tail)),
+        bytesPercentFieldPrecision(valItemsCons(C, Tail)),
+        bytesPercentFieldLeft(valItemsCons(C, Tail)),
+        bytesPercentValue(Values, Count, I)))
+    requires (bytesPercentDigitByte(C) orBool intValue(C) ==Int 45)
+      andBool bytesPercentFieldSpec(valItemsCons(C, Tail))
+      andBool bytesPercentFieldAtEnd(valItemsCons(C, Tail))
+  rule bytesPercentScan(valItemsCons(37, valItemsCons(C:Val, Tail:ValItems)), Values:Val, Count:Int, I:Int, Acc:Val) =>
+    bytesPercentScan(bytesPercentFieldRest(valItemsCons(C, Tail)), Values, Count, I +Int 1,
+      bytesPercentConcat(Acc,
+        bytesPercentConvertField(
+          bytesPercentFieldSpecCode(valItemsCons(C, Tail)),
+          bytesPercentFieldWidth(valItemsCons(C, Tail)),
+          bytesPercentFieldPrecision(valItemsCons(C, Tail)),
+          bytesPercentFieldLeft(valItemsCons(C, Tail)),
+          bytesPercentValue(Values, Count, I))))
+    requires (bytesPercentDigitByte(C) orBool intValue(C) ==Int 45)
+      andBool bytesPercentFieldSpec(valItemsCons(C, Tail))
+      andBool notBool bytesPercentFieldAtEnd(valItemsCons(C, Tail))
   rule bytesPercentScan(valItemsCons(37, valItemsCons(C:Val, Rest:ValItems)), Values:Val, Count:Int, I:Int, Acc:Val) =>
     bytesPercentScan(Rest, Values, Count, I +Int 1,
       bytesPercentConcat(Acc, bytesPercentConvert(intValue(C), bytesPercentValue(Values, Count, I))))
@@ -8013,6 +8202,16 @@ module PYTHON
   rule bytesPercentConvertPrecision(99, _P:Int, V:Val) => bytesPercentConvert(99, V)
     requires bytesPercentConversionOk(99, V)
 
+  rule bytesPercentConvertField(C:Int, W:Int, -1, Left:Bool, V:Val) =>
+    bytesPercentPad(bytesPercentConvert(C, V), W, Left)
+    requires bytesPercentPrecisionCode(C)
+      andBool bytesPercentConversionOk(C, V)
+  rule bytesPercentConvertField(C:Int, W:Int, P:Int, Left:Bool, V:Val) =>
+    bytesPercentPad(bytesPercentConvertPrecision(C, P, V), W, Left)
+    requires bytesPercentPrecisionCode(C)
+      andBool P >=Int 0
+      andBool bytesPercentConversionOk(C, V)
+
   rule bytesPercentClip(B:Val, N:Int) => #bytes()
     requires isBytesVal(B)
       andBool N <=Int 0
@@ -8023,6 +8222,16 @@ module PYTHON
   rule bytesPercentClip(bytesVal(VS:ValItems), N:Int) => bytesSegment(VS, 0, N)
     requires N >Int 0
       andBool N <Int valItemsLen(VS)
+
+  rule bytesPercentPad(B:Val, W:Int, _Left:Bool) => B
+    requires isBytesVal(B)
+      andBool pyLen(B) >=Int W
+  rule bytesPercentPad(B:Val, W:Int, false) => bytesConcat(bytesRepeat(valItemsLast(32), W -Int pyLen(B)), B)
+    requires isBytesVal(B)
+      andBool pyLen(B) <Int W
+  rule bytesPercentPad(B:Val, W:Int, true) => bytesConcat(B, bytesRepeat(valItemsLast(32), W -Int pyLen(B)))
+    requires isBytesVal(B)
+      andBool pyLen(B) <Int W
 
   rule bytesPercentConcat(Acc:Val, Part:Val) => bytesConcat(Acc, Part)
     requires isBytesVal(Acc)

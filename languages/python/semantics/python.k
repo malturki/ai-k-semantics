@@ -18084,6 +18084,268 @@ module PYTHON
     requires (Id2String(Method) ==String "find" orBool Id2String(Method) ==String "rfind")
       andBool isBytearrayVal(B)
       andBool notBool bytearraySearchNeedleSupported(Needle)
+
+  rule <k> #methodCall(X:Id, Method:Id, V:Val) => 0 ... </k>
+       <env> ... X |-> #bytes() ... </env>
+    requires Id2String(Method) ==String "count"
+      andBool isIntLike(V)
+      andBool intValue(V) >=Int 0
+      andBool intValue(V) <=Int 255
+  rule <k> #methodCall(X:Id, Method:Id, V:Val) => bytearrayCountByte(VS, intValue(V)) ... </k>
+       <env> ... X |-> bytesVal(VS:ValItems) ... </env>
+    requires Id2String(Method) ==String "count"
+      andBool isIntLike(V)
+      andBool intValue(V) >=Int 0
+      andBool intValue(V) <=Int 255
+  rule <k> #methodCall(X:Id, Method:Id, V:Val) =>
+           exceptionSignal(#exception(#token("ValueError", "Id")))
+       ... </k>
+       <env> ... X |-> B:Val ... </env>
+    requires Id2String(Method) ==String "count"
+      andBool isBytesVal(B)
+      andBool isIntLike(V)
+      andBool (intValue(V) <Int 0 orBool intValue(V) >Int 255)
+  rule <k> #methodCall(X:Id, Method:Id, Needle:Val) => pyLen(B) +Int 1 ... </k>
+       <env> ... X |-> B:Val ... </env>
+    requires Id2String(Method) ==String "count"
+      andBool isBytesVal(B)
+      andBool notBool isIntLike(Needle)
+      andBool bytearraySearchNeedleSupported(Needle)
+      andBool bytearraySearchNeedleEmpty(Needle)
+  rule <k> #methodCall(X:Id, Method:Id, Needle:Val) => 0 ... </k>
+       <env> ... X |-> #bytes() ... </env>
+    requires Id2String(Method) ==String "count"
+      andBool notBool isIntLike(Needle)
+      andBool bytearraySearchNeedleSupported(Needle)
+      andBool notBool bytearraySearchNeedleEmpty(Needle)
+  rule <k> #methodCall(X:Id, Method:Id, Needle:Val) => bytesCountNeedle(bytearraySearchNeedleItems(Needle), VS) ... </k>
+       <env> ... X |-> bytesVal(VS:ValItems) ... </env>
+    requires Id2String(Method) ==String "count"
+      andBool notBool isIntLike(Needle)
+      andBool bytearraySearchNeedleSupported(Needle)
+      andBool notBool bytearraySearchNeedleEmpty(Needle)
+  rule <k> #methodCall(X:Id, Method:Id, V:Val) =>
+           exceptionSignal(#exception(#token("TypeError", "Id")))
+       ... </k>
+       <env> ... X |-> B:Val ... </env>
+    requires Id2String(Method) ==String "count"
+      andBool isBytesVal(B)
+      andBool notBool bytearraySearchNeedleSupported(V)
+  rule <k> #methodCall(X:Id, Method:Id, V:Val) => bytearrayIndexByte(VS, intValue(V), 0) ... </k>
+       <env> ... X |-> bytesVal(VS:ValItems) ... </env>
+    requires Id2String(Method) ==String "index"
+      andBool isIntLike(V)
+      andBool intValue(V) >=Int 0
+      andBool intValue(V) <=Int 255
+      andBool containsVal(intValue(V), VS)
+  rule <k> #methodCall(X:Id, Method:Id, V:Val) =>
+           exceptionSignal(#exception(#token("ValueError", "Id")))
+       ... </k>
+       <env> ... X |-> B:Val ... </env>
+    requires Id2String(Method) ==String "index"
+      andBool isBytesVal(B)
+      andBool isIntLike(V)
+      andBool (intValue(V) <Int 0 orBool intValue(V) >Int 255)
+  rule <k> #methodCall(X:Id, Method:Id, V:Val) =>
+           exceptionSignal(#exception(#token("ValueError", "Id")))
+       ... </k>
+       <env> ... X |-> #bytes() ... </env>
+    requires Id2String(Method) ==String "index"
+      andBool isIntLike(V)
+      andBool intValue(V) >=Int 0
+      andBool intValue(V) <=Int 255
+  rule <k> #methodCall(X:Id, Method:Id, V:Val) =>
+           exceptionSignal(#exception(#token("ValueError", "Id")))
+       ... </k>
+       <env> ... X |-> bytesVal(VS:ValItems) ... </env>
+    requires Id2String(Method) ==String "index"
+      andBool isIntLike(V)
+      andBool intValue(V) >=Int 0
+      andBool intValue(V) <=Int 255
+      andBool notBool containsVal(intValue(V), VS)
+  rule <k> #methodCall(X:Id, Method:Id, Needle:Val) => 0 ... </k>
+       <env> ... X |-> B:Val ... </env>
+    requires Id2String(Method) ==String "index"
+      andBool isBytesVal(B)
+      andBool notBool isIntLike(Needle)
+      andBool bytearraySearchNeedleSupported(Needle)
+      andBool bytearraySearchNeedleEmpty(Needle)
+  rule <k> #methodCall(X:Id, Method:Id, Needle:Val) =>
+           exceptionSignal(#exception(#token("ValueError", "Id")))
+       ... </k>
+       <env> ... X |-> #bytes() ... </env>
+    requires Id2String(Method) ==String "index"
+      andBool notBool isIntLike(Needle)
+      andBool bytearraySearchNeedleSupported(Needle)
+      andBool notBool bytearraySearchNeedleEmpty(Needle)
+  rule <k> #methodCall(X:Id, Method:Id, Needle:Val) => bytesFind(bytearraySearchNeedleItems(Needle), VS, 0) ... </k>
+       <env> ... X |-> bytesVal(VS:ValItems) ... </env>
+    requires Id2String(Method) ==String "index"
+      andBool notBool isIntLike(Needle)
+      andBool bytearraySearchNeedleSupported(Needle)
+      andBool notBool bytearraySearchNeedleEmpty(Needle)
+      andBool bytesFind(bytearraySearchNeedleItems(Needle), VS, 0) >=Int 0
+  rule <k> #methodCall(X:Id, Method:Id, Needle:Val) =>
+           exceptionSignal(#exception(#token("ValueError", "Id")))
+       ... </k>
+       <env> ... X |-> bytesVal(VS:ValItems) ... </env>
+    requires Id2String(Method) ==String "index"
+      andBool notBool isIntLike(Needle)
+      andBool bytearraySearchNeedleSupported(Needle)
+      andBool notBool bytearraySearchNeedleEmpty(Needle)
+      andBool bytesFind(bytearraySearchNeedleItems(Needle), VS, 0) <Int 0
+  rule <k> #methodCall(X:Id, Method:Id, V:Val) =>
+           exceptionSignal(#exception(#token("TypeError", "Id")))
+       ... </k>
+       <env> ... X |-> B:Val ... </env>
+    requires Id2String(Method) ==String "index"
+      andBool isBytesVal(B)
+      andBool notBool bytearraySearchNeedleSupported(V)
+  rule <k> #methodCall(X:Id, Method:Id, Needle:Val) => pyLen(B) ... </k>
+       <env> ... X |-> B:Val ... </env>
+    requires Id2String(Method) ==String "rindex"
+      andBool isBytesVal(B)
+      andBool notBool isIntLike(Needle)
+      andBool bytearraySearchNeedleSupported(Needle)
+      andBool bytearraySearchNeedleEmpty(Needle)
+  rule <k> #methodCall(X:Id, Method:Id, Needle:Val) => bytesRFind(bytearraySearchNeedleItems(Needle), VS, 0, -1) ... </k>
+       <env> ... X |-> bytesVal(VS:ValItems) ... </env>
+    requires Id2String(Method) ==String "rindex"
+      andBool isIntLike(Needle)
+      andBool intValue(Needle) >=Int 0
+      andBool intValue(Needle) <=Int 255
+      andBool containsVal(intValue(Needle), VS)
+  rule <k> #methodCall(X:Id, Method:Id, Needle:Val) =>
+           exceptionSignal(#exception(#token("ValueError", "Id")))
+       ... </k>
+       <env> ... X |-> B:Val ... </env>
+    requires Id2String(Method) ==String "rindex"
+      andBool isBytesVal(B)
+      andBool isIntLike(Needle)
+      andBool (intValue(Needle) <Int 0 orBool intValue(Needle) >Int 255)
+  rule <k> #methodCall(X:Id, Method:Id, Needle:Val) =>
+           exceptionSignal(#exception(#token("ValueError", "Id")))
+       ... </k>
+       <env> ... X |-> #bytes() ... </env>
+    requires Id2String(Method) ==String "rindex"
+      andBool isIntLike(Needle)
+      andBool intValue(Needle) >=Int 0
+      andBool intValue(Needle) <=Int 255
+  rule <k> #methodCall(X:Id, Method:Id, Needle:Val) =>
+           exceptionSignal(#exception(#token("ValueError", "Id")))
+       ... </k>
+       <env> ... X |-> bytesVal(VS:ValItems) ... </env>
+    requires Id2String(Method) ==String "rindex"
+      andBool isIntLike(Needle)
+      andBool intValue(Needle) >=Int 0
+      andBool intValue(Needle) <=Int 255
+      andBool notBool containsVal(intValue(Needle), VS)
+  rule <k> #methodCall(X:Id, Method:Id, Needle:Val) =>
+           exceptionSignal(#exception(#token("ValueError", "Id")))
+       ... </k>
+       <env> ... X |-> #bytes() ... </env>
+    requires Id2String(Method) ==String "rindex"
+      andBool notBool isIntLike(Needle)
+      andBool bytearraySearchNeedleSupported(Needle)
+      andBool notBool bytearraySearchNeedleEmpty(Needle)
+  rule <k> #methodCall(X:Id, Method:Id, Needle:Val) => bytesRFind(bytearraySearchNeedleItems(Needle), VS, 0, -1) ... </k>
+       <env> ... X |-> bytesVal(VS:ValItems) ... </env>
+    requires Id2String(Method) ==String "rindex"
+      andBool notBool isIntLike(Needle)
+      andBool bytearraySearchNeedleSupported(Needle)
+      andBool notBool bytearraySearchNeedleEmpty(Needle)
+      andBool bytesRFind(bytearraySearchNeedleItems(Needle), VS, 0, -1) >=Int 0
+  rule <k> #methodCall(X:Id, Method:Id, Needle:Val) =>
+           exceptionSignal(#exception(#token("ValueError", "Id")))
+       ... </k>
+       <env> ... X |-> bytesVal(VS:ValItems) ... </env>
+    requires Id2String(Method) ==String "rindex"
+      andBool notBool isIntLike(Needle)
+      andBool bytearraySearchNeedleSupported(Needle)
+      andBool notBool bytearraySearchNeedleEmpty(Needle)
+      andBool bytesRFind(bytearraySearchNeedleItems(Needle), VS, 0, -1) <Int 0
+  rule <k> #methodCall(X:Id, Method:Id, Needle:Val) =>
+           exceptionSignal(#exception(#token("TypeError", "Id")))
+       ... </k>
+       <env> ... X |-> B:Val ... </env>
+    requires Id2String(Method) ==String "rindex"
+      andBool isBytesVal(B)
+      andBool notBool bytearraySearchNeedleSupported(Needle)
+  rule <k> #methodCall(X:Id, Method:Id, Needle:Val) => 0 ... </k>
+       <env> ... X |-> B:Val ... </env>
+    requires Id2String(Method) ==String "find"
+      andBool isBytesVal(B)
+      andBool bytearraySearchNeedleSupported(Needle)
+      andBool bytearraySearchNeedleEmpty(Needle)
+  rule <k> #methodCall(X:Id, Method:Id, Needle:Val) => pyLen(B) ... </k>
+       <env> ... X |-> B:Val ... </env>
+    requires Id2String(Method) ==String "rfind"
+      andBool isBytesVal(B)
+      andBool bytearraySearchNeedleSupported(Needle)
+      andBool bytearraySearchNeedleEmpty(Needle)
+  rule <k> #methodCall(X:Id, Method:Id, Needle:Val) => -1 ... </k>
+       <env> ... X |-> #bytes() ... </env>
+    requires Id2String(Method) ==String "find"
+      andBool isIntLike(Needle)
+      andBool intValue(Needle) >=Int 0
+      andBool intValue(Needle) <=Int 255
+  rule <k> #methodCall(X:Id, Method:Id, Needle:Val) => bytesFind(bytearraySearchNeedleItems(Needle), VS, 0) ... </k>
+       <env> ... X |-> bytesVal(VS:ValItems) ... </env>
+    requires Id2String(Method) ==String "find"
+      andBool isIntLike(Needle)
+      andBool intValue(Needle) >=Int 0
+      andBool intValue(Needle) <=Int 255
+  rule <k> #methodCall(X:Id, Method:Id, Needle:Val) => -1 ... </k>
+       <env> ... X |-> #bytes() ... </env>
+    requires Id2String(Method) ==String "find"
+      andBool notBool isIntLike(Needle)
+      andBool bytearraySearchNeedleSupported(Needle)
+      andBool notBool bytearraySearchNeedleEmpty(Needle)
+  rule <k> #methodCall(X:Id, Method:Id, Needle:Val) => bytesFind(bytearraySearchNeedleItems(Needle), VS, 0) ... </k>
+       <env> ... X |-> bytesVal(VS:ValItems) ... </env>
+    requires Id2String(Method) ==String "find"
+      andBool notBool isIntLike(Needle)
+      andBool bytearraySearchNeedleSupported(Needle)
+      andBool notBool bytearraySearchNeedleEmpty(Needle)
+  rule <k> #methodCall(X:Id, Method:Id, Needle:Val) => -1 ... </k>
+       <env> ... X |-> #bytes() ... </env>
+    requires Id2String(Method) ==String "rfind"
+      andBool isIntLike(Needle)
+      andBool intValue(Needle) >=Int 0
+      andBool intValue(Needle) <=Int 255
+  rule <k> #methodCall(X:Id, Method:Id, Needle:Val) => bytesRFind(bytearraySearchNeedleItems(Needle), VS, 0, -1) ... </k>
+       <env> ... X |-> bytesVal(VS:ValItems) ... </env>
+    requires Id2String(Method) ==String "rfind"
+      andBool isIntLike(Needle)
+      andBool intValue(Needle) >=Int 0
+      andBool intValue(Needle) <=Int 255
+  rule <k> #methodCall(X:Id, Method:Id, Needle:Val) => -1 ... </k>
+       <env> ... X |-> #bytes() ... </env>
+    requires Id2String(Method) ==String "rfind"
+      andBool notBool isIntLike(Needle)
+      andBool bytearraySearchNeedleSupported(Needle)
+      andBool notBool bytearraySearchNeedleEmpty(Needle)
+  rule <k> #methodCall(X:Id, Method:Id, Needle:Val) => bytesRFind(bytearraySearchNeedleItems(Needle), VS, 0, -1) ... </k>
+       <env> ... X |-> bytesVal(VS:ValItems) ... </env>
+    requires Id2String(Method) ==String "rfind"
+      andBool notBool isIntLike(Needle)
+      andBool bytearraySearchNeedleSupported(Needle)
+      andBool notBool bytearraySearchNeedleEmpty(Needle)
+  rule <k> #methodCall(X:Id, Method:Id, Needle:Val) =>
+           exceptionSignal(#exception(#token("ValueError", "Id")))
+       ... </k>
+       <env> ... X |-> B:Val ... </env>
+    requires (Id2String(Method) ==String "find" orBool Id2String(Method) ==String "rfind")
+      andBool isBytesVal(B)
+      andBool isIntLike(Needle)
+      andBool (intValue(Needle) <Int 0 orBool intValue(Needle) >Int 255)
+  rule <k> #methodCall(X:Id, Method:Id, Needle:Val) =>
+           exceptionSignal(#exception(#token("TypeError", "Id")))
+       ... </k>
+       <env> ... X |-> B:Val ... </env>
+    requires (Id2String(Method) ==String "find" orBool Id2String(Method) ==String "rfind")
+      andBool isBytesVal(B)
+      andBool notBool bytearraySearchNeedleSupported(Needle)
   rule <k> #methodCall(X:Id, Method:Id, Prefix:Val) => boolValue(bytearrayPrefixMatch(Prefix, B)) ... </k>
        <env> ... X |-> B:Val ... </env>
     requires Id2String(Method) ==String "startswith"
@@ -18401,6 +18663,11 @@ module PYTHON
         orBool Id2String(Method) ==String "rpartition"
         orBool Id2String(Method) ==String "removeprefix"
         orBool Id2String(Method) ==String "removesuffix"
+        orBool Id2String(Method) ==String "count"
+        orBool Id2String(Method) ==String "find"
+        orBool Id2String(Method) ==String "index"
+        orBool Id2String(Method) ==String "rfind"
+        orBool Id2String(Method) ==String "rindex"
         orBool Id2String(Method) ==String "splitlines"
         orBool Id2String(Method) ==String "lstrip"
         orBool Id2String(Method) ==String "rstrip"
@@ -18594,14 +18861,14 @@ module PYTHON
        ... </k>
        <env> ... X |-> B:Val ... </env>
     requires bytearraySearchMethod(Method)
-      andBool isBytearrayVal(B)
+      andBool isBytesSequence(B)
       andBool (notBool bytearraySearchBoundOk(Start) orBool notBool bytearraySearchBoundOk(End))
   rule <k> #methodCall3(X:Id, Method:Id, Needle:Val, Start:Val, End:Val) =>
            exceptionSignal(#exception(#token("TypeError", "Id")))
        ... </k>
        <env> ... X |-> B:Val ... </env>
     requires bytearraySearchMethod(Method)
-      andBool isBytearrayVal(B)
+      andBool isBytesSequence(B)
       andBool bytearraySearchBoundOk(Start)
       andBool bytearraySearchBoundOk(End)
       andBool notBool bytearraySearchNeedleSupported(Needle)
@@ -18610,7 +18877,7 @@ module PYTHON
        ... </k>
        <env> ... X |-> B:Val ... </env>
     requires bytearraySearchMethod(Method)
-      andBool isBytearrayVal(B)
+      andBool isBytesSequence(B)
       andBool bytearraySearchBoundOk(Start)
       andBool bytearraySearchBoundOk(End)
       andBool bytearraySearchNeedleSupported(Needle)
@@ -18620,7 +18887,7 @@ module PYTHON
        ... </k>
        <env> ... X |-> B:Val ... </env>
     requires Id2String(Method) ==String "count"
-      andBool isBytearrayVal(B)
+      andBool isBytesSequence(B)
       andBool bytearraySearchBoundOk(Start)
       andBool bytearraySearchBoundOk(End)
       andBool bytearraySearchNeedleOk(Needle)
@@ -18630,7 +18897,7 @@ module PYTHON
   rule <k> #methodCall3(X:Id, Method:Id, Needle:Val, Start:Val, End:Val) => 0 ... </k>
        <env> ... X |-> B:Val ... </env>
     requires Id2String(Method) ==String "count"
-      andBool isBytearrayVal(B)
+      andBool isBytesSequence(B)
       andBool bytearraySearchBoundOk(Start)
       andBool bytearraySearchBoundOk(End)
       andBool bytearraySearchNeedleOk(Needle)
@@ -18642,7 +18909,7 @@ module PYTHON
        ... </k>
        <env> ... X |-> B:Val ... </env>
     requires (Id2String(Method) ==String "find" orBool Id2String(Method) ==String "index")
-      andBool isBytearrayVal(B)
+      andBool isBytesSequence(B)
       andBool bytearraySearchBoundOk(Start)
       andBool bytearraySearchBoundOk(End)
       andBool bytearraySearchNeedleOk(Needle)
@@ -18654,7 +18921,7 @@ module PYTHON
        ... </k>
        <env> ... X |-> B:Val ... </env>
     requires (Id2String(Method) ==String "rfind" orBool Id2String(Method) ==String "rindex")
-      andBool isBytearrayVal(B)
+      andBool isBytesSequence(B)
       andBool bytearraySearchBoundOk(Start)
       andBool bytearraySearchBoundOk(End)
       andBool bytearraySearchNeedleOk(Needle)
@@ -18664,7 +18931,7 @@ module PYTHON
   rule <k> #methodCall3(X:Id, Method:Id, Needle:Val, Start:Val, End:Val) => -1 ... </k>
        <env> ... X |-> B:Val ... </env>
     requires (Id2String(Method) ==String "find" orBool Id2String(Method) ==String "rfind")
-      andBool isBytearrayVal(B)
+      andBool isBytesSequence(B)
       andBool bytearraySearchBoundOk(Start)
       andBool bytearraySearchBoundOk(End)
       andBool bytearraySearchNeedleOk(Needle)
@@ -18676,7 +18943,7 @@ module PYTHON
        ... </k>
        <env> ... X |-> B:Val ... </env>
     requires (Id2String(Method) ==String "index" orBool Id2String(Method) ==String "rindex")
-      andBool isBytearrayVal(B)
+      andBool isBytesSequence(B)
       andBool bytearraySearchBoundOk(Start)
       andBool bytearraySearchBoundOk(End)
       andBool bytearraySearchNeedleOk(Needle)
@@ -18686,7 +18953,7 @@ module PYTHON
   rule <k> #methodCall3(X:Id, Method:Id, Needle:Val, Start:Val, End:Val) => 0 ... </k>
        <env> ... X |-> B:Val ... </env>
     requires Id2String(Method) ==String "count"
-      andBool isBytearrayVal(B)
+      andBool isBytesSequence(B)
       andBool bytearraySearchBoundOk(Start)
       andBool bytearraySearchBoundOk(End)
       andBool bytearraySearchNeedleOk(Needle)
@@ -18695,7 +18962,7 @@ module PYTHON
   rule <k> #methodCall3(X:Id, Method:Id, Needle:Val, Start:Val, End:Val) => -1 ... </k>
        <env> ... X |-> B:Val ... </env>
     requires (Id2String(Method) ==String "find" orBool Id2String(Method) ==String "rfind")
-      andBool isBytearrayVal(B)
+      andBool isBytesSequence(B)
       andBool bytearraySearchBoundOk(Start)
       andBool bytearraySearchBoundOk(End)
       andBool bytearraySearchNeedleOk(Needle)
@@ -18706,7 +18973,7 @@ module PYTHON
        ... </k>
        <env> ... X |-> B:Val ... </env>
     requires (Id2String(Method) ==String "index" orBool Id2String(Method) ==String "rindex")
-      andBool isBytearrayVal(B)
+      andBool isBytesSequence(B)
       andBool bytearraySearchBoundOk(Start)
       andBool bytearraySearchBoundOk(End)
       andBool bytearraySearchNeedleOk(Needle)
@@ -18823,6 +19090,117 @@ module PYTHON
       andBool bytearraySearchWindowLen(bytearrayVal(VS), Start, End) >Int 0
       andBool bytesRFind(bytearraySearchNeedleItems(Needle),
         sliceValItems(VS, bytearraySearchStart(bytearrayVal(VS), Start), bytearraySearchEnd(bytearrayVal(VS), End)), 0, -1) <Int 0
+  rule <k> #methodCall3(X:Id, Method:Id, Needle:Val, Start:Val, End:Val) =>
+           bytesCountNeedle(bytearraySearchNeedleItems(Needle),
+             sliceValItems(VS, bytearraySearchStart(bytesVal(VS), Start), bytearraySearchEnd(bytesVal(VS), End)))
+       ... </k>
+       <env> ... X |-> bytesVal(VS:ValItems) ... </env>
+    requires Id2String(Method) ==String "count"
+      andBool bytearraySearchBoundOk(Start)
+      andBool bytearraySearchBoundOk(End)
+      andBool bytearraySearchNeedleOk(Needle)
+      andBool notBool bytearraySearchNeedleEmpty(Needle)
+      andBool bytearraySearchWindowLen(bytesVal(VS), Start, End) >Int 0
+  rule <k> #methodCall3(X:Id, Method:Id, Needle:Val, Start:Val, End:Val) =>
+           bytearraySearchStart(bytesVal(VS), Start) +Int
+             bytesFind(bytearraySearchNeedleItems(Needle),
+               sliceValItems(VS, bytearraySearchStart(bytesVal(VS), Start), bytearraySearchEnd(bytesVal(VS), End)), 0)
+       ... </k>
+       <env> ... X |-> bytesVal(VS:ValItems) ... </env>
+    requires Id2String(Method) ==String "find"
+      andBool bytearraySearchBoundOk(Start)
+      andBool bytearraySearchBoundOk(End)
+      andBool bytearraySearchNeedleOk(Needle)
+      andBool notBool bytearraySearchNeedleEmpty(Needle)
+      andBool bytearraySearchWindowLen(bytesVal(VS), Start, End) >Int 0
+      andBool bytesFind(bytearraySearchNeedleItems(Needle),
+        sliceValItems(VS, bytearraySearchStart(bytesVal(VS), Start), bytearraySearchEnd(bytesVal(VS), End)), 0) >=Int 0
+  rule <k> #methodCall3(X:Id, Method:Id, Needle:Val, Start:Val, End:Val) => -1 ... </k>
+       <env> ... X |-> bytesVal(VS:ValItems) ... </env>
+    requires Id2String(Method) ==String "find"
+      andBool bytearraySearchBoundOk(Start)
+      andBool bytearraySearchBoundOk(End)
+      andBool bytearraySearchNeedleOk(Needle)
+      andBool notBool bytearraySearchNeedleEmpty(Needle)
+      andBool bytearraySearchWindowLen(bytesVal(VS), Start, End) >Int 0
+      andBool bytesFind(bytearraySearchNeedleItems(Needle),
+        sliceValItems(VS, bytearraySearchStart(bytesVal(VS), Start), bytearraySearchEnd(bytesVal(VS), End)), 0) <Int 0
+  rule <k> #methodCall3(X:Id, Method:Id, Needle:Val, Start:Val, End:Val) =>
+           bytearraySearchStart(bytesVal(VS), Start) +Int
+             bytesRFind(bytearraySearchNeedleItems(Needle),
+               sliceValItems(VS, bytearraySearchStart(bytesVal(VS), Start), bytearraySearchEnd(bytesVal(VS), End)), 0, -1)
+       ... </k>
+       <env> ... X |-> bytesVal(VS:ValItems) ... </env>
+    requires Id2String(Method) ==String "rfind"
+      andBool bytearraySearchBoundOk(Start)
+      andBool bytearraySearchBoundOk(End)
+      andBool bytearraySearchNeedleOk(Needle)
+      andBool notBool bytearraySearchNeedleEmpty(Needle)
+      andBool bytearraySearchWindowLen(bytesVal(VS), Start, End) >Int 0
+      andBool bytesRFind(bytearraySearchNeedleItems(Needle),
+        sliceValItems(VS, bytearraySearchStart(bytesVal(VS), Start), bytearraySearchEnd(bytesVal(VS), End)), 0, -1) >=Int 0
+  rule <k> #methodCall3(X:Id, Method:Id, Needle:Val, Start:Val, End:Val) => -1 ... </k>
+       <env> ... X |-> bytesVal(VS:ValItems) ... </env>
+    requires Id2String(Method) ==String "rfind"
+      andBool bytearraySearchBoundOk(Start)
+      andBool bytearraySearchBoundOk(End)
+      andBool bytearraySearchNeedleOk(Needle)
+      andBool notBool bytearraySearchNeedleEmpty(Needle)
+      andBool bytearraySearchWindowLen(bytesVal(VS), Start, End) >Int 0
+      andBool bytesRFind(bytearraySearchNeedleItems(Needle),
+        sliceValItems(VS, bytearraySearchStart(bytesVal(VS), Start), bytearraySearchEnd(bytesVal(VS), End)), 0, -1) <Int 0
+  rule <k> #methodCall3(X:Id, Method:Id, Needle:Val, Start:Val, End:Val) =>
+           bytearraySearchStart(bytesVal(VS), Start) +Int
+             bytesFind(bytearraySearchNeedleItems(Needle),
+               sliceValItems(VS, bytearraySearchStart(bytesVal(VS), Start), bytearraySearchEnd(bytesVal(VS), End)), 0)
+       ... </k>
+       <env> ... X |-> bytesVal(VS:ValItems) ... </env>
+    requires Id2String(Method) ==String "index"
+      andBool bytearraySearchBoundOk(Start)
+      andBool bytearraySearchBoundOk(End)
+      andBool bytearraySearchNeedleOk(Needle)
+      andBool notBool bytearraySearchNeedleEmpty(Needle)
+      andBool bytearraySearchWindowLen(bytesVal(VS), Start, End) >Int 0
+      andBool bytesFind(bytearraySearchNeedleItems(Needle),
+        sliceValItems(VS, bytearraySearchStart(bytesVal(VS), Start), bytearraySearchEnd(bytesVal(VS), End)), 0) >=Int 0
+  rule <k> #methodCall3(X:Id, Method:Id, Needle:Val, Start:Val, End:Val) =>
+           exceptionSignal(#exception(#token("ValueError", "Id")))
+       ... </k>
+       <env> ... X |-> bytesVal(VS:ValItems) ... </env>
+    requires Id2String(Method) ==String "index"
+      andBool bytearraySearchBoundOk(Start)
+      andBool bytearraySearchBoundOk(End)
+      andBool bytearraySearchNeedleOk(Needle)
+      andBool notBool bytearraySearchNeedleEmpty(Needle)
+      andBool bytearraySearchWindowLen(bytesVal(VS), Start, End) >Int 0
+      andBool bytesFind(bytearraySearchNeedleItems(Needle),
+        sliceValItems(VS, bytearraySearchStart(bytesVal(VS), Start), bytearraySearchEnd(bytesVal(VS), End)), 0) <Int 0
+  rule <k> #methodCall3(X:Id, Method:Id, Needle:Val, Start:Val, End:Val) =>
+           bytearraySearchStart(bytesVal(VS), Start) +Int
+             bytesRFind(bytearraySearchNeedleItems(Needle),
+               sliceValItems(VS, bytearraySearchStart(bytesVal(VS), Start), bytearraySearchEnd(bytesVal(VS), End)), 0, -1)
+       ... </k>
+       <env> ... X |-> bytesVal(VS:ValItems) ... </env>
+    requires Id2String(Method) ==String "rindex"
+      andBool bytearraySearchBoundOk(Start)
+      andBool bytearraySearchBoundOk(End)
+      andBool bytearraySearchNeedleOk(Needle)
+      andBool notBool bytearraySearchNeedleEmpty(Needle)
+      andBool bytearraySearchWindowLen(bytesVal(VS), Start, End) >Int 0
+      andBool bytesRFind(bytearraySearchNeedleItems(Needle),
+        sliceValItems(VS, bytearraySearchStart(bytesVal(VS), Start), bytearraySearchEnd(bytesVal(VS), End)), 0, -1) >=Int 0
+  rule <k> #methodCall3(X:Id, Method:Id, Needle:Val, Start:Val, End:Val) =>
+           exceptionSignal(#exception(#token("ValueError", "Id")))
+       ... </k>
+       <env> ... X |-> bytesVal(VS:ValItems) ... </env>
+    requires Id2String(Method) ==String "rindex"
+      andBool bytearraySearchBoundOk(Start)
+      andBool bytearraySearchBoundOk(End)
+      andBool bytearraySearchNeedleOk(Needle)
+      andBool notBool bytearraySearchNeedleEmpty(Needle)
+      andBool bytearraySearchWindowLen(bytesVal(VS), Start, End) >Int 0
+      andBool bytesRFind(bytearraySearchNeedleItems(Needle),
+        sliceValItems(VS, bytearraySearchStart(bytesVal(VS), Start), bytearraySearchEnd(bytesVal(VS), End)), 0, -1) <Int 0
   rule <k> #methodCall3(X:Id, _Method:Id, _Needle:Val, _Start:Val, _End:Val) =>
            exceptionSignal(#exception(#token("NameError", "Id")))
        ... </k>
@@ -18833,7 +19211,7 @@ module PYTHON
        ... </k>
        <env> ... X |-> B:Val ... </env>
     requires bytearraySearchMethod(Method)
-      andBool notBool isBytearrayVal(B)
+      andBool notBool isBytesSequence(B)
   rule <k> #methodCall3(X:Id, Method:Id, _Affix:Val, Start:Val, End:Val) =>
            exceptionSignal(#exception(#token("TypeError", "Id")))
        ... </k>
@@ -19005,7 +19383,7 @@ module PYTHON
        ... </k>
        <env> ... X |-> B:Val ... </env>
     requires (Id2String(Method) ==String "startswith" orBool Id2String(Method) ==String "endswith")
-      andBool notBool isBytearrayVal(B)
+      andBool notBool isBytesSequence(B)
   rule <k> #methodCall3(X:Id, Method:Id, Old:Val, New:Val, _Count:Val) =>
            exceptionSignal(#exception(#token("TypeError", "Id")))
        ... </k>

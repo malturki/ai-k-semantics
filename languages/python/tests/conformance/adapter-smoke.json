@@ -270,6 +270,69 @@
       "coverage": ["bytes-literal", "bytes-iteration-yields-int", "bytes-starred-display-unpacking", "bytes-all-any", "bytes-sum", "bytes-min-max", "ordinary-python-source-adapter"]
     },
     {
+      "id": "adapter-bytes-count-index-methods",
+      "source": "../adapter/adapter-bytes-count-index-methods.py",
+      "reference": "Python Standard Library Built-in Types bytes; count and index integer needle behavior and diagnostics",
+      "expected_result": "True ~> .K",
+      "coverage": ["bytes-methods", "bytes-count-method", "bytes-index-method", "integer-byte-needles", "value-error", "type-error", "method-call", "ordinary-python-source-adapter"]
+    },
+    {
+      "id": "adapter-bytes-count-index-byteslike-methods",
+      "source": "../adapter/adapter-bytes-count-index-byteslike-methods.py",
+      "reference": "Python Standard Library Built-in Types bytes; count, index, and rindex bytes-like and empty-subsequence behavior",
+      "expected_result": "True ~> .K",
+      "coverage": ["bytes-methods", "bytes-count-method", "bytes-index-method", "bytes-rindex-method", "bytes-like-arguments", "empty-needle", "value-error", "type-error", "method-call", "ordinary-python-source-adapter"]
+    },
+    {
+      "id": "adapter-bytes-find-rfind-int",
+      "source": "../adapter/adapter-bytes-find-rfind-int.py",
+      "reference": "Python Standard Library Built-in Types bytes; find and rfind integer needle behavior",
+      "expected_result": "True ~> .K",
+      "coverage": ["bytes-methods", "bytes-find-method", "bytes-rfind-method", "integer-byte-needles", "method-call", "ordinary-python-source-adapter"]
+    },
+    {
+      "id": "adapter-bytes-find-rfind-byteslike-empty",
+      "source": "../adapter/adapter-bytes-find-rfind-byteslike-empty.py",
+      "reference": "Python Standard Library Built-in Types bytes; find and rfind bytes-like, empty-needle, and not-found behavior",
+      "expected_result": "True ~> .K",
+      "coverage": ["bytes-methods", "bytes-find-method", "bytes-rfind-method", "bytes-like-arguments", "empty-needle", "method-call", "ordinary-python-source-adapter"]
+    },
+    {
+      "id": "adapter-bytes-find-rfind-diagnostics",
+      "source": "../adapter/adapter-bytes-find-rfind-diagnostics.py",
+      "reference": "Python Standard Library Built-in Types bytes; find and rfind invalid needle diagnostics",
+      "expected_result": "True ~> .K",
+      "coverage": ["bytes-methods", "bytes-find-method", "bytes-rfind-method", "value-error", "type-error", "method-call", "ordinary-python-source-adapter"]
+    },
+    {
+      "id": "adapter-bytes-search-window-count",
+      "source": "../adapter/adapter-bytes-search-window-count.py",
+      "reference": "Python Standard Library Built-in Types bytes; count start/end window behavior",
+      "expected_result": "True ~> .K",
+      "coverage": ["bytes-methods", "bytes-count-method", "slice-style-bounds", "bytes-like-arguments", "empty-needle", "method-call", "ordinary-python-source-adapter"]
+    },
+    {
+      "id": "adapter-bytes-search-window-find-rfind",
+      "source": "../adapter/adapter-bytes-search-window-find-rfind.py",
+      "reference": "Python Standard Library Built-in Types bytes; find and rfind start/end window behavior",
+      "expected_result": "True ~> .K",
+      "coverage": ["bytes-methods", "bytes-find-method", "bytes-rfind-method", "slice-style-bounds", "bytes-like-arguments", "empty-needle", "method-call", "ordinary-python-source-adapter"]
+    },
+    {
+      "id": "adapter-bytes-search-window-index-rindex",
+      "source": "../adapter/adapter-bytes-search-window-index-rindex.py",
+      "reference": "Python Standard Library Built-in Types bytes; index and rindex start/end window behavior",
+      "expected_result": "True ~> .K",
+      "coverage": ["bytes-methods", "bytes-index-method", "bytes-rindex-method", "slice-style-bounds", "bytes-like-arguments", "empty-needle", "value-error", "method-call", "ordinary-python-source-adapter"]
+    },
+    {
+      "id": "adapter-bytes-search-window-diagnostics",
+      "source": "../adapter/adapter-bytes-search-window-diagnostics.py",
+      "reference": "Python Standard Library Built-in Types bytes; search-method start/end window diagnostics",
+      "expected_result": "True ~> .K",
+      "coverage": ["bytes-methods", "bytes-count-method", "bytes-find-method", "bytes-rfind-method", "bytes-index-method", "slice-style-bounds", "value-error", "type-error", "method-call", "ordinary-python-source-adapter"]
+    },
+    {
       "id": "adapter-bytes-split-rsplit-methods",
       "source": "../adapter/adapter-bytes-split-rsplit-methods.py",
       "reference": "Python Standard Library Built-in Types bytes; split with ASCII-whitespace default splitting",

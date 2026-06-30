@@ -3588,6 +3588,13 @@
       "coverage": ["dict-fromkeys-method", "dict-update-method", "dict-duplicate-key-overwrite", "dict-iterable-pair-update", "dict-update-error-diagnostics", "type-error", "value-error", "ordinary-python-source-adapter"]
     },
     {
+      "id": "adapter-dict-merge-operators",
+      "source": "../adapter/adapter-dict-merge-operators.py",
+      "reference": "Python 3.14.6 Standard Library Built-in Types dictionary merge operators d | other and d |= other; PEP 584",
+      "expected_result": "True ~> .K",
+      "coverage": ["dict-merge-operator", "dict-inplace-merge-operator", "dict-duplicate-key-overwrite", "dict-iterable-pair-update", "dict-update-error-diagnostics", "type-error", "value-error", "ordinary-python-source-adapter"]
+    },
+    {
       "id": "adapter-dict-truthy",
       "source": "../adapter/adapter-dict-truthy.py",
       "reference": "Python Language Reference 6.2.7 Dictionary displays; Standard Library truth value testing",

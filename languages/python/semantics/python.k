@@ -1263,6 +1263,8 @@ module PYTHON
                  | assignMany(IdItems, Val) [symbol(assignMany)]
                  | augMatMulApply(Id) [symbol(augMatMulApply)]
                  | augMatMulStore(Id) [symbol(augMatMulStore)]
+                 | augBitOrApply(Id, Val) [symbol(augBitOrApply)]
+                 | augBitOrStore(Id) [symbol(augBitOrStore)]
                  | subscriptAssignIndex(Id, Exp) [symbol(subscriptAssignIndex)]
                  | subscriptAssignApply(Id, Val) [symbol(subscriptAssignApply)]
                  | subscriptAssignNestedOuter(Id, Exp, Exp) [symbol(subscriptAssignNestedOuter)]
@@ -14594,6 +14596,16 @@ module PYTHON
     requires isIntLike(V1) andBool isIntLike(V2)
   rule V1:Val | V2:Val => intValue(V1) |Int intValue(V2)
     requires isIntLike(V1) andBool isIntLike(V2)
+  rule V1:Val | V2:Val => dictUpdateValue(V1, V2)
+    requires isDictVal(V1) andBool isDictVal(V2)
+  rule <k> V1:Val | V2:Val =>
+           exceptionSignal(#exception(#token("TypeError", "Id")))
+       ... </k>
+    requires isDictVal(V1) andBool notBool isDictVal(V2)
+  rule <k> V1:Val | V2:Val =>
+           exceptionSignal(#exception(#token("TypeError", "Id")))
+       ... </k>
+    requires notBool isDictVal(V1) andBool isDictVal(V2)
   rule S1:String + S2:String => S1 +String S2
   rule #bytes() + #bytes() => #bytes()
   rule #bytes() + bytesVal(VS:ValItems) => bytesVal(VS)
@@ -25687,7 +25699,39 @@ module PYTHON
   rule <k> augRShiftStmt(X:Id, E:Exp) => assignStmt(X, X >> E) ... </k>
   rule <k> augBitAndStmt(X:Id, E:Exp) => assignStmt(X, X & E) ... </k>
   rule <k> augBitXorStmt(X:Id, E:Exp) => assignStmt(X, X ^ E) ... </k>
-  rule <k> augBitOrStmt(X:Id, E:Exp) => assignStmt(X, X | E) ... </k>
+  rule <k> augBitOrStmt(X:Id, E:Exp) => E ~> augBitOrApply(X, L) ... </k>
+       <env> ... X |-> L:Val ... </env>
+  rule <k> augBitOrStmt(X:Id, _E:Exp) =>
+           exceptionSignal(#exception(#token("NameError", "Id")))
+       ... </k>
+       <env> Rho </env>
+    requires notBool (X in_keys(Rho))
+  rule <k> R:Val ~> augBitOrApply(X:Id, L:Val) => stmtNoResult ... </k>
+       <env> Rho => Rho [ X <- dictUpdateValue(L, R) ] </env>
+       <result> _ => .K </result>
+    requires isDictVal(L)
+      andBool dictUpdateSourceSupported(R)
+      andBool notBool dictUpdateSourceValueError(R)
+      andBool notBool dictUpdateSourceTypeError(R)
+  rule <k> R:Val ~> augBitOrApply(_X:Id, L:Val) =>
+           exceptionSignal(#exception(#token("ValueError", "Id")))
+       ... </k>
+    requires isDictVal(L)
+      andBool dictUpdateSourceValueError(R)
+  rule <k> R:Val ~> augBitOrApply(_X:Id, L:Val) =>
+           exceptionSignal(#exception(#token("TypeError", "Id")))
+       ... </k>
+    requires isDictVal(L)
+      andBool dictUpdateSourceTypeError(R)
+  rule <k> R:Val ~> augBitOrApply(X:Id, L:Val) =>
+           L | R ~> augBitOrStore(X)
+       ... </k>
+    requires notBool isDictVal(L)
+  rule <k> exceptionSignal(E:Val) ~> augBitOrApply(_:Id, _:Val) => exceptionSignal(E) ... </k>
+  rule <k> V:Val ~> augBitOrStore(X:Id) => stmtNoResult ... </k>
+       <env> Rho => Rho [ X <- V ] </env>
+       <result> _ => .K </result>
+  rule <k> exceptionSignal(E:Val) ~> augBitOrStore(_:Id) => exceptionSignal(E) ... </k>
   rule <k> augFloorDivStmt(X:Id, E:Exp) => assignStmt(X, #floorDiv(X, E)) ... </k>
 
   rule <k> assignManyStmt(IDS:IdItems, V:Val) => assignMany(IDS, V) ... </k>

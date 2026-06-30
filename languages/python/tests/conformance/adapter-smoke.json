@@ -3826,6 +3826,13 @@
       "coverage": ["set-union-operator", "set-intersection-operator", "set-difference-operator", "set-symmetric-difference-operator", "set-inplace-update-operators", "set-operator-type-errors", "ordinary-python-source-adapter"]
     },
     {
+      "id": "adapter-set-methods",
+      "source": "../adapter/adapter-set-methods.py",
+      "reference": "Python 3.14.6 Standard Library Built-in Types set methods copy(), isdisjoint(other), issubset(other), issuperset(other), union(*others), intersection(*others), difference(*others), and symmetric_difference(other); CPython Lib/test/test_set.py method coverage",
+      "expected_result": "True ~> .K",
+      "coverage": ["set-copy-method", "set-query-methods", "set-algebra-methods", "iterable-accepting-set-methods", "set-method-type-errors", "ordinary-python-source-adapter"]
+    },
+    {
       "id": "adapter-annotated-assignment",
       "source": "../adapter/adapter-annotated-assignment.py",
       "reference": "Python Language Reference 7.2.2 Annotated assignment statements; 8.10 Annotations",

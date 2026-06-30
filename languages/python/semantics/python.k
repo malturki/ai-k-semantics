@@ -703,6 +703,8 @@ module PYTHON
                  | bytesPercentMappingExecEmptyKey(ValItems, Int) [symbol(bytesPercentMappingExecEmptyKey)]
                  | callArg(Exp) [symbol(callArg)]
                  | callApply(Val) [symbol(callApply)]
+                 | setMethodAttrCallOne(Val, Id) [symbol(setMethodAttrCallOne)]
+                 | setMethodAttrCallArgs(Val, Id) [symbol(setMethodAttrCallArgs)]
                  | getattrDefaultObject(Id, Exp) [symbol(getattrDefaultObject)]
                  | getattrDefaultApply(Val, Id) [symbol(getattrDefaultApply)]
                  | hasattrObject(Id) [symbol(hasattrObject)]
@@ -1600,6 +1602,12 @@ module PYTHON
                 | containsDictPair(Val, Val, DictItems) [function, symbol(containsDictPair)]
                 | setsEq(ValItems, ValItems) [function, symbol(setsEq)]
                 | setItemsSubset(ValItems, ValItems) [function, symbol(setItemsSubset)]
+                | setSubsetValue(Val, Val) [function, symbol(setSubsetValue)]
+                | setMethodIterableSupported(Val) [function, symbol(setMethodIterableSupported)]
+                | setMethodNoArgReturnsSet(Id) [function, symbol(setMethodNoArgReturnsSet)]
+                | setMethodOneIterable(Id) [function, symbol(setMethodOneIterable)]
+                | setMethodExactlyOneIterable(Id) [function, symbol(setMethodExactlyOneIterable)]
+                | setMethodMultiIterable(Id) [function, symbol(setMethodMultiIterable)]
                 | sameArity(IdItems, ArgVals) [function, symbol(sameArity)]
                 | varArgsCallArityOk(IdItems, ArgVals) [function, symbol(varArgsCallArityOk)]
                 | varArgsDefaultsCallArityOk(IdItems, ArgVals, ArgVals) [function, symbol(varArgsDefaultsCallArityOk)]
@@ -2097,6 +2105,10 @@ module PYTHON
                | setSymmetricDifferenceValue(Val, Val) [function, symbol(setSymmetricDifferenceValue)]
                | setIntersectionItems(ValItems, ValItems) [function, symbol(setIntersectionItems)]
                | setDifferenceItems(ValItems, ValItems) [function, symbol(setDifferenceItems)]
+               | setFromIterableValue(Val) [function, symbol(setFromIterableValue)]
+               | setMethodApplyOne(Id, Val, Val) [function, symbol(setMethodApplyOne)]
+               | setMethodApplyTwo(Id, Val, Val, Val) [function, symbol(setMethodApplyTwo)]
+               | setMethodApplyThree(Id, Val, Val, Val, Val) [function, symbol(setMethodApplyThree)]
                | zeroBytes(Int) [function, symbol(zeroBytes)]
   syntax Val ::= kwExtrasDict(KwArgVals, IdItems) [function, symbol(kwExtrasDict)]
                | kwExtrasEitherDict(KwArgVals, IdItems, IdItems) [function, symbol(kwExtrasEitherDict)]
@@ -7924,6 +7936,79 @@ module PYTHON
   rule setSymmetricDifferenceValue(S1:Val, S2:Val) =>
     setUnionValue(setDifferenceValue(S1, S2), setDifferenceValue(S2, S1))
     requires isSetVal(S1) andBool isSetVal(S2)
+
+  rule setSubsetValue(set(), S:Val) => true
+    requires isSetVal(S)
+  rule setSubsetValue(setVal(_:ValItems), set()) => false
+  rule setSubsetValue(setVal(VS1:ValItems), setVal(VS2:ValItems)) =>
+    setItemsSubset(VS1, VS2)
+
+  rule setMethodIterableSupported(V:Val) => listExtendSourceSupported(V)
+
+  rule setMethodNoArgReturnsSet(Method:Id) =>
+    Id2String(Method) ==String "copy"
+      orBool Id2String(Method) ==String "union"
+      orBool Id2String(Method) ==String "intersection"
+      orBool Id2String(Method) ==String "difference"
+
+  rule setMethodExactlyOneIterable(Method:Id) =>
+    Id2String(Method) ==String "isdisjoint"
+      orBool Id2String(Method) ==String "issubset"
+      orBool Id2String(Method) ==String "issuperset"
+      orBool Id2String(Method) ==String "symmetric_difference"
+
+  rule setMethodMultiIterable(Method:Id) =>
+    Id2String(Method) ==String "union"
+      orBool Id2String(Method) ==String "intersection"
+      orBool Id2String(Method) ==String "difference"
+
+  rule setMethodOneIterable(Method:Id) =>
+    setMethodMultiIterable(Method) orBool setMethodExactlyOneIterable(Method)
+
+  rule setFromIterableValue(V:Val) => setFromArgVals(iterableArgVals(V))
+    requires setMethodIterableSupported(V)
+
+  rule setMethodApplyOne(Method:Id, Base:Val, Other:Val) =>
+    boolValue(valEq(setIntersectionValue(Base, setFromIterableValue(Other)), set()))
+    requires Id2String(Method) ==String "isdisjoint"
+  rule setMethodApplyOne(Method:Id, Base:Val, Other:Val) =>
+    boolValue(setSubsetValue(Base, setFromIterableValue(Other)))
+    requires Id2String(Method) ==String "issubset"
+  rule setMethodApplyOne(Method:Id, Base:Val, Other:Val) =>
+    boolValue(setSubsetValue(setFromIterableValue(Other), Base))
+    requires Id2String(Method) ==String "issuperset"
+  rule setMethodApplyOne(Method:Id, Base:Val, Other:Val) =>
+    setUnionValue(Base, setFromIterableValue(Other))
+    requires Id2String(Method) ==String "union"
+  rule setMethodApplyOne(Method:Id, Base:Val, Other:Val) =>
+    setIntersectionValue(Base, setFromIterableValue(Other))
+    requires Id2String(Method) ==String "intersection"
+  rule setMethodApplyOne(Method:Id, Base:Val, Other:Val) =>
+    setDifferenceValue(Base, setFromIterableValue(Other))
+    requires Id2String(Method) ==String "difference"
+  rule setMethodApplyOne(Method:Id, Base:Val, Other:Val) =>
+    setSymmetricDifferenceValue(Base, setFromIterableValue(Other))
+    requires Id2String(Method) ==String "symmetric_difference"
+
+  rule setMethodApplyTwo(Method:Id, Base:Val, Other1:Val, Other2:Val) =>
+    setUnionValue(setUnionValue(Base, setFromIterableValue(Other1)), setFromIterableValue(Other2))
+    requires Id2String(Method) ==String "union"
+  rule setMethodApplyTwo(Method:Id, Base:Val, Other1:Val, Other2:Val) =>
+    setIntersectionValue(setIntersectionValue(Base, setFromIterableValue(Other1)), setFromIterableValue(Other2))
+    requires Id2String(Method) ==String "intersection"
+  rule setMethodApplyTwo(Method:Id, Base:Val, Other1:Val, Other2:Val) =>
+    setDifferenceValue(setDifferenceValue(Base, setFromIterableValue(Other1)), setFromIterableValue(Other2))
+    requires Id2String(Method) ==String "difference"
+
+  rule setMethodApplyThree(Method:Id, Base:Val, Other1:Val, Other2:Val, Other3:Val) =>
+    setUnionValue(setMethodApplyTwo(Method, Base, Other1, Other2), setFromIterableValue(Other3))
+    requires Id2String(Method) ==String "union"
+  rule setMethodApplyThree(Method:Id, Base:Val, Other1:Val, Other2:Val, Other3:Val) =>
+    setIntersectionValue(setMethodApplyTwo(Method, Base, Other1, Other2), setFromIterableValue(Other3))
+    requires Id2String(Method) ==String "intersection"
+  rule setMethodApplyThree(Method:Id, Base:Val, Other1:Val, Other2:Val, Other3:Val) =>
+    setDifferenceValue(setMethodApplyTwo(Method, Base, Other1, Other2), setFromIterableValue(Other3))
+    requires Id2String(Method) ==String "difference"
 
   rule zeroBytes(0) => #bytes()
   rule zeroBytes(N:Int) => bytesVal(repeatValItems(valItemsLast(0), N))
@@ -22097,6 +22182,98 @@ module PYTHON
        <env> ... X |-> B:Val ... </env>
     requires Id2String(Method) ==String "update"
       andBool isDictVal(B)
+  rule <k> #methodCall0(X:Id, Method:Id) => B ... </k>
+       <env> ... X |-> B:Val ... </env>
+    requires isSetVal(B)
+      andBool setMethodNoArgReturnsSet(Method)
+  rule <k> #methodCall0(X:Id, Method:Id) =>
+           exceptionSignal(#exception(#token("TypeError", "Id")))
+       ... </k>
+       <env> ... X |-> B:Val ... </env>
+    requires isSetVal(B)
+      andBool setMethodExactlyOneIterable(Method)
+  rule <k> #attr(Base:Val, Method:Id) ~> callArg(Arg:Exp) =>
+           Arg ~> setMethodAttrCallOne(Base, Method)
+       ... </k>
+    requires isSetVal(Base)
+      andBool (setMethodNoArgReturnsSet(Method) orBool setMethodOneIterable(Method))
+  rule <k> V:Val ~> setMethodAttrCallOne(Base:Val, Method:Id) =>
+           setMethodApplyOne(Method, Base, V)
+       ... </k>
+    requires setMethodOneIterable(Method)
+      andBool setMethodIterableSupported(V)
+  rule <k> V:Val ~> setMethodAttrCallOne(_Base:Val, Method:Id) =>
+           exceptionSignal(#exception(#token("TypeError", "Id")))
+       ... </k>
+    requires setMethodOneIterable(Method)
+      andBool notBool setMethodIterableSupported(V)
+  rule <k> _V:Val ~> setMethodAttrCallOne(_Base:Val, Method:Id) =>
+           exceptionSignal(#exception(#token("TypeError", "Id")))
+       ... </k>
+    requires setMethodNoArgReturnsSet(Method)
+      andBool notBool setMethodOneIterable(Method)
+  rule <k> #attr(Base:Val, Method:Id) ~> callArgs(Args:ArgExps) =>
+           evalArgs(Args, #noArgVals) ~> setMethodAttrCallArgs(Base, Method)
+       ... </k>
+    requires isSetVal(Base)
+      andBool (setMethodNoArgReturnsSet(Method) orBool setMethodOneIterable(Method))
+  rule <k> argsVal(#noArgVals) ~> setMethodAttrCallArgs(Base:Val, Method:Id) => Base ... </k>
+    requires setMethodNoArgReturnsSet(Method)
+  rule <k> argsVal(#noArgVals) ~> setMethodAttrCallArgs(_Base:Val, Method:Id) =>
+           exceptionSignal(#exception(#token("TypeError", "Id")))
+       ... </k>
+    requires setMethodExactlyOneIterable(Method)
+  rule <k> argsVal(argValsCons(Other:Val, #noArgVals)) ~> setMethodAttrCallArgs(Base:Val, Method:Id) =>
+           setMethodApplyOne(Method, Base, Other)
+       ... </k>
+    requires setMethodOneIterable(Method)
+      andBool setMethodIterableSupported(Other)
+  rule <k> argsVal(argValsCons(Other:Val, #noArgVals)) ~> setMethodAttrCallArgs(_Base:Val, Method:Id) =>
+           exceptionSignal(#exception(#token("TypeError", "Id")))
+       ... </k>
+    requires setMethodOneIterable(Method)
+      andBool notBool setMethodIterableSupported(Other)
+  rule <k> argsVal(argValsCons(_Other:Val, #noArgVals)) ~> setMethodAttrCallArgs(_Base:Val, Method:Id) =>
+           exceptionSignal(#exception(#token("TypeError", "Id")))
+       ... </k>
+    requires setMethodNoArgReturnsSet(Method)
+      andBool notBool setMethodOneIterable(Method)
+  rule <k> argsVal(argValsCons(Other1:Val, argValsCons(Other2:Val, #noArgVals))) ~> setMethodAttrCallArgs(Base:Val, Method:Id) =>
+           setMethodApplyTwo(Method, Base, Other1, Other2)
+       ... </k>
+    requires setMethodMultiIterable(Method)
+      andBool setMethodIterableSupported(Other1)
+      andBool setMethodIterableSupported(Other2)
+  rule <k> argsVal(argValsCons(Other1:Val, argValsCons(Other2:Val, #noArgVals))) ~> setMethodAttrCallArgs(_Base:Val, Method:Id) =>
+           exceptionSignal(#exception(#token("TypeError", "Id")))
+       ... </k>
+    requires setMethodMultiIterable(Method)
+      andBool (notBool setMethodIterableSupported(Other1)
+        orBool notBool setMethodIterableSupported(Other2))
+  rule <k> argsVal(argValsCons(_Other1:Val, argValsCons(_Other2:Val, #noArgVals))) ~> setMethodAttrCallArgs(_Base:Val, Method:Id) =>
+           exceptionSignal(#exception(#token("TypeError", "Id")))
+       ... </k>
+    requires setMethodExactlyOneIterable(Method)
+      orBool (setMethodNoArgReturnsSet(Method) andBool notBool setMethodMultiIterable(Method))
+  rule <k> argsVal(argValsCons(Other1:Val, argValsCons(Other2:Val, argValsCons(Other3:Val, #noArgVals)))) ~> setMethodAttrCallArgs(Base:Val, Method:Id) =>
+           setMethodApplyThree(Method, Base, Other1, Other2, Other3)
+       ... </k>
+    requires setMethodMultiIterable(Method)
+      andBool setMethodIterableSupported(Other1)
+      andBool setMethodIterableSupported(Other2)
+      andBool setMethodIterableSupported(Other3)
+  rule <k> argsVal(argValsCons(Other1:Val, argValsCons(Other2:Val, argValsCons(Other3:Val, #noArgVals)))) ~> setMethodAttrCallArgs(_Base:Val, Method:Id) =>
+           exceptionSignal(#exception(#token("TypeError", "Id")))
+       ... </k>
+    requires setMethodMultiIterable(Method)
+      andBool (notBool setMethodIterableSupported(Other1)
+        orBool notBool setMethodIterableSupported(Other2)
+        orBool notBool setMethodIterableSupported(Other3))
+  rule <k> argsVal(argValsCons(_Other1:Val, argValsCons(_Other2:Val, argValsCons(_Other3:Val, #noArgVals)))) ~> setMethodAttrCallArgs(_Base:Val, Method:Id) =>
+           exceptionSignal(#exception(#token("TypeError", "Id")))
+       ... </k>
+    requires setMethodExactlyOneIterable(Method)
+      orBool (setMethodNoArgReturnsSet(Method) andBool notBool setMethodMultiIterable(Method))
   rule <k> #methodCall0(X:Id, Method:Id) =>
            exceptionSignal(#exception(#token("IndexError", "Id")))
        ... </k>
@@ -22379,6 +22556,7 @@ module PYTHON
         orBool Id2String(Method) ==String "copy"
         orBool Id2String(Method) ==String "popitem"
         orBool Id2String(Method) ==String "update") andBool isDictVal(B))
+      andBool notBool (setMethodNoArgReturnsSet(Method) andBool isSetVal(B))
   rule <k> #methodCall(X:Id, Method:Id, Enc:String) => bytesDecodeString(B, Enc) ... </k>
        <env> ... X |-> B:Val ... </env>
     requires Id2String(Method) ==String "decode"
@@ -23611,6 +23789,18 @@ module PYTHON
     requires Id2String(Method) ==String "update"
       andBool isDictVal(B)
       andBool dictUpdateSourceTypeError(Src)
+  rule <k> #methodCall(X:Id, Method:Id, Other:Val) => setMethodApplyOne(Method, B, Other) ... </k>
+       <env> ... X |-> B:Val ... </env>
+    requires isSetVal(B)
+      andBool setMethodOneIterable(Method)
+      andBool setMethodIterableSupported(Other)
+  rule <k> #methodCall(X:Id, Method:Id, Other:Val) =>
+           exceptionSignal(#exception(#token("TypeError", "Id")))
+       ... </k>
+       <env> ... X |-> B:Val ... </env>
+    requires isSetVal(B)
+      andBool setMethodOneIterable(Method)
+      andBool notBool setMethodIterableSupported(Other)
   rule <k> #methodCall(X:Id, Method:Id, _Arg:Val) =>
            exceptionSignal(#exception(#token("TypeError", "Id")))
        ... </k>
@@ -24617,6 +24807,30 @@ module PYTHON
        ... </k>
        <env> Rho </env>
     requires notBool (X in_keys(Rho))
+  rule <k> #methodCall3(X:Id, Method:Id, Other1:Val, Other2:Val, Other3:Val) =>
+           setMethodApplyThree(Method, B, Other1, Other2, Other3)
+       ... </k>
+       <env> ... X |-> B:Val ... </env>
+    requires isSetVal(B)
+      andBool setMethodMultiIterable(Method)
+      andBool setMethodIterableSupported(Other1)
+      andBool setMethodIterableSupported(Other2)
+      andBool setMethodIterableSupported(Other3)
+  rule <k> #methodCall3(X:Id, Method:Id, Other1:Val, Other2:Val, Other3:Val) =>
+           exceptionSignal(#exception(#token("TypeError", "Id")))
+       ... </k>
+       <env> ... X |-> B:Val ... </env>
+    requires isSetVal(B)
+      andBool setMethodMultiIterable(Method)
+      andBool (notBool setMethodIterableSupported(Other1)
+        orBool notBool setMethodIterableSupported(Other2)
+        orBool notBool setMethodIterableSupported(Other3))
+  rule <k> #methodCall3(X:Id, Method:Id, _Other1:Val, _Other2:Val, _Other3:Val) =>
+           exceptionSignal(#exception(#token("TypeError", "Id")))
+       ... </k>
+       <env> ... X |-> B:Val ... </env>
+    requires isSetVal(B)
+      andBool setMethodExactlyOneIterable(Method)
   rule <k> #methodCall3(X:Id, Method:Id, _Needle:Val, _Start:Val, _End:Val) =>
            exceptionSignal(#exception(#token("NotImplementedError", "Id")))
        ... </k>
@@ -25147,6 +25361,28 @@ module PYTHON
       andBool isIntLike(I)
       andBool isIntLike(V)
       andBool (intValue(V) <Int 0 orBool intValue(V) >Int 255)
+  rule <k> #methodCall2(X:Id, Method:Id, Other1:Val, Other2:Val) =>
+           setMethodApplyTwo(Method, B, Other1, Other2)
+       ... </k>
+       <env> ... X |-> B:Val ... </env>
+    requires isSetVal(B)
+      andBool setMethodMultiIterable(Method)
+      andBool setMethodIterableSupported(Other1)
+      andBool setMethodIterableSupported(Other2)
+  rule <k> #methodCall2(X:Id, Method:Id, Other1:Val, Other2:Val) =>
+           exceptionSignal(#exception(#token("TypeError", "Id")))
+       ... </k>
+       <env> ... X |-> B:Val ... </env>
+    requires isSetVal(B)
+      andBool setMethodMultiIterable(Method)
+      andBool (notBool setMethodIterableSupported(Other1)
+        orBool notBool setMethodIterableSupported(Other2))
+  rule <k> #methodCall2(X:Id, Method:Id, _Other1:Val, _Other2:Val) =>
+           exceptionSignal(#exception(#token("TypeError", "Id")))
+       ... </k>
+       <env> ... X |-> B:Val ... </env>
+    requires isSetVal(B)
+      andBool setMethodExactlyOneIterable(Method)
   rule <k> #methodCall2(X:Id, _Method:Id, _I:Val, _V:Val) =>
            exceptionSignal(#exception(#token("NameError", "Id")))
        ... </k>

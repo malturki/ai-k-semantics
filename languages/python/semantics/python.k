@@ -705,6 +705,8 @@ module PYTHON
                  | callApply(Val) [symbol(callApply)]
                  | setMethodAttrCallOne(Val, Id) [symbol(setMethodAttrCallOne)]
                  | setMethodAttrCallArgs(Val, Id) [symbol(setMethodAttrCallArgs)]
+                 | setMutatingAttrCallOne(Val, Id) [symbol(setMutatingAttrCallOne)]
+                 | setMutatingAttrCallArgs(Val, Id) [symbol(setMutatingAttrCallArgs)]
                  | getattrDefaultObject(Id, Exp) [symbol(getattrDefaultObject)]
                  | getattrDefaultApply(Val, Id) [symbol(getattrDefaultApply)]
                  | hasattrObject(Id) [symbol(hasattrObject)]
@@ -1602,12 +1604,24 @@ module PYTHON
                 | containsDictPair(Val, Val, DictItems) [function, symbol(containsDictPair)]
                 | setsEq(ValItems, ValItems) [function, symbol(setsEq)]
                 | setItemsSubset(ValItems, ValItems) [function, symbol(setItemsSubset)]
+                | setContainsValue(Val, Val) [function, symbol(setContainsValue)]
                 | setSubsetValue(Val, Val) [function, symbol(setSubsetValue)]
                 | setMethodIterableSupported(Val) [function, symbol(setMethodIterableSupported)]
                 | setMethodNoArgReturnsSet(Id) [function, symbol(setMethodNoArgReturnsSet)]
                 | setMethodOneIterable(Id) [function, symbol(setMethodOneIterable)]
                 | setMethodExactlyOneIterable(Id) [function, symbol(setMethodExactlyOneIterable)]
                 | setMethodMultiIterable(Id) [function, symbol(setMethodMultiIterable)]
+                | setMutatingZeroArgReturnsNone(Id) [function, symbol(setMutatingZeroArgReturnsNone)]
+                | setMutatingPop(Id) [function, symbol(setMutatingPop)]
+                | setMutatingZeroArgMethod(Id) [function, symbol(setMutatingZeroArgMethod)]
+                | setMutatingElementMethod(Id) [function, symbol(setMutatingElementMethod)]
+                | setMutatingOneIterable(Id) [function, symbol(setMutatingOneIterable)]
+                | setMutatingExactlyOneIterable(Id) [function, symbol(setMutatingExactlyOneIterable)]
+                | setMutatingMultiIterable(Id) [function, symbol(setMutatingMultiIterable)]
+                | setMutatingOneArgMethod(Id) [function, symbol(setMutatingOneArgMethod)]
+                | setMutatingKnown(Id) [function, symbol(setMutatingKnown)]
+                | argValsAllSetHashable(ArgVals) [function, symbol(argValsAllSetHashable)]
+                | setMethodIterableHashable(Val) [function, symbol(setMethodIterableHashable)]
                 | sameArity(IdItems, ArgVals) [function, symbol(sameArity)]
                 | varArgsCallArityOk(IdItems, ArgVals) [function, symbol(varArgsCallArityOk)]
                 | varArgsDefaultsCallArityOk(IdItems, ArgVals, ArgVals) [function, symbol(varArgsDefaultsCallArityOk)]
@@ -2109,6 +2123,13 @@ module PYTHON
                | setMethodApplyOne(Id, Val, Val) [function, symbol(setMethodApplyOne)]
                | setMethodApplyTwo(Id, Val, Val, Val) [function, symbol(setMethodApplyTwo)]
                | setMethodApplyThree(Id, Val, Val, Val, Val) [function, symbol(setMethodApplyThree)]
+               | setAddValue(Val, Val) [function, symbol(setAddValue)]
+               | setDiscardValue(Val, Val) [function, symbol(setDiscardValue)]
+               | setPopValue(Val) [function, symbol(setPopValue)]
+               | setPopRest(Val) [function, symbol(setPopRest)]
+               | setMutatingApplyOne(Id, Val, Val) [function, symbol(setMutatingApplyOne)]
+               | setMutatingApplyTwo(Id, Val, Val, Val) [function, symbol(setMutatingApplyTwo)]
+               | setMutatingApplyThree(Id, Val, Val, Val, Val) [function, symbol(setMutatingApplyThree)]
                | zeroBytes(Int) [function, symbol(zeroBytes)]
   syntax Val ::= kwExtrasDict(KwArgVals, IdItems) [function, symbol(kwExtrasDict)]
                | kwExtrasEitherDict(KwArgVals, IdItems, IdItems) [function, symbol(kwExtrasEitherDict)]
@@ -8009,6 +8030,87 @@ module PYTHON
   rule setMethodApplyThree(Method:Id, Base:Val, Other1:Val, Other2:Val, Other3:Val) =>
     setDifferenceValue(setMethodApplyTwo(Method, Base, Other1, Other2), setFromIterableValue(Other3))
     requires Id2String(Method) ==String "difference"
+
+  rule setMutatingZeroArgReturnsNone(Method:Id) =>
+    Id2String(Method) ==String "clear"
+      orBool Id2String(Method) ==String "update"
+      orBool Id2String(Method) ==String "intersection_update"
+      orBool Id2String(Method) ==String "difference_update"
+
+  rule setMutatingPop(Method:Id) =>
+    Id2String(Method) ==String "pop"
+
+  rule setMutatingZeroArgMethod(Method:Id) =>
+    setMutatingZeroArgReturnsNone(Method) orBool setMutatingPop(Method)
+
+  rule setMutatingElementMethod(Method:Id) =>
+    Id2String(Method) ==String "add"
+      orBool Id2String(Method) ==String "discard"
+      orBool Id2String(Method) ==String "remove"
+
+  rule setMutatingExactlyOneIterable(Method:Id) =>
+    Id2String(Method) ==String "symmetric_difference_update"
+
+  rule setMutatingMultiIterable(Method:Id) =>
+    Id2String(Method) ==String "update"
+      orBool Id2String(Method) ==String "intersection_update"
+      orBool Id2String(Method) ==String "difference_update"
+
+  rule setMutatingOneIterable(Method:Id) =>
+    setMutatingMultiIterable(Method) orBool setMutatingExactlyOneIterable(Method)
+
+  rule setMutatingOneArgMethod(Method:Id) =>
+    setMutatingElementMethod(Method) orBool setMutatingOneIterable(Method)
+
+  rule setMutatingKnown(Method:Id) =>
+    setMutatingZeroArgMethod(Method) orBool setMutatingOneArgMethod(Method)
+
+  rule argValsAllSetHashable(#noArgVals) => true
+  rule argValsAllSetHashable(argValsCons(V:Val, VS:ArgVals)) =>
+    dictLookupKeySupported(V) andBool argValsAllSetHashable(VS)
+
+  rule setMethodIterableHashable(V:Val) => argValsAllSetHashable(iterableArgVals(V))
+    requires setMethodIterableSupported(V)
+  rule setMethodIterableHashable(V:Val) => false
+    requires notBool setMethodIterableSupported(V)
+
+  rule setContainsValue(_Elem:Val, set()) => false
+  rule setContainsValue(Elem:Val, setVal(VS:ValItems)) => containsVal(Elem, VS)
+
+  rule setAddValue(S:Val, Elem:Val) =>
+    setUnionValue(S, setVal(valItemsLast(Elem)))
+    requires isSetVal(S)
+
+  rule setDiscardValue(set(), _Elem:Val) => set()
+  rule setDiscardValue(setVal(VS:ValItems), Elem:Val) =>
+    setDifferenceValue(setVal(VS), setVal(valItemsLast(Elem)))
+
+  rule setPopValue(setVal(valItemsLast(V:Val))) => V
+  rule setPopValue(setVal(valItemsCons(V:Val, _VS:ValItems))) => V
+
+  rule setPopRest(setVal(valItemsLast(_V:Val))) => set()
+  rule setPopRest(setVal(valItemsCons(_V:Val, VS:ValItems))) => setVal(VS)
+
+  rule setMutatingApplyOne(Method:Id, Base:Val, Other:Val) =>
+    setUnionValue(Base, setFromIterableValue(Other))
+    requires Id2String(Method) ==String "update"
+  rule setMutatingApplyOne(Method:Id, Base:Val, Other:Val) =>
+    setIntersectionValue(Base, setFromIterableValue(Other))
+    requires Id2String(Method) ==String "intersection_update"
+  rule setMutatingApplyOne(Method:Id, Base:Val, Other:Val) =>
+    setDifferenceValue(Base, setFromIterableValue(Other))
+    requires Id2String(Method) ==String "difference_update"
+  rule setMutatingApplyOne(Method:Id, Base:Val, Other:Val) =>
+    setSymmetricDifferenceValue(Base, setFromIterableValue(Other))
+    requires Id2String(Method) ==String "symmetric_difference_update"
+
+  rule setMutatingApplyTwo(Method:Id, Base:Val, Other1:Val, Other2:Val) =>
+    setMutatingApplyOne(Method, setMutatingApplyOne(Method, Base, Other1), Other2)
+    requires setMutatingMultiIterable(Method)
+
+  rule setMutatingApplyThree(Method:Id, Base:Val, Other1:Val, Other2:Val, Other3:Val) =>
+    setMutatingApplyOne(Method, setMutatingApplyTwo(Method, Base, Other1, Other2), Other3)
+    requires setMutatingMultiIterable(Method)
 
   rule zeroBytes(0) => #bytes()
   rule zeroBytes(N:Int) => bytesVal(repeatValItems(valItemsLast(0), N))
@@ -22192,6 +22294,28 @@ module PYTHON
        <env> ... X |-> B:Val ... </env>
     requires isSetVal(B)
       andBool setMethodExactlyOneIterable(Method)
+  rule <k> #methodCall0(X:Id, Method:Id) => None ... </k>
+       <env> ... X |-> (B:Val => set()) ... </env>
+    requires Id2String(Method) ==String "clear"
+      andBool isSetVal(B)
+  rule <k> #methodCall0(X:Id, Method:Id) =>
+           exceptionSignal(#exception(#token("KeyError", "Id")))
+       ... </k>
+       <env> ... X |-> set() ... </env>
+    requires setMutatingPop(Method)
+  rule <k> #methodCall0(X:Id, Method:Id) => setPopValue(setVal(VS)) ... </k>
+       <env> ... X |-> (setVal(VS:ValItems) => setPopRest(setVal(VS))) ... </env>
+    requires setMutatingPop(Method)
+  rule <k> #methodCall0(X:Id, Method:Id) => None ... </k>
+       <env> ... X |-> B:Val ... </env>
+    requires isSetVal(B)
+      andBool setMutatingMultiIterable(Method)
+  rule <k> #methodCall0(X:Id, Method:Id) =>
+           exceptionSignal(#exception(#token("TypeError", "Id")))
+       ... </k>
+       <env> ... X |-> B:Val ... </env>
+    requires isSetVal(B)
+      andBool (setMutatingElementMethod(Method) orBool setMutatingExactlyOneIterable(Method))
   rule <k> #attr(Base:Val, Method:Id) ~> callArg(Arg:Exp) =>
            Arg ~> setMethodAttrCallOne(Base, Method)
        ... </k>
@@ -22274,6 +22398,97 @@ module PYTHON
        ... </k>
     requires setMethodExactlyOneIterable(Method)
       orBool (setMethodNoArgReturnsSet(Method) andBool notBool setMethodMultiIterable(Method))
+  rule <k> #attr(Base:Val, Method:Id) ~> callArg(Arg:Exp) =>
+           Arg ~> setMutatingAttrCallOne(Base, Method)
+       ... </k>
+    requires isSetVal(Base)
+      andBool setMutatingKnown(Method)
+  rule <k> V:Val ~> setMutatingAttrCallOne(_Base:Val, Method:Id) => None ... </k>
+    requires (Id2String(Method) ==String "add" orBool Id2String(Method) ==String "discard")
+      andBool dictLookupKeySupported(V)
+  rule <k> V:Val ~> setMutatingAttrCallOne(_Base:Val, Method:Id) =>
+           exceptionSignal(#exception(#token("TypeError", "Id")))
+       ... </k>
+    requires setMutatingElementMethod(Method)
+      andBool notBool dictLookupKeySupported(V)
+  rule <k> V:Val ~> setMutatingAttrCallOne(Base:Val, Method:Id) => None ... </k>
+    requires Id2String(Method) ==String "remove"
+      andBool dictLookupKeySupported(V)
+      andBool setContainsValue(V, Base)
+  rule <k> V:Val ~> setMutatingAttrCallOne(Base:Val, Method:Id) =>
+           exceptionSignal(#exception(#token("KeyError", "Id")))
+       ... </k>
+    requires Id2String(Method) ==String "remove"
+      andBool dictLookupKeySupported(V)
+      andBool notBool setContainsValue(V, Base)
+  rule <k> Other:Val ~> setMutatingAttrCallOne(_Base:Val, Method:Id) => None ... </k>
+    requires setMutatingOneIterable(Method)
+      andBool setMethodIterableHashable(Other)
+  rule <k> Other:Val ~> setMutatingAttrCallOne(_Base:Val, Method:Id) =>
+           exceptionSignal(#exception(#token("TypeError", "Id")))
+       ... </k>
+    requires setMutatingOneIterable(Method)
+      andBool notBool setMethodIterableHashable(Other)
+  rule <k> _V:Val ~> setMutatingAttrCallOne(_Base:Val, Method:Id) =>
+           exceptionSignal(#exception(#token("TypeError", "Id")))
+       ... </k>
+    requires setMutatingZeroArgMethod(Method)
+  rule <k> #attr(Base:Val, Method:Id) ~> callArgs(Args:ArgExps) =>
+           evalArgs(Args, #noArgVals) ~> setMutatingAttrCallArgs(Base, Method)
+       ... </k>
+    requires isSetVal(Base)
+      andBool setMutatingKnown(Method)
+  rule <k> argsVal(#noArgVals) ~> setMutatingAttrCallArgs(_Base:Val, Method:Id) => None ... </k>
+    requires setMutatingZeroArgReturnsNone(Method)
+  rule <k> argsVal(#noArgVals) ~> setMutatingAttrCallArgs(set(), Method:Id) =>
+           exceptionSignal(#exception(#token("KeyError", "Id")))
+       ... </k>
+    requires setMutatingPop(Method)
+  rule <k> argsVal(#noArgVals) ~> setMutatingAttrCallArgs(setVal(VS:ValItems), Method:Id) =>
+           setPopValue(setVal(VS))
+       ... </k>
+    requires setMutatingPop(Method)
+  rule <k> argsVal(#noArgVals) ~> setMutatingAttrCallArgs(_Base:Val, Method:Id) =>
+           exceptionSignal(#exception(#token("TypeError", "Id")))
+       ... </k>
+    requires setMutatingOneArgMethod(Method)
+  rule <k> argsVal(argValsCons(Other:Val, #noArgVals)) ~> setMutatingAttrCallArgs(Base:Val, Method:Id) =>
+           Other ~> setMutatingAttrCallOne(Base, Method)
+       ... </k>
+  rule <k> argsVal(argValsCons(Other1:Val, argValsCons(Other2:Val, #noArgVals))) ~> setMutatingAttrCallArgs(_Base:Val, Method:Id) => None ... </k>
+    requires setMutatingMultiIterable(Method)
+      andBool setMethodIterableHashable(Other1)
+      andBool setMethodIterableHashable(Other2)
+  rule <k> argsVal(argValsCons(Other1:Val, argValsCons(Other2:Val, #noArgVals))) ~> setMutatingAttrCallArgs(_Base:Val, Method:Id) =>
+           exceptionSignal(#exception(#token("TypeError", "Id")))
+       ... </k>
+    requires setMutatingMultiIterable(Method)
+      andBool (notBool setMethodIterableHashable(Other1)
+        orBool notBool setMethodIterableHashable(Other2))
+  rule <k> argsVal(argValsCons(_Other1:Val, argValsCons(_Other2:Val, #noArgVals))) ~> setMutatingAttrCallArgs(_Base:Val, Method:Id) =>
+           exceptionSignal(#exception(#token("TypeError", "Id")))
+       ... </k>
+    requires setMutatingExactlyOneIterable(Method)
+      orBool setMutatingElementMethod(Method)
+      orBool setMutatingZeroArgMethod(Method)
+  rule <k> argsVal(argValsCons(Other1:Val, argValsCons(Other2:Val, argValsCons(Other3:Val, #noArgVals)))) ~> setMutatingAttrCallArgs(_Base:Val, Method:Id) => None ... </k>
+    requires setMutatingMultiIterable(Method)
+      andBool setMethodIterableHashable(Other1)
+      andBool setMethodIterableHashable(Other2)
+      andBool setMethodIterableHashable(Other3)
+  rule <k> argsVal(argValsCons(Other1:Val, argValsCons(Other2:Val, argValsCons(Other3:Val, #noArgVals)))) ~> setMutatingAttrCallArgs(_Base:Val, Method:Id) =>
+           exceptionSignal(#exception(#token("TypeError", "Id")))
+       ... </k>
+    requires setMutatingMultiIterable(Method)
+      andBool (notBool setMethodIterableHashable(Other1)
+        orBool notBool setMethodIterableHashable(Other2)
+        orBool notBool setMethodIterableHashable(Other3))
+  rule <k> argsVal(argValsCons(_Other1:Val, argValsCons(_Other2:Val, argValsCons(_Other3:Val, #noArgVals)))) ~> setMutatingAttrCallArgs(_Base:Val, Method:Id) =>
+           exceptionSignal(#exception(#token("TypeError", "Id")))
+       ... </k>
+    requires setMutatingExactlyOneIterable(Method)
+      orBool setMutatingElementMethod(Method)
+      orBool setMutatingZeroArgMethod(Method)
   rule <k> #methodCall0(X:Id, Method:Id) =>
            exceptionSignal(#exception(#token("IndexError", "Id")))
        ... </k>
@@ -22557,6 +22772,7 @@ module PYTHON
         orBool Id2String(Method) ==String "popitem"
         orBool Id2String(Method) ==String "update") andBool isDictVal(B))
       andBool notBool (setMethodNoArgReturnsSet(Method) andBool isSetVal(B))
+      andBool notBool (setMutatingZeroArgMethod(Method) andBool isSetVal(B))
   rule <k> #methodCall(X:Id, Method:Id, Enc:String) => bytesDecodeString(B, Enc) ... </k>
        <env> ... X |-> B:Val ... </env>
     requires Id2String(Method) ==String "decode"
@@ -23801,6 +24017,55 @@ module PYTHON
     requires isSetVal(B)
       andBool setMethodOneIterable(Method)
       andBool notBool setMethodIterableSupported(Other)
+  rule <k> #methodCall(X:Id, Method:Id, Elem:Val) => None ... </k>
+       <env> ... X |-> (B:Val => setAddValue(B, Elem)) ... </env>
+    requires Id2String(Method) ==String "add"
+      andBool isSetVal(B)
+      andBool dictLookupKeySupported(Elem)
+  rule <k> #methodCall(X:Id, Method:Id, Elem:Val) => None ... </k>
+       <env> ... X |-> (B:Val => setDiscardValue(B, Elem)) ... </env>
+    requires Id2String(Method) ==String "discard"
+      andBool isSetVal(B)
+      andBool dictLookupKeySupported(Elem)
+  rule <k> #methodCall(X:Id, Method:Id, Elem:Val) => None ... </k>
+       <env> ... X |-> (B:Val => setDiscardValue(B, Elem)) ... </env>
+    requires Id2String(Method) ==String "remove"
+      andBool isSetVal(B)
+      andBool dictLookupKeySupported(Elem)
+      andBool setContainsValue(Elem, B)
+  rule <k> #methodCall(X:Id, Method:Id, Elem:Val) =>
+           exceptionSignal(#exception(#token("KeyError", "Id")))
+       ... </k>
+       <env> ... X |-> B:Val ... </env>
+    requires Id2String(Method) ==String "remove"
+      andBool isSetVal(B)
+      andBool dictLookupKeySupported(Elem)
+      andBool notBool setContainsValue(Elem, B)
+  rule <k> #methodCall(X:Id, Method:Id, Elem:Val) =>
+           exceptionSignal(#exception(#token("TypeError", "Id")))
+       ... </k>
+       <env> ... X |-> B:Val ... </env>
+    requires isSetVal(B)
+      andBool setMutatingElementMethod(Method)
+      andBool notBool dictLookupKeySupported(Elem)
+  rule <k> #methodCall(X:Id, Method:Id, Other:Val) => None ... </k>
+       <env> ... X |-> (B:Val => setMutatingApplyOne(Method, B, Other)) ... </env>
+    requires isSetVal(B)
+      andBool setMutatingOneIterable(Method)
+      andBool setMethodIterableHashable(Other)
+  rule <k> #methodCall(X:Id, Method:Id, Other:Val) =>
+           exceptionSignal(#exception(#token("TypeError", "Id")))
+       ... </k>
+       <env> ... X |-> B:Val ... </env>
+    requires isSetVal(B)
+      andBool setMutatingOneIterable(Method)
+      andBool notBool setMethodIterableHashable(Other)
+  rule <k> #methodCall(X:Id, Method:Id, _Arg:Val) =>
+           exceptionSignal(#exception(#token("TypeError", "Id")))
+       ... </k>
+       <env> ... X |-> B:Val ... </env>
+    requires isSetVal(B)
+      andBool setMutatingZeroArgMethod(Method)
   rule <k> #methodCall(X:Id, Method:Id, _Arg:Val) =>
            exceptionSignal(#exception(#token("TypeError", "Id")))
        ... </k>
@@ -24110,6 +24375,7 @@ module PYTHON
         orBool Id2String(Method) ==String "pop"
         orBool Id2String(Method) ==String "setdefault"
         orBool Id2String(Method) ==String "update") andBool isDictVal(B))
+      andBool notBool (setMutatingKnown(Method) andBool isSetVal(B))
   rule <k> #methodCall2(X:Id, Method:Id, Enc:Val, _Errors:Val) =>
            exceptionSignal(#exception(#token("TypeError", "Id")))
        ... </k>
@@ -24831,6 +25097,30 @@ module PYTHON
        <env> ... X |-> B:Val ... </env>
     requires isSetVal(B)
       andBool setMethodExactlyOneIterable(Method)
+  rule <k> #methodCall3(X:Id, Method:Id, Other1:Val, Other2:Val, Other3:Val) => None ... </k>
+       <env> ... X |-> (B:Val => setMutatingApplyThree(Method, B, Other1, Other2, Other3)) ... </env>
+    requires isSetVal(B)
+      andBool setMutatingMultiIterable(Method)
+      andBool setMethodIterableHashable(Other1)
+      andBool setMethodIterableHashable(Other2)
+      andBool setMethodIterableHashable(Other3)
+  rule <k> #methodCall3(X:Id, Method:Id, Other1:Val, Other2:Val, Other3:Val) =>
+           exceptionSignal(#exception(#token("TypeError", "Id")))
+       ... </k>
+       <env> ... X |-> B:Val ... </env>
+    requires isSetVal(B)
+      andBool setMutatingMultiIterable(Method)
+      andBool (notBool setMethodIterableHashable(Other1)
+        orBool notBool setMethodIterableHashable(Other2)
+        orBool notBool setMethodIterableHashable(Other3))
+  rule <k> #methodCall3(X:Id, Method:Id, _Other1:Val, _Other2:Val, _Other3:Val) =>
+           exceptionSignal(#exception(#token("TypeError", "Id")))
+       ... </k>
+       <env> ... X |-> B:Val ... </env>
+    requires isSetVal(B)
+      andBool (setMutatingExactlyOneIterable(Method)
+        orBool setMutatingElementMethod(Method)
+        orBool setMutatingZeroArgMethod(Method))
   rule <k> #methodCall3(X:Id, Method:Id, _Needle:Val, _Start:Val, _End:Val) =>
            exceptionSignal(#exception(#token("NotImplementedError", "Id")))
        ... </k>
@@ -25383,6 +25673,28 @@ module PYTHON
        <env> ... X |-> B:Val ... </env>
     requires isSetVal(B)
       andBool setMethodExactlyOneIterable(Method)
+  rule <k> #methodCall2(X:Id, Method:Id, Other1:Val, Other2:Val) => None ... </k>
+       <env> ... X |-> (B:Val => setMutatingApplyTwo(Method, B, Other1, Other2)) ... </env>
+    requires isSetVal(B)
+      andBool setMutatingMultiIterable(Method)
+      andBool setMethodIterableHashable(Other1)
+      andBool setMethodIterableHashable(Other2)
+  rule <k> #methodCall2(X:Id, Method:Id, Other1:Val, Other2:Val) =>
+           exceptionSignal(#exception(#token("TypeError", "Id")))
+       ... </k>
+       <env> ... X |-> B:Val ... </env>
+    requires isSetVal(B)
+      andBool setMutatingMultiIterable(Method)
+      andBool (notBool setMethodIterableHashable(Other1)
+        orBool notBool setMethodIterableHashable(Other2))
+  rule <k> #methodCall2(X:Id, Method:Id, _Other1:Val, _Other2:Val) =>
+           exceptionSignal(#exception(#token("TypeError", "Id")))
+       ... </k>
+       <env> ... X |-> B:Val ... </env>
+    requires isSetVal(B)
+      andBool (setMutatingExactlyOneIterable(Method)
+        orBool setMutatingElementMethod(Method)
+        orBool setMutatingZeroArgMethod(Method))
   rule <k> #methodCall2(X:Id, _Method:Id, _I:Val, _V:Val) =>
            exceptionSignal(#exception(#token("NameError", "Id")))
        ... </k>
@@ -25415,6 +25727,7 @@ module PYTHON
       andBool notBool ((Id2String(Method) ==String "get"
         orBool Id2String(Method) ==String "pop"
         orBool Id2String(Method) ==String "setdefault") andBool isDictVal(B))
+      andBool notBool (setMutatingKnown(Method) andBool isSetVal(B))
   rule #abs(V:Val) => 0 -Int intValue(V)
     requires isIntLike(V) andBool intValue(V) <Int 0
   rule #abs(V:Val) => intValue(V)

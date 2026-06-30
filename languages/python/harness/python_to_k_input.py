@@ -79,6 +79,116 @@ SUPPORTED_BUILTIN_CLASS_NAMES = {
     "str",
     "tuple",
 }
+SET_MUTATING_METHOD_NAMES = {
+    "add",
+    "clear",
+    "discard",
+    "difference_update",
+    "intersection_update",
+    "pop",
+    "remove",
+    "symmetric_difference_update",
+    "update",
+}
+METHOD_CALL0_NAMES = {
+    "capitalize",
+    "clear",
+    "copy",
+    "decode",
+    "expandtabs",
+    "hex",
+    "isalnum",
+    "isalpha",
+    "isascii",
+    "isdigit",
+    "islower",
+    "isspace",
+    "istitle",
+    "isupper",
+    "lower",
+    "lstrip",
+    "pop",
+    "popitem",
+    "reverse",
+    "rsplit",
+    "rstrip",
+    "sort",
+    "split",
+    "splitlines",
+    "strip",
+    "swapcase",
+    "title",
+    "update",
+    "upper",
+} | SET_MUTATING_METHOD_NAMES
+METHOD_CALL1_NAMES = {
+    "append",
+    "center",
+    "count",
+    "decode",
+    "endswith",
+    "expandtabs",
+    "extend",
+    "find",
+    "get",
+    "hex",
+    "index",
+    "join",
+    "ljust",
+    "lstrip",
+    "partition",
+    "pop",
+    "remove",
+    "removeprefix",
+    "removesuffix",
+    "rfind",
+    "rindex",
+    "rjust",
+    "rpartition",
+    "rsplit",
+    "rstrip",
+    "setdefault",
+    "sort",
+    "split",
+    "splitlines",
+    "startswith",
+    "strip",
+    "translate",
+    "update",
+    "zfill",
+} | SET_MUTATING_METHOD_NAMES
+METHOD_CALL2_NAMES = {
+    "center",
+    "count",
+    "decode",
+    "endswith",
+    "find",
+    "get",
+    "hex",
+    "index",
+    "insert",
+    "ljust",
+    "pop",
+    "replace",
+    "rfind",
+    "rindex",
+    "rjust",
+    "rsplit",
+    "setdefault",
+    "split",
+    "startswith",
+    "translate",
+} | SET_MUTATING_METHOD_NAMES
+METHOD_CALL3_NAMES = {
+    "count",
+    "endswith",
+    "find",
+    "index",
+    "replace",
+    "rfind",
+    "rindex",
+    "startswith",
+} | SET_MUTATING_METHOD_NAMES
 SUPPORTED_FORMAT_SPECS = {
     "",
     "b",
@@ -984,19 +1094,19 @@ def emit_exp(exp: ast.expr) -> str:
             func=ast.Attribute(value=ast.Name(id=name), attr=attr, ctx=ast.Load()),
             args=[],
             keywords=[],
-        ) if attr in {"capitalize", "clear", "copy", "decode", "expandtabs", "hex", "isalnum", "isalpha", "isascii", "isdigit", "islower", "isspace", "istitle", "isupper", "lower", "lstrip", "pop", "popitem", "reverse", "rsplit", "rstrip", "sort", "split", "splitlines", "strip", "swapcase", "title", "update", "upper"}:
+        ) if attr in METHOD_CALL0_NAMES:
             return f"#methodCall0({emit_id(name)}, {emit_id(attr)})"
         case ast.Call(
             func=ast.Attribute(value=ast.Name(id=name), attr=attr, ctx=ast.Load()),
             args=[arg],
             keywords=[],
-        ) if attr in {"append", "center", "count", "decode", "endswith", "expandtabs", "extend", "find", "get", "hex", "index", "join", "ljust", "lstrip", "partition", "pop", "remove", "removeprefix", "removesuffix", "rfind", "rindex", "rjust", "rpartition", "rsplit", "rstrip", "setdefault", "sort", "split", "splitlines", "startswith", "strip", "translate", "update", "zfill"}:
+        ) if attr in METHOD_CALL1_NAMES:
             return f"#methodCall({emit_id(name)}, {emit_id(attr)}, {emit_exp(arg)})"
         case ast.Call(
             func=ast.Attribute(value=ast.Name(id=name), attr=attr, ctx=ast.Load()),
             args=[arg1, arg2],
             keywords=[],
-        ) if attr in {"center", "count", "decode", "endswith", "find", "get", "hex", "index", "insert", "ljust", "pop", "replace", "rfind", "rindex", "rjust", "rsplit", "setdefault", "split", "startswith", "translate"}:
+        ) if attr in METHOD_CALL2_NAMES:
             return f"#methodCall2({emit_id(name)}, {emit_id(attr)}, {emit_exp(arg1)}, {emit_exp(arg2)})"
         case ast.Call(
             func=ast.Attribute(value=ast.Name(id=name), attr="translate", ctx=ast.Load()),
@@ -1008,7 +1118,7 @@ def emit_exp(exp: ast.expr) -> str:
             func=ast.Attribute(value=ast.Name(id=name), attr=attr, ctx=ast.Load()),
             args=[arg1, arg2, arg3],
             keywords=[],
-        ) if attr in {"count", "endswith", "find", "index", "replace", "rfind", "rindex", "startswith"}:
+        ) if attr in METHOD_CALL3_NAMES:
             return f"#methodCall3({emit_id(name)}, {emit_id(attr)}, {emit_exp(arg1)}, {emit_exp(arg2)}, {emit_exp(arg3)})"
         case ast.Call(func=ast.Name(id="abs"), args=[arg], keywords=[]):
             return f"#abs({emit_exp(arg)})"

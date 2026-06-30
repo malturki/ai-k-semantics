@@ -598,6 +598,7 @@ run_case "adapter-set-equality" "$ROOT/tests/adapter/adapter-set-equality.py" "T
 run_case "adapter-set-ordering" "$ROOT/tests/adapter/adapter-set-ordering.py" "True ~> .K"
 run_case "adapter-set-operators" "$ROOT/tests/adapter/adapter-set-operators.py" "True ~> .K"
 run_case "adapter-set-methods" "$ROOT/tests/adapter/adapter-set-methods.py" "True ~> .K"
+run_case "adapter-set-mutating-methods" "$ROOT/tests/adapter/adapter-set-mutating-methods.py" "True ~> .K"
 run_case "adapter-annotated-assignment" "$ROOT/tests/adapter/adapter-annotated-assignment.py" "True ~> .K"
 run_case "adapter-assign-many" "$ROOT/tests/adapter/adapter-assign-many.py" "True ~> .K"
 run_case "adapter-subscript-assignment" "$ROOT/tests/adapter/adapter-subscript-assignment.py" "True ~> .K"

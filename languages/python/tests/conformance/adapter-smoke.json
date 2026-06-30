@@ -3833,6 +3833,13 @@
       "coverage": ["set-copy-method", "set-query-methods", "set-algebra-methods", "iterable-accepting-set-methods", "set-method-type-errors", "ordinary-python-source-adapter"]
     },
     {
+      "id": "adapter-set-mutating-methods",
+      "source": "../adapter/adapter-set-mutating-methods.py",
+      "reference": "Python 3.14.6 Standard Library Built-in Types mutable set methods update(*others), intersection_update(*others), difference_update(*others), symmetric_difference_update(other), add(elem), remove(elem), discard(elem), pop(), and clear(); CPython Lib/test/test_set.py mutation, return-value, KeyError, and TypeError coverage",
+      "expected_result": "True ~> .K",
+      "coverage": ["set-mutating-element-methods", "set-mutating-algebra-methods", "set-pop-clear-methods", "iterable-accepting-set-update-methods", "set-mutating-method-errors", "ordinary-python-source-adapter"]
+    },
+    {
       "id": "adapter-annotated-assignment",
       "source": "../adapter/adapter-annotated-assignment.py",
       "reference": "Python Language Reference 7.2.2 Annotated assignment statements; 8.10 Annotations",

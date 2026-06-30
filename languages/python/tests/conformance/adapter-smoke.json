@@ -3819,6 +3819,13 @@
       "coverage": ["set-ordering-comparisons", "proper-subset", "subset", "proper-superset", "superset", "ordinary-python-source-adapter"]
     },
     {
+      "id": "adapter-set-operators",
+      "source": "../adapter/adapter-set-operators.py",
+      "reference": "Python 3.14.6 Standard Library Built-in Types set operations |, &, -, ^ and update operators; CPython Lib/test/test_set.py binary operator TypeError checks",
+      "expected_result": "True ~> .K",
+      "coverage": ["set-union-operator", "set-intersection-operator", "set-difference-operator", "set-symmetric-difference-operator", "set-inplace-update-operators", "set-operator-type-errors", "ordinary-python-source-adapter"]
+    },
+    {
       "id": "adapter-annotated-assignment",
       "source": "../adapter/adapter-annotated-assignment.py",
       "reference": "Python Language Reference 7.2.2 Annotated assignment statements; 8.10 Annotations",

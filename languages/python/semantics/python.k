@@ -1578,6 +1578,7 @@ module PYTHON
                 | isSliceVal(Val) [function, symbol(isSliceVal)]
                 | isRangeVal(Val) [function, symbol(isRangeVal)]
                 | isDictVal(Val) [function, symbol(isDictVal)]
+                | isSetVal(Val) [function, symbol(isSetVal)]
                 | dictLookupKeySupported(Val) [function, symbol(dictLookupKeySupported)]
                 | dictLookupKeyItemsSupported(ValItems) [function, symbol(dictLookupKeyItemsSupported)]
                 | dictFromKeysArgValsSupported(ArgVals) [function, symbol(dictFromKeysArgValsSupported)]
@@ -2089,6 +2090,13 @@ module PYTHON
                | minNumericItems(ValItems) [function, symbol(minNumericItems)]
                | maxNumericItems(ValItems) [function, symbol(maxNumericItems)]
                | setFromArgVals(ArgVals) [function, symbol(setFromArgVals)]
+               | setPrependValue(Val, Val) [function, symbol(setPrependValue)]
+               | setUnionValue(Val, Val) [function, symbol(setUnionValue)]
+               | setIntersectionValue(Val, Val) [function, symbol(setIntersectionValue)]
+               | setDifferenceValue(Val, Val) [function, symbol(setDifferenceValue)]
+               | setSymmetricDifferenceValue(Val, Val) [function, symbol(setSymmetricDifferenceValue)]
+               | setIntersectionItems(ValItems, ValItems) [function, symbol(setIntersectionItems)]
+               | setDifferenceItems(ValItems, ValItems) [function, symbol(setDifferenceItems)]
                | zeroBytes(Int) [function, symbol(zeroBytes)]
   syntax Val ::= kwExtrasDict(KwArgVals, IdItems) [function, symbol(kwExtrasDict)]
                | kwExtrasEitherDict(KwArgVals, IdItems, IdItems) [function, symbol(kwExtrasEitherDict)]
@@ -2148,6 +2156,7 @@ module PYTHON
   syntax ValItems ::= argValsToValItems(ArgVals) [function, symbol(argValsToValItems)]
   syntax ValItems ::= dictPairItems(Val) [function, symbol(dictPairItems)]
   syntax ValItems ::= argValsToSetItems(ArgVals) [function, symbol(argValsToSetItems)]
+  syntax ValItems ::= setUnionItems(ValItems, ValItems) [function, symbol(setUnionItems)]
   syntax ValItems ::= concreteIterableExtraItems(Val) [function, symbol(concreteIterableExtraItems)]
   syntax ValItems ::= stringToValItems(String, Int, Int) [function, symbol(stringToValItems)]
   syntax ValItems ::= stringBytesToValItems(String, Int, Int) [function, symbol(stringBytesToValItems)]
@@ -5336,6 +5345,10 @@ module PYTHON
   rule isDictVal(dictVal(_:DictItems)) => true
   rule isDictVal(_:Val) => false [owise]
 
+  rule isSetVal(set()) => true
+  rule isSetVal(setVal(_:ValItems)) => true
+  rule isSetVal(_:Val) => false [owise]
+
   rule intValue(I:Int) => I
   rule intValue(True) => 1
   rule intValue(False) => 0
@@ -7850,6 +7863,67 @@ module PYTHON
   rule setFromArgVals(#noArgVals) => set()
   rule setFromArgVals(VS:ArgVals) => setVal(argValsToSetItems(VS))
     requires notBool emptyArgVals(VS)
+
+  rule setPrependValue(V:Val, set()) => setVal(valItemsLast(V))
+  rule setPrependValue(V:Val, setVal(VS:ValItems)) => setVal(valItemsCons(V, VS))
+
+  rule setUnionValue(set(), set()) => set()
+  rule setUnionValue(set(), setVal(VS:ValItems)) => setVal(VS)
+  rule setUnionValue(setVal(VS:ValItems), set()) => setVal(VS)
+  rule setUnionValue(setVal(VS1:ValItems), setVal(VS2:ValItems)) =>
+    setVal(setUnionItems(VS1, VS2))
+
+  rule setUnionItems(valItemsLast(V:Val), VS:ValItems) => VS
+    requires containsVal(V, VS)
+  rule setUnionItems(valItemsLast(V:Val), VS:ValItems) => valItemsCons(V, VS)
+    requires notBool containsVal(V, VS)
+  rule setUnionItems(valItemsCons(V:Val, VS1:ValItems), VS2:ValItems) =>
+    setUnionItems(VS1, VS2)
+    requires containsVal(V, VS2)
+  rule setUnionItems(valItemsCons(V:Val, VS1:ValItems), VS2:ValItems) =>
+    valItemsCons(V, setUnionItems(VS1, VS2))
+    requires notBool containsVal(V, VS2)
+
+  rule setIntersectionValue(set(), S:Val) => set()
+    requires isSetVal(S)
+  rule setIntersectionValue(S:Val, set()) => set()
+    requires isSetVal(S)
+  rule setIntersectionValue(setVal(VS1:ValItems), setVal(VS2:ValItems)) =>
+    setIntersectionItems(VS1, VS2)
+
+  rule setIntersectionItems(valItemsLast(V:Val), VS:ValItems) =>
+    setVal(valItemsLast(V))
+    requires containsVal(V, VS)
+  rule setIntersectionItems(valItemsLast(V:Val), VS:ValItems) => set()
+    requires notBool containsVal(V, VS)
+  rule setIntersectionItems(valItemsCons(V:Val, VS1:ValItems), VS2:ValItems) =>
+    setPrependValue(V, setIntersectionItems(VS1, VS2))
+    requires containsVal(V, VS2)
+  rule setIntersectionItems(valItemsCons(V:Val, VS1:ValItems), VS2:ValItems) =>
+    setIntersectionItems(VS1, VS2)
+    requires notBool containsVal(V, VS2)
+
+  rule setDifferenceValue(set(), S:Val) => set()
+    requires isSetVal(S)
+  rule setDifferenceValue(setVal(VS:ValItems), set()) => setVal(VS)
+  rule setDifferenceValue(setVal(VS1:ValItems), setVal(VS2:ValItems)) =>
+    setDifferenceItems(VS1, VS2)
+
+  rule setDifferenceItems(valItemsLast(V:Val), VS:ValItems) => set()
+    requires containsVal(V, VS)
+  rule setDifferenceItems(valItemsLast(V:Val), VS:ValItems) =>
+    setVal(valItemsLast(V))
+    requires notBool containsVal(V, VS)
+  rule setDifferenceItems(valItemsCons(V:Val, VS1:ValItems), VS2:ValItems) =>
+    setDifferenceItems(VS1, VS2)
+    requires containsVal(V, VS2)
+  rule setDifferenceItems(valItemsCons(V:Val, VS1:ValItems), VS2:ValItems) =>
+    setPrependValue(V, setDifferenceItems(VS1, VS2))
+    requires notBool containsVal(V, VS2)
+
+  rule setSymmetricDifferenceValue(S1:Val, S2:Val) =>
+    setUnionValue(setDifferenceValue(S1, S2), setDifferenceValue(S2, S1))
+    requires isSetVal(S1) andBool isSetVal(S2)
 
   rule zeroBytes(0) => #bytes()
   rule zeroBytes(N:Int) => bytesVal(repeatValItems(valItemsLast(0), N))
@@ -14099,6 +14173,13 @@ module PYTHON
     requires isIntLike(V)
   rule V:Val - F:Float => floatValue(V) -Float F
     requires isIntLike(V)
+  rule V1:Val - V2:Val => setDifferenceValue(V1, V2)
+    requires isSetVal(V1) andBool isSetVal(V2)
+  rule <k> V1:Val - V2:Val =>
+           exceptionSignal(#exception(#token("TypeError", "Id")))
+       ... </k>
+    requires (isSetVal(V1) andBool notBool isSetVal(V2))
+      orBool (notBool isSetVal(V1) andBool isSetVal(V2))
   rule V1:Val * V2:Val => intValue(V1) *Int intValue(V2)
     requires isIntLike(V1) andBool isIntLike(V2)
   rule F1:Float * F2:Float => F1 *Float F2
@@ -14592,10 +14673,26 @@ module PYTHON
     requires isIntLike(V1) andBool isIntLike(V2) andBool intValue(V2) >=Int 0
   rule V1:Val & V2:Val => intValue(V1) &Int intValue(V2)
     requires isIntLike(V1) andBool isIntLike(V2)
+  rule V1:Val & V2:Val => setIntersectionValue(V1, V2)
+    requires isSetVal(V1) andBool isSetVal(V2)
+  rule <k> V1:Val & V2:Val =>
+           exceptionSignal(#exception(#token("TypeError", "Id")))
+       ... </k>
+    requires (isSetVal(V1) andBool notBool isSetVal(V2))
+      orBool (notBool isSetVal(V1) andBool isSetVal(V2))
   rule V1:Val ^ V2:Val => intValue(V1) xorInt intValue(V2)
     requires isIntLike(V1) andBool isIntLike(V2)
+  rule V1:Val ^ V2:Val => setSymmetricDifferenceValue(V1, V2)
+    requires isSetVal(V1) andBool isSetVal(V2)
+  rule <k> V1:Val ^ V2:Val =>
+           exceptionSignal(#exception(#token("TypeError", "Id")))
+       ... </k>
+    requires (isSetVal(V1) andBool notBool isSetVal(V2))
+      orBool (notBool isSetVal(V1) andBool isSetVal(V2))
   rule V1:Val | V2:Val => intValue(V1) |Int intValue(V2)
     requires isIntLike(V1) andBool isIntLike(V2)
+  rule V1:Val | V2:Val => setUnionValue(V1, V2)
+    requires isSetVal(V1) andBool isSetVal(V2)
   rule V1:Val | V2:Val => dictUpdateValue(V1, V2)
     requires isDictVal(V1) andBool isDictVal(V2)
   rule <k> V1:Val | V2:Val =>
@@ -14606,6 +14703,18 @@ module PYTHON
            exceptionSignal(#exception(#token("TypeError", "Id")))
        ... </k>
     requires notBool isDictVal(V1) andBool isDictVal(V2)
+  rule <k> V1:Val | V2:Val =>
+           exceptionSignal(#exception(#token("TypeError", "Id")))
+       ... </k>
+    requires isSetVal(V1)
+      andBool notBool isSetVal(V2)
+      andBool notBool isDictVal(V2)
+  rule <k> V1:Val | V2:Val =>
+           exceptionSignal(#exception(#token("TypeError", "Id")))
+       ... </k>
+    requires notBool isSetVal(V1)
+      andBool isSetVal(V2)
+      andBool notBool isDictVal(V1)
   rule S1:String + S2:String => S1 +String S2
   rule #bytes() + #bytes() => #bytes()
   rule #bytes() + bytesVal(VS:ValItems) => bytesVal(VS)

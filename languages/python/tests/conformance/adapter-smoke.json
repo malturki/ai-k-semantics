@@ -3581,6 +3581,13 @@
       "coverage": ["dict-methods", "dict-get-method", "dict-copy-method", "dict-clear-method", "dict-pop-method", "dict-popitem-method", "dict-setdefault-method", "insertion-order", "lifo-popitem", "key-error", "type-error", "ordinary-python-source-adapter"]
     },
     {
+      "id": "adapter-dict-fromkeys-update",
+      "source": "../adapter/adapter-dict-fromkeys-update.py",
+      "reference": "Python 3.14.6 Standard Library Built-in Types dict.fromkeys(iterable, value=None) and dict.update([other])",
+      "expected_result": "True ~> .K",
+      "coverage": ["dict-fromkeys-method", "dict-update-method", "dict-duplicate-key-overwrite", "dict-iterable-pair-update", "dict-update-error-diagnostics", "type-error", "value-error", "ordinary-python-source-adapter"]
+    },
+    {
       "id": "adapter-dict-truthy",
       "source": "../adapter/adapter-dict-truthy.py",
       "reference": "Python Language Reference 6.2.7 Dictionary displays; Standard Library truth value testing",

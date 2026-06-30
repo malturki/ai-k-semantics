@@ -960,6 +960,18 @@ def emit_exp(exp: ast.expr) -> str:
             return emit_complex_ctor_keywords(exp, arg, keywords)
         case ast.Call(func=ast.Name(id="complex"), keywords=keywords) if keywords:
             raise unsupported(exp, "complex constructor supports at most one positional argument with keywords")
+        case ast.Call(
+            func=ast.Attribute(value=ast.Name(id="dict"), attr="fromkeys", ctx=ast.Load()),
+            args=[iterable],
+            keywords=[],
+        ):
+            return f"#dictFromKeys({emit_exp(iterable)})"
+        case ast.Call(
+            func=ast.Attribute(value=ast.Name(id="dict"), attr="fromkeys", ctx=ast.Load()),
+            args=[iterable, value],
+            keywords=[],
+        ):
+            return f"#dictFromKeys({emit_exp(iterable)}, {emit_exp(value)})"
         case ast.Call(func=ast.Attribute(value=value, attr="conjugate", ctx=ast.Load()), args=[], keywords=[]):
             return f"#conjugate({emit_exp(value)})"
         case ast.Call(
@@ -972,13 +984,13 @@ def emit_exp(exp: ast.expr) -> str:
             func=ast.Attribute(value=ast.Name(id=name), attr=attr, ctx=ast.Load()),
             args=[],
             keywords=[],
-        ) if attr in {"capitalize", "clear", "copy", "decode", "expandtabs", "hex", "isalnum", "isalpha", "isascii", "isdigit", "islower", "isspace", "istitle", "isupper", "lower", "lstrip", "pop", "popitem", "reverse", "rsplit", "rstrip", "sort", "split", "splitlines", "strip", "swapcase", "title", "upper"}:
+        ) if attr in {"capitalize", "clear", "copy", "decode", "expandtabs", "hex", "isalnum", "isalpha", "isascii", "isdigit", "islower", "isspace", "istitle", "isupper", "lower", "lstrip", "pop", "popitem", "reverse", "rsplit", "rstrip", "sort", "split", "splitlines", "strip", "swapcase", "title", "update", "upper"}:
             return f"#methodCall0({emit_id(name)}, {emit_id(attr)})"
         case ast.Call(
             func=ast.Attribute(value=ast.Name(id=name), attr=attr, ctx=ast.Load()),
             args=[arg],
             keywords=[],
-        ) if attr in {"append", "center", "count", "decode", "endswith", "expandtabs", "extend", "find", "get", "hex", "index", "join", "ljust", "lstrip", "partition", "pop", "remove", "removeprefix", "removesuffix", "rfind", "rindex", "rjust", "rpartition", "rsplit", "rstrip", "setdefault", "sort", "split", "splitlines", "startswith", "strip", "translate", "zfill"}:
+        ) if attr in {"append", "center", "count", "decode", "endswith", "expandtabs", "extend", "find", "get", "hex", "index", "join", "ljust", "lstrip", "partition", "pop", "remove", "removeprefix", "removesuffix", "rfind", "rindex", "rjust", "rpartition", "rsplit", "rstrip", "setdefault", "sort", "split", "splitlines", "startswith", "strip", "translate", "update", "zfill"}:
             return f"#methodCall({emit_id(name)}, {emit_id(attr)}, {emit_exp(arg)})"
         case ast.Call(
             func=ast.Attribute(value=ast.Name(id=name), attr=attr, ctx=ast.Load()),

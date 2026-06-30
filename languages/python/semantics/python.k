@@ -413,6 +413,8 @@ module PYTHON-SYNTAX
                | "#dictCtor" "(" Exp ")" [symbol(dictCtor1Exp), strict]
                | "#dictCtorKw" "(" KwArgExps ")" [symbol(dictCtorKwExp)]
                | "#dictCtorMixed" "(" Exp "," KwArgExps ")" [symbol(dictCtorMixedExp), strict(1)]
+               | "#dictFromKeys" "(" Exp ")" [symbol(dictFromKeysExp)]
+               | "#dictFromKeys" "(" Exp "," Exp ")" [symbol(dictFromKeys2Exp)]
                | "#setCtor" "(" ")" [symbol(setCtorExp)]
                | "#setCtor" "(" Exp ")" [symbol(setCtor1Exp), strict]
                | "#bytesCtor" "(" ")" [symbol(bytesCtorExp)]
@@ -738,6 +740,9 @@ module PYTHON
                  | listSortKeyCollectReverse(Id, ArgVals, KeyedVals, Val, Val) [symbol(listSortKeyCollectReverse)]
                  | listSortKeyAdd(Id, Val, ArgVals, KeyedVals, Val) [symbol(listSortKeyAdd)]
                  | listSortKeyAddReverse(Id, Val, ArgVals, KeyedVals, Val, Val) [symbol(listSortKeyAddReverse)]
+                 | "dictFromKeysDefault" [symbol(dictFromKeysDefault)]
+                 | dictFromKeysIterDefault(Exp) [symbol(dictFromKeysIterDefault)]
+                 | dictFromKeysApply(Val) [symbol(dictFromKeysApply)]
                  | roundDefault() [symbol(roundDefault)]
                  | roundNdigits(Exp) [symbol(roundNdigits)]
                  | roundApply(Val) [symbol(roundApply)]
@@ -1573,6 +1578,16 @@ module PYTHON
                 | isDictVal(Val) [function, symbol(isDictVal)]
                 | dictLookupKeySupported(Val) [function, symbol(dictLookupKeySupported)]
                 | dictLookupKeyItemsSupported(ValItems) [function, symbol(dictLookupKeyItemsSupported)]
+                | dictFromKeysArgValsSupported(ArgVals) [function, symbol(dictFromKeysArgValsSupported)]
+                | dictUpdateSourceSupported(Val) [function, symbol(dictUpdateSourceSupported)]
+                | dictUpdateSourceValueError(Val) [function, symbol(dictUpdateSourceValueError)]
+                | dictUpdateSourceTypeError(Val) [function, symbol(dictUpdateSourceTypeError)]
+                | dictUpdateArgValsOk(ArgVals) [function, symbol(dictUpdateArgValsOk)]
+                | dictUpdateArgValsValueError(ArgVals) [function, symbol(dictUpdateArgValsValueError)]
+                | dictUpdateArgValsTypeError(ArgVals) [function, symbol(dictUpdateArgValsTypeError)]
+                | dictUpdatePairOk(Val) [function, symbol(dictUpdatePairOk)]
+                | dictUpdatePairValueError(Val) [function, symbol(dictUpdatePairValueError)]
+                | dictUpdatePairTypeError(Val) [function, symbol(dictUpdatePairTypeError)]
                 | subscriptLookupable(Val, Val) [function, symbol(subscriptLookupable)]
                 | subscriptSettable(Val, Val) [function, symbol(subscriptSettable)]
                 | subscriptDeletable(Val, Val) [function, symbol(subscriptDeletable)]
@@ -2088,6 +2103,8 @@ module PYTHON
                     | appendDictUnpack(DictVals, Val) [function, symbol(appendDictUnpack)]
                     | appendDictItems(DictVals, DictItems) [function, symbol(appendDictItems)]
                     | appendDictPairVal(DictVals, Val) [function, symbol(appendDictPairVal)]
+                    | dictFromKeysArgVals(ArgVals, Val, DictVals) [function, symbol(dictFromKeysArgVals)]
+                    | dictUpdateArgVals(DictVals, ArgVals) [function, symbol(dictUpdateArgVals)]
                     | matchMappingRestVals(DictItems, MatchMapPatterns) [function, symbol(matchMappingRestVals)]
                     | dictCtorPairs(ValItems, DictVals) [function, symbol(dictCtorPairs)]
                     | appendKwDictVals(DictVals, KwArgVals) [function, symbol(appendKwDictVals)]
@@ -2127,6 +2144,7 @@ module PYTHON
   syntax Map ::= bindOneVal(Map, Id, Val) [function, symbol(bindOneVal)]
   syntax Map ::= bindStarUnpack(Map, IdItems, Id, IdItems, ValItems) [function, symbol(bindStarUnpack)]
   syntax ValItems ::= argValsToValItems(ArgVals) [function, symbol(argValsToValItems)]
+  syntax ValItems ::= dictPairItems(Val) [function, symbol(dictPairItems)]
   syntax ValItems ::= argValsToSetItems(ArgVals) [function, symbol(argValsToSetItems)]
   syntax ValItems ::= concreteIterableExtraItems(Val) [function, symbol(concreteIterableExtraItems)]
   syntax ValItems ::= stringToValItems(String, Int, Int) [function, symbol(stringToValItems)]
@@ -2216,6 +2234,10 @@ module PYTHON
                | bytearrayInsertByte(Val, Int, Val) [function, symbol(bytearrayInsertByte)]
                | bytearrayReverse(Val) [function, symbol(bytearrayReverse)]
   syntax Val ::= dictFromDictVals(DictVals) [function, symbol(dictFromDictVals)]
+  syntax Val ::= dictFromKeysValue(Val, Val) [function, symbol(dictFromKeysValue)]
+               | dictUpdateValue(Val, Val) [function, symbol(dictUpdateValue)]
+               | dictPairKey(Val) [function, symbol(dictPairKey)]
+               | dictPairValue(Val) [function, symbol(dictPairValue)]
   syntax Val ::= dictCtorFromPairs(ValItems) [function, symbol(dictCtorFromPairs)]
   syntax Val ::= dictCtorFromKwArgs(KwArgVals) [function, symbol(dictCtorFromKwArgs)]
   syntax Val ::= dictCtorMergeKw(Val, KwArgVals) [function, symbol(dictCtorMergeKw)]
@@ -7481,6 +7503,28 @@ module PYTHON
   rule dictFromDictVals(DVS:DictVals) => dictVal(dictValsToDictItems(DVS))
     requires notBool emptyDictVals(DVS)
 
+  rule dictFromKeysValue(Iter:Val, Default:Val) =>
+    dictFromDictVals(dictFromKeysArgVals(iterableArgVals(Iter), Default, #noDictVals))
+    requires unpackValueSupported(Iter)
+      andBool dictFromKeysArgValsSupported(iterableArgVals(Iter))
+
+  rule dictUpdateValue(Base:Val, ({}):Val) => Base
+    requires isDictVal(Base)
+  rule dictUpdateValue(({}):Val, dictVal(DS:DictItems)) =>
+    dictFromDictVals(appendDictItems(#noDictVals, DS))
+  rule dictUpdateValue(dictVal(DS:DictItems), dictVal(Src:DictItems)) =>
+    dictFromDictVals(appendDictItems(appendDictItems(#noDictVals, DS), Src))
+  rule dictUpdateValue(({}):Val, Src:Val) =>
+    dictFromDictVals(dictUpdateArgVals(#noDictVals, iterableArgVals(Src)))
+    requires notBool isDictVal(Src)
+      andBool unpackValueSupported(Src)
+      andBool dictUpdateArgValsOk(iterableArgVals(Src))
+  rule dictUpdateValue(dictVal(DS:DictItems), Src:Val) =>
+    dictFromDictVals(dictUpdateArgVals(appendDictItems(#noDictVals, DS), iterableArgVals(Src)))
+    requires notBool isDictVal(Src)
+      andBool unpackValueSupported(Src)
+      andBool dictUpdateArgValsOk(iterableArgVals(Src))
+
   rule dictCtorFromKwArgs(KWS:KwArgVals) => dictFromDictVals(appendKwDictVals(#noDictVals, KWS))
 
   rule dictCtorMergeKw(({}):Val, KWS:KwArgVals) => dictCtorFromKwArgs(KWS)
@@ -7579,6 +7623,19 @@ module PYTHON
     appendDictVal(DVS, K, V)
   rule appendDictPairVal(DVS:DictVals, tupleVal(valItemsCons(K:Val, valItemsLast(V:Val)))) =>
     appendDictVal(DVS, K, V)
+
+  rule dictPairItems(V:Val) => argValsToValItems(iterableArgVals(V))
+    requires unpackValueSupported(V) andBool unpackValueLen(V) ==Int 2
+  rule dictPairKey(V:Val) => listGet(dictPairItems(V), 0)
+  rule dictPairValue(V:Val) => listGet(dictPairItems(V), 1)
+
+  rule dictFromKeysArgVals(#noArgVals, _Default:Val, DVS:DictVals) => DVS
+  rule dictFromKeysArgVals(argValsCons(K:Val, Rest:ArgVals), Default:Val, DVS:DictVals) =>
+    dictFromKeysArgVals(Rest, Default, appendDictVal(DVS, K, Default))
+
+  rule dictUpdateArgVals(DVS:DictVals, #noArgVals) => DVS
+  rule dictUpdateArgVals(DVS:DictVals, argValsCons(Pair:Val, Rest:ArgVals)) =>
+    dictUpdateArgVals(appendDictVal(DVS, dictPairKey(Pair), dictPairValue(Pair)), Rest)
 
   rule dictCtorPairs(valItemsLast(Pair:Val), DVS:DictVals) =>
     appendDictPairVal(DVS, Pair)
@@ -13728,6 +13785,82 @@ module PYTHON
   rule dictLookupKeyItemsSupported(valItemsCons(V:Val, VS:ValItems)) =>
     dictLookupKeySupported(V) andBool dictLookupKeyItemsSupported(VS)
 
+  rule dictFromKeysArgValsSupported(#noArgVals) => true
+  rule dictFromKeysArgValsSupported(argValsCons(K:Val, Rest:ArgVals)) =>
+    dictLookupKeySupported(K) andBool dictFromKeysArgValsSupported(Rest)
+
+  rule dictUpdateSourceSupported(V:Val) =>
+    isDictVal(V) orBool unpackValueSupported(V)
+
+  rule dictUpdateSourceValueError(V:Val) => false
+    requires isDictVal(V)
+  rule dictUpdateSourceValueError(V:Val) => dictUpdateArgValsValueError(iterableArgVals(V))
+    requires notBool isDictVal(V) andBool unpackValueSupported(V)
+  rule dictUpdateSourceValueError(V:Val) => false
+    requires notBool unpackValueSupported(V)
+
+  rule dictUpdateSourceTypeError(V:Val) => false
+    requires isDictVal(V)
+  rule dictUpdateSourceTypeError(V:Val) => true
+    requires notBool unpackValueSupported(V)
+  rule dictUpdateSourceTypeError(V:Val) => dictUpdateArgValsTypeError(iterableArgVals(V))
+    requires notBool isDictVal(V) andBool unpackValueSupported(V)
+
+  rule dictUpdateArgValsOk(#noArgVals) => true
+  rule dictUpdateArgValsOk(argValsCons(Pair:Val, Rest:ArgVals)) =>
+    dictUpdatePairOk(Pair) andBool dictUpdateArgValsOk(Rest)
+
+  rule dictUpdateArgValsValueError(#noArgVals) => false
+  rule dictUpdateArgValsValueError(argValsCons(Pair:Val, _Rest:ArgVals)) => true
+    requires dictUpdatePairValueError(Pair)
+  rule dictUpdateArgValsValueError(argValsCons(Pair:Val, Rest:ArgVals)) =>
+    dictUpdateArgValsValueError(Rest)
+    requires dictUpdatePairOk(Pair)
+  rule dictUpdateArgValsValueError(argValsCons(Pair:Val, _Rest:ArgVals)) => false
+    requires dictUpdatePairTypeError(Pair)
+
+  rule dictUpdateArgValsTypeError(#noArgVals) => false
+  rule dictUpdateArgValsTypeError(argValsCons(Pair:Val, _Rest:ArgVals)) => true
+    requires dictUpdatePairTypeError(Pair)
+  rule dictUpdateArgValsTypeError(argValsCons(Pair:Val, Rest:ArgVals)) =>
+    dictUpdateArgValsTypeError(Rest)
+    requires dictUpdatePairOk(Pair)
+  rule dictUpdateArgValsTypeError(argValsCons(Pair:Val, _Rest:ArgVals)) => false
+    requires dictUpdatePairValueError(Pair)
+
+  rule dictUpdatePairOk(Pair:Val) => true
+    requires unpackValueSupported(Pair)
+      andBool unpackValueLen(Pair) ==Int 2
+      andBool dictLookupKeySupported(dictPairKey(Pair))
+  rule dictUpdatePairOk(Pair:Val) => false
+    requires notBool unpackValueSupported(Pair)
+  rule dictUpdatePairOk(Pair:Val) => false
+    requires unpackValueSupported(Pair) andBool unpackValueLen(Pair) =/=Int 2
+  rule dictUpdatePairOk(Pair:Val) => false
+    requires unpackValueSupported(Pair)
+      andBool unpackValueLen(Pair) ==Int 2
+      andBool notBool dictLookupKeySupported(dictPairKey(Pair))
+
+  rule dictUpdatePairValueError(Pair:Val) => true
+    requires unpackValueSupported(Pair) andBool unpackValueLen(Pair) =/=Int 2
+  rule dictUpdatePairValueError(Pair:Val) => false
+    requires notBool unpackValueSupported(Pair)
+  rule dictUpdatePairValueError(Pair:Val) => false
+    requires unpackValueSupported(Pair) andBool unpackValueLen(Pair) ==Int 2
+
+  rule dictUpdatePairTypeError(Pair:Val) => true
+    requires notBool unpackValueSupported(Pair)
+  rule dictUpdatePairTypeError(Pair:Val) => true
+    requires unpackValueSupported(Pair)
+      andBool unpackValueLen(Pair) ==Int 2
+      andBool notBool dictLookupKeySupported(dictPairKey(Pair))
+  rule dictUpdatePairTypeError(Pair:Val) => false
+    requires unpackValueSupported(Pair) andBool unpackValueLen(Pair) =/=Int 2
+  rule dictUpdatePairTypeError(Pair:Val) => false
+    requires unpackValueSupported(Pair)
+      andBool unpackValueLen(Pair) ==Int 2
+      andBool dictLookupKeySupported(dictPairKey(Pair))
+
   rule subscriptLookupable(listVal(VS:ValItems), I:Val) =>
     intValue(I) <Int valItemsLen(VS)
     requires isIntLike(I) andBool intValue(I) >=Int 0
@@ -19718,6 +19851,51 @@ module PYTHON
   rule #listCtor() => []
   rule #tupleCtor() => ()
   rule #dictCtor() => ({}):Val
+  rule <k> #dictFromKeys(Iter:Exp) =>
+           Iter ~> dictFromKeysDefault
+       ... </k>
+    requires notBool isKResult(Iter)
+  rule <k> Iter:Val ~> dictFromKeysDefault =>
+           #dictFromKeys(Iter, None)
+       ... </k>
+  rule #dictFromKeys(Iter:Val) => #dictFromKeys(Iter, None)
+  rule <k> #dictFromKeys(Iter:Exp, Default:Exp) =>
+           Iter ~> dictFromKeysIterDefault(Default)
+       ... </k>
+    requires notBool isKResult(Iter)
+  rule <k> Iter:Val ~> dictFromKeysIterDefault(Default:Exp) =>
+           #dictFromKeys(Iter, Default)
+       ... </k>
+  rule <k> #dictFromKeys(Iter:Val, Default:Exp) =>
+           Default ~> dictFromKeysApply(Iter)
+       ... </k>
+    requires notBool isKResult(Default)
+  rule <k> Default:Val ~> dictFromKeysApply(Iter:Val) =>
+           dictFromKeysValue(Iter, Default)
+       ... </k>
+    requires unpackValueSupported(Iter)
+      andBool dictFromKeysArgValsSupported(iterableArgVals(Iter))
+  rule <k> _Default:Val ~> dictFromKeysApply(Iter:Val) =>
+           exceptionSignal(#exception(#token("TypeError", "Id")))
+       ... </k>
+    requires notBool unpackValueSupported(Iter)
+  rule <k> _Default:Val ~> dictFromKeysApply(Iter:Val) =>
+           exceptionSignal(#exception(#token("TypeError", "Id")))
+       ... </k>
+    requires unpackValueSupported(Iter)
+      andBool notBool dictFromKeysArgValsSupported(iterableArgVals(Iter))
+  rule #dictFromKeys(Iter:Val, Default:Val) => dictFromKeysValue(Iter, Default)
+    requires unpackValueSupported(Iter)
+      andBool dictFromKeysArgValsSupported(iterableArgVals(Iter))
+  rule <k> #dictFromKeys(Iter:Val, _Default:Val) =>
+           exceptionSignal(#exception(#token("TypeError", "Id")))
+       ... </k>
+    requires notBool unpackValueSupported(Iter)
+  rule <k> #dictFromKeys(Iter:Val, _Default:Val) =>
+           exceptionSignal(#exception(#token("TypeError", "Id")))
+       ... </k>
+    requires unpackValueSupported(Iter)
+      andBool notBool dictFromKeysArgValsSupported(iterableArgVals(Iter))
   rule #setCtor() => set()
   rule #setCtor(V:Val) => setFromArgVals(iterableArgVals(V))
   rule #sorted(V:Val) => sortedListVal(iterableArgVals(V))
@@ -21794,6 +21972,10 @@ module PYTHON
   rule <k> #methodCall0(X:Id, Method:Id) => dictPopItemPair(DS) ... </k>
        <env> ... X |-> (dictVal(DS:DictItems) => dictPopItemRest(DS)) ... </env>
     requires Id2String(Method) ==String "popitem"
+  rule <k> #methodCall0(X:Id, Method:Id) => None ... </k>
+       <env> ... X |-> B:Val ... </env>
+    requires Id2String(Method) ==String "update"
+      andBool isDictVal(B)
   rule <k> #methodCall0(X:Id, Method:Id) =>
            exceptionSignal(#exception(#token("IndexError", "Id")))
        ... </k>
@@ -22042,6 +22224,7 @@ module PYTHON
               orBool Id2String(Method) ==String "strip"
               orBool Id2String(Method) ==String "swapcase"
               orBool Id2String(Method) ==String "title"
+              orBool Id2String(Method) ==String "update"
               orBool Id2String(Method) ==String "upper")
       andBool notBool isBytearrayVal(B)
       andBool notBool ((Id2String(Method) ==String "split"
@@ -22073,7 +22256,8 @@ module PYTHON
         orBool Id2String(Method) ==String "sort") andBool isListSequence(B))
       andBool notBool ((Id2String(Method) ==String "clear"
         orBool Id2String(Method) ==String "copy"
-        orBool Id2String(Method) ==String "popitem") andBool isDictVal(B))
+        orBool Id2String(Method) ==String "popitem"
+        orBool Id2String(Method) ==String "update") andBool isDictVal(B))
   rule <k> #methodCall(X:Id, Method:Id, Enc:String) => bytesDecodeString(B, Enc) ... </k>
        <env> ... X |-> B:Val ... </env>
     requires Id2String(Method) ==String "decode"
@@ -23285,6 +23469,27 @@ module PYTHON
     requires Id2String(Method) ==String "setdefault"
       andBool dictLookupKeySupported(K)
       andBool notBool containsKey(K, DS)
+  rule <k> #methodCall(X:Id, Method:Id, Src:Val) => None ... </k>
+       <env> ... X |-> (B:Val => dictUpdateValue(B, Src)) ... </env>
+    requires Id2String(Method) ==String "update"
+      andBool isDictVal(B)
+      andBool dictUpdateSourceSupported(Src)
+      andBool notBool dictUpdateSourceValueError(Src)
+      andBool notBool dictUpdateSourceTypeError(Src)
+  rule <k> #methodCall(X:Id, Method:Id, Src:Val) =>
+           exceptionSignal(#exception(#token("ValueError", "Id")))
+       ... </k>
+       <env> ... X |-> B:Val ... </env>
+    requires Id2String(Method) ==String "update"
+      andBool isDictVal(B)
+      andBool dictUpdateSourceValueError(Src)
+  rule <k> #methodCall(X:Id, Method:Id, Src:Val) =>
+           exceptionSignal(#exception(#token("TypeError", "Id")))
+       ... </k>
+       <env> ... X |-> B:Val ... </env>
+    requires Id2String(Method) ==String "update"
+      andBool isDictVal(B)
+      andBool dictUpdateSourceTypeError(Src)
   rule <k> #methodCall(X:Id, Method:Id, _Arg:Val) =>
            exceptionSignal(#exception(#token("TypeError", "Id")))
        ... </k>
@@ -23554,6 +23759,7 @@ module PYTHON
               orBool Id2String(Method) ==String "strip"
               orBool Id2String(Method) ==String "lstrip"
               orBool Id2String(Method) ==String "translate"
+              orBool Id2String(Method) ==String "update"
               orBool Id2String(Method) ==String "zfill")
       andBool notBool isBytearrayVal(B)
       andBool notBool ((Id2String(Method) ==String "split"
@@ -23591,7 +23797,8 @@ module PYTHON
         orBool Id2String(Method) ==String "sort") andBool isListSequence(B))
       andBool notBool ((Id2String(Method) ==String "get"
         orBool Id2String(Method) ==String "pop"
-        orBool Id2String(Method) ==String "setdefault") andBool isDictVal(B))
+        orBool Id2String(Method) ==String "setdefault"
+        orBool Id2String(Method) ==String "update") andBool isDictVal(B))
   rule <k> #methodCall2(X:Id, Method:Id, Enc:Val, _Errors:Val) =>
            exceptionSignal(#exception(#token("TypeError", "Id")))
        ... </k>
@@ -28700,6 +28907,9 @@ module PYTHON
   rule <k> exceptionSignal(V:Val) ~> formatDefault() => exceptionSignal(V) ... </k>
   rule <k> exceptionSignal(V:Val) ~> formatSpec(_:Exp) => exceptionSignal(V) ... </k>
   rule <k> exceptionSignal(V:Val) ~> formatApply(_:Val) => exceptionSignal(V) ... </k>
+  rule <k> exceptionSignal(V:Val) ~> dictFromKeysDefault => exceptionSignal(V) ... </k>
+  rule <k> exceptionSignal(V:Val) ~> dictFromKeysIterDefault(_:Exp) => exceptionSignal(V) ... </k>
+  rule <k> exceptionSignal(V:Val) ~> dictFromKeysApply(_:Val) => exceptionSignal(V) ... </k>
   rule <k> exceptionSignal(V:Val) ~> sortedReverseFlag(_:Exp) => exceptionSignal(V) ... </k>
   rule <k> exceptionSignal(V:Val) ~> sortedReverseApply(_:Val) => exceptionSignal(V) ... </k>
   rule <k> exceptionSignal(V:Val) ~> sortedKeyEval(_:Exp) => exceptionSignal(V) ... </k>

@@ -30,6 +30,7 @@ SUPPORTED_ZERO_ARG_CLASS_PATTERNS = {
     "complex",
     "dict",
     "float",
+    "frozenset",
     "int",
     "list",
     "range",
@@ -44,6 +45,7 @@ SUPPORTED_SINGLE_ARG_CLASS_PATTERNS = {
     "bytes",
     "dict",
     "float",
+    "frozenset",
     "int",
     "list",
     "set",
@@ -51,6 +53,7 @@ SUPPORTED_SINGLE_ARG_CLASS_PATTERNS = {
     "tuple",
 }
 CLASS_PATTERN_ID_ALIASES = {
+    "frozenset": "kFrozenSetClassName",
     "set": "kSetClassName",
 }
 SUPPORTED_GETATTR_NAMES = {
@@ -70,6 +73,7 @@ SUPPORTED_BUILTIN_CLASS_NAMES = {
     "complex",
     "dict",
     "float",
+    "frozenset",
     "int",
     "list",
     "memoryview",
@@ -922,6 +926,10 @@ def emit_exp(exp: ast.expr) -> str:
             return "#setCtor()"
         case ast.Call(func=ast.Name(id="set"), args=[arg], keywords=[]):
             return f"#setCtor({emit_exp(arg)})"
+        case ast.Call(func=ast.Name(id="frozenset"), args=[], keywords=[]):
+            return "#frozensetCtor()"
+        case ast.Call(func=ast.Name(id="frozenset"), args=[arg], keywords=[]):
+            return f"#frozensetCtor({emit_exp(arg)})"
         case ast.Call(func=ast.Name(id="bytes"), args=[], keywords=[]):
             return "#bytesCtor()"
         case ast.Call(func=ast.Name(id="bytes"), args=[arg], keywords=[]):

@@ -27,6 +27,8 @@ module PYTHON-SYNTAX
                | "{" DictItems "}" [symbol(dictVal)]
                | "set" "(" ")" [symbol(emptySetVal)]
                | "{" ValItems "}" [symbol(setVal)]
+               | "frozenset" "(" ")" [symbol(emptyFrozenSetVal)]
+               | "frozenset" "(" ValItems ")" [symbol(frozensetVal)]
                | "#kwDefaultMissing" [symbol(kwDefaultMissing)]
                | "#exception" "(" Id ")" [symbol(exceptionVal)]
 
@@ -417,6 +419,8 @@ module PYTHON-SYNTAX
                | "#dictFromKeys" "(" Exp "," Exp ")" [symbol(dictFromKeys2Exp)]
                | "#setCtor" "(" ")" [symbol(setCtorExp)]
                | "#setCtor" "(" Exp ")" [symbol(setCtor1Exp), strict]
+               | "#frozensetCtor" "(" ")" [symbol(frozenSetCtorExp)]
+               | "#frozensetCtor" "(" Exp ")" [symbol(frozenSetCtor1Exp), strict]
                | "#bytesCtor" "(" ")" [symbol(bytesCtorExp)]
                | "#bytesCtor" "(" Exp ")" [symbol(bytesCtor1Exp), strict]
                | "#bytesCtor" "(" Exp "," Exp ")" [symbol(bytesCtor2Exp), strict]
@@ -1583,6 +1587,8 @@ module PYTHON
                 | isRangeVal(Val) [function, symbol(isRangeVal)]
                 | isDictVal(Val) [function, symbol(isDictVal)]
                 | isSetVal(Val) [function, symbol(isSetVal)]
+                | isFrozenSetVal(Val) [function, symbol(isFrozenSetVal)]
+                | isSetFamilyVal(Val) [function, symbol(isSetFamilyVal)]
                 | dictLookupKeySupported(Val) [function, symbol(dictLookupKeySupported)]
                 | dictLookupKeyItemsSupported(ValItems) [function, symbol(dictLookupKeyItemsSupported)]
                 | dictFromKeysArgValsSupported(ArgVals) [function, symbol(dictFromKeysArgValsSupported)]
@@ -1606,6 +1612,7 @@ module PYTHON
                 | setItemsSubset(ValItems, ValItems) [function, symbol(setItemsSubset)]
                 | setContainsValue(Val, Val) [function, symbol(setContainsValue)]
                 | setSubsetValue(Val, Val) [function, symbol(setSubsetValue)]
+                | setLikeSubsetValue(Val, Val) [function, symbol(setLikeSubsetValue)]
                 | setMethodIterableSupported(Val) [function, symbol(setMethodIterableSupported)]
                 | setMethodNoArgReturnsSet(Id) [function, symbol(setMethodNoArgReturnsSet)]
                 | setMethodOneIterable(Id) [function, symbol(setMethodOneIterable)]
@@ -2112,11 +2119,18 @@ module PYTHON
                | minNumericItems(ValItems) [function, symbol(minNumericItems)]
                | maxNumericItems(ValItems) [function, symbol(maxNumericItems)]
                | setFromArgVals(ArgVals) [function, symbol(setFromArgVals)]
+               | frozenSetFromArgVals(ArgVals) [function, symbol(frozenSetFromArgVals)]
+               | setLikeAsSet(Val) [function, symbol(setLikeAsSet)]
+               | setLikeResult(Val, Val) [function, symbol(setLikeResult)]
                | setPrependValue(Val, Val) [function, symbol(setPrependValue)]
                | setUnionValue(Val, Val) [function, symbol(setUnionValue)]
                | setIntersectionValue(Val, Val) [function, symbol(setIntersectionValue)]
                | setDifferenceValue(Val, Val) [function, symbol(setDifferenceValue)]
                | setSymmetricDifferenceValue(Val, Val) [function, symbol(setSymmetricDifferenceValue)]
+               | setLikeUnionValue(Val, Val) [function, symbol(setLikeUnionValue)]
+               | setLikeIntersectionValue(Val, Val) [function, symbol(setLikeIntersectionValue)]
+               | setLikeDifferenceValue(Val, Val) [function, symbol(setLikeDifferenceValue)]
+               | setLikeSymmetricDifferenceValue(Val, Val) [function, symbol(setLikeSymmetricDifferenceValue)]
                | setIntersectionItems(ValItems, ValItems) [function, symbol(setIntersectionItems)]
                | setDifferenceItems(ValItems, ValItems) [function, symbol(setDifferenceItems)]
                | setFromIterableValue(Val) [function, symbol(setFromIterableValue)]
@@ -2475,6 +2489,8 @@ module PYTHON
   rule truthy(dictVal(_:DictItems)) => true
   rule truthy(set()) => false
   rule truthy(setVal(_:ValItems)) => true
+  rule truthy(frozenset()) => false
+  rule truthy(frozensetVal(_:ValItems)) => true
   rule truthy(#kwDefaultMissing) => false
   rule truthy(closure(_:Id, _:Exp)) => true
   rule truthy(closureArgs(_:IdItems, _:Exp)) => true
@@ -2574,6 +2590,8 @@ module PYTHON
   rule floatCtorTypeErrorProfile(dictVal(_:DictItems)) => true
   rule floatCtorTypeErrorProfile(set()) => true
   rule floatCtorTypeErrorProfile(setVal(_:ValItems)) => true
+  rule floatCtorTypeErrorProfile(frozenset()) => true
+  rule floatCtorTypeErrorProfile(frozensetVal(_:ValItems)) => true
   rule floatCtorTypeErrorProfile(rangeVal(_:Int, _:Int)) => true
   rule floatCtorTypeErrorProfile(rangeVal(_:Int, _:Int, _:Int)) => true
   rule floatCtorTypeErrorProfile(sliceVal(_:Val, _:Val, _:Val)) => true
@@ -2593,6 +2611,8 @@ module PYTHON
   rule complexCtorTypeErrorProfile(dictVal(_:DictItems)) => true
   rule complexCtorTypeErrorProfile(set()) => true
   rule complexCtorTypeErrorProfile(setVal(_:ValItems)) => true
+  rule complexCtorTypeErrorProfile(frozenset()) => true
+  rule complexCtorTypeErrorProfile(frozensetVal(_:ValItems)) => true
   rule complexCtorTypeErrorProfile(rangeVal(_:Int, _:Int)) => true
   rule complexCtorTypeErrorProfile(rangeVal(_:Int, _:Int, _:Int)) => true
   rule complexCtorTypeErrorProfile(sliceVal(_:Val, _:Val, _:Val)) => true
@@ -2711,6 +2731,8 @@ module PYTHON
   rule pyStringConversionSupported(dictVal(DS:DictItems)) => pyStringConversionDictItemsSupported(DS)
   rule pyStringConversionSupported(set()) => true
   rule pyStringConversionSupported(setVal(VS:ValItems)) => pyStringConversionItemsSupported(VS)
+  rule pyStringConversionSupported(frozenset()) => true
+  rule pyStringConversionSupported(frozensetVal(VS:ValItems)) => pyStringConversionItemsSupported(VS)
   rule pyStringConversionSupported(rangeVal(_:Int, _:Int)) => true
   rule pyStringConversionSupported(rangeVal(_:Int, _:Int, _:Int)) => true
   rule pyStringConversionSupported(sliceVal(Start:Val, Stop:Val, Step:Val)) =>
@@ -2750,6 +2772,8 @@ module PYTHON
   rule pyFormatStr(dictVal(DS:DictItems)) => pyReprStr(dictVal(DS))
   rule pyFormatStr(set()) => pyReprStr(set())
   rule pyFormatStr(setVal(VS:ValItems)) => pyReprStr(setVal(VS))
+  rule pyFormatStr(frozenset()) => pyReprStr(frozenset())
+  rule pyFormatStr(frozensetVal(VS:ValItems)) => pyReprStr(frozensetVal(VS))
   rule pyFormatStr(rangeVal(Start:Int, Stop:Int)) => pyReprStr(rangeVal(Start, Stop))
   rule pyFormatStr(rangeVal(Start:Int, Stop:Int, Step:Int)) => pyReprStr(rangeVal(Start, Stop, Step))
   rule pyFormatStr(sliceVal(Start:Val, Stop:Val, Step:Val)) => pyReprStr(sliceVal(Start, Stop, Step))
@@ -2781,6 +2805,8 @@ module PYTHON
   rule pyReprStr(dictVal(DS:DictItems)) => "{" +String pyReprDictItems(DS) +String "}"
   rule pyReprStr(set()) => "set()"
   rule pyReprStr(setVal(VS:ValItems)) => "{" +String pyReprValItems(VS) +String "}"
+  rule pyReprStr(frozenset()) => "frozenset()"
+  rule pyReprStr(frozensetVal(VS:ValItems)) => "frozenset({" +String pyReprValItems(VS) +String "})"
   rule pyReprStr(rangeVal(Start:Int, Stop:Int)) =>
     "range(" +String Int2String(Start) +String ", " +String Int2String(Stop) +String ")"
   rule pyReprStr(rangeVal(Start:Int, Stop:Int, Step:Int)) =>
@@ -2825,6 +2851,8 @@ module PYTHON
   rule pyAsciiStr(dictVal(DS:DictItems)) => "{" +String pyAsciiDictItems(DS) +String "}"
   rule pyAsciiStr(set()) => "set()"
   rule pyAsciiStr(setVal(VS:ValItems)) => "{" +String pyAsciiValItems(VS) +String "}"
+  rule pyAsciiStr(frozenset()) => "frozenset()"
+  rule pyAsciiStr(frozensetVal(VS:ValItems)) => "frozenset({" +String pyAsciiValItems(VS) +String "})"
   rule pyAsciiStr(rangeVal(Start:Int, Stop:Int)) =>
     "range(" +String Int2String(Start) +String ", " +String Int2String(Stop) +String ")"
   rule pyAsciiStr(rangeVal(Start:Int, Stop:Int, Step:Int)) =>
@@ -4271,6 +4299,8 @@ module PYTHON
   rule isIntLike(dictVal(_:DictItems)) => false
   rule isIntLike(set()) => false
   rule isIntLike(setVal(_:ValItems)) => false
+  rule isIntLike(frozenset()) => false
+  rule isIntLike(frozensetVal(_:ValItems)) => false
   rule isIntLike(#kwDefaultMissing) => false
   rule isIntLike(closure(_:Id, _:Exp)) => false
   rule isIntLike(closureArgs(_:IdItems, _:Exp)) => false
@@ -5290,6 +5320,8 @@ module PYTHON
   rule singletonIdentity(dictVal(_:DictItems)) => false
   rule singletonIdentity(set()) => false
   rule singletonIdentity(setVal(_:ValItems)) => false
+  rule singletonIdentity(frozenset()) => false
+  rule singletonIdentity(frozensetVal(_:ValItems)) => false
   rule singletonIdentity(#kwDefaultMissing) => false
   rule singletonIdentity(closure(_:Id, _:Exp)) => false
   rule singletonIdentity(closureArgs(_:IdItems, _:Exp)) => false
@@ -5382,6 +5414,12 @@ module PYTHON
   rule isSetVal(setVal(_:ValItems)) => true
   rule isSetVal(_:Val) => false [owise]
 
+  rule isFrozenSetVal(frozenset()) => true
+  rule isFrozenSetVal(frozensetVal(_:ValItems)) => true
+  rule isFrozenSetVal(_:Val) => false [owise]
+
+  rule isSetFamilyVal(V:Val) => isSetVal(V) orBool isFrozenSetVal(V)
+
   rule intValue(I:Int) => I
   rule intValue(True) => 1
   rule intValue(False) => 0
@@ -5404,6 +5442,8 @@ module PYTHON
   rule pyLen(dictVal(DS:DictItems)) => dictItemsLen(DS)
   rule pyLen(set()) => 0
   rule pyLen(setVal(VS:ValItems)) => valItemsLen(VS)
+  rule pyLen(frozenset()) => 0
+  rule pyLen(frozensetVal(VS:ValItems)) => valItemsLen(VS)
   rule pyLen(rangeVal(Start:Int, Stop:Int)) => Stop -Int Start
     requires Start <Int Stop
   rule pyLen(rangeVal(Start:Int, Stop:Int)) => 0
@@ -5425,6 +5465,8 @@ module PYTHON
   rule lenSupported(dictVal(_:DictItems)) => true
   rule lenSupported(set()) => true
   rule lenSupported(setVal(_:ValItems)) => true
+  rule lenSupported(frozenset()) => true
+  rule lenSupported(frozensetVal(_:ValItems)) => true
   rule lenSupported(rangeVal(_:Int, _:Int)) => true
   rule lenSupported(rangeVal(_:Int, _:Int, Step:Int)) => Step =/=Int 0
   rule lenSupported(_:Val) => false [owise]
@@ -5701,6 +5743,10 @@ module PYTHON
     requires Id2String(C) ==String "set" orBool Id2String(C) ==String "kSetClassName"
   rule matchBuiltinClass(setVal(_:ValItems), C:Id) => true
     requires Id2String(C) ==String "set" orBool Id2String(C) ==String "kSetClassName"
+  rule matchBuiltinClass(frozenset(), C:Id) => true
+    requires Id2String(C) ==String "frozenset" orBool Id2String(C) ==String "kFrozenSetClassName"
+  rule matchBuiltinClass(frozensetVal(_:ValItems), C:Id) => true
+    requires Id2String(C) ==String "frozenset" orBool Id2String(C) ==String "kFrozenSetClassName"
   rule matchBuiltinClass(rangeVal(_:Int, _:Int), C:Id) => true
     requires Id2String(C) ==String "range"
   rule matchBuiltinClass(rangeVal(_:Int, _:Int, _:Int), C:Id) => true
@@ -5715,6 +5761,8 @@ module PYTHON
       orBool Id2String(C) ==String "bytes"
       orBool Id2String(C) ==String "dict"
       orBool Id2String(C) ==String "float"
+      orBool Id2String(C) ==String "frozenset"
+      orBool Id2String(C) ==String "kFrozenSetClassName"
       orBool Id2String(C) ==String "int"
       orBool Id2String(C) ==String "list"
       orBool Id2String(C) ==String "kSetClassName"
@@ -5730,6 +5778,8 @@ module PYTHON
       orBool Id2String(C) ==String "complex"
       orBool Id2String(C) ==String "dict"
       orBool Id2String(C) ==String "float"
+      orBool Id2String(C) ==String "frozenset"
+      orBool Id2String(C) ==String "kFrozenSetClassName"
       orBool Id2String(C) ==String "int"
       orBool Id2String(C) ==String "list"
       orBool Id2String(C) ==String "memoryview"
@@ -6149,6 +6199,13 @@ module PYTHON
   rule valEq(set(), setVal(_:ValItems)) => false
   rule valEq(setVal(_:ValItems), set()) => false
   rule valEq(setVal(VS1:ValItems), setVal(VS2:ValItems)) => setsEq(VS1, VS2)
+  rule valEq(S1:Val, S2:Val) => valEq(setLikeAsSet(S1), setLikeAsSet(S2))
+    requires isSetFamilyVal(S1) andBool isSetFamilyVal(S2)
+      andBool (isFrozenSetVal(S1) orBool isFrozenSetVal(S2))
+  rule valEq(S:Val, V:Val) => false
+    requires isFrozenSetVal(S) andBool notBool isSetFamilyVal(V)
+  rule valEq(V:Val, S:Val) => false
+    requires notBool isSetFamilyVal(V) andBool isFrozenSetVal(S)
   rule valEq(rangeVal(Start1:Int, Stop1:Int), rangeVal(Start2:Int, Stop2:Int)) =>
     rangeEq(Start1, Stop1, 1, Start2, Stop2, 1)
   rule valEq(rangeVal(Start1:Int, Stop1:Int), rangeVal(Start2:Int, Stop2:Int, Step2:Int)) =>
@@ -6498,6 +6555,10 @@ module PYTHON
   rule cmpHolds(#lt, set(), set()) => false
   rule cmpHolds(#lt, set(), setVal(_:ValItems)) => true
   rule cmpHolds(#lt, setVal(_:ValItems), set()) => false
+  rule cmpHolds(#lt, S1:Val, S2:Val) =>
+    setLikeSubsetValue(S1, S2) andBool notBool valEq(S1, S2)
+    requires isSetFamilyVal(S1) andBool isSetFamilyVal(S2)
+      andBool (isFrozenSetVal(S1) orBool isFrozenSetVal(S2))
   rule cmpHolds(#le, V1:Val, V2:Val) => intValue(V1) <=Int intValue(V2)
     requires isIntLike(V1) andBool isIntLike(V2)
   rule cmpHolds(#le, F1:Float, F2:Float) => F1 <=Float F2
@@ -6513,6 +6574,9 @@ module PYTHON
   rule cmpHolds(#le, set(), set()) => true
   rule cmpHolds(#le, set(), setVal(_:ValItems)) => true
   rule cmpHolds(#le, setVal(_:ValItems), set()) => false
+  rule cmpHolds(#le, S1:Val, S2:Val) => setLikeSubsetValue(S1, S2)
+    requires isSetFamilyVal(S1) andBool isSetFamilyVal(S2)
+      andBool (isFrozenSetVal(S1) orBool isFrozenSetVal(S2))
   rule cmpHolds(#gt, V1:Val, V2:Val) => intValue(V1) >Int intValue(V2)
     requires isIntLike(V1) andBool isIntLike(V2)
   rule cmpHolds(#gt, F1:Float, F2:Float) => F1 >Float F2
@@ -6528,6 +6592,10 @@ module PYTHON
   rule cmpHolds(#gt, set(), set()) => false
   rule cmpHolds(#gt, set(), setVal(_:ValItems)) => false
   rule cmpHolds(#gt, setVal(_:ValItems), set()) => true
+  rule cmpHolds(#gt, S1:Val, S2:Val) =>
+    setLikeSubsetValue(S2, S1) andBool notBool valEq(S1, S2)
+    requires isSetFamilyVal(S1) andBool isSetFamilyVal(S2)
+      andBool (isFrozenSetVal(S1) orBool isFrozenSetVal(S2))
   rule cmpHolds(#ge, V1:Val, V2:Val) => intValue(V1) >=Int intValue(V2)
     requires isIntLike(V1) andBool isIntLike(V2)
   rule cmpHolds(#ge, F1:Float, F2:Float) => F1 >=Float F2
@@ -6543,6 +6611,9 @@ module PYTHON
   rule cmpHolds(#ge, set(), set()) => true
   rule cmpHolds(#ge, set(), setVal(_:ValItems)) => false
   rule cmpHolds(#ge, setVal(_:ValItems), set()) => true
+  rule cmpHolds(#ge, S1:Val, S2:Val) => setLikeSubsetValue(S2, S1)
+    requires isSetFamilyVal(S1) andBool isSetFamilyVal(S2)
+      andBool (isFrozenSetVal(S1) orBool isFrozenSetVal(S2))
   rule cmpHolds(#eq, V1:Val, V2:Val) => valEq(V1, V2)
   rule cmpHolds(#ne, V1:Val, V2:Val) => notBool valEq(V1, V2)
   rule cmpHolds(#is, V1:Val, V2:Val) => valIs(V1, V2)
@@ -6592,6 +6663,8 @@ module PYTHON
   rule cmpHolds(#in, V:Val, dictVal(DS:DictItems)) => containsKey(V, DS)
   rule cmpHolds(#in, _V:Val, set()) => false
   rule cmpHolds(#in, V:Val, setVal(VS:ValItems)) => containsVal(V, VS)
+  rule cmpHolds(#in, _V:Val, frozenset()) => false
+  rule cmpHolds(#in, V:Val, frozensetVal(VS:ValItems)) => containsVal(V, VS)
   rule cmpHolds(#in, V:Val, rangeVal(Start:Int, Stop:Int)) => rangeContains(V, Start, Stop)
   rule cmpHolds(#in, V:Val, rangeVal(Start:Int, Stop:Int, Step:Int)) => rangeContains(V, Start, Stop, Step)
   rule cmpHolds(#notIn, V1:Val, V2:Val) => notBool cmpHolds(#in, V1, V2)
@@ -7461,6 +7534,8 @@ module PYTHON
   rule iterableArgVals(dictVal(DS:DictItems)) => valItemsToArgVals(dictKeysToValItems(DS))
   rule iterableArgVals(set()) => #noArgVals
   rule iterableArgVals(setVal(VS:ValItems)) => valItemsToArgVals(VS)
+  rule iterableArgVals(frozenset()) => #noArgVals
+  rule iterableArgVals(frozensetVal(VS:ValItems)) => valItemsToArgVals(VS)
   rule iterableArgVals(rangeVal(Start:Int, Stop:Int)) => #noArgVals
     requires pyRangeLen(Start, Stop, 1) ==Int 0
   rule iterableArgVals(rangeVal(Start:Int, Stop:Int)) =>
@@ -7897,6 +7972,24 @@ module PYTHON
   rule setFromArgVals(VS:ArgVals) => setVal(argValsToSetItems(VS))
     requires notBool emptyArgVals(VS)
 
+  rule frozenSetFromArgVals(#noArgVals) => frozenset()
+  rule frozenSetFromArgVals(VS:ArgVals) => frozensetVal(argValsToSetItems(VS))
+    requires notBool emptyArgVals(VS)
+
+  rule setLikeAsSet(set()) => set()
+  rule setLikeAsSet(setVal(VS:ValItems)) => setVal(VS)
+  rule setLikeAsSet(frozenset()) => set()
+  rule setLikeAsSet(frozensetVal(VS:ValItems)) => setVal(VS)
+
+  rule setLikeResult(set(), S:Val) => S
+    requires isSetVal(S)
+  rule setLikeResult(setVal(_:ValItems), S:Val) => S
+    requires isSetVal(S)
+  rule setLikeResult(frozenset(), set()) => frozenset()
+  rule setLikeResult(frozenset(), setVal(VS:ValItems)) => frozensetVal(VS)
+  rule setLikeResult(frozensetVal(_:ValItems), set()) => frozenset()
+  rule setLikeResult(frozensetVal(_:ValItems), setVal(VS:ValItems)) => frozensetVal(VS)
+
   rule setPrependValue(V:Val, set()) => setVal(valItemsLast(V))
   rule setPrependValue(V:Val, setVal(VS:ValItems)) => setVal(valItemsCons(V, VS))
 
@@ -7958,11 +8051,31 @@ module PYTHON
     setUnionValue(setDifferenceValue(S1, S2), setDifferenceValue(S2, S1))
     requires isSetVal(S1) andBool isSetVal(S2)
 
+  rule setLikeUnionValue(S1:Val, S2:Val) =>
+    setLikeResult(S1, setUnionValue(setLikeAsSet(S1), setLikeAsSet(S2)))
+    requires isSetFamilyVal(S1) andBool isSetFamilyVal(S2)
+
+  rule setLikeIntersectionValue(S1:Val, S2:Val) =>
+    setLikeResult(S1, setIntersectionValue(setLikeAsSet(S1), setLikeAsSet(S2)))
+    requires isSetFamilyVal(S1) andBool isSetFamilyVal(S2)
+
+  rule setLikeDifferenceValue(S1:Val, S2:Val) =>
+    setLikeResult(S1, setDifferenceValue(setLikeAsSet(S1), setLikeAsSet(S2)))
+    requires isSetFamilyVal(S1) andBool isSetFamilyVal(S2)
+
+  rule setLikeSymmetricDifferenceValue(S1:Val, S2:Val) =>
+    setLikeResult(S1, setSymmetricDifferenceValue(setLikeAsSet(S1), setLikeAsSet(S2)))
+    requires isSetFamilyVal(S1) andBool isSetFamilyVal(S2)
+
   rule setSubsetValue(set(), S:Val) => true
     requires isSetVal(S)
   rule setSubsetValue(setVal(_:ValItems), set()) => false
   rule setSubsetValue(setVal(VS1:ValItems), setVal(VS2:ValItems)) =>
     setItemsSubset(VS1, VS2)
+
+  rule setLikeSubsetValue(S1:Val, S2:Val) =>
+    setSubsetValue(setLikeAsSet(S1), setLikeAsSet(S2))
+    requires isSetFamilyVal(S1) andBool isSetFamilyVal(S2)
 
   rule setMethodIterableSupported(V:Val) => listExtendSourceSupported(V)
 
@@ -7990,45 +8103,45 @@ module PYTHON
     requires setMethodIterableSupported(V)
 
   rule setMethodApplyOne(Method:Id, Base:Val, Other:Val) =>
-    boolValue(valEq(setIntersectionValue(Base, setFromIterableValue(Other)), set()))
+    boolValue(valEq(setLikeIntersectionValue(Base, setFromIterableValue(Other)), set()))
     requires Id2String(Method) ==String "isdisjoint"
   rule setMethodApplyOne(Method:Id, Base:Val, Other:Val) =>
-    boolValue(setSubsetValue(Base, setFromIterableValue(Other)))
+    boolValue(setLikeSubsetValue(Base, setFromIterableValue(Other)))
     requires Id2String(Method) ==String "issubset"
   rule setMethodApplyOne(Method:Id, Base:Val, Other:Val) =>
-    boolValue(setSubsetValue(setFromIterableValue(Other), Base))
+    boolValue(setLikeSubsetValue(setFromIterableValue(Other), Base))
     requires Id2String(Method) ==String "issuperset"
   rule setMethodApplyOne(Method:Id, Base:Val, Other:Val) =>
-    setUnionValue(Base, setFromIterableValue(Other))
+    setLikeUnionValue(Base, setFromIterableValue(Other))
     requires Id2String(Method) ==String "union"
   rule setMethodApplyOne(Method:Id, Base:Val, Other:Val) =>
-    setIntersectionValue(Base, setFromIterableValue(Other))
+    setLikeIntersectionValue(Base, setFromIterableValue(Other))
     requires Id2String(Method) ==String "intersection"
   rule setMethodApplyOne(Method:Id, Base:Val, Other:Val) =>
-    setDifferenceValue(Base, setFromIterableValue(Other))
+    setLikeDifferenceValue(Base, setFromIterableValue(Other))
     requires Id2String(Method) ==String "difference"
   rule setMethodApplyOne(Method:Id, Base:Val, Other:Val) =>
-    setSymmetricDifferenceValue(Base, setFromIterableValue(Other))
+    setLikeSymmetricDifferenceValue(Base, setFromIterableValue(Other))
     requires Id2String(Method) ==String "symmetric_difference"
 
   rule setMethodApplyTwo(Method:Id, Base:Val, Other1:Val, Other2:Val) =>
-    setUnionValue(setUnionValue(Base, setFromIterableValue(Other1)), setFromIterableValue(Other2))
+    setLikeUnionValue(setLikeUnionValue(Base, setFromIterableValue(Other1)), setFromIterableValue(Other2))
     requires Id2String(Method) ==String "union"
   rule setMethodApplyTwo(Method:Id, Base:Val, Other1:Val, Other2:Val) =>
-    setIntersectionValue(setIntersectionValue(Base, setFromIterableValue(Other1)), setFromIterableValue(Other2))
+    setLikeIntersectionValue(setLikeIntersectionValue(Base, setFromIterableValue(Other1)), setFromIterableValue(Other2))
     requires Id2String(Method) ==String "intersection"
   rule setMethodApplyTwo(Method:Id, Base:Val, Other1:Val, Other2:Val) =>
-    setDifferenceValue(setDifferenceValue(Base, setFromIterableValue(Other1)), setFromIterableValue(Other2))
+    setLikeDifferenceValue(setLikeDifferenceValue(Base, setFromIterableValue(Other1)), setFromIterableValue(Other2))
     requires Id2String(Method) ==String "difference"
 
   rule setMethodApplyThree(Method:Id, Base:Val, Other1:Val, Other2:Val, Other3:Val) =>
-    setUnionValue(setMethodApplyTwo(Method, Base, Other1, Other2), setFromIterableValue(Other3))
+    setLikeUnionValue(setMethodApplyTwo(Method, Base, Other1, Other2), setFromIterableValue(Other3))
     requires Id2String(Method) ==String "union"
   rule setMethodApplyThree(Method:Id, Base:Val, Other1:Val, Other2:Val, Other3:Val) =>
-    setIntersectionValue(setMethodApplyTwo(Method, Base, Other1, Other2), setFromIterableValue(Other3))
+    setLikeIntersectionValue(setMethodApplyTwo(Method, Base, Other1, Other2), setFromIterableValue(Other3))
     requires Id2String(Method) ==String "intersection"
   rule setMethodApplyThree(Method:Id, Base:Val, Other1:Val, Other2:Val, Other3:Val) =>
-    setDifferenceValue(setMethodApplyTwo(Method, Base, Other1, Other2), setFromIterableValue(Other3))
+    setLikeDifferenceValue(setMethodApplyTwo(Method, Base, Other1, Other2), setFromIterableValue(Other3))
     requires Id2String(Method) ==String "difference"
 
   rule setMutatingZeroArgReturnsNone(Method:Id) =>
@@ -12304,6 +12417,8 @@ module PYTHON
   rule concreteIterableExtraNonEmpty(dictVal(_:DictItems)) => true
   rule concreteIterableExtraNonEmpty(set()) => false
   rule concreteIterableExtraNonEmpty(setVal(_:ValItems)) => true
+  rule concreteIterableExtraNonEmpty(frozenset()) => false
+  rule concreteIterableExtraNonEmpty(frozensetVal(_:ValItems)) => true
   rule concreteIterableExtraNonEmpty(rangeVal(Start:Int, Stop:Int)) => pyRangeLen(Start, Stop, 1) >Int 0
   rule concreteIterableExtraNonEmpty(rangeVal(Start:Int, Stop:Int, Step:Int)) =>
     pyRangeLen(Start, Stop, Step) >Int 0
@@ -12319,6 +12434,8 @@ module PYTHON
   rule concreteIterableExtraEmpty(dictVal(_:DictItems)) => false
   rule concreteIterableExtraEmpty(set()) => true
   rule concreteIterableExtraEmpty(setVal(_:ValItems)) => false
+  rule concreteIterableExtraEmpty(frozenset()) => true
+  rule concreteIterableExtraEmpty(frozensetVal(_:ValItems)) => false
   rule concreteIterableExtraEmpty(rangeVal(Start:Int, Stop:Int)) => pyRangeLen(Start, Stop, 1) ==Int 0
   rule concreteIterableExtraEmpty(rangeVal(Start:Int, Stop:Int, Step:Int)) =>
     pyRangeLen(Start, Stop, Step) ==Int 0
@@ -12341,6 +12458,8 @@ module PYTHON
   rule bytesCtorSourceSupported(dictVal(_:DictItems)) => true
   rule bytesCtorSourceSupported(set()) => true
   rule bytesCtorSourceSupported(setVal(_:ValItems)) => true
+  rule bytesCtorSourceSupported(frozenset()) => true
+  rule bytesCtorSourceSupported(frozensetVal(_:ValItems)) => true
   rule bytesCtorSourceSupported(rangeVal(_:Int, _:Int)) => true
   rule bytesCtorSourceSupported(rangeVal(_:Int, _:Int, _:Int)) => true
   rule bytesCtorSourceSupported(_:Val) => false [owise]
@@ -12358,6 +12477,8 @@ module PYTHON
   rule bytearrayExtendSourceSupported(dictVal(_:DictItems)) => true
   rule bytearrayExtendSourceSupported(set()) => true
   rule bytearrayExtendSourceSupported(setVal(_:ValItems)) => true
+  rule bytearrayExtendSourceSupported(frozenset()) => true
+  rule bytearrayExtendSourceSupported(frozensetVal(_:ValItems)) => true
   rule bytearrayExtendSourceSupported(rangeVal(_:Int, _:Int)) => true
   rule bytearrayExtendSourceSupported(rangeVal(_:Int, _:Int, _:Int)) => true
   rule bytearrayExtendSourceSupported(_:Val) => false [owise]
@@ -12375,6 +12496,8 @@ module PYTHON
   rule bytearrayExtendSourceEmpty(dictVal(_:DictItems)) => false
   rule bytearrayExtendSourceEmpty(set()) => true
   rule bytearrayExtendSourceEmpty(setVal(_:ValItems)) => false
+  rule bytearrayExtendSourceEmpty(frozenset()) => true
+  rule bytearrayExtendSourceEmpty(frozensetVal(_:ValItems)) => false
   rule bytearrayExtendSourceEmpty(rangeVal(Start:Int, Stop:Int)) => pyRangeLen(Start, Stop, 1) ==Int 0
   rule bytearrayExtendSourceEmpty(rangeVal(Start:Int, Stop:Int, Step:Int)) =>
     pyRangeLen(Start, Stop, Step) ==Int 0
@@ -12394,6 +12517,8 @@ module PYTHON
   rule bytearrayExtendSourceNonEmpty(dictVal(_:DictItems)) => true
   rule bytearrayExtendSourceNonEmpty(set()) => false
   rule bytearrayExtendSourceNonEmpty(setVal(_:ValItems)) => true
+  rule bytearrayExtendSourceNonEmpty(frozenset()) => false
+  rule bytearrayExtendSourceNonEmpty(frozensetVal(_:ValItems)) => true
   rule bytearrayExtendSourceNonEmpty(rangeVal(Start:Int, Stop:Int)) => pyRangeLen(Start, Stop, 1) >Int 0
   rule bytearrayExtendSourceNonEmpty(rangeVal(Start:Int, Stop:Int, Step:Int)) =>
     pyRangeLen(Start, Stop, Step) >Int 0
@@ -12414,6 +12539,8 @@ module PYTHON
   rule listExtendSourceSupported(dictVal(_:DictItems)) => true
   rule listExtendSourceSupported(set()) => true
   rule listExtendSourceSupported(setVal(_:ValItems)) => true
+  rule listExtendSourceSupported(frozenset()) => true
+  rule listExtendSourceSupported(frozensetVal(_:ValItems)) => true
   rule listExtendSourceSupported(rangeVal(_:Int, _:Int)) => true
   rule listExtendSourceSupported(rangeVal(_:Int, _:Int, Step:Int)) => Step =/=Int 0
   rule listExtendSourceSupported(_:Val) => false [owise]
@@ -12432,6 +12559,8 @@ module PYTHON
   rule listExtendSourceEmpty(dictVal(_:DictItems)) => false
   rule listExtendSourceEmpty(set()) => true
   rule listExtendSourceEmpty(setVal(_:ValItems)) => false
+  rule listExtendSourceEmpty(frozenset()) => true
+  rule listExtendSourceEmpty(frozensetVal(_:ValItems)) => false
   rule listExtendSourceEmpty(rangeVal(Start:Int, Stop:Int)) => pyRangeLen(Start, Stop, 1) ==Int 0
   rule listExtendSourceEmpty(rangeVal(Start:Int, Stop:Int, Step:Int)) =>
     pyRangeLen(Start, Stop, Step) ==Int 0
@@ -12504,6 +12633,7 @@ module PYTHON
   rule bytearrayExtendSourceItems(tupleVal(VS:ValItems)) => VS
   rule bytearrayExtendSourceItems(dictVal(DS:DictItems)) => dictKeysToValItems(DS)
   rule bytearrayExtendSourceItems(setVal(VS:ValItems)) => VS
+  rule bytearrayExtendSourceItems(frozensetVal(VS:ValItems)) => VS
   rule bytearrayExtendSourceItems(rangeVal(Start:Int, Stop:Int)) =>
     rangeToValItems(Start, Stop, 1, 0, pyRangeLen(Start, Stop, 1))
     requires pyRangeLen(Start, Stop, 1) >Int 0
@@ -12520,6 +12650,7 @@ module PYTHON
   rule listExtendSourceItems(#memoryviewVal(V:Val)) => listExtendSourceItems(V)
   rule listExtendSourceItems(dictVal(DS:DictItems)) => dictKeysToValItems(DS)
   rule listExtendSourceItems(setVal(VS:ValItems)) => VS
+  rule listExtendSourceItems(frozensetVal(VS:ValItems)) => VS
   rule listExtendSourceItems(rangeVal(Start:Int, Stop:Int)) =>
     rangeToValItems(Start, Stop, 1, 0, pyRangeLen(Start, Stop, 1))
     requires pyRangeLen(Start, Stop, 1) >Int 0
@@ -12691,6 +12822,8 @@ module PYTHON
   rule sortedIterableSupported(dictVal(_:DictItems)) => true
   rule sortedIterableSupported(set()) => true
   rule sortedIterableSupported(setVal(_:ValItems)) => true
+  rule sortedIterableSupported(frozenset()) => true
+  rule sortedIterableSupported(frozensetVal(_:ValItems)) => true
   rule sortedIterableSupported(rangeVal(_:Int, _:Int)) => true
   rule sortedIterableSupported(rangeVal(_:Int, _:Int, _:Int)) => true
   rule sortedIterableSupported(_:Val) => false [owise]
@@ -12767,6 +12900,7 @@ module PYTHON
   rule concreteIterableExtraItems(#memoryviewVal(V:Val)) => concreteIterableExtraItems(V)
   rule concreteIterableExtraItems(dictVal(DS:DictItems)) => dictKeysToValItems(DS)
   rule concreteIterableExtraItems(setVal(VS:ValItems)) => VS
+  rule concreteIterableExtraItems(frozensetVal(VS:ValItems)) => VS
   rule concreteIterableExtraItems(rangeVal(Start:Int, Stop:Int)) =>
     rangeToValItems(Start, Stop, 1, 0, pyRangeLen(Start, Stop, 1))
     requires pyRangeLen(Start, Stop, 1) >Int 0
@@ -12805,6 +12939,8 @@ module PYTHON
   rule unpackValueSupported(({}):Val) => true
   rule unpackValueSupported(setVal(_:ValItems)) => true
   rule unpackValueSupported(set()) => true
+  rule unpackValueSupported(frozensetVal(_:ValItems)) => true
+  rule unpackValueSupported(frozenset()) => true
   rule unpackValueSupported(rangeVal(_:Int, _:Int)) => true
   rule unpackValueSupported(rangeVal(_:Int, _:Int, Step:Int)) => true
     requires Step =/=Int 0
@@ -12824,6 +12960,8 @@ module PYTHON
   rule unpackValueLen(({}):Val) => 0
   rule unpackValueLen(setVal(VS:ValItems)) => valItemsLen(VS)
   rule unpackValueLen(set()) => 0
+  rule unpackValueLen(frozensetVal(VS:ValItems)) => valItemsLen(VS)
+  rule unpackValueLen(frozenset()) => 0
   rule unpackValueLen(rangeVal(Start:Int, Stop:Int)) => pyRangeLen(Start, Stop, 1)
   rule unpackValueLen(rangeVal(Start:Int, Stop:Int, Step:Int)) => pyRangeLen(Start, Stop, Step)
     requires Step =/=Int 0
@@ -13416,6 +13554,9 @@ module PYTHON
   rule orderComparable(set(), setVal(_:ValItems)) => true
   rule orderComparable(setVal(_:ValItems), set()) => true
   rule orderComparable(setVal(_:ValItems), setVal(_:ValItems)) => true
+  rule orderComparable(V1:Val, V2:Val) => true
+    requires isSetFamilyVal(V1) andBool isSetFamilyVal(V2)
+      andBool (isFrozenSetVal(V1) orBool isFrozenSetVal(V2))
   rule orderComparable(_:Val, _:Val) => false [owise]
 
   rule orderingComparisonOp(#lt) => true
@@ -14035,6 +14176,8 @@ module PYTHON
   rule dictLookupKeySupported(#complex(_:Float, _:Float)) => true
   rule dictLookupKeySupported(()) => true
   rule dictLookupKeySupported(tupleVal(VS:ValItems)) => dictLookupKeyItemsSupported(VS)
+  rule dictLookupKeySupported(frozenset()) => true
+  rule dictLookupKeySupported(frozensetVal(VS:ValItems)) => dictLookupKeyItemsSupported(VS)
   rule dictLookupKeySupported(rangeVal(_:Int, _:Int)) => true
   rule dictLookupKeySupported(rangeVal(_:Int, _:Int, Step:Int)) => true
     requires Step =/=Int 0
@@ -14360,13 +14503,13 @@ module PYTHON
     requires isIntLike(V)
   rule V:Val - F:Float => floatValue(V) -Float F
     requires isIntLike(V)
-  rule V1:Val - V2:Val => setDifferenceValue(V1, V2)
-    requires isSetVal(V1) andBool isSetVal(V2)
+  rule V1:Val - V2:Val => setLikeDifferenceValue(V1, V2)
+    requires isSetFamilyVal(V1) andBool isSetFamilyVal(V2)
   rule <k> V1:Val - V2:Val =>
            exceptionSignal(#exception(#token("TypeError", "Id")))
        ... </k>
-    requires (isSetVal(V1) andBool notBool isSetVal(V2))
-      orBool (notBool isSetVal(V1) andBool isSetVal(V2))
+    requires (isSetFamilyVal(V1) andBool notBool isSetFamilyVal(V2))
+      orBool (notBool isSetFamilyVal(V1) andBool isSetFamilyVal(V2))
   rule V1:Val * V2:Val => intValue(V1) *Int intValue(V2)
     requires isIntLike(V1) andBool isIntLike(V2)
   rule F1:Float * F2:Float => F1 *Float F2
@@ -14860,26 +15003,26 @@ module PYTHON
     requires isIntLike(V1) andBool isIntLike(V2) andBool intValue(V2) >=Int 0
   rule V1:Val & V2:Val => intValue(V1) &Int intValue(V2)
     requires isIntLike(V1) andBool isIntLike(V2)
-  rule V1:Val & V2:Val => setIntersectionValue(V1, V2)
-    requires isSetVal(V1) andBool isSetVal(V2)
+  rule V1:Val & V2:Val => setLikeIntersectionValue(V1, V2)
+    requires isSetFamilyVal(V1) andBool isSetFamilyVal(V2)
   rule <k> V1:Val & V2:Val =>
            exceptionSignal(#exception(#token("TypeError", "Id")))
        ... </k>
-    requires (isSetVal(V1) andBool notBool isSetVal(V2))
-      orBool (notBool isSetVal(V1) andBool isSetVal(V2))
+    requires (isSetFamilyVal(V1) andBool notBool isSetFamilyVal(V2))
+      orBool (notBool isSetFamilyVal(V1) andBool isSetFamilyVal(V2))
   rule V1:Val ^ V2:Val => intValue(V1) xorInt intValue(V2)
     requires isIntLike(V1) andBool isIntLike(V2)
-  rule V1:Val ^ V2:Val => setSymmetricDifferenceValue(V1, V2)
-    requires isSetVal(V1) andBool isSetVal(V2)
+  rule V1:Val ^ V2:Val => setLikeSymmetricDifferenceValue(V1, V2)
+    requires isSetFamilyVal(V1) andBool isSetFamilyVal(V2)
   rule <k> V1:Val ^ V2:Val =>
            exceptionSignal(#exception(#token("TypeError", "Id")))
        ... </k>
-    requires (isSetVal(V1) andBool notBool isSetVal(V2))
-      orBool (notBool isSetVal(V1) andBool isSetVal(V2))
+    requires (isSetFamilyVal(V1) andBool notBool isSetFamilyVal(V2))
+      orBool (notBool isSetFamilyVal(V1) andBool isSetFamilyVal(V2))
   rule V1:Val | V2:Val => intValue(V1) |Int intValue(V2)
     requires isIntLike(V1) andBool isIntLike(V2)
-  rule V1:Val | V2:Val => setUnionValue(V1, V2)
-    requires isSetVal(V1) andBool isSetVal(V2)
+  rule V1:Val | V2:Val => setLikeUnionValue(V1, V2)
+    requires isSetFamilyVal(V1) andBool isSetFamilyVal(V2)
   rule V1:Val | V2:Val => dictUpdateValue(V1, V2)
     requires isDictVal(V1) andBool isDictVal(V2)
   rule <k> V1:Val | V2:Val =>
@@ -14893,14 +15036,14 @@ module PYTHON
   rule <k> V1:Val | V2:Val =>
            exceptionSignal(#exception(#token("TypeError", "Id")))
        ... </k>
-    requires isSetVal(V1)
-      andBool notBool isSetVal(V2)
+    requires isSetFamilyVal(V1)
+      andBool notBool isSetFamilyVal(V2)
       andBool notBool isDictVal(V2)
   rule <k> V1:Val | V2:Val =>
            exceptionSignal(#exception(#token("TypeError", "Id")))
        ... </k>
-    requires notBool isSetVal(V1)
-      andBool isSetVal(V2)
+    requires notBool isSetFamilyVal(V1)
+      andBool isSetFamilyVal(V2)
       andBool notBool isDictVal(V1)
   rule S1:String + S2:String => S1 +String S2
   rule #bytes() + #bytes() => #bytes()
@@ -15217,6 +15360,9 @@ module PYTHON
   rule set() < set() => False
   rule set() < setVal(_:ValItems) => True
   rule setVal(_:ValItems) < set() => False
+  rule V1:Val < V2:Val => boolValue(cmpHolds(#lt, V1, V2))
+    requires isSetFamilyVal(V1) andBool isSetFamilyVal(V2)
+      andBool (isFrozenSetVal(V1) orBool isFrozenSetVal(V2))
   rule <k> V1:Val < V2:Val =>
            exceptionSignal(#exception(#token("TypeError", "Id")))
        ... </k>
@@ -15236,6 +15382,9 @@ module PYTHON
   rule set() <= set() => True
   rule set() <= setVal(_:ValItems) => True
   rule setVal(_:ValItems) <= set() => False
+  rule V1:Val <= V2:Val => boolValue(cmpHolds(#le, V1, V2))
+    requires isSetFamilyVal(V1) andBool isSetFamilyVal(V2)
+      andBool (isFrozenSetVal(V1) orBool isFrozenSetVal(V2))
   rule <k> V1:Val <= V2:Val =>
            exceptionSignal(#exception(#token("TypeError", "Id")))
        ... </k>
@@ -15255,6 +15404,9 @@ module PYTHON
   rule set() > set() => False
   rule set() > setVal(_:ValItems) => False
   rule setVal(_:ValItems) > set() => True
+  rule V1:Val > V2:Val => boolValue(cmpHolds(#gt, V1, V2))
+    requires isSetFamilyVal(V1) andBool isSetFamilyVal(V2)
+      andBool (isFrozenSetVal(V1) orBool isFrozenSetVal(V2))
   rule <k> V1:Val > V2:Val =>
            exceptionSignal(#exception(#token("TypeError", "Id")))
        ... </k>
@@ -15274,6 +15426,9 @@ module PYTHON
   rule set() >= set() => True
   rule set() >= setVal(_:ValItems) => False
   rule setVal(_:ValItems) >= set() => True
+  rule V1:Val >= V2:Val => boolValue(cmpHolds(#ge, V1, V2))
+    requires isSetFamilyVal(V1) andBool isSetFamilyVal(V2)
+      andBool (isFrozenSetVal(V1) orBool isFrozenSetVal(V2))
   rule <k> V1:Val >= V2:Val =>
            exceptionSignal(#exception(#token("TypeError", "Id")))
        ... </k>
@@ -15404,6 +15559,8 @@ module PYTHON
   rule V:Val in dictVal(DS:DictItems) => boolValue(containsKey(V, DS))
   rule _V:Val in set() => False
   rule V:Val in setVal(VS:ValItems) => boolValue(containsVal(V, VS))
+  rule _V:Val in frozenset() => False
+  rule V:Val in frozensetVal(VS:ValItems) => boolValue(containsVal(V, VS))
   rule V:Val in rangeVal(Start:Int, Stop:Int) => boolValue(rangeContains(V, Start, Stop))
   rule V:Val in rangeVal(Start:Int, Stop:Int, Step:Int) => boolValue(rangeContains(V, Start, Stop, Step))
   rule Needle:String not in Haystack:String => boolValue(findString(Haystack, Needle, 0) <Int 0)
@@ -15451,6 +15608,8 @@ module PYTHON
   rule V:Val not in dictVal(DS:DictItems) => boolValue(notBool containsKey(V, DS))
   rule _V:Val not in set() => True
   rule V:Val not in setVal(VS:ValItems) => boolValue(notBool containsVal(V, VS))
+  rule _V:Val not in frozenset() => True
+  rule V:Val not in frozensetVal(VS:ValItems) => boolValue(notBool containsVal(V, VS))
   rule V:Val not in rangeVal(Start:Int, Stop:Int) => boolValue(notBool rangeContains(V, Start, Stop))
   rule V:Val not in rangeVal(Start:Int, Stop:Int, Step:Int) => boolValue(notBool rangeContains(V, Start, Stop, Step))
   rule subscriptExp(V:Val, sliceVal(Lower:Val, Upper:Val, None)) => sliceExp(V, Lower, Upper)
@@ -20206,6 +20365,19 @@ module PYTHON
       andBool notBool dictFromKeysArgValsSupported(iterableArgVals(Iter))
   rule #setCtor() => set()
   rule #setCtor(V:Val) => setFromArgVals(iterableArgVals(V))
+  rule #frozensetCtor() => frozenset()
+  rule #frozensetCtor(V:Val) => frozenSetFromArgVals(iterableArgVals(V))
+    requires unpackValueSupported(V)
+      andBool dictFromKeysArgValsSupported(iterableArgVals(V))
+  rule <k> #frozensetCtor(V:Val) =>
+           exceptionSignal(#exception(#token("TypeError", "Id")))
+       ... </k>
+    requires notBool unpackValueSupported(V)
+  rule <k> #frozensetCtor(V:Val) =>
+           exceptionSignal(#exception(#token("TypeError", "Id")))
+       ... </k>
+    requires unpackValueSupported(V)
+      andBool notBool dictFromKeysArgValsSupported(iterableArgVals(V))
   rule #sorted(V:Val) => sortedListVal(iterableArgVals(V))
     requires sortedIterableSupported(V)
       andBool argValsAllOrderComparable(iterableArgVals(V))
@@ -20638,6 +20810,13 @@ module PYTHON
     requires notBool valItemsAllIntLike(VS)
   rule <k> #bytesCtor(setVal(VS:ValItems)) => exceptionSignal(#exception(#token("ValueError", "Id"))) ... </k>
     requires valItemsAllIntLike(VS) andBool notBool valItemsAllByteInts(VS)
+  rule #bytesCtor(frozenset()) => #bytes()
+  rule #bytesCtor(frozensetVal(VS:ValItems)) => bytesVal(byteItems(VS))
+    requires valItemsAllByteInts(VS)
+  rule <k> #bytesCtor(frozensetVal(VS:ValItems)) => exceptionSignal(#exception(#token("TypeError", "Id"))) ... </k>
+    requires notBool valItemsAllIntLike(VS)
+  rule <k> #bytesCtor(frozensetVal(VS:ValItems)) => exceptionSignal(#exception(#token("ValueError", "Id"))) ... </k>
+    requires valItemsAllIntLike(VS) andBool notBool valItemsAllByteInts(VS)
   rule #bytesCtor(rangeVal(Start:Int, Stop:Int)) => #bytes()
     requires pyRangeLen(Start, Stop, 1) ==Int 0
   rule #bytesCtor(rangeVal(Start:Int, Stop:Int)) =>
@@ -20815,6 +20994,13 @@ module PYTHON
     requires notBool valItemsAllIntLike(VS)
   rule <k> #bytearrayCtor(setVal(VS:ValItems)) => exceptionSignal(#exception(#token("ValueError", "Id"))) ... </k>
     requires valItemsAllIntLike(VS) andBool notBool valItemsAllByteInts(VS)
+  rule #bytearrayCtor(frozenset()) => #bytearray()
+  rule #bytearrayCtor(frozensetVal(VS:ValItems)) => bytearrayVal(byteItems(VS))
+    requires valItemsAllByteInts(VS)
+  rule <k> #bytearrayCtor(frozensetVal(VS:ValItems)) => exceptionSignal(#exception(#token("TypeError", "Id"))) ... </k>
+    requires notBool valItemsAllIntLike(VS)
+  rule <k> #bytearrayCtor(frozensetVal(VS:ValItems)) => exceptionSignal(#exception(#token("ValueError", "Id"))) ... </k>
+    requires valItemsAllIntLike(VS) andBool notBool valItemsAllByteInts(VS)
   rule #bytearrayCtor(rangeVal(Start:Int, Stop:Int)) => #bytearray()
     requires pyRangeLen(Start, Stop, 1) ==Int 0
   rule #bytearrayCtor(rangeVal(Start:Int, Stop:Int)) =>
@@ -20991,6 +21177,8 @@ module PYTHON
   rule #listCtor(dictVal(DS:DictItems)) => listVal(dictKeysToValItems(DS))
   rule #listCtor(set()) => []
   rule #listCtor(setVal(VS:ValItems)) => listVal(VS)
+  rule #listCtor(frozenset()) => []
+  rule #listCtor(frozensetVal(VS:ValItems)) => listVal(VS)
   rule #listCtor(rangeVal(Start:Int, Stop:Int)) => []
     requires pyRangeLen(Start, Stop, 1) ==Int 0
   rule #listCtor(rangeVal(Start:Int, Stop:Int)) =>
@@ -21018,6 +21206,8 @@ module PYTHON
   rule #tupleCtor(dictVal(DS:DictItems)) => tupleVal(dictKeysToValItems(DS))
   rule #tupleCtor(set()) => ()
   rule #tupleCtor(setVal(VS:ValItems)) => tupleVal(VS)
+  rule #tupleCtor(frozenset()) => ()
+  rule #tupleCtor(frozensetVal(VS:ValItems)) => tupleVal(VS)
   rule #tupleCtor(rangeVal(Start:Int, Stop:Int)) => ()
     requires pyRangeLen(Start, Stop, 1) ==Int 0
   rule #tupleCtor(rangeVal(Start:Int, Stop:Int)) =>
@@ -22286,13 +22476,13 @@ module PYTHON
       andBool isDictVal(B)
   rule <k> #methodCall0(X:Id, Method:Id) => B ... </k>
        <env> ... X |-> B:Val ... </env>
-    requires isSetVal(B)
+    requires isSetFamilyVal(B)
       andBool setMethodNoArgReturnsSet(Method)
   rule <k> #methodCall0(X:Id, Method:Id) =>
            exceptionSignal(#exception(#token("TypeError", "Id")))
        ... </k>
        <env> ... X |-> B:Val ... </env>
-    requires isSetVal(B)
+    requires isSetFamilyVal(B)
       andBool setMethodExactlyOneIterable(Method)
   rule <k> #methodCall0(X:Id, Method:Id) => None ... </k>
        <env> ... X |-> (B:Val => set()) ... </env>
@@ -22319,7 +22509,7 @@ module PYTHON
   rule <k> #attr(Base:Val, Method:Id) ~> callArg(Arg:Exp) =>
            Arg ~> setMethodAttrCallOne(Base, Method)
        ... </k>
-    requires isSetVal(Base)
+    requires isSetFamilyVal(Base)
       andBool (setMethodNoArgReturnsSet(Method) orBool setMethodOneIterable(Method))
   rule <k> V:Val ~> setMethodAttrCallOne(Base:Val, Method:Id) =>
            setMethodApplyOne(Method, Base, V)
@@ -22339,7 +22529,7 @@ module PYTHON
   rule <k> #attr(Base:Val, Method:Id) ~> callArgs(Args:ArgExps) =>
            evalArgs(Args, #noArgVals) ~> setMethodAttrCallArgs(Base, Method)
        ... </k>
-    requires isSetVal(Base)
+    requires isSetFamilyVal(Base)
       andBool (setMethodNoArgReturnsSet(Method) orBool setMethodOneIterable(Method))
   rule <k> argsVal(#noArgVals) ~> setMethodAttrCallArgs(Base:Val, Method:Id) => Base ... </k>
     requires setMethodNoArgReturnsSet(Method)
@@ -22771,7 +22961,7 @@ module PYTHON
         orBool Id2String(Method) ==String "copy"
         orBool Id2String(Method) ==String "popitem"
         orBool Id2String(Method) ==String "update") andBool isDictVal(B))
-      andBool notBool (setMethodNoArgReturnsSet(Method) andBool isSetVal(B))
+      andBool notBool (setMethodNoArgReturnsSet(Method) andBool isSetFamilyVal(B))
       andBool notBool (setMutatingZeroArgMethod(Method) andBool isSetVal(B))
   rule <k> #methodCall(X:Id, Method:Id, Enc:String) => bytesDecodeString(B, Enc) ... </k>
        <env> ... X |-> B:Val ... </env>
@@ -24007,14 +24197,14 @@ module PYTHON
       andBool dictUpdateSourceTypeError(Src)
   rule <k> #methodCall(X:Id, Method:Id, Other:Val) => setMethodApplyOne(Method, B, Other) ... </k>
        <env> ... X |-> B:Val ... </env>
-    requires isSetVal(B)
+    requires isSetFamilyVal(B)
       andBool setMethodOneIterable(Method)
       andBool setMethodIterableSupported(Other)
   rule <k> #methodCall(X:Id, Method:Id, Other:Val) =>
            exceptionSignal(#exception(#token("TypeError", "Id")))
        ... </k>
        <env> ... X |-> B:Val ... </env>
-    requires isSetVal(B)
+    requires isSetFamilyVal(B)
       andBool setMethodOneIterable(Method)
       andBool notBool setMethodIterableSupported(Other)
   rule <k> #methodCall(X:Id, Method:Id, Elem:Val) => None ... </k>
@@ -25077,7 +25267,7 @@ module PYTHON
            setMethodApplyThree(Method, B, Other1, Other2, Other3)
        ... </k>
        <env> ... X |-> B:Val ... </env>
-    requires isSetVal(B)
+    requires isSetFamilyVal(B)
       andBool setMethodMultiIterable(Method)
       andBool setMethodIterableSupported(Other1)
       andBool setMethodIterableSupported(Other2)
@@ -25086,7 +25276,7 @@ module PYTHON
            exceptionSignal(#exception(#token("TypeError", "Id")))
        ... </k>
        <env> ... X |-> B:Val ... </env>
-    requires isSetVal(B)
+    requires isSetFamilyVal(B)
       andBool setMethodMultiIterable(Method)
       andBool (notBool setMethodIterableSupported(Other1)
         orBool notBool setMethodIterableSupported(Other2)
@@ -25095,7 +25285,7 @@ module PYTHON
            exceptionSignal(#exception(#token("TypeError", "Id")))
        ... </k>
        <env> ... X |-> B:Val ... </env>
-    requires isSetVal(B)
+    requires isSetFamilyVal(B)
       andBool setMethodExactlyOneIterable(Method)
   rule <k> #methodCall3(X:Id, Method:Id, Other1:Val, Other2:Val, Other3:Val) => None ... </k>
        <env> ... X |-> (B:Val => setMutatingApplyThree(Method, B, Other1, Other2, Other3)) ... </env>
@@ -25655,7 +25845,7 @@ module PYTHON
            setMethodApplyTwo(Method, B, Other1, Other2)
        ... </k>
        <env> ... X |-> B:Val ... </env>
-    requires isSetVal(B)
+    requires isSetFamilyVal(B)
       andBool setMethodMultiIterable(Method)
       andBool setMethodIterableSupported(Other1)
       andBool setMethodIterableSupported(Other2)
@@ -25663,7 +25853,7 @@ module PYTHON
            exceptionSignal(#exception(#token("TypeError", "Id")))
        ... </k>
        <env> ... X |-> B:Val ... </env>
-    requires isSetVal(B)
+    requires isSetFamilyVal(B)
       andBool setMethodMultiIterable(Method)
       andBool (notBool setMethodIterableSupported(Other1)
         orBool notBool setMethodIterableSupported(Other2))
@@ -25671,7 +25861,7 @@ module PYTHON
            exceptionSignal(#exception(#token("TypeError", "Id")))
        ... </k>
        <env> ... X |-> B:Val ... </env>
-    requires isSetVal(B)
+    requires isSetFamilyVal(B)
       andBool setMethodExactlyOneIterable(Method)
   rule <k> #methodCall2(X:Id, Method:Id, Other1:Val, Other2:Val) => None ... </k>
        <env> ... X |-> (B:Val => setMutatingApplyTwo(Method, B, Other1, Other2)) ... </env>

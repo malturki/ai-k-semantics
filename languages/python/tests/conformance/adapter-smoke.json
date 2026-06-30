@@ -3840,6 +3840,13 @@
       "coverage": ["set-mutating-element-methods", "set-mutating-algebra-methods", "set-pop-clear-methods", "iterable-accepting-set-update-methods", "set-mutating-method-errors", "ordinary-python-source-adapter"]
     },
     {
+      "id": "adapter-frozenset",
+      "source": "../adapter/adapter-frozenset.py",
+      "reference": "Python 3.14.6 Standard Library Built-in Types frozenset constructor, immutable set operations, mixed set/frozenset result-type rule, hashability, and CPython Lib/test/test_set.py TestFrozenSet",
+      "expected_result": "True ~> .K",
+      "coverage": ["frozenset-constructor", "frozenset-set-equality", "frozenset-ordering-comparisons", "mixed-set-frozenset-operators", "frozenset-methods", "frozenset-hashable-key", "frozenset-iterable-conversions", "frozenset-type-errors", "ordinary-python-source-adapter"]
+    },
+    {
       "id": "adapter-annotated-assignment",
       "source": "../adapter/adapter-annotated-assignment.py",
       "reference": "Python Language Reference 7.2.2 Annotated assignment statements; 8.10 Annotations",

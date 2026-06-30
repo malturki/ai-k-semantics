@@ -405,6 +405,10 @@ module PYTHON-SYNTAX
                | "#sortedKey" "(" Exp "," Exp ")" [symbol(sortedKeyExp)]
                | "#sortedKeyReverse" "(" Exp "," Exp "," Exp ")" [symbol(sortedKeyReverseExp)]
                | "#sortedReverseKey" "(" Exp "," Exp "," Exp ")" [symbol(sortedReverseKeyExp)]
+               | "#listSortReverse" "(" Id "," Exp ")" [symbol(listSortReverseExp)]
+               | "#listSortKey" "(" Id "," Exp ")" [symbol(listSortKeyExp)]
+               | "#listSortKeyReverse" "(" Id "," Exp "," Exp ")" [symbol(listSortKeyReverseExp)]
+               | "#listSortReverseKey" "(" Id "," Exp "," Exp ")" [symbol(listSortReverseKeyExp)]
                | "#dictCtor" "(" ")" [symbol(dictCtorExp)]
                | "#dictCtor" "(" Exp ")" [symbol(dictCtor1Exp), strict]
                | "#dictCtorKw" "(" KwArgExps ")" [symbol(dictCtorKwExp)]
@@ -724,6 +728,16 @@ module PYTHON
                  | sortedKeyCollectReverse(ArgVals, KeyedVals, Val, Val) [symbol(sortedKeyCollectReverse)]
                  | sortedKeyAdd(Val, ArgVals, KeyedVals, Val) [symbol(sortedKeyAdd)]
                  | sortedKeyAddReverse(Val, ArgVals, KeyedVals, Val, Val) [symbol(sortedKeyAddReverse)]
+                 | listSortReverseApply(Id) [symbol(listSortReverseApply)]
+                 | listSortKeyApply(Id) [symbol(listSortKeyApply)]
+                 | listSortKeyReverseKey(Id, Exp) [symbol(listSortKeyReverseKey)]
+                 | listSortKeyReverseApply(Id, Val) [symbol(listSortKeyReverseApply)]
+                 | listSortReverseKeyReverse(Id, Exp) [symbol(listSortReverseKeyReverse)]
+                 | listSortReverseKeyApply(Id, Val) [symbol(listSortReverseKeyApply)]
+                 | listSortKeyCollect(Id, ArgVals, KeyedVals, Val) [symbol(listSortKeyCollect)]
+                 | listSortKeyCollectReverse(Id, ArgVals, KeyedVals, Val, Val) [symbol(listSortKeyCollectReverse)]
+                 | listSortKeyAdd(Id, Val, ArgVals, KeyedVals, Val) [symbol(listSortKeyAdd)]
+                 | listSortKeyAddReverse(Id, Val, ArgVals, KeyedVals, Val, Val) [symbol(listSortKeyAddReverse)]
                  | roundDefault() [symbol(roundDefault)]
                  | roundNdigits(Exp) [symbol(roundNdigits)]
                  | roundApply(Val) [symbol(roundApply)]
@@ -19830,6 +19844,168 @@ module PYTHON
   rule <k> KeyResult:Val ~> sortedKeyAddReverse(Item:Val, Rest:ArgVals, Acc:KeyedVals, Key:Val, Reverse:Val) =>
            sortedKeyCollectReverse(Rest, appendKeyedVal(Acc, Item, KeyResult), Key, Reverse)
        ... </k>
+  rule <k> #listSortReverse(X:Id, _Reverse:Exp) =>
+           exceptionSignal(#exception(#token("NameError", "Id")))
+       ... </k>
+       <env> Rho </env>
+    requires notBool (X in_keys(Rho))
+  rule <k> #listSortReverse(X:Id, Reverse:Exp) =>
+           Reverse ~> listSortReverseApply(X)
+       ... </k>
+       <env> ... X |-> _B:Val ... </env>
+  rule <k> Reverse:Val ~> listSortReverseApply(X:Id) => None ... </k>
+       <env> ... X |-> (B:Val => argValsToListVal(reverseArgVals(sortedArgVals(iterableArgVals(B))))) ... </env>
+    requires isListSequence(B)
+      andBool argValsAllOrderComparable(iterableArgVals(B))
+      andBool truthy(Reverse)
+  rule <k> Reverse:Val ~> listSortReverseApply(X:Id) => None ... </k>
+       <env> ... X |-> (B:Val => sortedListVal(iterableArgVals(B))) ... </env>
+    requires isListSequence(B)
+      andBool argValsAllOrderComparable(iterableArgVals(B))
+      andBool notBool truthy(Reverse)
+  rule <k> _Reverse:Val ~> listSortReverseApply(X:Id) =>
+           exceptionSignal(#exception(#token("TypeError", "Id")))
+       ... </k>
+       <env> ... X |-> B:Val ... </env>
+    requires isListSequence(B)
+      andBool notBool argValsAllOrderComparable(iterableArgVals(B))
+  rule <k> _Reverse:Val ~> listSortReverseApply(X:Id) =>
+           exceptionSignal(#exception(#token("NotImplementedError", "Id")))
+       ... </k>
+       <env> ... X |-> B:Val ... </env>
+    requires notBool isListSequence(B)
+
+  rule <k> #listSortKey(X:Id, _Key:Exp) =>
+           exceptionSignal(#exception(#token("NameError", "Id")))
+       ... </k>
+       <env> Rho </env>
+    requires notBool (X in_keys(Rho))
+  rule <k> #listSortKey(X:Id, Key:Exp) =>
+           Key ~> listSortKeyApply(X)
+       ... </k>
+       <env> ... X |-> _B:Val ... </env>
+  rule <k> Key:Val ~> listSortKeyApply(X:Id) => None ... </k>
+       <env> ... X |-> (B:Val => sortedListVal(iterableArgVals(B))) ... </env>
+    requires isListSequence(B)
+      andBool isNoneVal(Key)
+      andBool argValsAllOrderComparable(iterableArgVals(B))
+  rule <k> Key:Val ~> listSortKeyApply(X:Id) =>
+           exceptionSignal(#exception(#token("TypeError", "Id")))
+       ... </k>
+       <env> ... X |-> B:Val ... </env>
+    requires isListSequence(B)
+      andBool isNoneVal(Key)
+      andBool notBool argValsAllOrderComparable(iterableArgVals(B))
+  rule <k> Key:Val ~> listSortKeyApply(X:Id) =>
+           listSortKeyCollect(X, iterableArgVals(B), #noKeyedVals, Key)
+       ... </k>
+       <env> ... X |-> B:Val ... </env>
+    requires isListSequence(B)
+      andBool notBool isNoneVal(Key)
+  rule <k> Key:Val ~> listSortKeyApply(X:Id) =>
+           exceptionSignal(#exception(#token("NotImplementedError", "Id")))
+       ... </k>
+       <env> ... X |-> B:Val ... </env>
+    requires notBool isListSequence(B)
+      andBool notBool isNoneVal(Key)
+
+  rule <k> #listSortKeyReverse(X:Id, _Key:Exp, _Reverse:Exp) =>
+           exceptionSignal(#exception(#token("NameError", "Id")))
+       ... </k>
+       <env> Rho </env>
+    requires notBool (X in_keys(Rho))
+  rule <k> #listSortKeyReverse(X:Id, Key:Exp, Reverse:Exp) =>
+           Key ~> listSortKeyReverseKey(X, Reverse)
+       ... </k>
+       <env> ... X |-> _B:Val ... </env>
+  rule <k> Key:Val ~> listSortKeyReverseKey(X:Id, Reverse:Exp) =>
+           Reverse ~> listSortKeyReverseApply(X, Key)
+       ... </k>
+  rule <k> #listSortReverseKey(X:Id, _Reverse:Exp, _Key:Exp) =>
+           exceptionSignal(#exception(#token("NameError", "Id")))
+       ... </k>
+       <env> Rho </env>
+    requires notBool (X in_keys(Rho))
+  rule <k> #listSortReverseKey(X:Id, Reverse:Exp, Key:Exp) =>
+           Reverse ~> listSortReverseKeyReverse(X, Key)
+       ... </k>
+       <env> ... X |-> _B:Val ... </env>
+  rule <k> Reverse:Val ~> listSortReverseKeyReverse(X:Id, Key:Exp) =>
+           Key ~> listSortReverseKeyApply(X, Reverse)
+       ... </k>
+  rule <k> Reverse:Val ~> listSortKeyReverseApply(X:Id, Key:Val) =>
+           Reverse ~> listSortReverseApply(X)
+       ... </k>
+    requires isNoneVal(Key)
+  rule <k> Key:Val ~> listSortReverseKeyApply(X:Id, Reverse:Val) =>
+           Reverse ~> listSortReverseApply(X)
+       ... </k>
+    requires isNoneVal(Key)
+  rule <k> Reverse:Val ~> listSortKeyReverseApply(X:Id, Key:Val) =>
+           listSortKeyCollectReverse(X, iterableArgVals(B), #noKeyedVals, Key, Reverse)
+       ... </k>
+       <env> ... X |-> B:Val ... </env>
+    requires isListSequence(B)
+      andBool notBool isNoneVal(Key)
+  rule <k> Key:Val ~> listSortReverseKeyApply(X:Id, Reverse:Val) =>
+           listSortKeyCollectReverse(X, iterableArgVals(B), #noKeyedVals, Key, Reverse)
+       ... </k>
+       <env> ... X |-> B:Val ... </env>
+    requires isListSequence(B)
+      andBool notBool isNoneVal(Key)
+  rule <k> _Reverse:Val ~> listSortKeyReverseApply(X:Id, Key:Val) =>
+           exceptionSignal(#exception(#token("NotImplementedError", "Id")))
+       ... </k>
+       <env> ... X |-> B:Val ... </env>
+    requires notBool isListSequence(B)
+      andBool notBool isNoneVal(Key)
+  rule <k> Key:Val ~> listSortReverseKeyApply(X:Id, _Reverse:Val) =>
+           exceptionSignal(#exception(#token("NotImplementedError", "Id")))
+       ... </k>
+       <env> ... X |-> B:Val ... </env>
+    requires notBool isListSequence(B)
+      andBool notBool isNoneVal(Key)
+
+  rule <k> listSortKeyCollect(X:Id, #noArgVals, Acc:KeyedVals, _Key:Val) =>
+           None
+       ... </k>
+       <env> ... X |-> (B:Val => sortedKeyedListVal(Acc)) ... </env>
+    requires isListSequence(B)
+      andBool keyedValsAllOrderComparable(Acc)
+  rule <k> listSortKeyCollect(_X:Id, #noArgVals, Acc:KeyedVals, _Key:Val) =>
+           exceptionSignal(#exception(#token("TypeError", "Id")))
+       ... </k>
+    requires notBool keyedValsAllOrderComparable(Acc)
+  rule <k> listSortKeyCollect(X:Id, argValsCons(Item:Val, Rest:ArgVals), Acc:KeyedVals, Key:Val) =>
+           callExp(Key, Item) ~> listSortKeyAdd(X, Item, Rest, Acc, Key)
+       ... </k>
+  rule <k> KeyResult:Val ~> listSortKeyAdd(X:Id, Item:Val, Rest:ArgVals, Acc:KeyedVals, Key:Val) =>
+           listSortKeyCollect(X, Rest, appendKeyedVal(Acc, Item, KeyResult), Key)
+       ... </k>
+  rule <k> listSortKeyCollectReverse(X:Id, #noArgVals, Acc:KeyedVals, _Key:Val, Reverse:Val) =>
+           None
+       ... </k>
+       <env> ... X |-> (B:Val => sortedKeyedReverseListVal(Acc)) ... </env>
+    requires isListSequence(B)
+      andBool keyedValsAllOrderComparable(Acc)
+      andBool truthy(Reverse)
+  rule <k> listSortKeyCollectReverse(X:Id, #noArgVals, Acc:KeyedVals, _Key:Val, Reverse:Val) =>
+           None
+       ... </k>
+       <env> ... X |-> (B:Val => sortedKeyedListVal(Acc)) ... </env>
+    requires isListSequence(B)
+      andBool keyedValsAllOrderComparable(Acc)
+      andBool notBool truthy(Reverse)
+  rule <k> listSortKeyCollectReverse(_X:Id, #noArgVals, Acc:KeyedVals, _Key:Val, _Reverse:Val) =>
+           exceptionSignal(#exception(#token("TypeError", "Id")))
+       ... </k>
+    requires notBool keyedValsAllOrderComparable(Acc)
+  rule <k> listSortKeyCollectReverse(X:Id, argValsCons(Item:Val, Rest:ArgVals), Acc:KeyedVals, Key:Val, Reverse:Val) =>
+           callExp(Key, Item) ~> listSortKeyAddReverse(X, Item, Rest, Acc, Key, Reverse)
+       ... </k>
+  rule <k> KeyResult:Val ~> listSortKeyAddReverse(X:Id, Item:Val, Rest:ArgVals, Acc:KeyedVals, Key:Val, Reverse:Val) =>
+           listSortKeyCollectReverse(X, Rest, appendKeyedVal(Acc, Item, KeyResult), Key, Reverse)
+       ... </k>
   rule bytesStringUtf8(S:String) => #bytes()
     requires lengthString(S) ==Int 0
   rule bytesStringUtf8(S:String) => bytesVal(stringBytesToValItems(S, 0, lengthString(S)))
@@ -23021,6 +23197,12 @@ module PYTHON
        <env> ... X |-> listVal(VS:ValItems) ... </env>
     requires Id2String(Method) ==String "index"
       andBool listIndexFind(VS, V, 0, valItemsLen(VS)) <Int 0
+  rule <k> #methodCall(X:Id, Method:Id, _Arg:Val) =>
+           exceptionSignal(#exception(#token("TypeError", "Id")))
+       ... </k>
+       <env> ... X |-> B:Val ... </env>
+    requires Id2String(Method) ==String "sort"
+      andBool isListSequence(B)
   rule <k> #methodCall(X:Id, Method:Id, V:Val) => None ... </k>
        <env> ... X |-> (B:Val => listAppendItem(B, V)) ... </env>
     requires Id2String(Method) ==String "append"
@@ -23275,6 +23457,7 @@ module PYTHON
               orBool Id2String(Method) ==String "rpartition"
               orBool Id2String(Method) ==String "rsplit"
               orBool Id2String(Method) ==String "rstrip"
+              orBool Id2String(Method) ==String "sort"
               orBool Id2String(Method) ==String "split"
               orBool Id2String(Method) ==String "splitlines"
               orBool Id2String(Method) ==String "startswith"
@@ -23314,7 +23497,8 @@ module PYTHON
         orBool Id2String(Method) ==String "extend"
         orBool Id2String(Method) ==String "index"
         orBool Id2String(Method) ==String "pop"
-        orBool Id2String(Method) ==String "remove") andBool isListSequence(B))
+        orBool Id2String(Method) ==String "remove"
+        orBool Id2String(Method) ==String "sort") andBool isListSequence(B))
   rule <k> #methodCall2(X:Id, Method:Id, Enc:Val, _Errors:Val) =>
            exceptionSignal(#exception(#token("TypeError", "Id")))
        ... </k>
@@ -28378,6 +28562,14 @@ module PYTHON
   rule <k> exceptionSignal(V:Val) ~> sortedKeyApplyReverse(_:Val, _:Val) => exceptionSignal(V) ... </k>
   rule <k> exceptionSignal(V:Val) ~> sortedKeyAdd(_:Val, _:ArgVals, _:KeyedVals, _:Val) => exceptionSignal(V) ... </k>
   rule <k> exceptionSignal(V:Val) ~> sortedKeyAddReverse(_:Val, _:ArgVals, _:KeyedVals, _:Val, _:Val) => exceptionSignal(V) ... </k>
+  rule <k> exceptionSignal(V:Val) ~> listSortReverseApply(_:Id) => exceptionSignal(V) ... </k>
+  rule <k> exceptionSignal(V:Val) ~> listSortKeyApply(_:Id) => exceptionSignal(V) ... </k>
+  rule <k> exceptionSignal(V:Val) ~> listSortKeyReverseKey(_:Id, _:Exp) => exceptionSignal(V) ... </k>
+  rule <k> exceptionSignal(V:Val) ~> listSortKeyReverseApply(_:Id, _:Val) => exceptionSignal(V) ... </k>
+  rule <k> exceptionSignal(V:Val) ~> listSortReverseKeyReverse(_:Id, _:Exp) => exceptionSignal(V) ... </k>
+  rule <k> exceptionSignal(V:Val) ~> listSortReverseKeyApply(_:Id, _:Val) => exceptionSignal(V) ... </k>
+  rule <k> exceptionSignal(V:Val) ~> listSortKeyAdd(_:Id, _:Val, _:ArgVals, _:KeyedVals, _:Val) => exceptionSignal(V) ... </k>
+  rule <k> exceptionSignal(V:Val) ~> listSortKeyAddReverse(_:Id, _:Val, _:ArgVals, _:KeyedVals, _:Val, _:Val) => exceptionSignal(V) ... </k>
   rule <k> exceptionSignal(V:Val) ~> roundDefault() => exceptionSignal(V) ... </k>
   rule <k> exceptionSignal(V:Val) ~> roundNdigits(_:Exp) => exceptionSignal(V) ... </k>
   rule <k> exceptionSignal(V:Val) ~> roundApply(_:Val) => exceptionSignal(V) ... </k>

@@ -287,6 +287,7 @@ run_case "adapter-list-normal" "$ROOT/tests/adapter/adapter-list-normal.py" "Tru
 run_case "adapter-list-expressions" "$ROOT/tests/adapter/adapter-list-expressions.py" "True ~> .K"
 run_case "adapter-list-mutating-methods" "$ROOT/tests/adapter/adapter-list-mutating-methods.py" "True ~> .K"
 run_case "adapter-list-query-sort-methods" "$ROOT/tests/adapter/adapter-list-query-sort-methods.py" "True ~> .K"
+run_case "adapter-list-sort-keywords" "$ROOT/tests/adapter/adapter-list-sort-keywords.py" "True ~> .K"
 run_case "adapter-list-comprehension" "$ROOT/tests/adapter/adapter-list-comprehension.py" "True ~> .K"
 run_case "adapter-list-comprehension-if" "$ROOT/tests/adapter/adapter-list-comprehension-if.py" "True ~> .K"
 run_case "adapter-list-comprehension-filters" "$ROOT/tests/adapter/adapter-list-comprehension-filters.py" "True ~> .K"

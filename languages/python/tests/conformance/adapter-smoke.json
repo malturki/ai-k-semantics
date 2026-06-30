@@ -1747,6 +1747,13 @@
       "coverage": ["list-count-method", "list-index-method", "list-sort-method", "bounded-sequence-search", "in-place-sort", "method-call", "type-error", "value-error", "ordinary-python-source-adapter"]
     },
     {
+      "id": "adapter-list-sort-keywords",
+      "source": "../adapter/adapter-list-sort-keywords.py",
+      "reference": "Python 3.14.6 Standard Library Built-in Types list.sort(*, key=None, reverse=False); Python Language Reference 6.3.4 Calls argument evaluation order",
+      "expected_result": "True ~> .K",
+      "coverage": ["list-sort-method", "keyword-only-arguments", "keyword-argument-evaluation-order", "key-function-sort", "reverse-sort", "stable-sort", "in-place-sort", "method-call", "type-error", "zero-division-error", "ordinary-python-source-adapter"]
+    },
+    {
       "id": "adapter-list-comprehension",
       "source": "../adapter/adapter-list-comprehension.py",
       "reference": "Python Language Reference 6.2.4 Displays for lists, sets and dictionaries; Python Language Reference 6.2.5 List displays",

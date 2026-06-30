@@ -597,6 +597,31 @@ def emit_sorted_keyword_call(node: ast.AST, arg: ast.expr, keywords: list[ast.ke
     raise unsupported(node, "sorted currently supports only key= or reverse=, not **kwargs or other keywords")
 
 
+def emit_list_sort_keyword_call(node: ast.AST, name: str, keywords: list[ast.keyword]) -> str:
+    emitted_name = emit_id(name)
+    if len(keywords) == 2:
+        first, second = keywords
+        if first.arg == "key" and second.arg == "reverse":
+            return (
+                f"#listSortKeyReverse("
+                f"{emitted_name}, {emit_exp(first.value)}, {emit_exp(second.value)})"
+            )
+        if first.arg == "reverse" and second.arg == "key":
+            return (
+                f"#listSortReverseKey("
+                f"{emitted_name}, {emit_exp(first.value)}, {emit_exp(second.value)})"
+            )
+        raise unsupported(node, "list.sort currently supports combined key= and reverse= keywords only")
+    if len(keywords) != 1:
+        raise unsupported(node, "list.sort currently supports at most key= and reverse= keyword pairs")
+    keyword = keywords[0]
+    if keyword.arg == "key":
+        return f"#listSortKey({emitted_name}, {emit_exp(keyword.value)})"
+    if keyword.arg == "reverse":
+        return f"#listSortReverse({emitted_name}, {emit_exp(keyword.value)})"
+    raise unsupported(node, "list.sort currently supports only key= or reverse=, not **kwargs or other keywords")
+
+
 def emit_module(module: ast.Module) -> str:
     return emit_stmt_list(module.body) + "\n"
 
@@ -938,6 +963,12 @@ def emit_exp(exp: ast.expr) -> str:
         case ast.Call(func=ast.Attribute(value=value, attr="conjugate", ctx=ast.Load()), args=[], keywords=[]):
             return f"#conjugate({emit_exp(value)})"
         case ast.Call(
+            func=ast.Attribute(value=ast.Name(id=name), attr="sort", ctx=ast.Load()),
+            args=[],
+            keywords=keywords,
+        ) if keywords:
+            return emit_list_sort_keyword_call(exp, name, keywords)
+        case ast.Call(
             func=ast.Attribute(value=ast.Name(id=name), attr=attr, ctx=ast.Load()),
             args=[],
             keywords=[],
@@ -947,7 +978,7 @@ def emit_exp(exp: ast.expr) -> str:
             func=ast.Attribute(value=ast.Name(id=name), attr=attr, ctx=ast.Load()),
             args=[arg],
             keywords=[],
-        ) if attr in {"append", "center", "count", "decode", "endswith", "expandtabs", "extend", "find", "hex", "index", "join", "ljust", "lstrip", "partition", "pop", "remove", "removeprefix", "removesuffix", "rfind", "rindex", "rjust", "rpartition", "rsplit", "rstrip", "split", "splitlines", "startswith", "strip", "translate", "zfill"}:
+        ) if attr in {"append", "center", "count", "decode", "endswith", "expandtabs", "extend", "find", "hex", "index", "join", "ljust", "lstrip", "partition", "pop", "remove", "removeprefix", "removesuffix", "rfind", "rindex", "rjust", "rpartition", "rsplit", "rstrip", "sort", "split", "splitlines", "startswith", "strip", "translate", "zfill"}:
             return f"#methodCall({emit_id(name)}, {emit_id(attr)}, {emit_exp(arg)})"
         case ast.Call(
             func=ast.Attribute(value=ast.Name(id=name), attr=attr, ctx=ast.Load()),

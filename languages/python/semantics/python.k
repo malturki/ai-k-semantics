@@ -1741,6 +1741,10 @@ module PYTHON
   syntax Int ::= intValue(Val) [function, symbol(intValue)]
                | bytearrayCountByte(ValItems, Val) [function, symbol(bytearrayCountByte)]
                | bytearrayIndexByte(ValItems, Val, Int) [function, symbol(bytearrayIndexByte)]
+               | listCount(ValItems, Val) [function, symbol(listCount)]
+               | listIndexStart(Int, Int) [function, symbol(listIndexStart)]
+               | listIndexStop(Int, Int) [function, symbol(listIndexStop)]
+               | listIndexFind(ValItems, Val, Int, Int) [function, symbol(listIndexFind)]
                | bytearrayFillByteValue(Val) [function, symbol(bytearrayFillByteValue)]
                | bytesFind(ValItems, ValItems, Int) [function, symbol(bytesFind)]
                | bytesRFind(ValItems, ValItems, Int, Int) [function, symbol(bytesRFind)]
@@ -13521,6 +13525,45 @@ module PYTHON
   rule listExtendItems(listVal(VS1:ValItems), VS2:ValItems) =>
     listVal(concatValItems(VS1, VS2))
 
+  rule listCount(valItemsLast(V0:Val), V:Val) => 1
+    requires valEq(V0, V)
+  rule listCount(valItemsLast(V0:Val), V:Val) => 0
+    requires notBool valEq(V0, V)
+  rule listCount(valItemsCons(V0:Val, VS:ValItems), V:Val) =>
+    1 +Int listCount(VS, V)
+    requires valEq(V0, V)
+  rule listCount(valItemsCons(V0:Val, VS:ValItems), V:Val) =>
+    listCount(VS, V)
+    requires notBool valEq(V0, V)
+
+  rule listIndexStart(I:Int, Len:Int) => 0
+    requires I <Int 0 andBool Len +Int I <Int 0
+  rule listIndexStart(I:Int, Len:Int) => Len +Int I
+    requires I <Int 0 andBool Len +Int I >=Int 0
+  rule listIndexStart(I:Int, Len:Int) => Len
+    requires I >Int Len
+  rule listIndexStart(I:Int, Len:Int) => I
+    requires I >=Int 0 andBool I <=Int Len
+
+  rule listIndexStop(I:Int, Len:Int) => 0
+    requires I <Int 0 andBool Len +Int I <Int 0
+  rule listIndexStop(I:Int, Len:Int) => Len +Int I
+    requires I <Int 0 andBool Len +Int I >=Int 0
+  rule listIndexStop(I:Int, Len:Int) => Len
+    requires I >Int Len
+  rule listIndexStop(I:Int, Len:Int) => I
+    requires I >=Int 0 andBool I <=Int Len
+
+  rule listIndexFind(_VS:ValItems, _V:Val, Start:Int, Stop:Int) => -1
+    requires Start >=Int Stop
+  rule listIndexFind(VS:ValItems, V:Val, Start:Int, Stop:Int) => Start
+    requires Start <Int Stop
+      andBool valEq(listGet(VS, Start), V)
+  rule listIndexFind(VS:ValItems, V:Val, Start:Int, Stop:Int) =>
+    listIndexFind(VS, V, Start +Int 1, Stop)
+    requires Start <Int Stop
+      andBool notBool valEq(listGet(VS, Start), V)
+
   rule listRemoveFirst(valItemsLast(V0:Val), V:Val) => []
     requires valEq(V0, V)
   rule listRemoveFirst(valItemsCons(V0:Val, VS:ValItems), V:Val) => listVal(VS)
@@ -21534,6 +21577,18 @@ module PYTHON
        <env> ... X |-> (B:Val => listReverse(B)) ... </env>
     requires Id2String(Method) ==String "reverse"
       andBool isListSequence(B)
+  rule <k> #methodCall0(X:Id, Method:Id) => None ... </k>
+       <env> ... X |-> (B:Val => sortedListVal(iterableArgVals(B))) ... </env>
+    requires Id2String(Method) ==String "sort"
+      andBool isListSequence(B)
+      andBool argValsAllOrderComparable(iterableArgVals(B))
+  rule <k> #methodCall0(X:Id, Method:Id) =>
+           exceptionSignal(#exception(#token("TypeError", "Id")))
+       ... </k>
+       <env> ... X |-> B:Val ... </env>
+    requires Id2String(Method) ==String "sort"
+      andBool isListSequence(B)
+      andBool notBool argValsAllOrderComparable(iterableArgVals(B))
   rule <k> #methodCall0(X:Id, Method:Id) =>
            exceptionSignal(#exception(#token("IndexError", "Id")))
        ... </k>
@@ -21775,6 +21830,7 @@ module PYTHON
               orBool Id2String(Method) ==String "reverse"
               orBool Id2String(Method) ==String "rsplit"
               orBool Id2String(Method) ==String "rstrip"
+              orBool Id2String(Method) ==String "sort"
               orBool Id2String(Method) ==String "split"
               orBool Id2String(Method) ==String "splitlines"
               orBool Id2String(Method) ==String "strip"
@@ -21807,7 +21863,8 @@ module PYTHON
       andBool notBool ((Id2String(Method) ==String "clear"
         orBool Id2String(Method) ==String "copy"
         orBool Id2String(Method) ==String "pop"
-        orBool Id2String(Method) ==String "reverse") andBool isListSequence(B))
+        orBool Id2String(Method) ==String "reverse"
+        orBool Id2String(Method) ==String "sort") andBool isListSequence(B))
   rule <k> #methodCall(X:Id, Method:Id, Enc:String) => bytesDecodeString(B, Enc) ... </k>
        <env> ... X |-> B:Val ... </env>
     requires Id2String(Method) ==String "decode"
@@ -22941,6 +22998,29 @@ module PYTHON
       andBool isBytesVal(B)
       andBool notBool bytearrayAffixNeedleSupported(Affix)
       andBool notBool isTupleSequence(Affix)
+  rule <k> #methodCall(X:Id, Method:Id, _V:Val) => 0 ... </k>
+       <env> ... X |-> [] ... </env>
+    requires Id2String(Method) ==String "count"
+  rule <k> #methodCall(X:Id, Method:Id, V:Val) => listCount(VS, V) ... </k>
+       <env> ... X |-> listVal(VS:ValItems) ... </env>
+    requires Id2String(Method) ==String "count"
+  rule <k> #methodCall(X:Id, Method:Id, _V:Val) =>
+           exceptionSignal(#exception(#token("ValueError", "Id")))
+       ... </k>
+       <env> ... X |-> [] ... </env>
+    requires Id2String(Method) ==String "index"
+  rule <k> #methodCall(X:Id, Method:Id, V:Val) =>
+           listIndexFind(VS, V, 0, valItemsLen(VS))
+       ... </k>
+       <env> ... X |-> listVal(VS:ValItems) ... </env>
+    requires Id2String(Method) ==String "index"
+      andBool listIndexFind(VS, V, 0, valItemsLen(VS)) >=Int 0
+  rule <k> #methodCall(X:Id, Method:Id, V:Val) =>
+           exceptionSignal(#exception(#token("ValueError", "Id")))
+       ... </k>
+       <env> ... X |-> listVal(VS:ValItems) ... </env>
+    requires Id2String(Method) ==String "index"
+      andBool listIndexFind(VS, V, 0, valItemsLen(VS)) <Int 0
   rule <k> #methodCall(X:Id, Method:Id, V:Val) => None ... </k>
        <env> ... X |-> (B:Val => listAppendItem(B, V)) ... </env>
     requires Id2String(Method) ==String "append"
@@ -23230,7 +23310,9 @@ module PYTHON
         orBool Id2String(Method) ==String "translate"
         orBool Id2String(Method) ==String "zfill") andBool isBytesVal(B))
       andBool notBool ((Id2String(Method) ==String "append"
+        orBool Id2String(Method) ==String "count"
         orBool Id2String(Method) ==String "extend"
+        orBool Id2String(Method) ==String "index"
         orBool Id2String(Method) ==String "pop"
         orBool Id2String(Method) ==String "remove") andBool isListSequence(B))
   rule <k> #methodCall2(X:Id, Method:Id, Enc:Val, _Errors:Val) =>
@@ -23333,7 +23415,10 @@ module PYTHON
   rule <k> #methodCall2(X:Id, Method:Id, Needle:Val, Start:Val) =>
            #methodCall3(X, Method, Needle, Start, None)
        ... </k>
+       <env> ... X |-> B:Val ... </env>
     requires bytearraySearchMethod(Method)
+      andBool notBool ((Id2String(Method) ==String "count"
+        orBool Id2String(Method) ==String "index") andBool isListSequence(B))
   rule <k> #methodCall2(X:Id, Method:Id, Affix:Val, Start:Val) =>
            #methodCall3(X, Method, Affix, Start, None)
        ... </k>
@@ -23933,6 +24018,8 @@ module PYTHON
        <env> ... X |-> B:Val ... </env>
     requires bytearraySearchMethod(Method)
       andBool notBool isBytesSequence(B)
+      andBool notBool ((Id2String(Method) ==String "count"
+        orBool Id2String(Method) ==String "index") andBool isListSequence(B))
   rule <k> #methodCall3(X:Id, Method:Id, _Affix:Val, Start:Val, End:Val) =>
            exceptionSignal(#exception(#token("TypeError", "Id")))
        ... </k>
@@ -24164,6 +24251,48 @@ module PYTHON
     requires Id2String(Method) ==String "replace"
       andBool notBool isBytearrayVal(B)
       andBool notBool isBytesVal(B)
+  rule <k> #methodCall3(X:Id, Method:Id, _V:Val, _Start:Val, _Stop:Val) =>
+           exceptionSignal(#exception(#token("TypeError", "Id")))
+       ... </k>
+       <env> ... X |-> B:Val ... </env>
+    requires Id2String(Method) ==String "count"
+      andBool isListSequence(B)
+  rule <k> #methodCall3(X:Id, Method:Id, _V:Val, Start:Val, Stop:Val) =>
+           exceptionSignal(#exception(#token("TypeError", "Id")))
+       ... </k>
+       <env> ... X |-> B:Val ... </env>
+    requires Id2String(Method) ==String "index"
+      andBool isListSequence(B)
+      andBool (notBool isIntLike(Start) orBool notBool isIntLike(Stop))
+  rule <k> #methodCall3(X:Id, Method:Id, _V:Val, Start:Val, Stop:Val) =>
+           exceptionSignal(#exception(#token("ValueError", "Id")))
+       ... </k>
+       <env> ... X |-> [] ... </env>
+    requires Id2String(Method) ==String "index"
+      andBool isIntLike(Start)
+      andBool isIntLike(Stop)
+  rule <k> #methodCall3(X:Id, Method:Id, V:Val, Start:Val, Stop:Val) =>
+           listIndexFind(VS, V,
+             listIndexStart(intValue(Start), valItemsLen(VS)),
+             listIndexStop(intValue(Stop), valItemsLen(VS)))
+       ... </k>
+       <env> ... X |-> listVal(VS:ValItems) ... </env>
+    requires Id2String(Method) ==String "index"
+      andBool isIntLike(Start)
+      andBool isIntLike(Stop)
+      andBool listIndexFind(VS, V,
+        listIndexStart(intValue(Start), valItemsLen(VS)),
+        listIndexStop(intValue(Stop), valItemsLen(VS))) >=Int 0
+  rule <k> #methodCall3(X:Id, Method:Id, V:Val, Start:Val, Stop:Val) =>
+           exceptionSignal(#exception(#token("ValueError", "Id")))
+       ... </k>
+       <env> ... X |-> listVal(VS:ValItems) ... </env>
+    requires Id2String(Method) ==String "index"
+      andBool isIntLike(Start)
+      andBool isIntLike(Stop)
+      andBool listIndexFind(VS, V,
+        listIndexStart(intValue(Start), valItemsLen(VS)),
+        listIndexStop(intValue(Stop), valItemsLen(VS))) <Int 0
   rule <k> #methodCall2(X:Id, Method:Id, W:Val, Fill:Val) => bytearrayCenter(B, W, bytearrayFillByteValue(Fill)) ... </k>
        <env> ... X |-> B:Val ... </env>
     requires Id2String(Method) ==String "center"
@@ -24238,6 +24367,45 @@ module PYTHON
       andBool isBytesVal(B)
       andBool isIntLike(W)
       andBool notBool bytearrayFillByteOk(Fill)
+  rule <k> #methodCall2(X:Id, Method:Id, _V:Val, _Start:Val) =>
+           exceptionSignal(#exception(#token("TypeError", "Id")))
+       ... </k>
+       <env> ... X |-> B:Val ... </env>
+    requires Id2String(Method) ==String "count"
+      andBool isListSequence(B)
+  rule <k> #methodCall2(X:Id, Method:Id, _V:Val, Start:Val) =>
+           exceptionSignal(#exception(#token("TypeError", "Id")))
+       ... </k>
+       <env> ... X |-> B:Val ... </env>
+    requires Id2String(Method) ==String "index"
+      andBool isListSequence(B)
+      andBool notBool isIntLike(Start)
+  rule <k> #methodCall2(X:Id, Method:Id, _V:Val, Start:Val) =>
+           exceptionSignal(#exception(#token("ValueError", "Id")))
+       ... </k>
+       <env> ... X |-> [] ... </env>
+    requires Id2String(Method) ==String "index"
+      andBool isIntLike(Start)
+  rule <k> #methodCall2(X:Id, Method:Id, V:Val, Start:Val) =>
+           listIndexFind(VS, V,
+             listIndexStart(intValue(Start), valItemsLen(VS)),
+             valItemsLen(VS))
+       ... </k>
+       <env> ... X |-> listVal(VS:ValItems) ... </env>
+    requires Id2String(Method) ==String "index"
+      andBool isIntLike(Start)
+      andBool listIndexFind(VS, V,
+        listIndexStart(intValue(Start), valItemsLen(VS)),
+        valItemsLen(VS)) >=Int 0
+  rule <k> #methodCall2(X:Id, Method:Id, V:Val, Start:Val) =>
+           exceptionSignal(#exception(#token("ValueError", "Id")))
+       ... </k>
+       <env> ... X |-> listVal(VS:ValItems) ... </env>
+    requires Id2String(Method) ==String "index"
+      andBool isIntLike(Start)
+      andBool listIndexFind(VS, V,
+        listIndexStart(intValue(Start), valItemsLen(VS)),
+        valItemsLen(VS)) <Int 0
   rule <k> #methodCall2(X:Id, Method:Id, I:Val, _V:Val) =>
            exceptionSignal(#exception(#token("TypeError", "Id")))
        ... </k>

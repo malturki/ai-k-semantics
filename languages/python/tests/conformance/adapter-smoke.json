@@ -1677,6 +1677,13 @@
       "coverage": ["bin-builtin", "oct-builtin", "hex-builtin", "int-like-argument", "bool-as-int", "signed-base-prefix", "large-int", "type-error", "ordinary-python-source-adapter"]
     },
     {
+      "id": "adapter-hash-builtin",
+      "source": "../adapter/adapter-hash-builtin.py",
+      "reference": "Python 3.14.6 Standard Library Built-in Functions hash; Data Model object.__hash__; Standard Types hashability notes for numbers, immutable sequences, frozenset, range, and slice; CPython Lib/test/test_builtin.py test_hash and Lib/test/test_hash.py numeric equality invariant",
+      "expected_result": "True ~> .K",
+      "coverage": ["hash-builtin", "hashable-values", "numeric-hash-equality", "string-bytes-hash-equality", "tuple-hashability", "frozenset-hashability", "range-hashability", "slice-hashability", "unhashable-type-errors", "ordinary-python-source-adapter"]
+    },
+    {
       "id": "adapter-callable-builtin",
       "source": "../adapter/adapter-callable-builtin.py",
       "reference": "Python Standard Library Built-in Functions callable; CPython Lib/test/test_builtin.py test_callable",

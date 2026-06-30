@@ -1001,6 +1001,8 @@ def emit_exp(exp: ast.expr) -> str:
             return f"#oct({emit_exp(arg)})"
         case ast.Call(func=ast.Name(id="hex"), args=[arg], keywords=[]):
             return f"#hex({emit_exp(arg)})"
+        case ast.Call(func=ast.Name(id="hash"), args=[arg], keywords=[]):
+            return f"#hash({emit_exp(arg)})"
         case ast.Call(func=ast.Name(id="callable"), args=[arg], keywords=[]):
             return f"#callable({emit_exp(arg)})"
         case ast.Call(func=ast.Name(id="isinstance"), args=[obj, classinfo], keywords=[]):

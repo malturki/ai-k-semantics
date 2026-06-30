@@ -447,6 +447,7 @@ module PYTHON-SYNTAX
                | "#bin" "(" Exp ")" [symbol(binExp), strict]
                | "#oct" "(" Exp ")" [symbol(octExp), strict]
                | "#hex" "(" Exp ")" [symbol(hexExp), strict]
+               | "#hash" "(" Exp ")" [symbol(hashExp), strict]
                | "#callable" "(" Exp ")" [symbol(callableExp), strict]
                | "#isinstance" "(" Exp "," Id ")" [symbol(isinstanceExp), strict(1)]
                | "#isinstanceAny" "(" Exp "," IdItems ")" [symbol(isinstanceAnyExp), strict(1)]
@@ -1800,6 +1801,15 @@ module PYTHON
                 | rangeAnyTruthy(Int, Int, Int) [function, symbol(rangeAnyTruthy)]
 
   syntax Int ::= intValue(Val) [function, symbol(intValue)]
+               | pyHash(Val) [function, symbol(pyHash)]
+               | pyHashInt(Int) [function, symbol(pyHashInt)]
+               | pyHashFloat(Float) [function, symbol(pyHashFloat)]
+               | pyStringHash(String) [function, symbol(pyStringHash)]
+               | pyStringHashAt(String, Int, Int) [function, symbol(pyStringHashAt)]
+               | pyHashByteItems(ValItems, Int) [function, symbol(pyHashByteItems)]
+               | pyHashSeqItems(ValItems, Int) [function, symbol(pyHashSeqItems)]
+               | pyHashSetItems(ValItems) [function, symbol(pyHashSetItems)]
+               | pyHashRange(Int, Int, Int) [function, symbol(pyHashRange)]
                | bytearrayCountByte(ValItems, Val) [function, symbol(bytearrayCountByte)]
                | bytearrayIndexByte(ValItems, Val, Int) [function, symbol(bytearrayIndexByte)]
                | listCount(ValItems, Val) [function, symbol(listCount)]
@@ -5427,6 +5437,77 @@ module PYTHON
   rule floatValue(F:Float) => F
   rule floatValue(V:Val) => Int2Float(intValue(V), 53, 11)
     requires isIntLike(V)
+
+  rule pyHashInt(-1) => -2
+  rule pyHashInt(I:Int) => I
+    requires I =/=Int -1
+
+  rule pyHash(I:Int) => pyHashInt(I)
+  rule pyHash(True) => pyHashInt(1)
+  rule pyHash(False) => pyHashInt(0)
+  rule pyHash(F:Float) => pyHashFloat(F)
+  rule pyHash(#complex(R:Float, I:Float)) => pyHashFloat(R)
+    requires I ==Float 0.0
+  rule pyHash(#complex(R:Float, I:Float)) =>
+    pyHashInt(pyHashFloat(R) +Int (1000003 *Int pyHashFloat(I)))
+    requires I =/=Float 0.0
+  rule pyHash(S:String) => pyStringHash(S)
+  rule pyHash(None) => 590923713
+  rule pyHash(Ellipsis) => 590923759
+  rule pyHash(#bytes()) => 0
+  rule pyHash(bytesVal(VS:ValItems)) => pyHashByteItems(VS, 0)
+  rule pyHash(()) => pyHashInt(345678)
+  rule pyHash(tupleVal(VS:ValItems)) => pyHashSeqItems(VS, 345678)
+  rule pyHash(frozenset()) => pyHashInt(1927868237)
+  rule pyHash(frozensetVal(VS:ValItems)) =>
+    pyHashInt(1927868237 +Int pyHashSetItems(VS) +Int (69069 *Int valItemsLen(VS)))
+  rule pyHash(rangeVal(Start:Int, Stop:Int)) => pyHashRange(Start, Stop, 1)
+  rule pyHash(rangeVal(Start:Int, Stop:Int, Step:Int)) => pyHashRange(Start, Stop, Step)
+    requires Step =/=Int 0
+  rule pyHash(sliceVal(Start:Val, Stop:Val, Step:Val)) =>
+    pyHash(tupleVal(valItemsCons(Start, valItemsCons(Stop, valItemsLast(Step)))))
+
+  rule pyHashFloat(F:Float) => pyHashInt(Float2Int(floorFloat(F)))
+    requires isIntegralFloat(F)
+  rule pyHashFloat(F:Float) => 314159
+    requires isInfinite(F) andBool notBool signFloat(F)
+  rule pyHashFloat(F:Float) => -314159
+    requires isInfinite(F) andBool signFloat(F)
+  rule pyHashFloat(F:Float) => 0
+    requires isNaN(F)
+  rule pyHashFloat(F:Float) => pyHashInt(Float2Int(floorFloat(F *Float 1000003.0)))
+    requires notBool isInfinite(F) andBool notBool isNaN(F) andBool notBool isIntegralFloat(F)
+
+  rule pyStringHash(S:String) => pyStringHashAt(S, 0, 0)
+
+  rule pyStringHashAt(S:String, I:Int, Acc:Int) => pyHashInt(Acc)
+    requires I >=Int lengthString(S)
+  rule pyStringHashAt(S:String, I:Int, Acc:Int) =>
+    pyStringHashAt(S, I +Int stringCodePointByteLenAt(S, I), (Acc *Int 1000003) xorInt stringCodePointAt(S, I))
+    requires I <Int lengthString(S)
+
+  rule pyHashByteItems(valItemsLast(V:Val), Acc:Int) =>
+    pyHashInt((Acc *Int 1000003) xorInt intValue(V))
+    requires isIntLike(V)
+  rule pyHashByteItems(valItemsCons(V:Val, VS:ValItems), Acc:Int) =>
+    pyHashByteItems(VS, (Acc *Int 1000003) xorInt intValue(V))
+    requires isIntLike(V)
+
+  rule pyHashSeqItems(valItemsLast(V:Val), Acc:Int) =>
+    pyHashInt(((Acc *Int 1000003) xorInt pyHash(V)) +Int 97531)
+  rule pyHashSeqItems(valItemsCons(V:Val, VS:ValItems), Acc:Int) =>
+    pyHashSeqItems(VS, (Acc *Int 1000003) xorInt pyHash(V))
+
+  rule pyHashSetItems(valItemsLast(V:Val)) => pyHash(V)
+  rule pyHashSetItems(valItemsCons(V:Val, VS:ValItems)) => pyHash(V) +Int pyHashSetItems(VS)
+
+  rule pyHashRange(Start:Int, Stop:Int, Step:Int) => pyHash(())
+    requires Step =/=Int 0 andBool pyRangeLen(Start, Stop, Step) ==Int 0
+  rule pyHashRange(Start:Int, Stop:Int, Step:Int) => pyHash(tupleVal(valItemsLast(Start)))
+    requires Step =/=Int 0 andBool pyRangeLen(Start, Stop, Step) ==Int 1
+  rule pyHashRange(Start:Int, Stop:Int, Step:Int) =>
+    pyHash(tupleVal(valItemsCons(Start, valItemsCons(Step, valItemsLast(pyRangeLen(Start, Stop, Step))))))
+    requires Step =/=Int 0 andBool pyRangeLen(Start, Stop, Step) >Int 1
 
   rule pyLen(S:String) => stringCodePointLen(S, 0)
   rule pyLen(#bytes()) => 0
@@ -21552,6 +21633,8 @@ module PYTHON
     requires isIntLike(V)
   rule #hex(V:Val) => pyIntBaseString(intValue(V), 16, "0x")
     requires isIntLike(V)
+  rule #hash(V:Val) => pyHash(V)
+    requires dictLookupKeySupported(V)
   rule #callable(V:Val) => boolValue(callableVal(V))
   rule #isinstance(V:Val, C:Id) => boolValue(matchBuiltinClass(V, C))
     requires isinstanceClassSupported(C)
@@ -21591,6 +21674,8 @@ module PYTHON
     requires notBool isIntLike(V)
   rule <k> #hex(V:Val) => exceptionSignal(#exception(#token("TypeError", "Id"))) ... </k>
     requires notBool isIntLike(V)
+  rule <k> #hash(V:Val) => exceptionSignal(#exception(#token("TypeError", "Id"))) ... </k>
+    requires notBool dictLookupKeySupported(V)
   rule <k> #isinstance(_V:Val, C:Id) => exceptionSignal(#exception(#token("TypeError", "Id"))) ... </k>
     requires notBool isinstanceClassSupported(C)
   rule <k> #isinstanceAny(_V:Val, CS:IdItems) => exceptionSignal(#exception(#token("TypeError", "Id"))) ... </k>

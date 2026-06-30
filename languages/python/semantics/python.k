@@ -1399,6 +1399,9 @@ module PYTHON
                 | bytearrayExtendSourceSupported(Val) [function, symbol(bytearrayExtendSourceSupported)]
                 | bytearrayExtendSourceNonEmpty(Val) [function, symbol(bytearrayExtendSourceNonEmpty)]
                 | bytearrayExtendSourceEmpty(Val) [function, symbol(bytearrayExtendSourceEmpty)]
+                | listExtendSourceSupported(Val) [function, symbol(listExtendSourceSupported)]
+                | listExtendSourceNonEmpty(Val) [function, symbol(listExtendSourceNonEmpty)]
+                | listExtendSourceEmpty(Val) [function, symbol(listExtendSourceEmpty)]
                 | bytearraySearchNeedleSupported(Val) [function, symbol(bytearraySearchNeedleSupported)]
                 | bytearraySearchNeedleEmpty(Val) [function, symbol(bytearraySearchNeedleEmpty)]
                 | bytearraySearchNeedleOk(Val) [function, symbol(bytearraySearchNeedleOk)]
@@ -2163,12 +2166,18 @@ module PYTHON
                     | bytesTitleItems(ValItems, Bool) [function, symbol(bytesTitleItems)]
   syntax ValItems ::= sliceValItems(ValItems, Int, Int) [function, symbol(sliceValItems)]
   syntax ValItems ::= sliceStepValItems(ValItems, Int, Int, Int) [function, symbol(sliceStepValItems)]
+  syntax ValItems ::= listExtendSourceItems(Val) [function, symbol(listExtendSourceItems)]
   syntax ValItems ::= listSet(ValItems, Int, Val) [function, symbol(listSet)]
                     | listSliceStepSet(ValItems, Int, Int, Int, ValItems) [function, symbol(listSliceStepSet)]
   syntax DictItems ::= dictValsToDictItems(DictVals) [function, symbol(dictValsToDictItems)]
   syntax DictItems ::= dictSet(DictItems, Val, Val) [function, symbol(dictSet)]
   syntax Val ::= listDel(ValItems, Int) [function, symbol(listDel)]
                | listPrepend(Val, Val) [function, symbol(listPrepend)]
+               | listAppendItem(Val, Val) [function, symbol(listAppendItem)]
+               | listExtendItems(Val, ValItems) [function, symbol(listExtendItems)]
+               | listRemoveFirst(ValItems, Val) [function, symbol(listRemoveFirst)]
+               | listInsertItem(Val, Int, Val) [function, symbol(listInsertItem)]
+               | listReverse(Val) [function, symbol(listReverse)]
                | listSliceAssign(ValItems, Int, Int, ValItems) [function, symbol(listSliceAssign)]
                | listSliceAssignEmpty(ValItems, Int, Int) [function, symbol(listSliceAssignEmpty)]
                | listSliceDelete(ValItems, Int, Int) [function, symbol(listSliceDelete)]
@@ -7967,6 +7976,8 @@ module PYTHON
   rule bytesPercentPrecisionSpec(valItemsCons(D:Val, valItemsCons(C:Val, _Rest:ValItems))) =>
     bytesPercentDigitByte(D) andBool bytesPercentPrecisionCode(intValue(C))
     requires notBool bytesPercentDigitByte(C)
+  rule bytesPercentPrecisionSpec(valItemsCons(D:Val, valItemsCons(_C:Val, _Rest:ValItems))) => false
+    requires notBool bytesPercentDigitByte(D)
   rule bytesPercentPrecisionSpec(valItemsCons(D:Val, valItemsCons(D2:Val, Rest:ValItems))) =>
     bytesPercentPrecisionSpec(valItemsCons(D2, Rest))
     requires bytesPercentDigitByte(D) andBool bytesPercentDigitByte(D2)
@@ -7978,6 +7989,8 @@ module PYTHON
     requires bytesPercentDigitByte(D)
       andBool bytesPercentPrecisionCode(intValue(C))
       andBool notBool bytesPercentDigitByte(C)
+  rule bytesPercentPrecisionAtEnd(valItemsCons(D:Val, valItemsCons(_C:Val, _Rest:ValItems))) => false
+    requires notBool bytesPercentDigitByte(D)
   rule bytesPercentPrecisionAtEnd(valItemsCons(D:Val, valItemsCons(D2:Val, Rest:ValItems))) =>
     bytesPercentPrecisionAtEnd(valItemsCons(D2, Rest))
     requires bytesPercentDigitByte(D) andBool bytesPercentDigitByte(D2)
@@ -8078,6 +8091,8 @@ module PYTHON
 
   rule bytesPercentNumericCoreSpec(valItemsLast(C:Val)) => bytesPercentConversionCode(intValue(C))
     requires bytesPercentDecimalCode(intValue(C)) orBool bytesPercentIntegralCode(intValue(C))
+  rule bytesPercentNumericCoreSpec(valItemsLast(C:Val)) => false
+    requires notBool (bytesPercentDecimalCode(intValue(C)) orBool bytesPercentIntegralCode(intValue(C)))
   rule bytesPercentNumericCoreSpec(valItemsCons(C:Val, _Rest:ValItems)) =>
     bytesPercentDecimalCode(intValue(C)) orBool bytesPercentIntegralCode(intValue(C))
     requires notBool bytesPercentDigitByte(C)
@@ -8779,6 +8794,8 @@ module PYTHON
     bytesPercentStarWidthPrecisionStarRest(bytesPercentFieldBody(Tail))
 
   rule bytesPercentWidthSpec(valItemsLast(C:Val)) => bytesPercentPrecisionCode(intValue(C))
+  rule bytesPercentWidthSpec(valItemsCons(46, Rest:ValItems)) =>
+    bytesPercentPrecisionSpec(Rest)
   rule bytesPercentWidthSpec(valItemsCons(C:Val, _Rest:ValItems)) =>
     bytesPercentPrecisionCode(intValue(C))
     requires notBool bytesPercentDigitByte(C)
@@ -8795,6 +8812,8 @@ module PYTHON
     requires bytesPercentDigitByte(D) andBool bytesPercentDigitByte(D2)
 
   rule bytesPercentWidthAtEnd(valItemsLast(C:Val)) => bytesPercentPrecisionCode(intValue(C))
+  rule bytesPercentWidthAtEnd(valItemsCons(46, Rest:ValItems)) =>
+    bytesPercentPrecisionAtEnd(Rest)
   rule bytesPercentWidthAtEnd(valItemsCons(C:Val, _Rest:ValItems)) => false
     requires bytesPercentPrecisionCode(intValue(C))
   rule bytesPercentWidthAtEnd(valItemsCons(D:Val, valItemsLast(C:Val))) =>
@@ -8813,6 +8832,8 @@ module PYTHON
   rule bytesPercentWidthValue(VS:ValItems) => bytesPercentWidthAccum(VS, 0)
     requires bytesPercentWidthSpec(VS)
       andBool bytesPercentDigitByte(listGet(VS, 0))
+  rule bytesPercentWidthValue(valItemsCons(46, Rest:ValItems)) => 0
+    requires bytesPercentPrecisionSpec(Rest)
   rule bytesPercentWidthValue(valItemsLast(C:Val)) => 0
     requires bytesPercentPrecisionCode(intValue(C))
   rule bytesPercentWidthValue(valItemsCons(C:Val, _Rest:ValItems)) => 0
@@ -8831,6 +8852,9 @@ module PYTHON
 
   rule bytesPercentWidthPrecision(valItemsCons(D:Val, valItemsLast(C:Val))) => -1
     requires bytesPercentDigitByte(D) andBool bytesPercentPrecisionCode(intValue(C))
+  rule bytesPercentWidthPrecision(valItemsCons(46, Rest:ValItems)) =>
+    bytesPercentPrecisionValue(Rest)
+    requires bytesPercentPrecisionSpec(Rest)
   rule bytesPercentWidthPrecision(valItemsLast(C:Val)) => -1
     requires bytesPercentPrecisionCode(intValue(C))
   rule bytesPercentWidthPrecision(valItemsCons(C:Val, _Rest:ValItems)) => -1
@@ -8849,6 +8873,9 @@ module PYTHON
 
   rule bytesPercentWidthSpecCode(valItemsCons(D:Val, valItemsLast(C:Val))) => intValue(C)
     requires bytesPercentDigitByte(D) andBool bytesPercentPrecisionCode(intValue(C))
+  rule bytesPercentWidthSpecCode(valItemsCons(46, Rest:ValItems)) =>
+    bytesPercentPrecisionSpecCode(Rest)
+    requires bytesPercentPrecisionSpec(Rest)
   rule bytesPercentWidthSpecCode(valItemsLast(C:Val)) => intValue(C)
     requires bytesPercentPrecisionCode(intValue(C))
   rule bytesPercentWidthSpecCode(valItemsCons(C:Val, _Rest:ValItems)) => intValue(C)
@@ -8869,6 +8896,10 @@ module PYTHON
     requires bytesPercentDigitByte(D)
       andBool bytesPercentPrecisionCode(intValue(C))
       andBool notBool bytesPercentDigitByte(C)
+  rule bytesPercentWidthRest(valItemsCons(46, Rest:ValItems)) =>
+    bytesPercentPrecisionRest(Rest)
+    requires bytesPercentPrecisionSpec(Rest)
+      andBool notBool bytesPercentPrecisionAtEnd(Rest)
   rule bytesPercentWidthRest(valItemsCons(C:Val, Rest:ValItems)) => Rest
     requires bytesPercentPrecisionCode(intValue(C))
   rule bytesPercentWidthRest(valItemsCons(D:Val, valItemsCons(46, Rest:ValItems))) =>
@@ -12029,6 +12060,47 @@ module PYTHON
     requires Step =/=Int 0
   rule bytearrayExtendSourceNonEmpty(_:Val) => false [owise]
 
+  rule listExtendSourceSupported([]) => true
+  rule listExtendSourceSupported(listVal(_:ValItems)) => true
+  rule listExtendSourceSupported(()) => true
+  rule listExtendSourceSupported(tupleVal(_:ValItems)) => true
+  rule listExtendSourceSupported(_:String) => true
+  rule listExtendSourceSupported(#bytes()) => true
+  rule listExtendSourceSupported(bytesVal(_:ValItems)) => true
+  rule listExtendSourceSupported(#bytearray()) => true
+  rule listExtendSourceSupported(bytearrayVal(_:ValItems)) => true
+  rule listExtendSourceSupported(#memoryviewVal(V:Val)) => listExtendSourceSupported(V)
+  rule listExtendSourceSupported({}) => true
+  rule listExtendSourceSupported(dictVal(_:DictItems)) => true
+  rule listExtendSourceSupported(set()) => true
+  rule listExtendSourceSupported(setVal(_:ValItems)) => true
+  rule listExtendSourceSupported(rangeVal(_:Int, _:Int)) => true
+  rule listExtendSourceSupported(rangeVal(_:Int, _:Int, Step:Int)) => Step =/=Int 0
+  rule listExtendSourceSupported(_:Val) => false [owise]
+
+  rule listExtendSourceEmpty([]) => true
+  rule listExtendSourceEmpty(listVal(_:ValItems)) => false
+  rule listExtendSourceEmpty(()) => true
+  rule listExtendSourceEmpty(tupleVal(_:ValItems)) => false
+  rule listExtendSourceEmpty(S:String) => lengthString(S) ==Int 0
+  rule listExtendSourceEmpty(#bytes()) => true
+  rule listExtendSourceEmpty(bytesVal(_:ValItems)) => false
+  rule listExtendSourceEmpty(#bytearray()) => true
+  rule listExtendSourceEmpty(bytearrayVal(_:ValItems)) => false
+  rule listExtendSourceEmpty(#memoryviewVal(V:Val)) => listExtendSourceEmpty(V)
+  rule listExtendSourceEmpty({}) => true
+  rule listExtendSourceEmpty(dictVal(_:DictItems)) => false
+  rule listExtendSourceEmpty(set()) => true
+  rule listExtendSourceEmpty(setVal(_:ValItems)) => false
+  rule listExtendSourceEmpty(rangeVal(Start:Int, Stop:Int)) => pyRangeLen(Start, Stop, 1) ==Int 0
+  rule listExtendSourceEmpty(rangeVal(Start:Int, Stop:Int, Step:Int)) =>
+    pyRangeLen(Start, Stop, Step) ==Int 0
+    requires Step =/=Int 0
+  rule listExtendSourceEmpty(_:Val) => false [owise]
+
+  rule listExtendSourceNonEmpty(V:Val) =>
+    listExtendSourceSupported(V) andBool notBool listExtendSourceEmpty(V)
+
   rule bytearraySearchNeedleSupported(V:Val) => true
     requires isIntLike(V)
   rule bytearraySearchNeedleSupported(#bytes()) => true
@@ -12096,6 +12168,22 @@ module PYTHON
     rangeToValItems(Start, Stop, 1, 0, pyRangeLen(Start, Stop, 1))
     requires pyRangeLen(Start, Stop, 1) >Int 0
   rule bytearrayExtendSourceItems(rangeVal(Start:Int, Stop:Int, Step:Int)) =>
+    rangeToValItems(Start, Stop, Step, 0, pyRangeLen(Start, Stop, Step))
+    requires Step =/=Int 0 andBool pyRangeLen(Start, Stop, Step) >Int 0
+
+  rule listExtendSourceItems(listVal(VS:ValItems)) => VS
+  rule listExtendSourceItems(tupleVal(VS:ValItems)) => VS
+  rule listExtendSourceItems(S:String) => stringToValItems(S, 0, lengthString(S))
+    requires lengthString(S) >Int 0
+  rule listExtendSourceItems(bytesVal(VS:ValItems)) => VS
+  rule listExtendSourceItems(bytearrayVal(VS:ValItems)) => VS
+  rule listExtendSourceItems(#memoryviewVal(V:Val)) => listExtendSourceItems(V)
+  rule listExtendSourceItems(dictVal(DS:DictItems)) => dictKeysToValItems(DS)
+  rule listExtendSourceItems(setVal(VS:ValItems)) => VS
+  rule listExtendSourceItems(rangeVal(Start:Int, Stop:Int)) =>
+    rangeToValItems(Start, Stop, 1, 0, pyRangeLen(Start, Stop, 1))
+    requires pyRangeLen(Start, Stop, 1) >Int 0
+  rule listExtendSourceItems(rangeVal(Start:Int, Stop:Int, Step:Int)) =>
     rangeToValItems(Start, Stop, Step, 0, pyRangeLen(Start, Stop, Step))
     requires Step =/=Int 0 andBool pyRangeLen(Start, Stop, Step) >Int 0
 
@@ -13424,6 +13512,37 @@ module PYTHON
 
   rule listPrepend(V:Val, []) => listVal(valItemsLast(V))
   rule listPrepend(V:Val, listVal(VS:ValItems)) => listVal(valItemsCons(V, VS))
+
+  rule listAppendItem([], V:Val) => listVal(valItemsLast(V))
+  rule listAppendItem(listVal(VS:ValItems), V:Val) =>
+    listVal(concatValItems(VS, valItemsLast(V)))
+
+  rule listExtendItems([], VS:ValItems) => listVal(VS)
+  rule listExtendItems(listVal(VS1:ValItems), VS2:ValItems) =>
+    listVal(concatValItems(VS1, VS2))
+
+  rule listRemoveFirst(valItemsLast(V0:Val), V:Val) => []
+    requires valEq(V0, V)
+  rule listRemoveFirst(valItemsCons(V0:Val, VS:ValItems), V:Val) => listVal(VS)
+    requires valEq(V0, V)
+  rule listRemoveFirst(valItemsCons(V0:Val, VS:ValItems), V:Val) =>
+    listPrepend(V0, listRemoveFirst(VS, V))
+    requires notBool valEq(V0, V)
+
+  rule listInsertItem([], _I:Int, V:Val) => listVal(valItemsLast(V))
+  rule listInsertItem(listVal(VS:ValItems), I:Int, V:Val) =>
+    listVal(valItemsCons(V, VS))
+    requires I <=Int 0
+  rule listInsertItem(listVal(VS:ValItems), I:Int, V:Val) =>
+    listVal(concatValItems(VS, valItemsLast(V)))
+    requires I >=Int valItemsLen(VS)
+  rule listInsertItem(listVal(valItemsCons(V0:Val, VS:ValItems)), I:Int, V:Val) =>
+    listPrepend(V0, listInsertItem(listVal(VS), I -Int 1, V))
+    requires I >Int 0
+      andBool I <Int valItemsLen(valItemsCons(V0, VS))
+
+  rule listReverse([]) => []
+  rule listReverse(listVal(VS:ValItems)) => listVal(reverseValItems(VS))
 
   rule listSliceAssign(VS:ValItems, Start:Int, Stop:Int, RS:ValItems) =>
     listVal(concatValItems(RS, VS))
@@ -21394,6 +21513,30 @@ module PYTHON
   rule <k> #methodCall0(X:Id, Method:Id) =>
            exceptionSignal(#exception(#token("IndexError", "Id")))
        ... </k>
+       <env> ... X |-> [] ... </env>
+    requires Id2String(Method) ==String "pop"
+  rule <k> #methodCall0(X:Id, Method:Id) => listGet(VS, valItemsLen(VS) -Int 1) ... </k>
+       <env> ... X |-> (listVal(VS:ValItems) => listDel(VS, valItemsLen(VS) -Int 1)) ... </env>
+    requires Id2String(Method) ==String "pop"
+  rule <k> #methodCall0(X:Id, Method:Id) => None ... </k>
+       <env> ... X |-> [] ... </env>
+    requires Id2String(Method) ==String "clear"
+  rule <k> #methodCall0(X:Id, Method:Id) => None ... </k>
+       <env> ... X |-> (listVal(_:ValItems) => []) ... </env>
+    requires Id2String(Method) ==String "clear"
+  rule <k> #methodCall0(X:Id, Method:Id) => [] ... </k>
+       <env> ... X |-> [] ... </env>
+    requires Id2String(Method) ==String "copy"
+  rule <k> #methodCall0(X:Id, Method:Id) => listVal(VS) ... </k>
+       <env> ... X |-> listVal(VS:ValItems) ... </env>
+    requires Id2String(Method) ==String "copy"
+  rule <k> #methodCall0(X:Id, Method:Id) => None ... </k>
+       <env> ... X |-> (B:Val => listReverse(B)) ... </env>
+    requires Id2String(Method) ==String "reverse"
+      andBool isListSequence(B)
+  rule <k> #methodCall0(X:Id, Method:Id) =>
+           exceptionSignal(#exception(#token("IndexError", "Id")))
+       ... </k>
        <env> ... X |-> #bytearray() ... </env>
     requires Id2String(Method) ==String "pop"
   rule <k> #methodCall0(X:Id, Method:Id) => listGet(VS, valItemsLen(VS) -Int 1) ... </k>
@@ -21661,6 +21804,10 @@ module PYTHON
         orBool Id2String(Method) ==String "strip"
         orBool Id2String(Method) ==String "title"
         orBool Id2String(Method) ==String "upper") andBool isBytesVal(B))
+      andBool notBool ((Id2String(Method) ==String "clear"
+        orBool Id2String(Method) ==String "copy"
+        orBool Id2String(Method) ==String "pop"
+        orBool Id2String(Method) ==String "reverse") andBool isListSequence(B))
   rule <k> #methodCall(X:Id, Method:Id, Enc:String) => bytesDecodeString(B, Enc) ... </k>
        <env> ... X |-> B:Val ... </env>
     requires Id2String(Method) ==String "decode"
@@ -22795,6 +22942,75 @@ module PYTHON
       andBool notBool bytearrayAffixNeedleSupported(Affix)
       andBool notBool isTupleSequence(Affix)
   rule <k> #methodCall(X:Id, Method:Id, V:Val) => None ... </k>
+       <env> ... X |-> (B:Val => listAppendItem(B, V)) ... </env>
+    requires Id2String(Method) ==String "append"
+      andBool isListSequence(B)
+  rule <k> #methodCall(X:Id, Method:Id, Src:Val) => None ... </k>
+       <env> ... X |-> B:Val ... </env>
+    requires Id2String(Method) ==String "extend"
+      andBool isListSequence(B)
+      andBool listExtendSourceSupported(Src)
+      andBool listExtendSourceEmpty(Src)
+  rule <k> #methodCall(X:Id, Method:Id, Src:Val) => None ... </k>
+       <env> ... X |-> (B:Val => listExtendItems(B, listExtendSourceItems(Src))) ... </env>
+    requires Id2String(Method) ==String "extend"
+      andBool isListSequence(B)
+      andBool listExtendSourceNonEmpty(Src)
+  rule <k> #methodCall(X:Id, Method:Id, Src:Val) =>
+           exceptionSignal(#exception(#token("TypeError", "Id")))
+       ... </k>
+       <env> ... X |-> B:Val ... </env>
+    requires Id2String(Method) ==String "extend"
+      andBool isListSequence(B)
+      andBool notBool listExtendSourceSupported(Src)
+  rule <k> #methodCall(X:Id, Method:Id, I:Val) =>
+           exceptionSignal(#exception(#token("TypeError", "Id")))
+       ... </k>
+       <env> ... X |-> B:Val ... </env>
+    requires Id2String(Method) ==String "pop"
+      andBool isListSequence(B)
+      andBool notBool isIntLike(I)
+  rule <k> #methodCall(X:Id, Method:Id, I:Val) =>
+           exceptionSignal(#exception(#token("IndexError", "Id")))
+       ... </k>
+       <env> ... X |-> [] ... </env>
+    requires Id2String(Method) ==String "pop"
+      andBool isIntLike(I)
+  rule <k> #methodCall(X:Id, Method:Id, I:Val) => listGet(VS, intValue(I)) ... </k>
+       <env> ... X |-> (listVal(VS:ValItems) => listDel(VS, intValue(I))) ... </env>
+    requires Id2String(Method) ==String "pop"
+      andBool isIntLike(I)
+      andBool intValue(I) >=Int 0
+      andBool intValue(I) <Int valItemsLen(VS)
+  rule <k> #methodCall(X:Id, Method:Id, I:Val) => listGet(VS, valItemsLen(VS) +Int intValue(I)) ... </k>
+       <env> ... X |-> (listVal(VS:ValItems) => listDel(VS, valItemsLen(VS) +Int intValue(I))) ... </env>
+    requires Id2String(Method) ==String "pop"
+      andBool isIntLike(I)
+      andBool intValue(I) <Int 0
+      andBool valItemsLen(VS) +Int intValue(I) >=Int 0
+  rule <k> #methodCall(X:Id, Method:Id, I:Val) =>
+           exceptionSignal(#exception(#token("IndexError", "Id")))
+       ... </k>
+       <env> ... X |-> listVal(VS:ValItems) ... </env>
+    requires Id2String(Method) ==String "pop"
+      andBool isIntLike(I)
+      andBool notBool subscriptIndexInBounds(I, valItemsLen(VS))
+  rule <k> #methodCall(X:Id, Method:Id, _V:Val) =>
+           exceptionSignal(#exception(#token("ValueError", "Id")))
+       ... </k>
+       <env> ... X |-> [] ... </env>
+    requires Id2String(Method) ==String "remove"
+  rule <k> #methodCall(X:Id, Method:Id, V:Val) => None ... </k>
+       <env> ... X |-> (listVal(VS:ValItems) => listRemoveFirst(VS, V)) ... </env>
+    requires Id2String(Method) ==String "remove"
+      andBool containsVal(V, VS)
+  rule <k> #methodCall(X:Id, Method:Id, V:Val) =>
+           exceptionSignal(#exception(#token("ValueError", "Id")))
+       ... </k>
+       <env> ... X |-> listVal(VS:ValItems) ... </env>
+    requires Id2String(Method) ==String "remove"
+      andBool notBool containsVal(V, VS)
+  rule <k> #methodCall(X:Id, Method:Id, V:Val) => None ... </k>
        <env> ... X |-> (bytearrayVal(VS:ValItems) => bytearrayRemoveByte(VS, intValue(V))) ... </env>
     requires Id2String(Method) ==String "remove"
       andBool isIntLike(V)
@@ -23013,6 +23229,10 @@ module PYTHON
         orBool Id2String(Method) ==String "endswith"
         orBool Id2String(Method) ==String "translate"
         orBool Id2String(Method) ==String "zfill") andBool isBytesVal(B))
+      andBool notBool ((Id2String(Method) ==String "append"
+        orBool Id2String(Method) ==String "extend"
+        orBool Id2String(Method) ==String "pop"
+        orBool Id2String(Method) ==String "remove") andBool isListSequence(B))
   rule <k> #methodCall2(X:Id, Method:Id, Enc:Val, _Errors:Val) =>
            exceptionSignal(#exception(#token("TypeError", "Id")))
        ... </k>
@@ -24018,6 +24238,34 @@ module PYTHON
       andBool isBytesVal(B)
       andBool isIntLike(W)
       andBool notBool bytearrayFillByteOk(Fill)
+  rule <k> #methodCall2(X:Id, Method:Id, I:Val, _V:Val) =>
+           exceptionSignal(#exception(#token("TypeError", "Id")))
+       ... </k>
+       <env> ... X |-> B:Val ... </env>
+    requires Id2String(Method) ==String "insert"
+      andBool isListSequence(B)
+      andBool notBool isIntLike(I)
+  rule <k> #methodCall2(X:Id, Method:Id, I:Val, V:Val) => None ... </k>
+       <env> ... X |-> ([] => listInsertItem([], intValue(I), V)) ... </env>
+    requires Id2String(Method) ==String "insert"
+      andBool isIntLike(I)
+  rule <k> #methodCall2(X:Id, Method:Id, I:Val, V:Val) => None ... </k>
+       <env> ... X |-> (listVal(VS:ValItems) => listInsertItem(listVal(VS), 0, V)) ... </env>
+    requires Id2String(Method) ==String "insert"
+      andBool isIntLike(I)
+      andBool intValue(I) <Int 0
+      andBool valItemsLen(VS) +Int intValue(I) <=Int 0
+  rule <k> #methodCall2(X:Id, Method:Id, I:Val, V:Val) => None ... </k>
+       <env> ... X |-> (listVal(VS:ValItems) => listInsertItem(listVal(VS), valItemsLen(VS) +Int intValue(I), V)) ... </env>
+    requires Id2String(Method) ==String "insert"
+      andBool isIntLike(I)
+      andBool intValue(I) <Int 0
+      andBool valItemsLen(VS) +Int intValue(I) >Int 0
+  rule <k> #methodCall2(X:Id, Method:Id, I:Val, V:Val) => None ... </k>
+       <env> ... X |-> (listVal(VS:ValItems) => listInsertItem(listVal(VS), intValue(I), V)) ... </env>
+    requires Id2String(Method) ==String "insert"
+      andBool isIntLike(I)
+      andBool intValue(I) >=Int 0
   rule <k> #methodCall2(X:Id, Method:Id, I:Val, V:Val) => None ... </k>
        <env> ... X |-> (#bytearray() => bytearrayInsertByte(#bytearray(), intValue(I), V)) ... </env>
     requires Id2String(Method) ==String "insert"
@@ -24100,6 +24348,7 @@ module PYTHON
         orBool Id2String(Method) ==String "ljust"
         orBool Id2String(Method) ==String "rjust"
         orBool Id2String(Method) ==String "translate") andBool isBytesVal(B))
+      andBool notBool (Id2String(Method) ==String "insert" andBool isListSequence(B))
   rule #abs(V:Val) => 0 -Int intValue(V)
     requires isIntLike(V) andBool intValue(V) <Int 0
   rule #abs(V:Val) => intValue(V)

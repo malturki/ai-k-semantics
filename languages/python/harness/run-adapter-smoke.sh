@@ -285,6 +285,7 @@ run_case "adapter-memoryview-iteration" "$ROOT/tests/adapter/adapter-memoryview-
 run_case "adapter-memoryview-constructors" "$ROOT/tests/adapter/adapter-memoryview-constructors.py" "True ~> .K"
 run_case "adapter-list-normal" "$ROOT/tests/adapter/adapter-list-normal.py" "True ~> .K"
 run_case "adapter-list-expressions" "$ROOT/tests/adapter/adapter-list-expressions.py" "True ~> .K"
+run_case "adapter-list-mutating-methods" "$ROOT/tests/adapter/adapter-list-mutating-methods.py" "True ~> .K"
 run_case "adapter-list-comprehension" "$ROOT/tests/adapter/adapter-list-comprehension.py" "True ~> .K"
 run_case "adapter-list-comprehension-if" "$ROOT/tests/adapter/adapter-list-comprehension-if.py" "True ~> .K"
 run_case "adapter-list-comprehension-filters" "$ROOT/tests/adapter/adapter-list-comprehension-filters.py" "True ~> .K"

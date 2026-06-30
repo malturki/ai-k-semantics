@@ -1733,6 +1733,13 @@
       "coverage": ["list-display", "expression-list-evaluation", "positive-list-index", "ordinary-python-source-adapter"]
     },
     {
+      "id": "adapter-list-mutating-methods",
+      "source": "../adapter/adapter-list-mutating-methods.py",
+      "reference": "Python Standard Library Built-in Types list; mutable sequence methods append, extend, clear, copy, reverse, pop, remove, and insert",
+      "expected_result": "True ~> .K",
+      "coverage": ["list-mutating-methods", "list-append-method", "list-extend-method", "list-clear-method", "list-copy-method", "list-reverse-method", "list-pop-method", "list-remove-method", "list-insert-method", "method-call", "type-error", "value-error", "index-error", "ordinary-python-source-adapter"]
+    },
+    {
       "id": "adapter-list-comprehension",
       "source": "../adapter/adapter-list-comprehension.py",
       "reference": "Python Language Reference 6.2.4 Displays for lists, sets and dictionaries; Python Language Reference 6.2.5 List displays",

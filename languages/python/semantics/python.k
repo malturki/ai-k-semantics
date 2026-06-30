@@ -2202,6 +2202,8 @@ module PYTHON
                | listSliceStepDelete(ValItems, Int, Int, Int) [function, symbol(listSliceStepDelete)]
                | listSliceStepDeleteN(Val, Int, Int, Int) [function, symbol(listSliceStepDeleteN)]
                | dictDel(DictItems, Val) [function, symbol(dictDel)]
+               | dictPopItemPair(DictItems) [function, symbol(dictPopItemPair)]
+               | dictPopItemRest(DictItems) [function, symbol(dictPopItemRest)]
                | dictPrepend(Val, Val, Val) [function, symbol(dictPrepend)]
                | subscriptGet(Val, Val) [function, symbol(subscriptGet)]
                | subscriptSet(Val, Val, Val) [function, symbol(subscriptSet)]
@@ -13678,6 +13680,15 @@ module PYTHON
     dictPrepend(K1, V1, dictDel(DS, K))
     requires notBool valEq(K, K1)
 
+  rule dictPopItemPair(dictItemsLast(K:Val, V:Val)) =>
+    tupleVal(valItemsCons(K, valItemsLast(V)))
+  rule dictPopItemPair(dictItemsCons(_:Val, _:Val, DS:DictItems)) =>
+    dictPopItemPair(DS)
+
+  rule dictPopItemRest(dictItemsLast(_:Val, _:Val)) => ({}):Val
+  rule dictPopItemRest(dictItemsCons(K:Val, V:Val, DS:DictItems)) =>
+    dictPrepend(K, V, dictPopItemRest(DS))
+
   rule subscriptIndexInBounds(I:Val, Len:Int) =>
     ((intValue(I) >=Int 0 andBool intValue(I) <Int Len)
       orBool (intValue(I) <Int 0 andBool Len +Int intValue(I) >=Int 0))
@@ -21765,6 +21776,24 @@ module PYTHON
     requires Id2String(Method) ==String "sort"
       andBool isListSequence(B)
       andBool notBool argValsAllOrderComparable(iterableArgVals(B))
+  rule <k> #methodCall0(X:Id, Method:Id) => None ... </k>
+       <env> ... X |-> (B:Val => ({}):Val) ... </env>
+    requires Id2String(Method) ==String "clear"
+      andBool isDictVal(B)
+  rule <k> #methodCall0(X:Id, Method:Id) => ({}):Val ... </k>
+       <env> ... X |-> ({}):Val ... </env>
+    requires Id2String(Method) ==String "copy"
+  rule <k> #methodCall0(X:Id, Method:Id) => dictVal(DS) ... </k>
+       <env> ... X |-> dictVal(DS:DictItems) ... </env>
+    requires Id2String(Method) ==String "copy"
+  rule <k> #methodCall0(X:Id, Method:Id) =>
+           exceptionSignal(#exception(#token("KeyError", "Id")))
+       ... </k>
+       <env> ... X |-> ({}):Val ... </env>
+    requires Id2String(Method) ==String "popitem"
+  rule <k> #methodCall0(X:Id, Method:Id) => dictPopItemPair(DS) ... </k>
+       <env> ... X |-> (dictVal(DS:DictItems) => dictPopItemRest(DS)) ... </env>
+    requires Id2String(Method) ==String "popitem"
   rule <k> #methodCall0(X:Id, Method:Id) =>
            exceptionSignal(#exception(#token("IndexError", "Id")))
        ... </k>
@@ -22003,6 +22032,7 @@ module PYTHON
               orBool Id2String(Method) ==String "lower"
               orBool Id2String(Method) ==String "lstrip"
               orBool Id2String(Method) ==String "pop"
+              orBool Id2String(Method) ==String "popitem"
               orBool Id2String(Method) ==String "reverse"
               orBool Id2String(Method) ==String "rsplit"
               orBool Id2String(Method) ==String "rstrip"
@@ -22041,6 +22071,9 @@ module PYTHON
         orBool Id2String(Method) ==String "pop"
         orBool Id2String(Method) ==String "reverse"
         orBool Id2String(Method) ==String "sort") andBool isListSequence(B))
+      andBool notBool ((Id2String(Method) ==String "clear"
+        orBool Id2String(Method) ==String "copy"
+        orBool Id2String(Method) ==String "popitem") andBool isDictVal(B))
   rule <k> #methodCall(X:Id, Method:Id, Enc:String) => bytesDecodeString(B, Enc) ... </k>
        <env> ... X |-> B:Val ... </env>
     requires Id2String(Method) ==String "decode"
@@ -23197,6 +23230,61 @@ module PYTHON
        <env> ... X |-> listVal(VS:ValItems) ... </env>
     requires Id2String(Method) ==String "index"
       andBool listIndexFind(VS, V, 0, valItemsLen(VS)) <Int 0
+  rule <k> #methodCall(X:Id, Method:Id, K:Val) =>
+           exceptionSignal(#exception(#token("TypeError", "Id")))
+       ... </k>
+       <env> ... X |-> B:Val ... </env>
+    requires (Id2String(Method) ==String "get"
+              orBool Id2String(Method) ==String "pop"
+              orBool Id2String(Method) ==String "setdefault")
+      andBool isDictVal(B)
+      andBool notBool dictLookupKeySupported(K)
+  rule <k> #methodCall(X:Id, Method:Id, K:Val) => None ... </k>
+       <env> ... X |-> ({}):Val ... </env>
+    requires Id2String(Method) ==String "get"
+      andBool dictLookupKeySupported(K)
+  rule <k> #methodCall(X:Id, Method:Id, K:Val) => dictGet(DS, K) ... </k>
+       <env> ... X |-> dictVal(DS:DictItems) ... </env>
+    requires Id2String(Method) ==String "get"
+      andBool dictLookupKeySupported(K)
+      andBool containsKey(K, DS)
+  rule <k> #methodCall(X:Id, Method:Id, K:Val) => None ... </k>
+       <env> ... X |-> dictVal(DS:DictItems) ... </env>
+    requires Id2String(Method) ==String "get"
+      andBool dictLookupKeySupported(K)
+      andBool notBool containsKey(K, DS)
+  rule <k> #methodCall(X:Id, Method:Id, K:Val) =>
+           exceptionSignal(#exception(#token("KeyError", "Id")))
+       ... </k>
+       <env> ... X |-> ({}):Val ... </env>
+    requires Id2String(Method) ==String "pop"
+      andBool dictLookupKeySupported(K)
+  rule <k> #methodCall(X:Id, Method:Id, K:Val) => dictGet(DS, K) ... </k>
+       <env> ... X |-> (dictVal(DS:DictItems) => dictDel(DS, K)) ... </env>
+    requires Id2String(Method) ==String "pop"
+      andBool dictLookupKeySupported(K)
+      andBool containsKey(K, DS)
+  rule <k> #methodCall(X:Id, Method:Id, K:Val) =>
+           exceptionSignal(#exception(#token("KeyError", "Id")))
+       ... </k>
+       <env> ... X |-> dictVal(DS:DictItems) ... </env>
+    requires Id2String(Method) ==String "pop"
+      andBool dictLookupKeySupported(K)
+      andBool notBool containsKey(K, DS)
+  rule <k> #methodCall(X:Id, Method:Id, K:Val) => None ... </k>
+       <env> ... X |-> (({}):Val => dictVal(dictItemsLast(K, None))) ... </env>
+    requires Id2String(Method) ==String "setdefault"
+      andBool dictLookupKeySupported(K)
+  rule <k> #methodCall(X:Id, Method:Id, K:Val) => dictGet(DS, K) ... </k>
+       <env> ... X |-> dictVal(DS:DictItems) ... </env>
+    requires Id2String(Method) ==String "setdefault"
+      andBool dictLookupKeySupported(K)
+      andBool containsKey(K, DS)
+  rule <k> #methodCall(X:Id, Method:Id, K:Val) => None ... </k>
+       <env> ... X |-> (dictVal(DS:DictItems) => dictVal(dictSet(DS, K, None))) ... </env>
+    requires Id2String(Method) ==String "setdefault"
+      andBool dictLookupKeySupported(K)
+      andBool notBool containsKey(K, DS)
   rule <k> #methodCall(X:Id, Method:Id, _Arg:Val) =>
            exceptionSignal(#exception(#token("TypeError", "Id")))
        ... </k>
@@ -23442,6 +23530,7 @@ module PYTHON
               orBool Id2String(Method) ==String "expandtabs"
               orBool Id2String(Method) ==String "extend"
               orBool Id2String(Method) ==String "find"
+              orBool Id2String(Method) ==String "get"
               orBool Id2String(Method) ==String "hex"
               orBool Id2String(Method) ==String "index"
               orBool Id2String(Method) ==String "join"
@@ -23457,6 +23546,7 @@ module PYTHON
               orBool Id2String(Method) ==String "rpartition"
               orBool Id2String(Method) ==String "rsplit"
               orBool Id2String(Method) ==String "rstrip"
+              orBool Id2String(Method) ==String "setdefault"
               orBool Id2String(Method) ==String "sort"
               orBool Id2String(Method) ==String "split"
               orBool Id2String(Method) ==String "splitlines"
@@ -23499,6 +23589,9 @@ module PYTHON
         orBool Id2String(Method) ==String "pop"
         orBool Id2String(Method) ==String "remove"
         orBool Id2String(Method) ==String "sort") andBool isListSequence(B))
+      andBool notBool ((Id2String(Method) ==String "get"
+        orBool Id2String(Method) ==String "pop"
+        orBool Id2String(Method) ==String "setdefault") andBool isDictVal(B))
   rule <k> #methodCall2(X:Id, Method:Id, Enc:Val, _Errors:Val) =>
            exceptionSignal(#exception(#token("TypeError", "Id")))
        ... </k>
@@ -24590,6 +24683,57 @@ module PYTHON
       andBool listIndexFind(VS, V,
         listIndexStart(intValue(Start), valItemsLen(VS)),
         valItemsLen(VS)) <Int 0
+  rule <k> #methodCall2(X:Id, Method:Id, K:Val, _Default:Val) =>
+           exceptionSignal(#exception(#token("TypeError", "Id")))
+       ... </k>
+       <env> ... X |-> B:Val ... </env>
+    requires (Id2String(Method) ==String "get"
+              orBool Id2String(Method) ==String "pop"
+              orBool Id2String(Method) ==String "setdefault")
+      andBool isDictVal(B)
+      andBool notBool dictLookupKeySupported(K)
+  rule <k> #methodCall2(X:Id, Method:Id, K:Val, Default:Val) => Default ... </k>
+       <env> ... X |-> ({}):Val ... </env>
+    requires Id2String(Method) ==String "get"
+      andBool dictLookupKeySupported(K)
+  rule <k> #methodCall2(X:Id, Method:Id, K:Val, _Default:Val) => dictGet(DS, K) ... </k>
+       <env> ... X |-> dictVal(DS:DictItems) ... </env>
+    requires Id2String(Method) ==String "get"
+      andBool dictLookupKeySupported(K)
+      andBool containsKey(K, DS)
+  rule <k> #methodCall2(X:Id, Method:Id, K:Val, Default:Val) => Default ... </k>
+       <env> ... X |-> dictVal(DS:DictItems) ... </env>
+    requires Id2String(Method) ==String "get"
+      andBool dictLookupKeySupported(K)
+      andBool notBool containsKey(K, DS)
+  rule <k> #methodCall2(X:Id, Method:Id, K:Val, Default:Val) => Default ... </k>
+       <env> ... X |-> ({}):Val ... </env>
+    requires Id2String(Method) ==String "pop"
+      andBool dictLookupKeySupported(K)
+  rule <k> #methodCall2(X:Id, Method:Id, K:Val, _Default:Val) => dictGet(DS, K) ... </k>
+       <env> ... X |-> (dictVal(DS:DictItems) => dictDel(DS, K)) ... </env>
+    requires Id2String(Method) ==String "pop"
+      andBool dictLookupKeySupported(K)
+      andBool containsKey(K, DS)
+  rule <k> #methodCall2(X:Id, Method:Id, K:Val, Default:Val) => Default ... </k>
+       <env> ... X |-> dictVal(DS:DictItems) ... </env>
+    requires Id2String(Method) ==String "pop"
+      andBool dictLookupKeySupported(K)
+      andBool notBool containsKey(K, DS)
+  rule <k> #methodCall2(X:Id, Method:Id, K:Val, Default:Val) => Default ... </k>
+       <env> ... X |-> (({}):Val => dictVal(dictItemsLast(K, Default))) ... </env>
+    requires Id2String(Method) ==String "setdefault"
+      andBool dictLookupKeySupported(K)
+  rule <k> #methodCall2(X:Id, Method:Id, K:Val, _Default:Val) => dictGet(DS, K) ... </k>
+       <env> ... X |-> dictVal(DS:DictItems) ... </env>
+    requires Id2String(Method) ==String "setdefault"
+      andBool dictLookupKeySupported(K)
+      andBool containsKey(K, DS)
+  rule <k> #methodCall2(X:Id, Method:Id, K:Val, Default:Val) => Default ... </k>
+       <env> ... X |-> (dictVal(DS:DictItems) => dictVal(dictSet(DS, K, Default))) ... </env>
+    requires Id2String(Method) ==String "setdefault"
+      andBool dictLookupKeySupported(K)
+      andBool notBool containsKey(K, DS)
   rule <k> #methodCall2(X:Id, Method:Id, I:Val, _V:Val) =>
            exceptionSignal(#exception(#token("TypeError", "Id")))
        ... </k>
@@ -24686,10 +24830,13 @@ module PYTHON
        <env> ... X |-> B:Val ... </env>
     requires (Id2String(Method) ==String "center"
               orBool Id2String(Method) ==String "decode"
+              orBool Id2String(Method) ==String "get"
               orBool Id2String(Method) ==String "insert"
               orBool Id2String(Method) ==String "ljust"
+              orBool Id2String(Method) ==String "pop"
               orBool Id2String(Method) ==String "rjust"
               orBool Id2String(Method) ==String "rsplit"
+              orBool Id2String(Method) ==String "setdefault"
               orBool Id2String(Method) ==String "split"
               orBool Id2String(Method) ==String "translate")
       andBool notBool isBytearrayVal(B)
@@ -24701,6 +24848,9 @@ module PYTHON
         orBool Id2String(Method) ==String "rjust"
         orBool Id2String(Method) ==String "translate") andBool isBytesVal(B))
       andBool notBool (Id2String(Method) ==String "insert" andBool isListSequence(B))
+      andBool notBool ((Id2String(Method) ==String "get"
+        orBool Id2String(Method) ==String "pop"
+        orBool Id2String(Method) ==String "setdefault") andBool isDictVal(B))
   rule #abs(V:Val) => 0 -Int intValue(V)
     requires isIntLike(V) andBool intValue(V) <Int 0
   rule #abs(V:Val) => intValue(V)

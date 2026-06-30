@@ -3574,6 +3574,13 @@
       "coverage": ["dict-display-value-subset", "dict-subscription", "dict-key-membership", "ordinary-python-source-adapter"]
     },
     {
+      "id": "adapter-dict-methods",
+      "source": "../adapter/adapter-dict-methods.py",
+      "reference": "Python 3.14.6 Standard Library Built-in Types dict methods clear(), copy(), get(key, default=None), pop(key[, default]), popitem(), and setdefault(key, default=None)",
+      "expected_result": "True ~> .K",
+      "coverage": ["dict-methods", "dict-get-method", "dict-copy-method", "dict-clear-method", "dict-pop-method", "dict-popitem-method", "dict-setdefault-method", "insertion-order", "lifo-popitem", "key-error", "type-error", "ordinary-python-source-adapter"]
+    },
+    {
       "id": "adapter-dict-truthy",
       "source": "../adapter/adapter-dict-truthy.py",
       "reference": "Python Language Reference 6.2.7 Dictionary displays; Standard Library truth value testing",

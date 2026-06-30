@@ -561,6 +561,7 @@ run_case "adapter-set-constructor" "$ROOT/tests/adapter/adapter-set-constructor.
 run_case "adapter-len-string-range" "$ROOT/tests/adapter/adapter-len-string-range.py" "True ~> .K"
 run_case "adapter-len-range-step" "$ROOT/tests/adapter/adapter-len-range-step.py" "True ~> .K"
 run_case "adapter-dict" "$ROOT/tests/adapter/adapter-dict.py" "True ~> .K"
+run_case "adapter-dict-methods" "$ROOT/tests/adapter/adapter-dict-methods.py" "True ~> .K"
 run_case "adapter-dict-truthy" "$ROOT/tests/adapter/adapter-dict-truthy.py" "True ~> .K"
 run_case "adapter-dict-expressions" "$ROOT/tests/adapter/adapter-dict-expressions.py" "True ~> .K"
 run_case "adapter-dict-duplicate-keys" "$ROOT/tests/adapter/adapter-dict-duplicate-keys.py" "True ~> .K"

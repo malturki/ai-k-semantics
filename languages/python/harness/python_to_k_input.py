@@ -972,19 +972,19 @@ def emit_exp(exp: ast.expr) -> str:
             func=ast.Attribute(value=ast.Name(id=name), attr=attr, ctx=ast.Load()),
             args=[],
             keywords=[],
-        ) if attr in {"capitalize", "clear", "copy", "decode", "expandtabs", "hex", "isalnum", "isalpha", "isascii", "isdigit", "islower", "isspace", "istitle", "isupper", "lower", "lstrip", "pop", "reverse", "rsplit", "rstrip", "sort", "split", "splitlines", "strip", "swapcase", "title", "upper"}:
+        ) if attr in {"capitalize", "clear", "copy", "decode", "expandtabs", "hex", "isalnum", "isalpha", "isascii", "isdigit", "islower", "isspace", "istitle", "isupper", "lower", "lstrip", "pop", "popitem", "reverse", "rsplit", "rstrip", "sort", "split", "splitlines", "strip", "swapcase", "title", "upper"}:
             return f"#methodCall0({emit_id(name)}, {emit_id(attr)})"
         case ast.Call(
             func=ast.Attribute(value=ast.Name(id=name), attr=attr, ctx=ast.Load()),
             args=[arg],
             keywords=[],
-        ) if attr in {"append", "center", "count", "decode", "endswith", "expandtabs", "extend", "find", "hex", "index", "join", "ljust", "lstrip", "partition", "pop", "remove", "removeprefix", "removesuffix", "rfind", "rindex", "rjust", "rpartition", "rsplit", "rstrip", "sort", "split", "splitlines", "startswith", "strip", "translate", "zfill"}:
+        ) if attr in {"append", "center", "count", "decode", "endswith", "expandtabs", "extend", "find", "get", "hex", "index", "join", "ljust", "lstrip", "partition", "pop", "remove", "removeprefix", "removesuffix", "rfind", "rindex", "rjust", "rpartition", "rsplit", "rstrip", "setdefault", "sort", "split", "splitlines", "startswith", "strip", "translate", "zfill"}:
             return f"#methodCall({emit_id(name)}, {emit_id(attr)}, {emit_exp(arg)})"
         case ast.Call(
             func=ast.Attribute(value=ast.Name(id=name), attr=attr, ctx=ast.Load()),
             args=[arg1, arg2],
             keywords=[],
-        ) if attr in {"center", "count", "decode", "endswith", "find", "hex", "index", "insert", "ljust", "replace", "rfind", "rindex", "rjust", "rsplit", "split", "startswith", "translate"}:
+        ) if attr in {"center", "count", "decode", "endswith", "find", "get", "hex", "index", "insert", "ljust", "pop", "replace", "rfind", "rindex", "rjust", "rsplit", "setdefault", "split", "startswith", "translate"}:
             return f"#methodCall2({emit_id(name)}, {emit_id(attr)}, {emit_exp(arg1)}, {emit_exp(arg2)})"
         case ast.Call(
             func=ast.Attribute(value=ast.Name(id=name), attr="translate", ctx=ast.Load()),

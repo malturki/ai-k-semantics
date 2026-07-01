@@ -465,6 +465,8 @@ module PYTHON-SYNTAX
                | "#map" "(" ArgExps ")" [symbol(mapExp)]
                | "#mapStrict" "(" ArgExps "," Exp ")" [symbol(mapStrictExp)]
                | "#filter" "(" ArgExps ")" [symbol(filterExp)]
+               | "#iter" "(" ArgExps ")" [symbol(iterExp)]
+               | "#next" "(" ArgExps ")" [symbol(nextExp)]
                | "#min" "(" Exp ")" [symbol(minExp), strict]
                | "#max" "(" Exp ")" [symbol(maxExp), strict]
                | "#minDefault" "(" Exp "," Exp ")" [symbol(minDefaultExp)]
@@ -688,6 +690,7 @@ module PYTHON
                | "#reversedVal" "(" ArgVals ")" [symbol(reversedVal)]
                | "#mapVal" "(" Val "," ArgVals "," Val ")" [symbol(mapVal)]
                | "#filterVal" "(" Val "," Val ")" [symbol(filterVal)]
+               | iteratorRef(Int) [symbol(iteratorRef)]
 
   syntax CompArgStack ::= "#noCompArgStack" [symbol(noCompArgStack)]
                         | compArgFrame(Target, MaybeCompFilters, MaybeCompClauses, Exp, ArgVals, Map, CompArgStack) [symbol(compArgFrame)]
@@ -776,6 +779,10 @@ module PYTHON
                  | filterForUnpackElseIter(IdItems, Block, Block) [symbol(filterForUnpackElseIter)]
                  | filterForTargetUnpackElseIter(Targets, Block, Block) [symbol(filterForTargetUnpackElseIter)]
                  | filterForTargetElseIter(Target, Block, Block) [symbol(filterForTargetElseIter)]
+                 | "iterArgsResult" [symbol(iterArgsResult)]
+                 | "nextArgsResult" [symbol(nextArgsResult)]
+                 | forIterator(Int, Id, Block) [symbol(forIterator)]
+                 | forIteratorElse(Int, Id, Block, Block) [symbol(forIteratorElse)]
                  | listSortReverseApply(Id) [symbol(listSortReverseApply)]
                  | listSortKeyApply(Id) [symbol(listSortKeyApply)]
                  | listSortKeyReverseKey(Id, Exp) [symbol(listSortKeyReverseKey)]
@@ -1399,6 +1406,9 @@ module PYTHON
                 | mapArgsEnough(ArgVals) [function, symbol(mapArgsEnough)]
                 | mapItersSupported(ArgVals) [function, symbol(mapItersSupported)]
                 | filterArgsExact(ArgVals) [function, symbol(filterArgsExact)]
+                | iterArgsExactOne(ArgVals) [function, symbol(iterArgsExactOne)]
+                | nextArgsOneOrTwo(ArgVals) [function, symbol(nextArgsOneOrTwo)]
+                | isIteratorRef(Val) [function, symbol(isIteratorRef)]
                 | matMulSupported(Val, Val) [function, symbol(matMulSupported)]
                 | absTypeErrorProfile(Val) [function, symbol(absTypeErrorProfile)]
                 | divmodSupported(Val, Val) [function, symbol(divmodSupported)]
@@ -2563,6 +2573,7 @@ module PYTHON
   rule truthy(#reversedVal(_:ArgVals)) => true
   rule truthy(#mapVal(_:Val, _:ArgVals, _:Val)) => true
   rule truthy(#filterVal(_:Val, _:Val)) => true
+  rule truthy(iteratorRef(_:Int)) => true
   rule truthy(#kwDefaultMissing) => false
   rule truthy(closure(_:Id, _:Exp)) => true
   rule truthy(closureArgs(_:IdItems, _:Exp)) => true
@@ -7459,6 +7470,18 @@ module PYTHON
   rule filterArgsExact(argValsCons(_:Val, #noArgVals)) => false
   rule filterArgsExact(argValsCons(_:Val, argValsCons(_:Val, #noArgVals))) => true
   rule filterArgsExact(argValsCons(_:Val, argValsCons(_:Val, argValsCons(_:Val, _:ArgVals)))) => false
+
+  rule iterArgsExactOne(#noArgVals) => false
+  rule iterArgsExactOne(argValsCons(_:Val, #noArgVals)) => true
+  rule iterArgsExactOne(argValsCons(_:Val, argValsCons(_:Val, _:ArgVals))) => false
+
+  rule nextArgsOneOrTwo(#noArgVals) => false
+  rule nextArgsOneOrTwo(argValsCons(_:Val, #noArgVals)) => true
+  rule nextArgsOneOrTwo(argValsCons(_:Val, argValsCons(_:Val, #noArgVals))) => true
+  rule nextArgsOneOrTwo(argValsCons(_:Val, argValsCons(_:Val, argValsCons(_:Val, _:ArgVals)))) => false
+
+  rule isIteratorRef(iteratorRef(_:Int)) => true
+  rule isIteratorRef(_:Val) => false [owise]
 
   rule emptyKwArgVals(#noKwArgVals) => true
   rule emptyKwArgVals(kwArgValsCons(_:Id, _:Val, _:KwArgVals)) => false
@@ -14616,6 +14639,8 @@ module PYTHON
     <python>
       <k> $PGM:Stmts </k>
       <env> .Map </env>
+      <iterators> .Map </iterators>
+      <nextIterator> 0 </nextIterator>
       <activeException> noException </activeException>
       <result> .K </result>
     </python>
@@ -21525,6 +21550,14 @@ module PYTHON
            filterCollect(F, iterableArgVals(Iter), #noArgVals) ~> buildTuple
        ... </k>
     requires enumerateIterableSupported(Iter)
+  rule <k> #listCtor(iteratorRef(I:Int)) =>
+           argValsToListVal(VS)
+       ... </k>
+       <iterators> ... I |-> (VS:ArgVals => #noArgVals) ... </iterators>
+  rule <k> #tupleCtor(iteratorRef(I:Int)) =>
+           argValsToTupleVal(VS)
+       ... </k>
+       <iterators> ... I |-> (VS:ArgVals => #noArgVals) ... </iterators>
   rule #boolCtor() => False
   rule #boolCtor(V:Val) => boolValue(truthy(V))
   rule #strCtor() => ""
@@ -22285,6 +22318,67 @@ module PYTHON
            forTargetElseItems(T, argValsToValItems(VS), Body, Else)
        ... </k>
     requires notBool emptyArgVals(VS)
+  rule <k> #iter(Args:ArgExps) =>
+           evalArgs(Args, #noArgVals) ~> iterArgsResult
+       ... </k>
+  rule <k> argsVal(argValsCons(iteratorRef(I:Int), #noArgVals)) ~> iterArgsResult =>
+           iteratorRef(I)
+       ... </k>
+  rule <k> argsVal(argValsCons(V:Val, #noArgVals)) ~> iterArgsResult =>
+           iteratorRef(I)
+       ... </k>
+       <iterators> M => M [ I <- iterableArgVals(V) ] </iterators>
+       <nextIterator> I => I +Int 1 </nextIterator>
+    requires enumerateIterableSupported(V)
+  rule <k> argsVal(argValsCons(V:Val, #noArgVals)) ~> iterArgsResult =>
+           exceptionSignal(#exception(#token("TypeError", "Id")))
+       ... </k>
+    requires notBool enumerateIterableSupported(V)
+      andBool notBool isIteratorRef(V)
+  rule <k> argsVal(argValsCons(F:Val, argValsCons(_Sentinel:Val, #noArgVals))) ~> iterArgsResult =>
+           exceptionSignal(#exception(#token("TypeError", "Id")))
+       ... </k>
+    requires notBool callableVal(F)
+  rule <k> argsVal(argValsCons(F:Val, argValsCons(_Sentinel:Val, #noArgVals))) ~> iterArgsResult =>
+           exceptionSignal(#exception(#token("NotImplementedError", "Id")))
+       ... </k>
+    requires callableVal(F)
+  rule <k> argsVal(VS:ArgVals) ~> iterArgsResult =>
+           exceptionSignal(#exception(#token("TypeError", "Id")))
+       ... </k>
+    requires notBool iterArgsExactOne(VS)
+      andBool notBool nextArgsOneOrTwo(VS)
+  rule <k> #next(Args:ArgExps) =>
+           evalArgs(Args, #noArgVals) ~> nextArgsResult
+       ... </k>
+  rule <k> argsVal(argValsCons(iteratorRef(I:Int), #noArgVals)) ~> nextArgsResult =>
+           V
+       ... </k>
+       <iterators> ... I |-> (argValsCons(V:Val, Rest:ArgVals) => Rest) ... </iterators>
+  rule <k> argsVal(argValsCons(iteratorRef(I:Int), #noArgVals)) ~> nextArgsResult =>
+           exceptionSignal(#exception(#token("StopIteration", "Id")))
+       ... </k>
+       <iterators> ... I |-> #noArgVals ... </iterators>
+  rule <k> argsVal(argValsCons(iteratorRef(I:Int), argValsCons(_Default:Val, #noArgVals))) ~> nextArgsResult =>
+           V
+       ... </k>
+       <iterators> ... I |-> (argValsCons(V:Val, Rest:ArgVals) => Rest) ... </iterators>
+  rule <k> argsVal(argValsCons(iteratorRef(I:Int), argValsCons(Default:Val, #noArgVals))) ~> nextArgsResult =>
+           Default
+       ... </k>
+       <iterators> ... I |-> #noArgVals ... </iterators>
+  rule <k> argsVal(argValsCons(V:Val, #noArgVals)) ~> nextArgsResult =>
+           exceptionSignal(#exception(#token("TypeError", "Id")))
+       ... </k>
+    requires notBool isIteratorRef(V)
+  rule <k> argsVal(argValsCons(V:Val, argValsCons(_:Val, #noArgVals))) ~> nextArgsResult =>
+           exceptionSignal(#exception(#token("TypeError", "Id")))
+       ... </k>
+    requires notBool isIteratorRef(V)
+  rule <k> argsVal(VS:ArgVals) ~> nextArgsResult =>
+           exceptionSignal(#exception(#token("TypeError", "Id")))
+       ... </k>
+    requires notBool nextArgsOneOrTwo(VS)
   rule <k> #min([]) => exceptionSignal(#exception(#token("ValueError", "Id"))) ... </k>
   rule <k> #min(()) => exceptionSignal(#exception(#token("ValueError", "Id"))) ... </k>
   rule <k> #min("") => exceptionSignal(#exception(#token("ValueError", "Id"))) ... </k>
@@ -28743,6 +28837,23 @@ module PYTHON
            filterCollect(F, iterableArgVals(Iter), #noArgVals) ~> filterForIter(X, Body)
        ... </k>
     requires enumerateIterableSupported(Iter)
+  rule <k> iteratorRef(I:Int) ~> forIter(X:Id, Body:Block) =>
+           forIterator(I, X, Body)
+       ... </k>
+  rule <k> forIterator(I:Int, _:Id, _:Block) =>
+           stmtNoResult
+       ... </k>
+       <iterators> ... I |-> #noArgVals ... </iterators>
+  rule <k> forIterator(I:Int, X:Id, block(SS:Stmts)) =>
+           SS ~> forIterator(I, X, block(SS))
+       ... </k>
+       <env> Rho => Rho [ X <- V ] </env>
+       <iterators> ... I |-> (argValsCons(V:Val, Rest:ArgVals) => Rest) ... </iterators>
+  rule <k> forIterator(I:Int, X:Id, {}) =>
+           forIterator(I, X, {})
+       ... </k>
+       <env> Rho => Rho [ X <- V ] </env>
+       <iterators> ... I |-> (argValsCons(V:Val, Rest:ArgVals) => Rest) ... </iterators>
 
   rule <k> forItems(X:Id, valItemsCons(V:Val, VS:ValItems), block(SS:Stmts)) =>
            SS ~> forItems(X, VS, block(SS))
@@ -29745,6 +29856,23 @@ module PYTHON
            filterCollect(F, iterableArgVals(Iter), #noArgVals) ~> filterForElseIter(X, Body, Else)
        ... </k>
     requires enumerateIterableSupported(Iter)
+  rule <k> iteratorRef(I:Int) ~> forElseIter(X:Id, Body:Block, Else:Block) =>
+           forIteratorElse(I, X, Body, Else)
+       ... </k>
+  rule <k> forIteratorElse(I:Int, _:Id, _:Block, Else:Block) =>
+           runLoopElse(Else)
+       ... </k>
+       <iterators> ... I |-> #noArgVals ... </iterators>
+  rule <k> forIteratorElse(I:Int, X:Id, block(SS:Stmts), Else:Block) =>
+           SS ~> forIteratorElse(I, X, block(SS), Else)
+       ... </k>
+       <env> Rho => Rho [ X <- V ] </env>
+       <iterators> ... I |-> (argValsCons(V:Val, Rest:ArgVals) => Rest) ... </iterators>
+  rule <k> forIteratorElse(I:Int, X:Id, {}, Else:Block) =>
+           forIteratorElse(I, X, {}, Else)
+       ... </k>
+       <env> Rho => Rho [ X <- V ] </env>
+       <iterators> ... I |-> (argValsCons(V:Val, Rest:ArgVals) => Rest) ... </iterators>
 
   rule <k> forElseItems(X:Id, valItemsCons(V:Val, VS:ValItems), block(SS:Stmts), Else:Block) =>
            SS ~> forElseItems(X, VS, block(SS), Else)
@@ -30722,6 +30850,8 @@ module PYTHON
   rule <k> exceptionSignal(V:Val) ~> mapCollectNext(_:Val, _:ArgVals, _:Val, _:ArgVals, _:ArgVals) => exceptionSignal(V) ... </k>
   rule <k> exceptionSignal(V:Val) ~> filterArgsResult => exceptionSignal(V) ... </k>
   rule <k> exceptionSignal(V:Val) ~> filterCollectNext(_:Val, _:Val, _:ArgVals, _:ArgVals) => exceptionSignal(V) ... </k>
+  rule <k> exceptionSignal(V:Val) ~> iterArgsResult => exceptionSignal(V) ... </k>
+  rule <k> exceptionSignal(V:Val) ~> nextArgsResult => exceptionSignal(V) ... </k>
   rule <k> exceptionSignal(V:Val) ~> minDefaultEval(_:Exp) => exceptionSignal(V) ... </k>
   rule <k> exceptionSignal(V:Val) ~> maxDefaultEval(_:Exp) => exceptionSignal(V) ... </k>
   rule <k> exceptionSignal(V:Val) ~> minDefaultApply(_:Val) => exceptionSignal(V) ... </k>
@@ -30797,14 +30927,20 @@ module PYTHON
   rule <k> exceptionSignal(V:Val) ~> filterForUnpackIter(_:IdItems, _:Block) => exceptionSignal(V) ... </k>
   rule <k> exceptionSignal(V:Val) ~> filterForTargetUnpackIter(_:Targets, _:Block) => exceptionSignal(V) ... </k>
   rule <k> exceptionSignal(V:Val) ~> filterForTargetIter(_:Target, _:Block) => exceptionSignal(V) ... </k>
+  rule <k> exceptionSignal(V:Val) ~> forIterator(_:Int, _:Id, _:Block) => exceptionSignal(V) ... </k>
   rule <k> breakSignal ~> forItems(_:Id, _:ValItems, _:Block) => stmtNoResult ... </k>
   rule <k> breakSignal ~> forDone => stmtNoResult ... </k>
+  rule <k> breakSignal ~> forIterator(_:Int, _:Id, _:Block) => stmtNoResult ... </k>
   rule <k> continueSignal ~> forItems(X:Id, VS:ValItems, Body:Block) =>
            forItems(X, VS, Body)
        ... </k>
   rule <k> continueSignal ~> forDone => stmtNoResult ... </k>
+  rule <k> continueSignal ~> forIterator(I:Int, X:Id, Body:Block) =>
+           forIterator(I, X, Body)
+       ... </k>
   rule <k> returnSignal(V:Val) ~> forItems(_:Id, _:ValItems, _:Block) => returnSignal(V) ... </k>
   rule <k> returnSignal(V:Val) ~> forDone => returnSignal(V) ... </k>
+  rule <k> returnSignal(V:Val) ~> forIterator(_:Int, _:Id, _:Block) => returnSignal(V) ... </k>
   rule <k> exceptionSignal(V:Val) ~> forItems(_:Id, _:ValItems, _:Block) => exceptionSignal(V) ... </k>
   rule <k> exceptionSignal(V:Val) ~> forDone => exceptionSignal(V) ... </k>
   rule <k> breakSignal ~> forUnpackItems(_:IdItems, _:ValItems, _:Block) => stmtNoResult ... </k>
@@ -30856,14 +30992,20 @@ module PYTHON
   rule <k> exceptionSignal(V:Val) ~> filterForUnpackElseIter(_:IdItems, _:Block, _:Block) => exceptionSignal(V) ... </k>
   rule <k> exceptionSignal(V:Val) ~> filterForTargetUnpackElseIter(_:Targets, _:Block, _:Block) => exceptionSignal(V) ... </k>
   rule <k> exceptionSignal(V:Val) ~> filterForTargetElseIter(_:Target, _:Block, _:Block) => exceptionSignal(V) ... </k>
+  rule <k> exceptionSignal(V:Val) ~> forIteratorElse(_:Int, _:Id, _:Block, _:Block) => exceptionSignal(V) ... </k>
   rule <k> breakSignal ~> forElseItems(_:Id, _:ValItems, _:Block, _:Block) => stmtNoResult ... </k>
   rule <k> breakSignal ~> forElseDone(_:Block) => stmtNoResult ... </k>
+  rule <k> breakSignal ~> forIteratorElse(_:Int, _:Id, _:Block, _:Block) => stmtNoResult ... </k>
   rule <k> continueSignal ~> forElseItems(X:Id, VS:ValItems, Body:Block, Else:Block) =>
            forElseItems(X, VS, Body, Else)
        ... </k>
   rule <k> continueSignal ~> forElseDone(Else:Block) => runLoopElse(Else) ... </k>
+  rule <k> continueSignal ~> forIteratorElse(I:Int, X:Id, Body:Block, Else:Block) =>
+           forIteratorElse(I, X, Body, Else)
+       ... </k>
   rule <k> returnSignal(V:Val) ~> forElseItems(_:Id, _:ValItems, _:Block, _:Block) => returnSignal(V) ... </k>
   rule <k> returnSignal(V:Val) ~> forElseDone(_:Block) => returnSignal(V) ... </k>
+  rule <k> returnSignal(V:Val) ~> forIteratorElse(_:Int, _:Id, _:Block, _:Block) => returnSignal(V) ... </k>
   rule <k> exceptionSignal(V:Val) ~> forElseItems(_:Id, _:ValItems, _:Block, _:Block) => exceptionSignal(V) ... </k>
   rule <k> exceptionSignal(V:Val) ~> forElseDone(_:Block) => exceptionSignal(V) ... </k>
   rule <k> breakSignal ~> forUnpackElseItems(_:IdItems, _:ValItems, _:Block, _:Block) => stmtNoResult ... </k>

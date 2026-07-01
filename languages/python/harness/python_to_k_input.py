@@ -914,6 +914,14 @@ def emit_exp(exp: ast.expr) -> str:
             return f"#filter({emit_arg_exps(args)})"
         case ast.Call(func=ast.Name(id="filter"), keywords=keywords) if keywords:
             raise unsupported(exp, "filter is positional-only in the current builtin profile")
+        case ast.Call(func=ast.Name(id="iter"), args=args, keywords=[]):
+            return f"#iter({emit_arg_exps(args)})"
+        case ast.Call(func=ast.Name(id="iter"), keywords=keywords) if keywords:
+            raise unsupported(exp, "iter is positional-only in the current builtin profile")
+        case ast.Call(func=ast.Name(id="next"), args=args, keywords=[]):
+            return f"#next({emit_arg_exps(args)})"
+        case ast.Call(func=ast.Name(id="next"), keywords=keywords) if keywords:
+            raise unsupported(exp, "next is positional-only in the current builtin profile")
         case ast.Call(func=ast.Name(id="slice"), args=[stop], keywords=[]):
             return f"#sliceCtor({emit_exp(stop)})"
         case ast.Call(func=ast.Name(id="slice"), args=[start, stop], keywords=[]):

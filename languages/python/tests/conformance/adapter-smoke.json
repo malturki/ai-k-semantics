@@ -3994,6 +3994,13 @@
       "coverage": ["sequence-unpacking-assignment", "starred-target-assignment", "flat-name-targets", "set-iteration-profile", "empty-set-iteration", "ordinary-python-source-adapter"]
     },
     {
+      "id": "adapter-unpack-frozenset",
+      "source": "../adapter/adapter-unpack-frozenset.py",
+      "reference": "Python Language Reference 7.2 Assignment statements; PEP 3132 Extended Iterable Unpacking; Python Standard Library Built-in Types frozenset",
+      "expected_result": "True ~> .K",
+      "coverage": ["sequence-unpacking-assignment", "starred-target-assignment", "nested-sequence-targets", "nested-starred-targets", "flat-name-targets", "frozenset-iteration-profile", "empty-frozenset-iteration", "value-error", "ordinary-python-source-adapter"]
+    },
+    {
       "id": "adapter-unpack-expression-rhs",
       "source": "../adapter/adapter-unpack-expression-rhs.py",
       "reference": "Python Language Reference 7.2 Assignment statements; 6.16 Evaluation order",

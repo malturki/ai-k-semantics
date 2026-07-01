@@ -7154,6 +7154,9 @@ module PYTHON
   rule targetValueArityOk(targetSeq(TS:Targets), setVal(VS:ValItems)) =>
     sameTargetsValArity(TS, VS)
   rule targetValueArityOk(targetSeq(_:Targets), set()) => false
+  rule targetValueArityOk(targetSeq(TS:Targets), frozensetVal(VS:ValItems)) =>
+    sameTargetsValArity(TS, VS)
+  rule targetValueArityOk(targetSeq(_:Targets), frozenset()) => false
   rule targetValueArityOk(targetSeq(TS:Targets), rangeVal(Start:Int, Stop:Int)) =>
     sameTargetsValArity(TS, rangeToValItems(Start, Stop, 1, 0, pyRangeLen(Start, Stop, 1)))
     requires pyRangeLen(Start, Stop, 1) >Int 0
@@ -7195,6 +7198,10 @@ module PYTHON
   rule targetValueArityOk(targetStarSeq(Prefix:MaybeTargets, _:Id, Suffix:MaybeTargets), setVal(VS:ValItems)) =>
     targetStarSeqArityOk(Prefix, Suffix, VS)
   rule targetValueArityOk(targetStarSeq(Prefix:MaybeTargets, _:Id, Suffix:MaybeTargets), set()) =>
+    maybeTargetsLen(Prefix) +Int maybeTargetsLen(Suffix) ==Int 0
+  rule targetValueArityOk(targetStarSeq(Prefix:MaybeTargets, _:Id, Suffix:MaybeTargets), frozensetVal(VS:ValItems)) =>
+    targetStarSeqArityOk(Prefix, Suffix, VS)
+  rule targetValueArityOk(targetStarSeq(Prefix:MaybeTargets, _:Id, Suffix:MaybeTargets), frozenset()) =>
     maybeTargetsLen(Prefix) +Int maybeTargetsLen(Suffix) ==Int 0
   rule targetValueArityOk(targetStarSeq(Prefix:MaybeTargets, _:Id, Suffix:MaybeTargets), rangeVal(Start:Int, Stop:Int)) =>
     targetStarSeqArityOk(Prefix, Suffix, rangeToValItems(Start, Stop, 1, 0, pyRangeLen(Start, Stop, 1)))
@@ -7920,6 +7927,8 @@ module PYTHON
     bindTargets(Rho, TS, dictKeysToValItems(DS))
   rule bindTarget(Rho:Map, targetSeq(TS:Targets), setVal(VS:ValItems)) =>
     bindTargets(Rho, TS, VS)
+  rule bindTarget(Rho:Map, targetSeq(TS:Targets), frozensetVal(VS:ValItems)) =>
+    bindTargets(Rho, TS, VS)
   rule bindTarget(Rho:Map, targetSeq(TS:Targets), rangeVal(Start:Int, Stop:Int)) =>
     bindTargets(Rho, TS, rangeToValItems(Start, Stop, 1, 0, pyRangeLen(Start, Stop, 1)))
     requires pyRangeLen(Start, Stop, 1) >Int 0
@@ -7963,6 +7972,11 @@ module PYTHON
   rule bindTarget(Rho:Map, targetStarSeq(Prefix:MaybeTargets, Star:Id, Suffix:MaybeTargets), setVal(VS:ValItems)) =>
     bindTargetStarSeq(Rho, Prefix, Star, Suffix, VS)
   rule bindTarget(Rho:Map, targetStarSeq(Prefix:MaybeTargets, Star:Id, Suffix:MaybeTargets), set()) =>
+    Rho [ Star <- [] ]
+    requires maybeTargetsLen(Prefix) +Int maybeTargetsLen(Suffix) ==Int 0
+  rule bindTarget(Rho:Map, targetStarSeq(Prefix:MaybeTargets, Star:Id, Suffix:MaybeTargets), frozensetVal(VS:ValItems)) =>
+    bindTargetStarSeq(Rho, Prefix, Star, Suffix, VS)
+  rule bindTarget(Rho:Map, targetStarSeq(Prefix:MaybeTargets, Star:Id, Suffix:MaybeTargets), frozenset()) =>
     Rho [ Star <- [] ]
     requires maybeTargetsLen(Prefix) +Int maybeTargetsLen(Suffix) ==Int 0
   rule bindTarget(Rho:Map, targetStarSeq(Prefix:MaybeTargets, Star:Id, Suffix:MaybeTargets), rangeVal(Start:Int, Stop:Int)) =>
@@ -26706,6 +26720,10 @@ module PYTHON
        <env> Rho => bindVals(Rho, IDS, VS) </env>
        <result> _ => .K </result>
     requires sameIdValArity(IDS, VS)
+  rule <k> unpackAssignStmt(IDS:IdItems, frozensetVal(VS:ValItems)) => stmtNoResult ... </k>
+       <env> Rho => bindVals(Rho, IDS, VS) </env>
+       <result> _ => .K </result>
+    requires sameIdValArity(IDS, VS)
   rule <k> unpackAssignStmt(IDS:IdItems, dictVal(DS:DictItems)) => stmtNoResult ... </k>
        <env> Rho => bindVals(Rho, IDS, dictKeysToValItems(DS)) </env>
        <result> _ => .K </result>
@@ -26749,6 +26767,10 @@ module PYTHON
     requires lengthString(S) >Int 0
       andBool sameTargetsValArity(TS, stringToValItems(S, 0, lengthString(S)))
   rule <k> unpackTargetAssignStmt(TS:Targets, setVal(VS:ValItems)) => stmtNoResult ... </k>
+       <env> Rho => bindTargets(Rho, TS, VS) </env>
+       <result> _ => .K </result>
+    requires sameTargetsValArity(TS, VS)
+  rule <k> unpackTargetAssignStmt(TS:Targets, frozensetVal(VS:ValItems)) => stmtNoResult ... </k>
        <env> Rho => bindTargets(Rho, TS, VS) </env>
        <result> _ => .K </result>
     requires sameTargetsValArity(TS, VS)
@@ -26808,6 +26830,10 @@ module PYTHON
        <env> Rho => bindStarUnpack(Rho, Prefix, Star, Suffix, VS) </env>
        <result> _ => .K </result>
     requires starUnpackArityOk(Prefix, Suffix, valItemsLen(VS))
+  rule <k> unpackStarAssignStmt(Prefix:IdItems, Star:Id, Suffix:IdItems, frozensetVal(VS:ValItems)) => stmtNoResult ... </k>
+       <env> Rho => bindStarUnpack(Rho, Prefix, Star, Suffix, VS) </env>
+       <result> _ => .K </result>
+    requires starUnpackArityOk(Prefix, Suffix, valItemsLen(VS))
   rule <k> unpackStarAssignStmt(Prefix:IdItems, Star:Id, Suffix:IdItems, dictVal(DS:DictItems)) => stmtNoResult ... </k>
        <env> Rho => bindStarUnpack(Rho, Prefix, Star, Suffix, dictKeysToValItems(DS)) </env>
        <result> _ => .K </result>
@@ -26832,6 +26858,10 @@ module PYTHON
        <result> _ => .K </result>
     requires idItemsLen(Prefix) +Int idItemsLen(Suffix) ==Int 0
   rule <k> unpackStarAssignStmt(Prefix:IdItems, Star:Id, Suffix:IdItems, set()) => stmtNoResult ... </k>
+       <env> Rho => Rho [ Star <- [] ] </env>
+       <result> _ => .K </result>
+    requires idItemsLen(Prefix) +Int idItemsLen(Suffix) ==Int 0
+  rule <k> unpackStarAssignStmt(Prefix:IdItems, Star:Id, Suffix:IdItems, frozenset()) => stmtNoResult ... </k>
        <env> Rho => Rho [ Star <- [] ] </env>
        <result> _ => .K </result>
     requires idItemsLen(Prefix) +Int idItemsLen(Suffix) ==Int 0

@@ -2181,6 +2181,13 @@
       "coverage": ["iter-builtin", "next-builtin", "iterator-protocol-profile", "stateful-iterator-ref", "concrete-iterable-profile", "iterator-aliasing-profile", "iterator-exhaustion-sink-state", "for-statement", "for-else", "list-constructor", "tuple-constructor", "stop-iteration", "type-error", "ordinary-python-source-adapter"]
     },
     {
+      "id": "adapter-iter-callable-sentinel-builtin",
+      "source": "../adapter/adapter-iter-callable-sentinel-builtin.py",
+      "reference": "Python 3.14.6 Standard Library Built-in Functions iter(callable, sentinel, /); Built-in Types iterator protocol; CPython Lib/test/test_iter.py callable-iterator, sink-state, and reentrant-exhaustion coverage",
+      "expected_result": "True ~> .K",
+      "coverage": ["iter-builtin", "next-builtin", "callable-sentinel-iterator-profile", "stateful-iterator-ref", "callable-application-profile", "iterator-exhaustion-sink-state", "reentrant-exhaustion-profile", "for-statement", "for-else", "list-constructor", "tuple-constructor", "stop-iteration", "runtime-error", "type-error", "ordinary-python-source-adapter"]
+    },
+    {
       "id": "adapter-min-max-int",
       "source": "../adapter/adapter-min-max-int.py",
       "reference": "Python Standard Library Built-in Functions min and max; Built-in Types list, tuple, dict, set, and range",

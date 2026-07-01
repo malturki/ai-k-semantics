@@ -781,6 +781,13 @@ module PYTHON
                  | filterForTargetElseIter(Target, Block, Block) [symbol(filterForTargetElseIter)]
                  | "iterArgsResult" [symbol(iterArgsResult)]
                  | "nextArgsResult" [symbol(nextArgsResult)]
+                 | callableIterator(Val, Val) [symbol(callableIterator)]
+                 | callableIteratorNext(Int, Val) [symbol(callableIteratorNext)]
+                 | callableIteratorNextDefault(Int, Val, Val) [symbol(callableIteratorNextDefault)]
+                 | callableIteratorCollectList(Int, Val, ArgVals) [symbol(callableIteratorCollectList)]
+                 | callableIteratorCollectTuple(Int, Val, ArgVals) [symbol(callableIteratorCollectTuple)]
+                 | callableForIteratorNext(Int, Id, Block) [symbol(callableForIteratorNext)]
+                 | callableForIteratorElseNext(Int, Id, Block, Block) [symbol(callableForIteratorElseNext)]
                  | forIterator(Int, Id, Block) [symbol(forIterator)]
                  | forIteratorElse(Int, Id, Block, Block) [symbol(forIteratorElse)]
                  | listSortReverseApply(Id) [symbol(listSortReverseApply)]
@@ -21554,10 +21561,74 @@ module PYTHON
            argValsToListVal(VS)
        ... </k>
        <iterators> ... I |-> (VS:ArgVals => #noArgVals) ... </iterators>
+  rule <k> #listCtor(iteratorRef(I:Int)) =>
+           argsVal(#noArgVals) ~> callApplyArgs(F) ~> callableIteratorCollectList(I, Sentinel, #noArgVals)
+       ... </k>
+       <iterators> ... I |-> callableIterator(F:Val, Sentinel:Val) ... </iterators>
+  rule <k> _V:Val ~> callableIteratorCollectList(I:Int, _Sentinel:Val, Acc:ArgVals) =>
+           argValsToListVal(Acc)
+       ... </k>
+       <iterators> ... I |-> #noArgVals ... </iterators>
+  rule <k> V:Val ~> callableIteratorCollectList(I:Int, Sentinel:Val, Acc:ArgVals) =>
+           argValsToListVal(Acc)
+       ... </k>
+       <iterators> ... I |-> (callableIterator(_:Val, Sentinel) => #noArgVals) ... </iterators>
+    requires valEq(V, Sentinel)
+  rule <k> V:Val ~> callableIteratorCollectList(I:Int, Sentinel:Val, Acc:ArgVals) =>
+           argsVal(#noArgVals) ~> callApplyArgs(F) ~> callableIteratorCollectList(I, Sentinel, appendArgVal(Acc, V))
+       ... </k>
+       <iterators> ... I |-> callableIterator(F:Val, Sentinel) ... </iterators>
+    requires notBool valEq(V, Sentinel)
+  rule <k> exceptionSignal(E:Val) ~> callableIteratorCollectList(I:Int, Sentinel:Val, Acc:ArgVals) =>
+           argValsToListVal(Acc)
+       ... </k>
+       <iterators> ... I |-> (callableIterator(_:Val, Sentinel) => #noArgVals) ... </iterators>
+    requires exceptionMatches(E, #token("StopIteration", "Id"))
+  rule <k> exceptionSignal(E:Val) ~> callableIteratorCollectList(I:Int, _Sentinel:Val, Acc:ArgVals) =>
+           argValsToListVal(Acc)
+       ... </k>
+       <iterators> ... I |-> #noArgVals ... </iterators>
+    requires exceptionMatches(E, #token("StopIteration", "Id"))
+  rule <k> exceptionSignal(E:Val) ~> callableIteratorCollectList(_I:Int, _Sentinel:Val, _Acc:ArgVals) =>
+           exceptionSignal(E)
+       ... </k>
+    requires notBool exceptionMatches(E, #token("StopIteration", "Id"))
   rule <k> #tupleCtor(iteratorRef(I:Int)) =>
            argValsToTupleVal(VS)
        ... </k>
        <iterators> ... I |-> (VS:ArgVals => #noArgVals) ... </iterators>
+  rule <k> #tupleCtor(iteratorRef(I:Int)) =>
+           argsVal(#noArgVals) ~> callApplyArgs(F) ~> callableIteratorCollectTuple(I, Sentinel, #noArgVals)
+       ... </k>
+       <iterators> ... I |-> callableIterator(F:Val, Sentinel:Val) ... </iterators>
+  rule <k> _V:Val ~> callableIteratorCollectTuple(I:Int, _Sentinel:Val, Acc:ArgVals) =>
+           argValsToTupleVal(Acc)
+       ... </k>
+       <iterators> ... I |-> #noArgVals ... </iterators>
+  rule <k> V:Val ~> callableIteratorCollectTuple(I:Int, Sentinel:Val, Acc:ArgVals) =>
+           argValsToTupleVal(Acc)
+       ... </k>
+       <iterators> ... I |-> (callableIterator(_:Val, Sentinel) => #noArgVals) ... </iterators>
+    requires valEq(V, Sentinel)
+  rule <k> V:Val ~> callableIteratorCollectTuple(I:Int, Sentinel:Val, Acc:ArgVals) =>
+           argsVal(#noArgVals) ~> callApplyArgs(F) ~> callableIteratorCollectTuple(I, Sentinel, appendArgVal(Acc, V))
+       ... </k>
+       <iterators> ... I |-> callableIterator(F:Val, Sentinel) ... </iterators>
+    requires notBool valEq(V, Sentinel)
+  rule <k> exceptionSignal(E:Val) ~> callableIteratorCollectTuple(I:Int, Sentinel:Val, Acc:ArgVals) =>
+           argValsToTupleVal(Acc)
+       ... </k>
+       <iterators> ... I |-> (callableIterator(_:Val, Sentinel) => #noArgVals) ... </iterators>
+    requires exceptionMatches(E, #token("StopIteration", "Id"))
+  rule <k> exceptionSignal(E:Val) ~> callableIteratorCollectTuple(I:Int, _Sentinel:Val, Acc:ArgVals) =>
+           argValsToTupleVal(Acc)
+       ... </k>
+       <iterators> ... I |-> #noArgVals ... </iterators>
+    requires exceptionMatches(E, #token("StopIteration", "Id"))
+  rule <k> exceptionSignal(E:Val) ~> callableIteratorCollectTuple(_I:Int, _Sentinel:Val, _Acc:ArgVals) =>
+           exceptionSignal(E)
+       ... </k>
+    requires notBool exceptionMatches(E, #token("StopIteration", "Id"))
   rule #boolCtor() => False
   rule #boolCtor(V:Val) => boolValue(truthy(V))
   rule #strCtor() => ""
@@ -22339,9 +22410,11 @@ module PYTHON
            exceptionSignal(#exception(#token("TypeError", "Id")))
        ... </k>
     requires notBool callableVal(F)
-  rule <k> argsVal(argValsCons(F:Val, argValsCons(_Sentinel:Val, #noArgVals))) ~> iterArgsResult =>
-           exceptionSignal(#exception(#token("NotImplementedError", "Id")))
+  rule <k> argsVal(argValsCons(F:Val, argValsCons(Sentinel:Val, #noArgVals))) ~> iterArgsResult =>
+           iteratorRef(I)
        ... </k>
+       <iterators> M => M [ I <- callableIterator(F, Sentinel) ] </iterators>
+       <nextIterator> I => I +Int 1 </nextIterator>
     requires callableVal(F)
   rule <k> argsVal(VS:ArgVals) ~> iterArgsResult =>
            exceptionSignal(#exception(#token("TypeError", "Id")))
@@ -22359,6 +22432,38 @@ module PYTHON
            exceptionSignal(#exception(#token("StopIteration", "Id")))
        ... </k>
        <iterators> ... I |-> #noArgVals ... </iterators>
+  rule <k> argsVal(argValsCons(iteratorRef(I:Int), #noArgVals)) ~> nextArgsResult =>
+           argsVal(#noArgVals) ~> callApplyArgs(F) ~> callableIteratorNext(I, Sentinel)
+       ... </k>
+       <iterators> ... I |-> callableIterator(F:Val, Sentinel:Val) ... </iterators>
+  rule <k> _V:Val ~> callableIteratorNext(I:Int, _Sentinel:Val) =>
+           exceptionSignal(#exception(#token("StopIteration", "Id")))
+       ... </k>
+       <iterators> ... I |-> #noArgVals ... </iterators>
+  rule <k> V:Val ~> callableIteratorNext(I:Int, Sentinel:Val) =>
+           exceptionSignal(#exception(#token("StopIteration", "Id")))
+       ... </k>
+       <iterators> ... I |-> (callableIterator(_:Val, Sentinel) => #noArgVals) ... </iterators>
+    requires valEq(V, Sentinel)
+  rule <k> V:Val ~> callableIteratorNext(I:Int, Sentinel:Val) =>
+           V
+       ... </k>
+       <iterators> ... I |-> callableIterator(_:Val, Sentinel) ... </iterators>
+    requires notBool valEq(V, Sentinel)
+  rule <k> exceptionSignal(E:Val) ~> callableIteratorNext(I:Int, Sentinel:Val) =>
+           exceptionSignal(E)
+       ... </k>
+       <iterators> ... I |-> (callableIterator(_:Val, Sentinel) => #noArgVals) ... </iterators>
+    requires exceptionMatches(E, #token("StopIteration", "Id"))
+  rule <k> exceptionSignal(E:Val) ~> callableIteratorNext(I:Int, _Sentinel:Val) =>
+           exceptionSignal(E)
+       ... </k>
+       <iterators> ... I |-> #noArgVals ... </iterators>
+    requires exceptionMatches(E, #token("StopIteration", "Id"))
+  rule <k> exceptionSignal(E:Val) ~> callableIteratorNext(_I:Int, _Sentinel:Val) =>
+           exceptionSignal(E)
+       ... </k>
+    requires notBool exceptionMatches(E, #token("StopIteration", "Id"))
   rule <k> argsVal(argValsCons(iteratorRef(I:Int), argValsCons(_Default:Val, #noArgVals))) ~> nextArgsResult =>
            V
        ... </k>
@@ -22367,6 +22472,38 @@ module PYTHON
            Default
        ... </k>
        <iterators> ... I |-> #noArgVals ... </iterators>
+  rule <k> argsVal(argValsCons(iteratorRef(I:Int), argValsCons(Default:Val, #noArgVals))) ~> nextArgsResult =>
+           argsVal(#noArgVals) ~> callApplyArgs(F) ~> callableIteratorNextDefault(I, Sentinel, Default)
+       ... </k>
+       <iterators> ... I |-> callableIterator(F:Val, Sentinel:Val) ... </iterators>
+  rule <k> _V:Val ~> callableIteratorNextDefault(I:Int, _Sentinel:Val, Default:Val) =>
+           Default
+       ... </k>
+       <iterators> ... I |-> #noArgVals ... </iterators>
+  rule <k> V:Val ~> callableIteratorNextDefault(I:Int, Sentinel:Val, Default:Val) =>
+           Default
+       ... </k>
+       <iterators> ... I |-> (callableIterator(_:Val, Sentinel) => #noArgVals) ... </iterators>
+    requires valEq(V, Sentinel)
+  rule <k> V:Val ~> callableIteratorNextDefault(I:Int, Sentinel:Val, _Default:Val) =>
+           V
+       ... </k>
+       <iterators> ... I |-> callableIterator(_:Val, Sentinel) ... </iterators>
+    requires notBool valEq(V, Sentinel)
+  rule <k> exceptionSignal(E:Val) ~> callableIteratorNextDefault(I:Int, Sentinel:Val, Default:Val) =>
+           Default
+       ... </k>
+       <iterators> ... I |-> (callableIterator(_:Val, Sentinel) => #noArgVals) ... </iterators>
+    requires exceptionMatches(E, #token("StopIteration", "Id"))
+  rule <k> exceptionSignal(E:Val) ~> callableIteratorNextDefault(I:Int, _Sentinel:Val, Default:Val) =>
+           Default
+       ... </k>
+       <iterators> ... I |-> #noArgVals ... </iterators>
+    requires exceptionMatches(E, #token("StopIteration", "Id"))
+  rule <k> exceptionSignal(E:Val) ~> callableIteratorNextDefault(_I:Int, _Sentinel:Val, _Default:Val) =>
+           exceptionSignal(E)
+       ... </k>
+    requires notBool exceptionMatches(E, #token("StopIteration", "Id"))
   rule <k> argsVal(argValsCons(V:Val, #noArgVals)) ~> nextArgsResult =>
            exceptionSignal(#exception(#token("TypeError", "Id")))
        ... </k>
@@ -28844,6 +28981,45 @@ module PYTHON
            stmtNoResult
        ... </k>
        <iterators> ... I |-> #noArgVals ... </iterators>
+  rule <k> forIterator(I:Int, X:Id, Body:Block) =>
+           argsVal(#noArgVals) ~> callApplyArgs(F) ~> callableForIteratorNext(I, X, Body)
+       ... </k>
+       <iterators> ... I |-> callableIterator(F:Val, _Sentinel:Val) ... </iterators>
+  rule <k> _V:Val ~> callableForIteratorNext(I:Int, _:Id, _:Block) =>
+           stmtNoResult
+       ... </k>
+       <iterators> ... I |-> #noArgVals ... </iterators>
+  rule <k> V:Val ~> callableForIteratorNext(I:Int, _:Id, _:Block) =>
+           stmtNoResult
+       ... </k>
+       <iterators> ... I |-> (callableIterator(_:Val, Sentinel:Val) => #noArgVals) ... </iterators>
+    requires valEq(V, Sentinel)
+  rule <k> V:Val ~> callableForIteratorNext(I:Int, X:Id, block(SS:Stmts)) =>
+           SS ~> forIterator(I, X, block(SS))
+       ... </k>
+       <env> Rho => Rho [ X <- V ] </env>
+       <iterators> ... I |-> callableIterator(_:Val, Sentinel:Val) ... </iterators>
+    requires notBool valEq(V, Sentinel)
+  rule <k> V:Val ~> callableForIteratorNext(I:Int, X:Id, {}) =>
+           forIterator(I, X, {})
+       ... </k>
+       <env> Rho => Rho [ X <- V ] </env>
+       <iterators> ... I |-> callableIterator(_:Val, Sentinel:Val) ... </iterators>
+    requires notBool valEq(V, Sentinel)
+  rule <k> exceptionSignal(E:Val) ~> callableForIteratorNext(I:Int, _:Id, _:Block) =>
+           stmtNoResult
+       ... </k>
+       <iterators> ... I |-> (callableIterator(_:Val, _Sentinel:Val) => #noArgVals) ... </iterators>
+    requires exceptionMatches(E, #token("StopIteration", "Id"))
+  rule <k> exceptionSignal(E:Val) ~> callableForIteratorNext(I:Int, _:Id, _:Block) =>
+           stmtNoResult
+       ... </k>
+       <iterators> ... I |-> #noArgVals ... </iterators>
+    requires exceptionMatches(E, #token("StopIteration", "Id"))
+  rule <k> exceptionSignal(E:Val) ~> callableForIteratorNext(_I:Int, _:Id, _:Block) =>
+           exceptionSignal(E)
+       ... </k>
+    requires notBool exceptionMatches(E, #token("StopIteration", "Id"))
   rule <k> forIterator(I:Int, X:Id, block(SS:Stmts)) =>
            SS ~> forIterator(I, X, block(SS))
        ... </k>
@@ -29863,6 +30039,45 @@ module PYTHON
            runLoopElse(Else)
        ... </k>
        <iterators> ... I |-> #noArgVals ... </iterators>
+  rule <k> forIteratorElse(I:Int, X:Id, Body:Block, Else:Block) =>
+           argsVal(#noArgVals) ~> callApplyArgs(F) ~> callableForIteratorElseNext(I, X, Body, Else)
+       ... </k>
+       <iterators> ... I |-> callableIterator(F:Val, _Sentinel:Val) ... </iterators>
+  rule <k> _V:Val ~> callableForIteratorElseNext(I:Int, _:Id, _:Block, Else:Block) =>
+           runLoopElse(Else)
+       ... </k>
+       <iterators> ... I |-> #noArgVals ... </iterators>
+  rule <k> V:Val ~> callableForIteratorElseNext(I:Int, _:Id, _:Block, Else:Block) =>
+           runLoopElse(Else)
+       ... </k>
+       <iterators> ... I |-> (callableIterator(_:Val, Sentinel:Val) => #noArgVals) ... </iterators>
+    requires valEq(V, Sentinel)
+  rule <k> V:Val ~> callableForIteratorElseNext(I:Int, X:Id, block(SS:Stmts), Else:Block) =>
+           SS ~> forIteratorElse(I, X, block(SS), Else)
+       ... </k>
+       <env> Rho => Rho [ X <- V ] </env>
+       <iterators> ... I |-> callableIterator(_:Val, Sentinel:Val) ... </iterators>
+    requires notBool valEq(V, Sentinel)
+  rule <k> V:Val ~> callableForIteratorElseNext(I:Int, X:Id, {}, Else:Block) =>
+           forIteratorElse(I, X, {}, Else)
+       ... </k>
+       <env> Rho => Rho [ X <- V ] </env>
+       <iterators> ... I |-> callableIterator(_:Val, Sentinel:Val) ... </iterators>
+    requires notBool valEq(V, Sentinel)
+  rule <k> exceptionSignal(E:Val) ~> callableForIteratorElseNext(I:Int, _:Id, _:Block, Else:Block) =>
+           runLoopElse(Else)
+       ... </k>
+       <iterators> ... I |-> (callableIterator(_:Val, _Sentinel:Val) => #noArgVals) ... </iterators>
+    requires exceptionMatches(E, #token("StopIteration", "Id"))
+  rule <k> exceptionSignal(E:Val) ~> callableForIteratorElseNext(I:Int, _:Id, _:Block, Else:Block) =>
+           runLoopElse(Else)
+       ... </k>
+       <iterators> ... I |-> #noArgVals ... </iterators>
+    requires exceptionMatches(E, #token("StopIteration", "Id"))
+  rule <k> exceptionSignal(E:Val) ~> callableForIteratorElseNext(_I:Int, _:Id, _:Block, _:Block) =>
+           exceptionSignal(E)
+       ... </k>
+    requires notBool exceptionMatches(E, #token("StopIteration", "Id"))
   rule <k> forIteratorElse(I:Int, X:Id, block(SS:Stmts), Else:Block) =>
            SS ~> forIteratorElse(I, X, block(SS), Else)
        ... </k>

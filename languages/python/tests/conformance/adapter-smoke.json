@@ -2160,6 +2160,13 @@
       "coverage": ["reversed-builtin", "iterator-producing-builtin-profile", "sequence-protocol-profile", "dict-reversed-key-profile", "concrete-reversible-profile", "for-statement", "for-else", "sequence-unpacking-target", "list-constructor", "tuple-constructor", "list-comprehension", "type-error", "ordinary-python-source-adapter"]
     },
     {
+      "id": "adapter-map-builtin",
+      "source": "../adapter/adapter-map-builtin.py",
+      "reference": "Python 3.14.6 Standard Library Built-in Functions map; map(function, iterable, /, *iterables, strict=False) behavior over the current concrete iterable and callable profile",
+      "expected_result": "True ~> .K",
+      "coverage": ["map-builtin", "iterator-producing-builtin-profile", "callable-application-profile", "multi-iterable-shortest-stop", "strict-argument", "concrete-iterable-profile", "for-statement", "for-else", "sequence-unpacking-target", "list-constructor", "tuple-constructor", "value-error", "type-error", "ordinary-python-source-adapter"]
+    },
+    {
       "id": "adapter-min-max-int",
       "source": "../adapter/adapter-min-max-int.py",
       "reference": "Python Standard Library Built-in Functions min and max; Built-in Types list, tuple, dict, set, and range",

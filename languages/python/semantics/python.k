@@ -462,6 +462,8 @@ module PYTHON-SYNTAX
                | "#zip" "(" ArgExps ")" [symbol(zipExp)]
                | "#zipStrict" "(" ArgExps "," Exp ")" [symbol(zipStrictExp)]
                | "#reversed" "(" Exp ")" [symbol(reversedExp), strict]
+               | "#map" "(" ArgExps ")" [symbol(mapExp)]
+               | "#mapStrict" "(" ArgExps "," Exp ")" [symbol(mapStrictExp)]
                | "#min" "(" Exp ")" [symbol(minExp), strict]
                | "#max" "(" Exp ")" [symbol(maxExp), strict]
                | "#minDefault" "(" Exp "," Exp ")" [symbol(minDefaultExp)]
@@ -683,6 +685,7 @@ module PYTHON
                | "#enumerateVal" "(" ArgVals ")" [symbol(enumerateVal)]
                | "#zipVal" "(" ArgVals ")" [symbol(zipVal)]
                | "#reversedVal" "(" ArgVals ")" [symbol(reversedVal)]
+               | "#mapVal" "(" Val "," ArgVals "," Val ")" [symbol(mapVal)]
 
   syntax CompArgStack ::= "#noCompArgStack" [symbol(noCompArgStack)]
                         | compArgFrame(Target, MaybeCompFilters, MaybeCompClauses, Exp, ArgVals, Map, CompArgStack) [symbol(compArgFrame)]
@@ -747,6 +750,19 @@ module PYTHON
                  | sortedKeyCollectReverse(ArgVals, KeyedVals, Val, Val) [symbol(sortedKeyCollectReverse)]
                  | sortedKeyAdd(Val, ArgVals, KeyedVals, Val) [symbol(sortedKeyAdd)]
                  | sortedKeyAddReverse(Val, ArgVals, KeyedVals, Val, Val) [symbol(sortedKeyAddReverse)]
+                 | mapArgsResult(Val) [symbol(mapArgsResult)]
+                 | mapStrictEval(Exp) [symbol(mapStrictEval)]
+                 | mapStrictResult(ArgVals) [symbol(mapStrictResult)]
+                 | mapCollect(Val, ArgVals, Val, ArgVals, ArgVals) [symbol(mapCollect)]
+                 | mapCollectNext(Val, ArgVals, Val, ArgVals, ArgVals) [symbol(mapCollectNext)]
+                 | mapForIter(Id, Block) [symbol(mapForIter)]
+                 | mapForUnpackIter(IdItems, Block) [symbol(mapForUnpackIter)]
+                 | mapForTargetUnpackIter(Targets, Block) [symbol(mapForTargetUnpackIter)]
+                 | mapForTargetIter(Target, Block) [symbol(mapForTargetIter)]
+                 | mapForElseIter(Id, Block, Block) [symbol(mapForElseIter)]
+                 | mapForUnpackElseIter(IdItems, Block, Block) [symbol(mapForUnpackElseIter)]
+                 | mapForTargetUnpackElseIter(Targets, Block, Block) [symbol(mapForTargetUnpackElseIter)]
+                 | mapForTargetElseIter(Target, Block, Block) [symbol(mapForTargetElseIter)]
                  | listSortReverseApply(Id) [symbol(listSortReverseApply)]
                  | listSortKeyApply(Id) [symbol(listSortKeyApply)]
                  | listSortKeyReverseKey(Id, Exp) [symbol(listSortKeyReverseKey)]
@@ -1367,6 +1383,8 @@ module PYTHON
                 | zipArgsSupported(ArgVals) [function, symbol(zipArgsSupported)]
                 | zipStrictEqualLengths(ArgVals) [function, symbol(zipStrictEqualLengths)]
                 | reversedSupported(Val) [function, symbol(reversedSupported)]
+                | mapArgsEnough(ArgVals) [function, symbol(mapArgsEnough)]
+                | mapItersSupported(ArgVals) [function, symbol(mapItersSupported)]
                 | matMulSupported(Val, Val) [function, symbol(matMulSupported)]
                 | absTypeErrorProfile(Val) [function, symbol(absTypeErrorProfile)]
                 | divmodSupported(Val, Val) [function, symbol(divmodSupported)]
@@ -2117,6 +2135,7 @@ module PYTHON
                    | zipArgVals(ArgVals) [function, symbol(zipArgVals)]
                    | zipArgValsFrom(ArgVals, Int, Int) [function, symbol(zipArgValsFrom)]
                    | zipTupleArgsAt(ArgVals, Int) [function, symbol(zipTupleArgsAt)]
+                   | tailArgVals(ArgVals) [function, symbol(tailArgVals)]
                    | dropArgVals(ArgVals, Int) [function, symbol(dropArgVals)]
                    | takeArgVals(ArgVals, Int) [function, symbol(takeArgVals)]
                    | varArgTail(ArgVals, Int) [function, symbol(varArgTail)]
@@ -2146,6 +2165,7 @@ module PYTHON
   syntax Val ::= argValsToTupleVal(ArgVals) [function, symbol(argValsToTupleVal)]
                | argValsToListVal(ArgVals) [function, symbol(argValsToListVal)]
                | argValAt(ArgVals, Int) [function, symbol(argValAt)]
+               | firstArgVal(ArgVals) [function, symbol(firstArgVal)]
                | sortedListVal(ArgVals) [function, symbol(sortedListVal)]
                | sortedKeyedListVal(KeyedVals) [function, symbol(sortedKeyedListVal)]
                | sortedKeyedReverseListVal(KeyedVals) [function, symbol(sortedKeyedReverseListVal)]
@@ -2527,6 +2547,7 @@ module PYTHON
   rule truthy(#enumerateVal(_:ArgVals)) => true
   rule truthy(#zipVal(_:ArgVals)) => true
   rule truthy(#reversedVal(_:ArgVals)) => true
+  rule truthy(#mapVal(_:Val, _:ArgVals, _:Val)) => true
   rule truthy(#kwDefaultMissing) => false
   rule truthy(closure(_:Id, _:Exp)) => true
   rule truthy(closureArgs(_:IdItems, _:Exp)) => true
@@ -7405,6 +7426,19 @@ module PYTHON
     argValsCons(tupleVal(argValsToValItems(zipTupleArgsAt(VS, I))), zipArgValsFrom(VS, I +Int 1, Len))
     requires I <Int Len
       andBool zipArgsSupported(VS)
+
+  rule firstArgVal(#noArgVals) => None
+  rule firstArgVal(argValsCons(V:Val, _:ArgVals)) => V
+  rule tailArgVals(#noArgVals) => #noArgVals
+  rule tailArgVals(argValsCons(_:Val, VS:ArgVals)) => VS
+
+  rule mapArgsEnough(#noArgVals) => false
+  rule mapArgsEnough(argValsCons(_:Val, #noArgVals)) => false
+  rule mapArgsEnough(argValsCons(_:Val, argValsCons(_:Val, _:ArgVals))) => true
+
+  rule mapItersSupported(#noArgVals) => true
+  rule mapItersSupported(argValsCons(V:Val, VS:ArgVals)) =>
+    enumerateIterableSupported(V) andBool mapItersSupported(VS)
 
   rule emptyKwArgVals(#noKwArgVals) => true
   rule emptyKwArgVals(kwArgValsCons(_:Id, _:Val, _:KwArgVals)) => false
@@ -21455,6 +21489,14 @@ module PYTHON
   rule #tupleCtor(#zipVal(VS:ArgVals)) => argValsToTupleVal(VS)
   rule #listCtor(#reversedVal(VS:ArgVals)) => argValsToListVal(VS)
   rule #tupleCtor(#reversedVal(VS:ArgVals)) => argValsToTupleVal(VS)
+  rule <k> #listCtor(#mapVal(F:Val, Iters:ArgVals, Strict:Val)) =>
+           mapCollect(F, zipArgVals(Iters), Strict, Iters, #noArgVals) ~> buildList
+       ... </k>
+    requires mapItersSupported(Iters)
+  rule <k> #tupleCtor(#mapVal(F:Val, Iters:ArgVals, Strict:Val)) =>
+           mapCollect(F, zipArgVals(Iters), Strict, Iters, #noArgVals) ~> buildTuple
+       ... </k>
+    requires mapItersSupported(Iters)
   rule #boolCtor() => False
   rule #boolCtor(V:Val) => boolValue(truthy(V))
   rule #strCtor() => ""
@@ -22020,6 +22062,103 @@ module PYTHON
            exceptionSignal(#exception(#token("TypeError", "Id")))
        ... </k>
     requires notBool reversedSupported(V)
+  rule <k> #map(Args:ArgExps) =>
+           evalArgs(Args, #noArgVals) ~> mapArgsResult(False)
+       ... </k>
+  rule <k> argsVal(VS:ArgVals) ~> mapArgsResult(Strict:Val) =>
+           #mapVal(firstArgVal(VS), tailArgVals(VS), Strict)
+       ... </k>
+    requires mapArgsEnough(VS)
+      andBool mapItersSupported(tailArgVals(VS))
+  rule <k> argsVal(VS:ArgVals) ~> mapArgsResult(_Strict:Val) =>
+           exceptionSignal(#exception(#token("TypeError", "Id")))
+       ... </k>
+    requires notBool mapArgsEnough(VS)
+  rule <k> argsVal(VS:ArgVals) ~> mapArgsResult(_Strict:Val) =>
+           exceptionSignal(#exception(#token("TypeError", "Id")))
+       ... </k>
+    requires mapArgsEnough(VS)
+      andBool notBool mapItersSupported(tailArgVals(VS))
+  rule <k> #mapStrict(Args:ArgExps, Strict:Exp) =>
+           evalArgs(Args, #noArgVals) ~> mapStrictEval(Strict)
+       ... </k>
+  rule <k> argsVal(VS:ArgVals) ~> mapStrictEval(Strict:Exp) =>
+           Strict ~> mapStrictResult(VS)
+       ... </k>
+  rule <k> Strict:Val ~> mapStrictResult(VS:ArgVals) =>
+           argsVal(VS) ~> mapArgsResult(Strict)
+       ... </k>
+  rule <k> mapCollect(_F:Val, #noArgVals, Strict:Val, Iters:ArgVals, Acc:ArgVals) =>
+           argsVal(Acc)
+       ... </k>
+    requires (notBool truthy(Strict)) orBool zipStrictEqualLengths(Iters)
+  rule <k> mapCollect(_F:Val, #noArgVals, Strict:Val, Iters:ArgVals, _Acc:ArgVals) =>
+           exceptionSignal(#exception(#token("ValueError", "Id")))
+       ... </k>
+    requires truthy(Strict)
+      andBool notBool zipStrictEqualLengths(Iters)
+  rule <k> mapCollect(F:Val, argValsCons(Row:Val, Rest:ArgVals), Strict:Val, Iters:ArgVals, Acc:ArgVals) =>
+           argsVal(iterableArgVals(Row)) ~> callApplyArgs(F) ~> mapCollectNext(F, Rest, Strict, Iters, Acc)
+       ... </k>
+  rule <k> V:Val ~> mapCollectNext(F:Val, Rest:ArgVals, Strict:Val, Iters:ArgVals, Acc:ArgVals) =>
+           mapCollect(F, Rest, Strict, Iters, appendArgVal(Acc, V))
+       ... </k>
+  rule <k> argsVal(#noArgVals) ~> mapForIter(_:Id, _:Block) =>
+           stmtNoResult
+       ... </k>
+  rule <k> argsVal(VS:ArgVals) ~> mapForIter(X:Id, Body:Block) =>
+           forItems(X, argValsToValItems(VS), Body)
+       ... </k>
+    requires notBool emptyArgVals(VS)
+  rule <k> argsVal(#noArgVals) ~> mapForUnpackIter(_:IdItems, _:Block) =>
+           stmtNoResult
+       ... </k>
+  rule <k> argsVal(VS:ArgVals) ~> mapForUnpackIter(IDS:IdItems, Body:Block) =>
+           forUnpackItems(IDS, argValsToValItems(VS), Body)
+       ... </k>
+    requires notBool emptyArgVals(VS)
+  rule <k> argsVal(#noArgVals) ~> mapForTargetUnpackIter(_:Targets, _:Block) =>
+           stmtNoResult
+       ... </k>
+  rule <k> argsVal(VS:ArgVals) ~> mapForTargetUnpackIter(TS:Targets, Body:Block) =>
+           forTargetUnpackItems(TS, argValsToValItems(VS), Body)
+       ... </k>
+    requires notBool emptyArgVals(VS)
+  rule <k> argsVal(#noArgVals) ~> mapForTargetIter(_:Target, _:Block) =>
+           stmtNoResult
+       ... </k>
+  rule <k> argsVal(VS:ArgVals) ~> mapForTargetIter(T:Target, Body:Block) =>
+           forTargetItems(T, argValsToValItems(VS), Body)
+       ... </k>
+    requires notBool emptyArgVals(VS)
+  rule <k> argsVal(#noArgVals) ~> mapForElseIter(_:Id, _:Block, Else:Block) =>
+           runLoopElse(Else)
+       ... </k>
+  rule <k> argsVal(VS:ArgVals) ~> mapForElseIter(X:Id, Body:Block, Else:Block) =>
+           forElseItems(X, argValsToValItems(VS), Body, Else)
+       ... </k>
+    requires notBool emptyArgVals(VS)
+  rule <k> argsVal(#noArgVals) ~> mapForUnpackElseIter(_:IdItems, _:Block, Else:Block) =>
+           runLoopElse(Else)
+       ... </k>
+  rule <k> argsVal(VS:ArgVals) ~> mapForUnpackElseIter(IDS:IdItems, Body:Block, Else:Block) =>
+           forUnpackElseItems(IDS, argValsToValItems(VS), Body, Else)
+       ... </k>
+    requires notBool emptyArgVals(VS)
+  rule <k> argsVal(#noArgVals) ~> mapForTargetUnpackElseIter(_:Targets, _:Block, Else:Block) =>
+           runLoopElse(Else)
+       ... </k>
+  rule <k> argsVal(VS:ArgVals) ~> mapForTargetUnpackElseIter(TS:Targets, Body:Block, Else:Block) =>
+           forTargetUnpackElseItems(TS, argValsToValItems(VS), Body, Else)
+       ... </k>
+    requires notBool emptyArgVals(VS)
+  rule <k> argsVal(#noArgVals) ~> mapForTargetElseIter(_:Target, _:Block, Else:Block) =>
+           runLoopElse(Else)
+       ... </k>
+  rule <k> argsVal(VS:ArgVals) ~> mapForTargetElseIter(T:Target, Body:Block, Else:Block) =>
+           forTargetElseItems(T, argValsToValItems(VS), Body, Else)
+       ... </k>
+    requires notBool emptyArgVals(VS)
   rule <k> #min([]) => exceptionSignal(#exception(#token("ValueError", "Id"))) ... </k>
   rule <k> #min(()) => exceptionSignal(#exception(#token("ValueError", "Id"))) ... </k>
   rule <k> #min("") => exceptionSignal(#exception(#token("ValueError", "Id"))) ... </k>
@@ -28470,6 +28609,10 @@ module PYTHON
            forItems(X, argValsToValItems(VS), Body)
        ... </k>
     requires notBool emptyArgVals(VS)
+  rule <k> #mapVal(F:Val, Iters:ArgVals, Strict:Val) ~> forIter(X:Id, Body:Block) =>
+           mapCollect(F, zipArgVals(Iters), Strict, Iters, #noArgVals) ~> mapForIter(X, Body)
+       ... </k>
+    requires mapItersSupported(Iters)
 
   rule <k> forItems(X:Id, valItemsCons(V:Val, VS:ValItems), block(SS:Stmts)) =>
            SS ~> forItems(X, VS, block(SS))
@@ -28534,6 +28677,10 @@ module PYTHON
            forUnpackItems(IDS, argValsToValItems(VS), Body)
        ... </k>
     requires notBool emptyArgVals(VS)
+  rule <k> #mapVal(F:Val, Iters:ArgVals, Strict:Val) ~> forUnpackIter(IDS:IdItems, Body:Block) =>
+           mapCollect(F, zipArgVals(Iters), Strict, Iters, #noArgVals) ~> mapForUnpackIter(IDS, Body)
+       ... </k>
+    requires mapItersSupported(Iters)
   rule <k> rangeVal(Start:Int, Stop:Int) ~> forUnpackIter(_:IdItems, _:Block) => stmtNoResult ... </k>
     requires pyRangeLen(Start, Stop, 1) ==Int 0
   rule <k> rangeVal(Start:Int, Stop:Int) ~> forUnpackIter(IDS:IdItems, Body:Block) =>
@@ -28789,6 +28936,10 @@ module PYTHON
            forTargetUnpackItems(TS, argValsToValItems(VS), Body)
        ... </k>
     requires notBool emptyArgVals(VS)
+  rule <k> #mapVal(F:Val, Iters:ArgVals, Strict:Val) ~> forTargetUnpackIter(TS:Targets, Body:Block) =>
+           mapCollect(F, zipArgVals(Iters), Strict, Iters, #noArgVals) ~> mapForTargetUnpackIter(TS, Body)
+       ... </k>
+    requires mapItersSupported(Iters)
   rule <k> rangeVal(Start:Int, Stop:Int) ~> forTargetUnpackIter(_:Targets, _:Block) => stmtNoResult ... </k>
     requires pyRangeLen(Start, Stop, 1) ==Int 0
   rule <k> rangeVal(Start:Int, Stop:Int) ~> forTargetUnpackIter(TS:Targets, Body:Block) =>
@@ -28868,6 +29019,10 @@ module PYTHON
            forTargetItems(T, argValsToValItems(VS), Body)
        ... </k>
     requires notBool emptyArgVals(VS)
+  rule <k> #mapVal(F:Val, Iters:ArgVals, Strict:Val) ~> forTargetIter(T:Target, Body:Block) =>
+           mapCollect(F, zipArgVals(Iters), Strict, Iters, #noArgVals) ~> mapForTargetIter(T, Body)
+       ... </k>
+    requires mapItersSupported(Iters)
   rule <k> rangeVal(Start:Int, Stop:Int) ~> forTargetIter(_:Target, _:Block) => stmtNoResult ... </k>
     requires pyRangeLen(Start, Stop, 1) ==Int 0
   rule <k> rangeVal(Start:Int, Stop:Int) ~> forTargetIter(T:Target, Body:Block) =>
@@ -29440,6 +29595,10 @@ module PYTHON
            forElseItems(X, argValsToValItems(VS), Body, Else)
        ... </k>
     requires notBool emptyArgVals(VS)
+  rule <k> #mapVal(F:Val, Iters:ArgVals, Strict:Val) ~> forElseIter(X:Id, Body:Block, Else:Block) =>
+           mapCollect(F, zipArgVals(Iters), Strict, Iters, #noArgVals) ~> mapForElseIter(X, Body, Else)
+       ... </k>
+    requires mapItersSupported(Iters)
 
   rule <k> forElseItems(X:Id, valItemsCons(V:Val, VS:ValItems), block(SS:Stmts), Else:Block) =>
            SS ~> forElseItems(X, VS, block(SS), Else)
@@ -29504,6 +29663,10 @@ module PYTHON
            forUnpackElseItems(IDS, argValsToValItems(VS), Body, Else)
        ... </k>
     requires notBool emptyArgVals(VS)
+  rule <k> #mapVal(F:Val, Iters:ArgVals, Strict:Val) ~> forUnpackElseIter(IDS:IdItems, Body:Block, Else:Block) =>
+           mapCollect(F, zipArgVals(Iters), Strict, Iters, #noArgVals) ~> mapForUnpackElseIter(IDS, Body, Else)
+       ... </k>
+    requires mapItersSupported(Iters)
   rule <k> rangeVal(Start:Int, Stop:Int) ~> forUnpackElseIter(_:IdItems, _:Block, Else:Block) => runLoopElse(Else) ... </k>
     requires pyRangeLen(Start, Stop, 1) ==Int 0
   rule <k> rangeVal(Start:Int, Stop:Int) ~> forUnpackElseIter(IDS:IdItems, Body:Block, Else:Block) =>
@@ -29740,6 +29903,10 @@ module PYTHON
            forTargetUnpackElseItems(TS, argValsToValItems(VS), Body, Else)
        ... </k>
     requires notBool emptyArgVals(VS)
+  rule <k> #mapVal(F:Val, Iters:ArgVals, Strict:Val) ~> forTargetUnpackElseIter(TS:Targets, Body:Block, Else:Block) =>
+           mapCollect(F, zipArgVals(Iters), Strict, Iters, #noArgVals) ~> mapForTargetUnpackElseIter(TS, Body, Else)
+       ... </k>
+    requires mapItersSupported(Iters)
   rule <k> rangeVal(Start:Int, Stop:Int) ~> forTargetUnpackElseIter(_:Targets, _:Block, Else:Block) => runLoopElse(Else) ... </k>
     requires pyRangeLen(Start, Stop, 1) ==Int 0
   rule <k> rangeVal(Start:Int, Stop:Int) ~> forTargetUnpackElseIter(TS:Targets, Body:Block, Else:Block) =>
@@ -29819,6 +29986,10 @@ module PYTHON
            forTargetElseItems(T, argValsToValItems(VS), Body, Else)
        ... </k>
     requires notBool emptyArgVals(VS)
+  rule <k> #mapVal(F:Val, Iters:ArgVals, Strict:Val) ~> forTargetElseIter(T:Target, Body:Block, Else:Block) =>
+           mapCollect(F, zipArgVals(Iters), Strict, Iters, #noArgVals) ~> mapForTargetElseIter(T, Body, Else)
+       ... </k>
+    requires mapItersSupported(Iters)
   rule <k> rangeVal(Start:Int, Stop:Int) ~> forTargetElseIter(_:Target, _:Block, Else:Block) => runLoopElse(Else) ... </k>
     requires pyRangeLen(Start, Stop, 1) ==Int 0
   rule <k> rangeVal(Start:Int, Stop:Int) ~> forTargetElseIter(T:Target, Body:Block, Else:Block) =>
@@ -30373,6 +30544,8 @@ module PYTHON
   rule <k> exceptionSignal(V:Val) ~> callMixedArgs(_:ArgExps, _:KwArgExps) => exceptionSignal(V) ... </k>
   rule <k> exceptionSignal(V:Val) ~> evalMixedKwArgs(_:KwArgExps, _:Val) => exceptionSignal(V) ... </k>
   rule <k> exceptionSignal(V:Val) ~> callApplyMixedArgs(_:Val, _:ArgVals) => exceptionSignal(V) ... </k>
+  rule <k> exceptionSignal(V:Val) ~> buildList => exceptionSignal(V) ... </k>
+  rule <k> exceptionSignal(V:Val) ~> buildTuple => exceptionSignal(V) ... </k>
   rule <k> exceptionSignal(V:Val) ~> memoryviewApply => exceptionSignal(V) ... </k>
   rule <k> exceptionSignal(V:Val) ~> withEnter(_:Block) => exceptionSignal(V) ... </k>
   rule <k> exceptionSignal(V:Val) ~> withEnterAs(_:Id, _:Block) => exceptionSignal(V) ... </k>
@@ -30385,6 +30558,10 @@ module PYTHON
   rule <k> exceptionSignal(V:Val) ~> zipArgsResult => exceptionSignal(V) ... </k>
   rule <k> exceptionSignal(V:Val) ~> zipStrictEval(_:Exp) => exceptionSignal(V) ... </k>
   rule <k> exceptionSignal(V:Val) ~> zipStrictResult(_:ArgVals) => exceptionSignal(V) ... </k>
+  rule <k> exceptionSignal(V:Val) ~> mapArgsResult(_:Val) => exceptionSignal(V) ... </k>
+  rule <k> exceptionSignal(V:Val) ~> mapStrictEval(_:Exp) => exceptionSignal(V) ... </k>
+  rule <k> exceptionSignal(V:Val) ~> mapStrictResult(_:ArgVals) => exceptionSignal(V) ... </k>
+  rule <k> exceptionSignal(V:Val) ~> mapCollectNext(_:Val, _:ArgVals, _:Val, _:ArgVals, _:ArgVals) => exceptionSignal(V) ... </k>
   rule <k> exceptionSignal(V:Val) ~> minDefaultEval(_:Exp) => exceptionSignal(V) ... </k>
   rule <k> exceptionSignal(V:Val) ~> maxDefaultEval(_:Exp) => exceptionSignal(V) ... </k>
   rule <k> exceptionSignal(V:Val) ~> minDefaultApply(_:Val) => exceptionSignal(V) ... </k>
@@ -30452,6 +30629,10 @@ module PYTHON
   rule <k> exceptionSignal(V:Val) ~> forTargetUnpackIter(_:Targets, _:Block) => exceptionSignal(V) ... </k>
   rule <k> exceptionSignal(V:Val) ~> forTargetIter(_:Target, _:Block) => exceptionSignal(V) ... </k>
   rule <k> exceptionSignal(V:Val) ~> forStarUnpackIter(_:IdItems, _:Id, _:IdItems, _:Block) => exceptionSignal(V) ... </k>
+  rule <k> exceptionSignal(V:Val) ~> mapForIter(_:Id, _:Block) => exceptionSignal(V) ... </k>
+  rule <k> exceptionSignal(V:Val) ~> mapForUnpackIter(_:IdItems, _:Block) => exceptionSignal(V) ... </k>
+  rule <k> exceptionSignal(V:Val) ~> mapForTargetUnpackIter(_:Targets, _:Block) => exceptionSignal(V) ... </k>
+  rule <k> exceptionSignal(V:Val) ~> mapForTargetIter(_:Target, _:Block) => exceptionSignal(V) ... </k>
   rule <k> breakSignal ~> forItems(_:Id, _:ValItems, _:Block) => stmtNoResult ... </k>
   rule <k> breakSignal ~> forDone => stmtNoResult ... </k>
   rule <k> continueSignal ~> forItems(X:Id, VS:ValItems, Body:Block) =>
@@ -30503,6 +30684,10 @@ module PYTHON
   rule <k> exceptionSignal(V:Val) ~> forTargetUnpackElseIter(_:Targets, _:Block, _:Block) => exceptionSignal(V) ... </k>
   rule <k> exceptionSignal(V:Val) ~> forTargetElseIter(_:Target, _:Block, _:Block) => exceptionSignal(V) ... </k>
   rule <k> exceptionSignal(V:Val) ~> forStarUnpackElseIter(_:IdItems, _:Id, _:IdItems, _:Block, _:Block) => exceptionSignal(V) ... </k>
+  rule <k> exceptionSignal(V:Val) ~> mapForElseIter(_:Id, _:Block, _:Block) => exceptionSignal(V) ... </k>
+  rule <k> exceptionSignal(V:Val) ~> mapForUnpackElseIter(_:IdItems, _:Block, _:Block) => exceptionSignal(V) ... </k>
+  rule <k> exceptionSignal(V:Val) ~> mapForTargetUnpackElseIter(_:Targets, _:Block, _:Block) => exceptionSignal(V) ... </k>
+  rule <k> exceptionSignal(V:Val) ~> mapForTargetElseIter(_:Target, _:Block, _:Block) => exceptionSignal(V) ... </k>
   rule <k> breakSignal ~> forElseItems(_:Id, _:ValItems, _:Block, _:Block) => stmtNoResult ... </k>
   rule <k> breakSignal ~> forElseDone(_:Block) => stmtNoResult ... </k>
   rule <k> continueSignal ~> forElseItems(X:Id, VS:ValItems, Body:Block, Else:Block) =>

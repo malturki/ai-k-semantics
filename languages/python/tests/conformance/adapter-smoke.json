@@ -2139,6 +2139,13 @@
       "coverage": ["sum-builtin", "int-like-sum", "start-argument", "empty-iterable-start", "dict-key-iteration-subset", "range-iteration-subset", "ordinary-python-source-adapter"]
     },
     {
+      "id": "adapter-enumerate-builtin",
+      "source": "../adapter/adapter-enumerate-builtin.py",
+      "reference": "Python 3.14.6 Standard Library Built-in Functions enumerate; concrete iterable behavior for current list, tuple, string, bytes, dict, set, frozenset, and range profiles",
+      "expected_result": "True ~> .K",
+      "coverage": ["enumerate-builtin", "iterator-producing-builtin-profile", "start-argument", "concrete-iterable-profile", "for-statement", "for-else", "list-constructor", "tuple-constructor", "list-comprehension", "type-error", "ordinary-python-source-adapter"]
+    },
+    {
       "id": "adapter-min-max-int",
       "source": "../adapter/adapter-min-max-int.py",
       "reference": "Python Standard Library Built-in Functions min and max; Built-in Types list, tuple, dict, set, and range",

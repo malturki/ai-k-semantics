@@ -457,6 +457,8 @@ module PYTHON-SYNTAX
                | "#any" "(" Exp ")" [symbol(anyExp), strict]
                | "#sum" "(" Exp ")" [symbol(sum1Exp), strict]
                | "#sum" "(" Exp "," Exp ")" [symbol(sum2Exp), strict]
+               | "#enumerate" "(" Exp ")" [symbol(enumerate1Exp), strict]
+               | "#enumerate" "(" Exp "," Exp ")" [symbol(enumerate2Exp), strict(1, 2)]
                | "#min" "(" Exp ")" [symbol(minExp), strict]
                | "#max" "(" Exp ")" [symbol(maxExp), strict]
                | "#minDefault" "(" Exp "," Exp ")" [symbol(minDefaultExp)]
@@ -675,6 +677,7 @@ module PYTHON
                | matchClassAttrStringVal(Val, String) [function, symbol(matchClassAttrStringVal)]
                | argsVal(ArgVals) [symbol(argsVal)]
                | dictArgsVal(DictVals) [symbol(dictArgsVal)]
+               | "#enumerateVal" "(" ArgVals ")" [symbol(enumerateVal)]
 
   syntax CompArgStack ::= "#noCompArgStack" [symbol(noCompArgStack)]
                         | compArgFrame(Target, MaybeCompFilters, MaybeCompClauses, Exp, ArgVals, Map, CompArgStack) [symbol(compArgFrame)]
@@ -1352,6 +1355,7 @@ module PYTHON
                 | isConcreteSequenceVal(Val) [function, symbol(isConcreteSequenceVal)]
                 | sumStartForbidden(Val) [function, symbol(sumStartForbidden)]
                 | sumAddSupported(Val, Val) [function, symbol(sumAddSupported)]
+                | enumerateIterableSupported(Val) [function, symbol(enumerateIterableSupported)]
                 | matMulSupported(Val, Val) [function, symbol(matMulSupported)]
                 | absTypeErrorProfile(Val) [function, symbol(absTypeErrorProfile)]
                 | divmodSupported(Val, Val) [function, symbol(divmodSupported)]
@@ -2095,6 +2099,7 @@ module PYTHON
                    | sortedArgVals(ArgVals) [function, symbol(sortedArgVals)]
                    | sortedArgVals(ArgVals, ArgVals) [function, symbol(sortedArgValsAcc)]
                    | insertSortedArgVal(Val, ArgVals) [function, symbol(insertSortedArgVal)]
+                   | enumerateArgVals(Int, ArgVals) [function, symbol(enumerateArgVals)]
                    | dropArgVals(ArgVals, Int) [function, symbol(dropArgVals)]
                    | takeArgVals(ArgVals, Int) [function, symbol(takeArgVals)]
                    | varArgTail(ArgVals, Int) [function, symbol(varArgTail)]
@@ -2501,6 +2506,7 @@ module PYTHON
   rule truthy(setVal(_:ValItems)) => true
   rule truthy(frozenset()) => false
   rule truthy(frozensetVal(_:ValItems)) => true
+  rule truthy(#enumerateVal(_:ArgVals)) => true
   rule truthy(#kwDefaultMissing) => false
   rule truthy(closure(_:Id, _:Exp)) => true
   rule truthy(closureArgs(_:IdItems, _:Exp)) => true
@@ -7324,6 +7330,10 @@ module PYTHON
   rule emptyArgVals(#noArgVals) => true
   rule emptyArgVals(argValsCons(_:Val, _:ArgVals)) => false
 
+  rule enumerateArgVals(_:Int, #noArgVals) => #noArgVals
+  rule enumerateArgVals(N:Int, argValsCons(V:Val, VS:ArgVals)) =>
+    argValsCons(tupleVal(valItemsCons(N, valItemsLast(V))), enumerateArgVals(N +Int 1, VS))
+
   rule emptyKwArgVals(#noKwArgVals) => true
   rule emptyKwArgVals(kwArgValsCons(_:Id, _:Val, _:KwArgVals)) => false
   rule emptyKwArgVals(kwArgStringValsCons(_:String, _:Val, _:KwArgVals)) => false
@@ -7624,6 +7634,7 @@ module PYTHON
   rule iterableArgVals(setVal(VS:ValItems)) => valItemsToArgVals(VS)
   rule iterableArgVals(frozenset()) => #noArgVals
   rule iterableArgVals(frozensetVal(VS:ValItems)) => valItemsToArgVals(VS)
+  rule iterableArgVals(#enumerateVal(VS:ArgVals)) => VS
   rule iterableArgVals(rangeVal(Start:Int, Stop:Int)) => #noArgVals
     requires pyRangeLen(Start, Stop, 1) ==Int 0
   rule iterableArgVals(rangeVal(Start:Int, Stop:Int)) =>
@@ -12514,6 +12525,7 @@ module PYTHON
   rule concreteIterableExtraNonEmpty(setVal(_:ValItems)) => true
   rule concreteIterableExtraNonEmpty(frozenset()) => false
   rule concreteIterableExtraNonEmpty(frozensetVal(_:ValItems)) => true
+  rule concreteIterableExtraNonEmpty(#enumerateVal(VS:ArgVals)) => notBool emptyArgVals(VS)
   rule concreteIterableExtraNonEmpty(rangeVal(Start:Int, Stop:Int)) => pyRangeLen(Start, Stop, 1) >Int 0
   rule concreteIterableExtraNonEmpty(rangeVal(Start:Int, Stop:Int, Step:Int)) =>
     pyRangeLen(Start, Stop, Step) >Int 0
@@ -12531,6 +12543,7 @@ module PYTHON
   rule concreteIterableExtraEmpty(setVal(_:ValItems)) => false
   rule concreteIterableExtraEmpty(frozenset()) => true
   rule concreteIterableExtraEmpty(frozensetVal(_:ValItems)) => false
+  rule concreteIterableExtraEmpty(#enumerateVal(VS:ArgVals)) => emptyArgVals(VS)
   rule concreteIterableExtraEmpty(rangeVal(Start:Int, Stop:Int)) => pyRangeLen(Start, Stop, 1) ==Int 0
   rule concreteIterableExtraEmpty(rangeVal(Start:Int, Stop:Int, Step:Int)) =>
     pyRangeLen(Start, Stop, Step) ==Int 0
@@ -12996,6 +13009,8 @@ module PYTHON
   rule concreteIterableExtraItems(dictVal(DS:DictItems)) => dictKeysToValItems(DS)
   rule concreteIterableExtraItems(setVal(VS:ValItems)) => VS
   rule concreteIterableExtraItems(frozensetVal(VS:ValItems)) => VS
+  rule concreteIterableExtraItems(#enumerateVal(VS:ArgVals)) => argValsToValItems(VS)
+    requires notBool emptyArgVals(VS)
   rule concreteIterableExtraItems(rangeVal(Start:Int, Stop:Int)) =>
     rangeToValItems(Start, Stop, 1, 0, pyRangeLen(Start, Stop, 1))
     requires pyRangeLen(Start, Stop, 1) >Int 0
@@ -13627,6 +13642,26 @@ module PYTHON
   rule sumAddSupported(V1:Val, V2:Val) => true
     requires isTupleSequence(V1) andBool isTupleSequence(V2)
   rule sumAddSupported(_:Val, _:Val) => false [owise]
+
+  rule enumerateIterableSupported([]) => true
+  rule enumerateIterableSupported(listVal(_:ValItems)) => true
+  rule enumerateIterableSupported(()) => true
+  rule enumerateIterableSupported(tupleVal(_:ValItems)) => true
+  rule enumerateIterableSupported(_:String) => true
+  rule enumerateIterableSupported(#bytes()) => true
+  rule enumerateIterableSupported(bytesVal(_:ValItems)) => true
+  rule enumerateIterableSupported(#bytearray()) => true
+  rule enumerateIterableSupported(bytearrayVal(_:ValItems)) => true
+  rule enumerateIterableSupported(#memoryviewVal(V:Val)) => enumerateIterableSupported(V)
+  rule enumerateIterableSupported({}) => true
+  rule enumerateIterableSupported(dictVal(_:DictItems)) => true
+  rule enumerateIterableSupported(set()) => true
+  rule enumerateIterableSupported(setVal(_:ValItems)) => true
+  rule enumerateIterableSupported(frozenset()) => true
+  rule enumerateIterableSupported(frozensetVal(_:ValItems)) => true
+  rule enumerateIterableSupported(rangeVal(_:Int, _:Int)) => true
+  rule enumerateIterableSupported(rangeVal(_:Int, _:Int, Step:Int)) => Step =/=Int 0
+  rule enumerateIterableSupported(_:Val) => false [owise]
 
   rule matMulSupported(_:Val, _:Val) => false [owise]
 
@@ -21313,6 +21348,8 @@ module PYTHON
   rule #tupleCtor(rangeVal(Start:Int, Stop:Int, Step:Int)) =>
     tupleVal(rangeToValItems(Start, Stop, Step, 0, pyRangeLen(Start, Stop, Step)))
     requires Step =/=Int 0 andBool pyRangeLen(Start, Stop, Step) >Int 0
+  rule #listCtor(#enumerateVal(VS:ArgVals)) => argValsToListVal(VS)
+  rule #tupleCtor(#enumerateVal(VS:ArgVals)) => argValsToTupleVal(VS)
   rule #boolCtor() => False
   rule #boolCtor(V:Val) => boolValue(truthy(V))
   rule #strCtor() => ""
@@ -21826,6 +21863,18 @@ module PYTHON
            exceptionSignal(#exception(#token("TypeError", "Id")))
        ... </k>
     requires notBool sumAddSupported(Acc, V)
+
+  rule #enumerate(V:Val) => #enumerateVal(enumerateArgVals(0, iterableArgVals(V)))
+    requires enumerateIterableSupported(V)
+  rule <k> #enumerate(V:Val) => exceptionSignal(#exception(#token("TypeError", "Id"))) ... </k>
+    requires notBool enumerateIterableSupported(V)
+  rule #enumerate(V:Val, Start:Val) =>
+    #enumerateVal(enumerateArgVals(intValue(Start), iterableArgVals(V)))
+    requires enumerateIterableSupported(V) andBool isIntLike(Start)
+  rule <k> #enumerate(_V:Val, Start:Val) => exceptionSignal(#exception(#token("TypeError", "Id"))) ... </k>
+    requires notBool isIntLike(Start)
+  rule <k> #enumerate(V:Val, Start:Val) => exceptionSignal(#exception(#token("TypeError", "Id"))) ... </k>
+    requires isIntLike(Start) andBool notBool enumerateIterableSupported(V)
   rule <k> #min([]) => exceptionSignal(#exception(#token("ValueError", "Id"))) ... </k>
   rule <k> #min(()) => exceptionSignal(#exception(#token("ValueError", "Id"))) ... </k>
   rule <k> #min("") => exceptionSignal(#exception(#token("ValueError", "Id"))) ... </k>
@@ -28261,6 +28310,11 @@ module PYTHON
   rule <k> frozensetVal(VS:ValItems) ~> forIter(X:Id, Body:Block) =>
            forItems(X, VS, Body)
        ... </k>
+  rule <k> #enumerateVal(#noArgVals) ~> forIter(_:Id, _:Block) => stmtNoResult ... </k>
+  rule <k> #enumerateVal(VS:ArgVals) ~> forIter(X:Id, Body:Block) =>
+           forItems(X, argValsToValItems(VS), Body)
+       ... </k>
+    requires notBool emptyArgVals(VS)
 
   rule <k> forItems(X:Id, valItemsCons(V:Val, VS:ValItems), block(SS:Stmts)) =>
            SS ~> forItems(X, VS, block(SS))
@@ -28310,6 +28364,11 @@ module PYTHON
   rule <k> frozensetVal(VS:ValItems) ~> forUnpackIter(IDS:IdItems, Body:Block) =>
            forUnpackItems(IDS, VS, Body)
        ... </k>
+  rule <k> #enumerateVal(#noArgVals) ~> forUnpackIter(_:IdItems, _:Block) => stmtNoResult ... </k>
+  rule <k> #enumerateVal(VS:ArgVals) ~> forUnpackIter(IDS:IdItems, Body:Block) =>
+           forUnpackItems(IDS, argValsToValItems(VS), Body)
+       ... </k>
+    requires notBool emptyArgVals(VS)
   rule <k> rangeVal(Start:Int, Stop:Int) ~> forUnpackIter(_:IdItems, _:Block) => stmtNoResult ... </k>
     requires pyRangeLen(Start, Stop, 1) ==Int 0
   rule <k> rangeVal(Start:Int, Stop:Int) ~> forUnpackIter(IDS:IdItems, Body:Block) =>
@@ -28550,6 +28609,11 @@ module PYTHON
   rule <k> frozensetVal(VS:ValItems) ~> forTargetUnpackIter(TS:Targets, Body:Block) =>
            forTargetUnpackItems(TS, VS, Body)
        ... </k>
+  rule <k> #enumerateVal(#noArgVals) ~> forTargetUnpackIter(_:Targets, _:Block) => stmtNoResult ... </k>
+  rule <k> #enumerateVal(VS:ArgVals) ~> forTargetUnpackIter(TS:Targets, Body:Block) =>
+           forTargetUnpackItems(TS, argValsToValItems(VS), Body)
+       ... </k>
+    requires notBool emptyArgVals(VS)
   rule <k> rangeVal(Start:Int, Stop:Int) ~> forTargetUnpackIter(_:Targets, _:Block) => stmtNoResult ... </k>
     requires pyRangeLen(Start, Stop, 1) ==Int 0
   rule <k> rangeVal(Start:Int, Stop:Int) ~> forTargetUnpackIter(TS:Targets, Body:Block) =>
@@ -28614,6 +28678,11 @@ module PYTHON
   rule <k> frozensetVal(VS:ValItems) ~> forTargetIter(T:Target, Body:Block) =>
            forTargetItems(T, VS, Body)
        ... </k>
+  rule <k> #enumerateVal(#noArgVals) ~> forTargetIter(_:Target, _:Block) => stmtNoResult ... </k>
+  rule <k> #enumerateVal(VS:ArgVals) ~> forTargetIter(T:Target, Body:Block) =>
+           forTargetItems(T, argValsToValItems(VS), Body)
+       ... </k>
+    requires notBool emptyArgVals(VS)
   rule <k> rangeVal(Start:Int, Stop:Int) ~> forTargetIter(_:Target, _:Block) => stmtNoResult ... </k>
     requires pyRangeLen(Start, Stop, 1) ==Int 0
   rule <k> rangeVal(Start:Int, Stop:Int) ~> forTargetIter(T:Target, Body:Block) =>
@@ -29171,6 +29240,11 @@ module PYTHON
   rule <k> frozensetVal(VS:ValItems) ~> forElseIter(X:Id, Body:Block, Else:Block) =>
            forElseItems(X, VS, Body, Else)
        ... </k>
+  rule <k> #enumerateVal(#noArgVals) ~> forElseIter(_:Id, _:Block, Else:Block) => runLoopElse(Else) ... </k>
+  rule <k> #enumerateVal(VS:ArgVals) ~> forElseIter(X:Id, Body:Block, Else:Block) =>
+           forElseItems(X, argValsToValItems(VS), Body, Else)
+       ... </k>
+    requires notBool emptyArgVals(VS)
 
   rule <k> forElseItems(X:Id, valItemsCons(V:Val, VS:ValItems), block(SS:Stmts), Else:Block) =>
            SS ~> forElseItems(X, VS, block(SS), Else)
@@ -29220,6 +29294,11 @@ module PYTHON
   rule <k> frozensetVal(VS:ValItems) ~> forUnpackElseIter(IDS:IdItems, Body:Block, Else:Block) =>
            forUnpackElseItems(IDS, VS, Body, Else)
        ... </k>
+  rule <k> #enumerateVal(#noArgVals) ~> forUnpackElseIter(_:IdItems, _:Block, Else:Block) => runLoopElse(Else) ... </k>
+  rule <k> #enumerateVal(VS:ArgVals) ~> forUnpackElseIter(IDS:IdItems, Body:Block, Else:Block) =>
+           forUnpackElseItems(IDS, argValsToValItems(VS), Body, Else)
+       ... </k>
+    requires notBool emptyArgVals(VS)
   rule <k> rangeVal(Start:Int, Stop:Int) ~> forUnpackElseIter(_:IdItems, _:Block, Else:Block) => runLoopElse(Else) ... </k>
     requires pyRangeLen(Start, Stop, 1) ==Int 0
   rule <k> rangeVal(Start:Int, Stop:Int) ~> forUnpackElseIter(IDS:IdItems, Body:Block, Else:Block) =>
@@ -29441,6 +29520,11 @@ module PYTHON
   rule <k> frozensetVal(VS:ValItems) ~> forTargetUnpackElseIter(TS:Targets, Body:Block, Else:Block) =>
            forTargetUnpackElseItems(TS, VS, Body, Else)
        ... </k>
+  rule <k> #enumerateVal(#noArgVals) ~> forTargetUnpackElseIter(_:Targets, _:Block, Else:Block) => runLoopElse(Else) ... </k>
+  rule <k> #enumerateVal(VS:ArgVals) ~> forTargetUnpackElseIter(TS:Targets, Body:Block, Else:Block) =>
+           forTargetUnpackElseItems(TS, argValsToValItems(VS), Body, Else)
+       ... </k>
+    requires notBool emptyArgVals(VS)
   rule <k> rangeVal(Start:Int, Stop:Int) ~> forTargetUnpackElseIter(_:Targets, _:Block, Else:Block) => runLoopElse(Else) ... </k>
     requires pyRangeLen(Start, Stop, 1) ==Int 0
   rule <k> rangeVal(Start:Int, Stop:Int) ~> forTargetUnpackElseIter(TS:Targets, Body:Block, Else:Block) =>
@@ -29505,6 +29589,11 @@ module PYTHON
   rule <k> frozensetVal(VS:ValItems) ~> forTargetElseIter(T:Target, Body:Block, Else:Block) =>
            forTargetElseItems(T, VS, Body, Else)
        ... </k>
+  rule <k> #enumerateVal(#noArgVals) ~> forTargetElseIter(_:Target, _:Block, Else:Block) => runLoopElse(Else) ... </k>
+  rule <k> #enumerateVal(VS:ArgVals) ~> forTargetElseIter(T:Target, Body:Block, Else:Block) =>
+           forTargetElseItems(T, argValsToValItems(VS), Body, Else)
+       ... </k>
+    requires notBool emptyArgVals(VS)
   rule <k> rangeVal(Start:Int, Stop:Int) ~> forTargetElseIter(_:Target, _:Block, Else:Block) => runLoopElse(Else) ... </k>
     requires pyRangeLen(Start, Stop, 1) ==Int 0
   rule <k> rangeVal(Start:Int, Stop:Int) ~> forTargetElseIter(T:Target, Body:Block, Else:Block) =>

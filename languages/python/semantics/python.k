@@ -459,6 +459,8 @@ module PYTHON-SYNTAX
                | "#sum" "(" Exp "," Exp ")" [symbol(sum2Exp), strict]
                | "#enumerate" "(" Exp ")" [symbol(enumerate1Exp), strict]
                | "#enumerate" "(" Exp "," Exp ")" [symbol(enumerate2Exp), strict(1, 2)]
+               | "#zip" "(" ArgExps ")" [symbol(zipExp)]
+               | "#zipStrict" "(" ArgExps "," Exp ")" [symbol(zipStrictExp)]
                | "#min" "(" Exp ")" [symbol(minExp), strict]
                | "#max" "(" Exp ")" [symbol(maxExp), strict]
                | "#minDefault" "(" Exp "," Exp ")" [symbol(minDefaultExp)]
@@ -678,6 +680,7 @@ module PYTHON
                | argsVal(ArgVals) [symbol(argsVal)]
                | dictArgsVal(DictVals) [symbol(dictArgsVal)]
                | "#enumerateVal" "(" ArgVals ")" [symbol(enumerateVal)]
+               | "#zipVal" "(" ArgVals ")" [symbol(zipVal)]
 
   syntax CompArgStack ::= "#noCompArgStack" [symbol(noCompArgStack)]
                         | compArgFrame(Target, MaybeCompFilters, MaybeCompClauses, Exp, ArgVals, Map, CompArgStack) [symbol(compArgFrame)]
@@ -990,6 +993,9 @@ module PYTHON
                  | setCompManyNext(Target, MaybeCompFilters, MaybeCompClauses, Exp, ArgVals, ArgVals, CompArgStack, Map, Map) [symbol(setCompManyNext)]
                  | "buildTuple" [symbol(buildTuple)]
                  | "buildSet" [symbol(buildSet)]
+                 | "zipArgsResult" [symbol(zipArgsResult)]
+                 | zipStrictEval(Exp) [symbol(zipStrictEval)]
+                 | zipStrictResult(ArgVals) [symbol(zipStrictResult)]
                  | "minArgsResult" [symbol(minArgsResult)]
                  | "maxArgsResult" [symbol(maxArgsResult)]
                  | minDefaultEval(Exp) [symbol(minDefaultEval)]
@@ -1356,6 +1362,8 @@ module PYTHON
                 | sumStartForbidden(Val) [function, symbol(sumStartForbidden)]
                 | sumAddSupported(Val, Val) [function, symbol(sumAddSupported)]
                 | enumerateIterableSupported(Val) [function, symbol(enumerateIterableSupported)]
+                | zipArgsSupported(ArgVals) [function, symbol(zipArgsSupported)]
+                | zipStrictEqualLengths(ArgVals) [function, symbol(zipStrictEqualLengths)]
                 | matMulSupported(Val, Val) [function, symbol(matMulSupported)]
                 | absTypeErrorProfile(Val) [function, symbol(absTypeErrorProfile)]
                 | divmodSupported(Val, Val) [function, symbol(divmodSupported)]
@@ -1899,6 +1907,9 @@ module PYTHON
                | targetsLen(Targets) [function, symbol(targetsLen)]
                | maybeTargetsLen(MaybeTargets) [function, symbol(maybeTargetsLen)]
                | argValsLen(ArgVals) [function, symbol(argValsLen)]
+               | iterableArgValsLen(Val) [function, symbol(iterableArgValsLen)]
+               | zipMinLen(ArgVals) [function, symbol(zipMinLen)]
+               | zipMinInt(Int, Int) [function, symbol(zipMinInt)]
                | kwArgValsLen(KwArgVals) [function, symbol(kwArgValsLen)]
                | dictItemsLen(DictItems) [function, symbol(dictItemsLen)]
                | rangeGet(Int, Int, Int, Int) [function, symbol(rangeGet)]
@@ -2100,6 +2111,9 @@ module PYTHON
                    | sortedArgVals(ArgVals, ArgVals) [function, symbol(sortedArgValsAcc)]
                    | insertSortedArgVal(Val, ArgVals) [function, symbol(insertSortedArgVal)]
                    | enumerateArgVals(Int, ArgVals) [function, symbol(enumerateArgVals)]
+                   | zipArgVals(ArgVals) [function, symbol(zipArgVals)]
+                   | zipArgValsFrom(ArgVals, Int, Int) [function, symbol(zipArgValsFrom)]
+                   | zipTupleArgsAt(ArgVals, Int) [function, symbol(zipTupleArgsAt)]
                    | dropArgVals(ArgVals, Int) [function, symbol(dropArgVals)]
                    | takeArgVals(ArgVals, Int) [function, symbol(takeArgVals)]
                    | varArgTail(ArgVals, Int) [function, symbol(varArgTail)]
@@ -2128,6 +2142,7 @@ module PYTHON
   syntax ArgVals ::= keyedValsToArgVals(KeyedVals) [function, symbol(keyedValsToArgVals)]
   syntax Val ::= argValsToTupleVal(ArgVals) [function, symbol(argValsToTupleVal)]
                | argValsToListVal(ArgVals) [function, symbol(argValsToListVal)]
+               | argValAt(ArgVals, Int) [function, symbol(argValAt)]
                | sortedListVal(ArgVals) [function, symbol(sortedListVal)]
                | sortedKeyedListVal(KeyedVals) [function, symbol(sortedKeyedListVal)]
                | sortedKeyedReverseListVal(KeyedVals) [function, symbol(sortedKeyedReverseListVal)]
@@ -2507,6 +2522,7 @@ module PYTHON
   rule truthy(frozenset()) => false
   rule truthy(frozensetVal(_:ValItems)) => true
   rule truthy(#enumerateVal(_:ArgVals)) => true
+  rule truthy(#zipVal(_:ArgVals)) => true
   rule truthy(#kwDefaultMissing) => false
   rule truthy(closure(_:Id, _:Exp)) => true
   rule truthy(closureArgs(_:IdItems, _:Exp)) => true
@@ -7334,6 +7350,58 @@ module PYTHON
   rule enumerateArgVals(N:Int, argValsCons(V:Val, VS:ArgVals)) =>
     argValsCons(tupleVal(valItemsCons(N, valItemsLast(V))), enumerateArgVals(N +Int 1, VS))
 
+  rule zipArgsSupported(#noArgVals) => true
+  rule zipArgsSupported(argValsCons(V:Val, VS:ArgVals)) =>
+    enumerateIterableSupported(V) andBool zipArgsSupported(VS)
+
+  rule zipStrictEqualLengths(#noArgVals) => true
+  rule zipStrictEqualLengths(argValsCons(_:Val, #noArgVals)) => true
+  rule zipStrictEqualLengths(argValsCons(V1:Val, argValsCons(V2:Val, VS:ArgVals))) =>
+    (iterableArgValsLen(V1) ==Int iterableArgValsLen(V2))
+      andBool zipStrictEqualLengths(argValsCons(V2, VS))
+    requires enumerateIterableSupported(V1)
+      andBool enumerateIterableSupported(V2)
+      andBool zipArgsSupported(VS)
+
+  rule iterableArgValsLen(V:Val) => argValsLen(iterableArgVals(V))
+    requires enumerateIterableSupported(V)
+
+  rule zipMinInt(I:Int, J:Int) => I
+    requires I <=Int J
+  rule zipMinInt(I:Int, J:Int) => J
+    requires I >Int J
+
+  rule zipMinLen(#noArgVals) => 0
+  rule zipMinLen(argValsCons(V:Val, #noArgVals)) => iterableArgValsLen(V)
+    requires enumerateIterableSupported(V)
+  rule zipMinLen(argValsCons(V:Val, VS:ArgVals)) => zipMinInt(iterableArgValsLen(V), zipMinLen(VS))
+    requires notBool emptyArgVals(VS)
+      andBool enumerateIterableSupported(V)
+      andBool zipArgsSupported(VS)
+
+  rule argValAt(argValsCons(V:Val, _:ArgVals), 0) => V
+  rule argValAt(argValsCons(_:Val, VS:ArgVals), I:Int) => argValAt(VS, I -Int 1)
+    requires I >Int 0
+
+  rule zipTupleArgsAt(#noArgVals, _:Int) => #noArgVals
+  rule zipTupleArgsAt(argValsCons(V:Val, VS:ArgVals), I:Int) =>
+    argValsCons(argValAt(iterableArgVals(V), I), zipTupleArgsAt(VS, I))
+    requires enumerateIterableSupported(V)
+      andBool zipArgsSupported(VS)
+
+  rule zipArgVals(VS:ArgVals) => #noArgVals
+    requires zipArgsSupported(VS)
+      andBool zipMinLen(VS) ==Int 0
+  rule zipArgVals(VS:ArgVals) => zipArgValsFrom(VS, 0, zipMinLen(VS))
+    requires zipArgsSupported(VS)
+      andBool zipMinLen(VS) >Int 0
+  rule zipArgValsFrom(_:ArgVals, I:Int, Len:Int) => #noArgVals
+    requires I >=Int Len
+  rule zipArgValsFrom(VS:ArgVals, I:Int, Len:Int) =>
+    argValsCons(tupleVal(argValsToValItems(zipTupleArgsAt(VS, I))), zipArgValsFrom(VS, I +Int 1, Len))
+    requires I <Int Len
+      andBool zipArgsSupported(VS)
+
   rule emptyKwArgVals(#noKwArgVals) => true
   rule emptyKwArgVals(kwArgValsCons(_:Id, _:Val, _:KwArgVals)) => false
   rule emptyKwArgVals(kwArgStringValsCons(_:String, _:Val, _:KwArgVals)) => false
@@ -7635,6 +7703,7 @@ module PYTHON
   rule iterableArgVals(frozenset()) => #noArgVals
   rule iterableArgVals(frozensetVal(VS:ValItems)) => valItemsToArgVals(VS)
   rule iterableArgVals(#enumerateVal(VS:ArgVals)) => VS
+  rule iterableArgVals(#zipVal(VS:ArgVals)) => VS
   rule iterableArgVals(rangeVal(Start:Int, Stop:Int)) => #noArgVals
     requires pyRangeLen(Start, Stop, 1) ==Int 0
   rule iterableArgVals(rangeVal(Start:Int, Stop:Int)) =>
@@ -12526,6 +12595,7 @@ module PYTHON
   rule concreteIterableExtraNonEmpty(frozenset()) => false
   rule concreteIterableExtraNonEmpty(frozensetVal(_:ValItems)) => true
   rule concreteIterableExtraNonEmpty(#enumerateVal(VS:ArgVals)) => notBool emptyArgVals(VS)
+  rule concreteIterableExtraNonEmpty(#zipVal(VS:ArgVals)) => notBool emptyArgVals(VS)
   rule concreteIterableExtraNonEmpty(rangeVal(Start:Int, Stop:Int)) => pyRangeLen(Start, Stop, 1) >Int 0
   rule concreteIterableExtraNonEmpty(rangeVal(Start:Int, Stop:Int, Step:Int)) =>
     pyRangeLen(Start, Stop, Step) >Int 0
@@ -12544,6 +12614,7 @@ module PYTHON
   rule concreteIterableExtraEmpty(frozenset()) => true
   rule concreteIterableExtraEmpty(frozensetVal(_:ValItems)) => false
   rule concreteIterableExtraEmpty(#enumerateVal(VS:ArgVals)) => emptyArgVals(VS)
+  rule concreteIterableExtraEmpty(#zipVal(VS:ArgVals)) => emptyArgVals(VS)
   rule concreteIterableExtraEmpty(rangeVal(Start:Int, Stop:Int)) => pyRangeLen(Start, Stop, 1) ==Int 0
   rule concreteIterableExtraEmpty(rangeVal(Start:Int, Stop:Int, Step:Int)) =>
     pyRangeLen(Start, Stop, Step) ==Int 0
@@ -13010,6 +13081,8 @@ module PYTHON
   rule concreteIterableExtraItems(setVal(VS:ValItems)) => VS
   rule concreteIterableExtraItems(frozensetVal(VS:ValItems)) => VS
   rule concreteIterableExtraItems(#enumerateVal(VS:ArgVals)) => argValsToValItems(VS)
+    requires notBool emptyArgVals(VS)
+  rule concreteIterableExtraItems(#zipVal(VS:ArgVals)) => argValsToValItems(VS)
     requires notBool emptyArgVals(VS)
   rule concreteIterableExtraItems(rangeVal(Start:Int, Stop:Int)) =>
     rangeToValItems(Start, Stop, 1, 0, pyRangeLen(Start, Stop, 1))
@@ -13659,6 +13732,8 @@ module PYTHON
   rule enumerateIterableSupported(setVal(_:ValItems)) => true
   rule enumerateIterableSupported(frozenset()) => true
   rule enumerateIterableSupported(frozensetVal(_:ValItems)) => true
+  rule enumerateIterableSupported(#enumerateVal(_:ArgVals)) => true
+  rule enumerateIterableSupported(#zipVal(_:ArgVals)) => true
   rule enumerateIterableSupported(rangeVal(_:Int, _:Int)) => true
   rule enumerateIterableSupported(rangeVal(_:Int, _:Int, Step:Int)) => Step =/=Int 0
   rule enumerateIterableSupported(_:Val) => false [owise]
@@ -21350,6 +21425,8 @@ module PYTHON
     requires Step =/=Int 0 andBool pyRangeLen(Start, Stop, Step) >Int 0
   rule #listCtor(#enumerateVal(VS:ArgVals)) => argValsToListVal(VS)
   rule #tupleCtor(#enumerateVal(VS:ArgVals)) => argValsToTupleVal(VS)
+  rule #listCtor(#zipVal(VS:ArgVals)) => argValsToListVal(VS)
+  rule #tupleCtor(#zipVal(VS:ArgVals)) => argValsToTupleVal(VS)
   rule #boolCtor() => False
   rule #boolCtor(V:Val) => boolValue(truthy(V))
   rule #strCtor() => ""
@@ -21875,6 +21952,40 @@ module PYTHON
     requires notBool isIntLike(Start)
   rule <k> #enumerate(V:Val, Start:Val) => exceptionSignal(#exception(#token("TypeError", "Id"))) ... </k>
     requires isIntLike(Start) andBool notBool enumerateIterableSupported(V)
+  rule <k> #zip(Args:ArgExps) => evalArgs(Args, #noArgVals) ~> zipArgsResult ... </k>
+  rule <k> argsVal(VS:ArgVals) ~> zipArgsResult => #zipVal(zipArgVals(VS)) ... </k>
+    requires zipArgsSupported(VS)
+  rule <k> argsVal(VS:ArgVals) ~> zipArgsResult =>
+           exceptionSignal(#exception(#token("TypeError", "Id")))
+       ... </k>
+    requires notBool zipArgsSupported(VS)
+  rule <k> #zipStrict(Args:ArgExps, Strict:Exp) =>
+           evalArgs(Args, #noArgVals) ~> zipStrictEval(Strict)
+       ... </k>
+  rule <k> argsVal(VS:ArgVals) ~> zipStrictEval(Strict:Exp) =>
+           Strict ~> zipStrictResult(VS)
+       ... </k>
+  rule <k> Strict:Val ~> zipStrictResult(VS:ArgVals) =>
+           #zipVal(zipArgVals(VS))
+       ... </k>
+    requires zipArgsSupported(VS)
+      andBool notBool truthy(Strict)
+  rule <k> Strict:Val ~> zipStrictResult(VS:ArgVals) =>
+           #zipVal(zipArgVals(VS))
+       ... </k>
+    requires zipArgsSupported(VS)
+      andBool truthy(Strict)
+      andBool zipStrictEqualLengths(VS)
+  rule <k> Strict:Val ~> zipStrictResult(VS:ArgVals) =>
+           exceptionSignal(#exception(#token("ValueError", "Id")))
+       ... </k>
+    requires zipArgsSupported(VS)
+      andBool truthy(Strict)
+      andBool notBool zipStrictEqualLengths(VS)
+  rule <k> _Strict:Val ~> zipStrictResult(VS:ArgVals) =>
+           exceptionSignal(#exception(#token("TypeError", "Id")))
+       ... </k>
+    requires notBool zipArgsSupported(VS)
   rule <k> #min([]) => exceptionSignal(#exception(#token("ValueError", "Id"))) ... </k>
   rule <k> #min(()) => exceptionSignal(#exception(#token("ValueError", "Id"))) ... </k>
   rule <k> #min("") => exceptionSignal(#exception(#token("ValueError", "Id"))) ... </k>
@@ -28315,6 +28426,11 @@ module PYTHON
            forItems(X, argValsToValItems(VS), Body)
        ... </k>
     requires notBool emptyArgVals(VS)
+  rule <k> #zipVal(#noArgVals) ~> forIter(_:Id, _:Block) => stmtNoResult ... </k>
+  rule <k> #zipVal(VS:ArgVals) ~> forIter(X:Id, Body:Block) =>
+           forItems(X, argValsToValItems(VS), Body)
+       ... </k>
+    requires notBool emptyArgVals(VS)
 
   rule <k> forItems(X:Id, valItemsCons(V:Val, VS:ValItems), block(SS:Stmts)) =>
            SS ~> forItems(X, VS, block(SS))
@@ -28366,6 +28482,11 @@ module PYTHON
        ... </k>
   rule <k> #enumerateVal(#noArgVals) ~> forUnpackIter(_:IdItems, _:Block) => stmtNoResult ... </k>
   rule <k> #enumerateVal(VS:ArgVals) ~> forUnpackIter(IDS:IdItems, Body:Block) =>
+           forUnpackItems(IDS, argValsToValItems(VS), Body)
+       ... </k>
+    requires notBool emptyArgVals(VS)
+  rule <k> #zipVal(#noArgVals) ~> forUnpackIter(_:IdItems, _:Block) => stmtNoResult ... </k>
+  rule <k> #zipVal(VS:ArgVals) ~> forUnpackIter(IDS:IdItems, Body:Block) =>
            forUnpackItems(IDS, argValsToValItems(VS), Body)
        ... </k>
     requires notBool emptyArgVals(VS)
@@ -28614,6 +28735,11 @@ module PYTHON
            forTargetUnpackItems(TS, argValsToValItems(VS), Body)
        ... </k>
     requires notBool emptyArgVals(VS)
+  rule <k> #zipVal(#noArgVals) ~> forTargetUnpackIter(_:Targets, _:Block) => stmtNoResult ... </k>
+  rule <k> #zipVal(VS:ArgVals) ~> forTargetUnpackIter(TS:Targets, Body:Block) =>
+           forTargetUnpackItems(TS, argValsToValItems(VS), Body)
+       ... </k>
+    requires notBool emptyArgVals(VS)
   rule <k> rangeVal(Start:Int, Stop:Int) ~> forTargetUnpackIter(_:Targets, _:Block) => stmtNoResult ... </k>
     requires pyRangeLen(Start, Stop, 1) ==Int 0
   rule <k> rangeVal(Start:Int, Stop:Int) ~> forTargetUnpackIter(TS:Targets, Body:Block) =>
@@ -28680,6 +28806,11 @@ module PYTHON
        ... </k>
   rule <k> #enumerateVal(#noArgVals) ~> forTargetIter(_:Target, _:Block) => stmtNoResult ... </k>
   rule <k> #enumerateVal(VS:ArgVals) ~> forTargetIter(T:Target, Body:Block) =>
+           forTargetItems(T, argValsToValItems(VS), Body)
+       ... </k>
+    requires notBool emptyArgVals(VS)
+  rule <k> #zipVal(#noArgVals) ~> forTargetIter(_:Target, _:Block) => stmtNoResult ... </k>
+  rule <k> #zipVal(VS:ArgVals) ~> forTargetIter(T:Target, Body:Block) =>
            forTargetItems(T, argValsToValItems(VS), Body)
        ... </k>
     requires notBool emptyArgVals(VS)
@@ -29245,6 +29376,11 @@ module PYTHON
            forElseItems(X, argValsToValItems(VS), Body, Else)
        ... </k>
     requires notBool emptyArgVals(VS)
+  rule <k> #zipVal(#noArgVals) ~> forElseIter(_:Id, _:Block, Else:Block) => runLoopElse(Else) ... </k>
+  rule <k> #zipVal(VS:ArgVals) ~> forElseIter(X:Id, Body:Block, Else:Block) =>
+           forElseItems(X, argValsToValItems(VS), Body, Else)
+       ... </k>
+    requires notBool emptyArgVals(VS)
 
   rule <k> forElseItems(X:Id, valItemsCons(V:Val, VS:ValItems), block(SS:Stmts), Else:Block) =>
            SS ~> forElseItems(X, VS, block(SS), Else)
@@ -29296,6 +29432,11 @@ module PYTHON
        ... </k>
   rule <k> #enumerateVal(#noArgVals) ~> forUnpackElseIter(_:IdItems, _:Block, Else:Block) => runLoopElse(Else) ... </k>
   rule <k> #enumerateVal(VS:ArgVals) ~> forUnpackElseIter(IDS:IdItems, Body:Block, Else:Block) =>
+           forUnpackElseItems(IDS, argValsToValItems(VS), Body, Else)
+       ... </k>
+    requires notBool emptyArgVals(VS)
+  rule <k> #zipVal(#noArgVals) ~> forUnpackElseIter(_:IdItems, _:Block, Else:Block) => runLoopElse(Else) ... </k>
+  rule <k> #zipVal(VS:ArgVals) ~> forUnpackElseIter(IDS:IdItems, Body:Block, Else:Block) =>
            forUnpackElseItems(IDS, argValsToValItems(VS), Body, Else)
        ... </k>
     requires notBool emptyArgVals(VS)
@@ -29525,6 +29666,11 @@ module PYTHON
            forTargetUnpackElseItems(TS, argValsToValItems(VS), Body, Else)
        ... </k>
     requires notBool emptyArgVals(VS)
+  rule <k> #zipVal(#noArgVals) ~> forTargetUnpackElseIter(_:Targets, _:Block, Else:Block) => runLoopElse(Else) ... </k>
+  rule <k> #zipVal(VS:ArgVals) ~> forTargetUnpackElseIter(TS:Targets, Body:Block, Else:Block) =>
+           forTargetUnpackElseItems(TS, argValsToValItems(VS), Body, Else)
+       ... </k>
+    requires notBool emptyArgVals(VS)
   rule <k> rangeVal(Start:Int, Stop:Int) ~> forTargetUnpackElseIter(_:Targets, _:Block, Else:Block) => runLoopElse(Else) ... </k>
     requires pyRangeLen(Start, Stop, 1) ==Int 0
   rule <k> rangeVal(Start:Int, Stop:Int) ~> forTargetUnpackElseIter(TS:Targets, Body:Block, Else:Block) =>
@@ -29591,6 +29737,11 @@ module PYTHON
        ... </k>
   rule <k> #enumerateVal(#noArgVals) ~> forTargetElseIter(_:Target, _:Block, Else:Block) => runLoopElse(Else) ... </k>
   rule <k> #enumerateVal(VS:ArgVals) ~> forTargetElseIter(T:Target, Body:Block, Else:Block) =>
+           forTargetElseItems(T, argValsToValItems(VS), Body, Else)
+       ... </k>
+    requires notBool emptyArgVals(VS)
+  rule <k> #zipVal(#noArgVals) ~> forTargetElseIter(_:Target, _:Block, Else:Block) => runLoopElse(Else) ... </k>
+  rule <k> #zipVal(VS:ArgVals) ~> forTargetElseIter(T:Target, Body:Block, Else:Block) =>
            forTargetElseItems(T, argValsToValItems(VS), Body, Else)
        ... </k>
     requires notBool emptyArgVals(VS)
@@ -30157,6 +30308,9 @@ module PYTHON
   rule <k> exceptionSignal(V:Val) ~> buildComplexCtorKw => exceptionSignal(V) ... </k>
   rule <k> exceptionSignal(V:Val) ~> buildComplexCtorMixed(_:Val) => exceptionSignal(V) ... </k>
   rule <k> exceptionSignal(V:Val) ~> sumFold(_:ValItems) => exceptionSignal(V) ... </k>
+  rule <k> exceptionSignal(V:Val) ~> zipArgsResult => exceptionSignal(V) ... </k>
+  rule <k> exceptionSignal(V:Val) ~> zipStrictEval(_:Exp) => exceptionSignal(V) ... </k>
+  rule <k> exceptionSignal(V:Val) ~> zipStrictResult(_:ArgVals) => exceptionSignal(V) ... </k>
   rule <k> exceptionSignal(V:Val) ~> minDefaultEval(_:Exp) => exceptionSignal(V) ... </k>
   rule <k> exceptionSignal(V:Val) ~> maxDefaultEval(_:Exp) => exceptionSignal(V) ... </k>
   rule <k> exceptionSignal(V:Val) ~> minDefaultApply(_:Val) => exceptionSignal(V) ... </k>

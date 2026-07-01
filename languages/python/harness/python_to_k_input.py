@@ -898,6 +898,10 @@ def emit_exp(exp: ast.expr) -> str:
             return f"#enumerate({emit_exp(arg)}, {emit_exp(start)})"
         case ast.Call(func=ast.Name(id="enumerate"), args=[arg], keywords=[ast.keyword(arg="start", value=start)]):
             return f"#enumerate({emit_exp(arg)}, {emit_exp(start)})"
+        case ast.Call(func=ast.Name(id="zip"), args=args, keywords=[]):
+            return f"#zip({emit_arg_exps(args)})"
+        case ast.Call(func=ast.Name(id="zip"), args=args, keywords=[ast.keyword(arg="strict", value=strict)]):
+            return f"#zipStrict({emit_arg_exps(args)}, {emit_exp(strict)})"
         case ast.Call(func=ast.Name(id="slice"), args=[stop], keywords=[]):
             return f"#sliceCtor({emit_exp(stop)})"
         case ast.Call(func=ast.Name(id="slice"), args=[start, stop], keywords=[]):

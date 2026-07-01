@@ -786,6 +786,10 @@ module PYTHON
                  | callableIteratorNextDefault(Int, Val, Val) [symbol(callableIteratorNextDefault)]
                  | callableIteratorCollectList(Int, Val, ArgVals) [symbol(callableIteratorCollectList)]
                  | callableIteratorCollectTuple(Int, Val, ArgVals) [symbol(callableIteratorCollectTuple)]
+                 | callableIteratorAllNext(Int, Val) [symbol(callableIteratorAllNext)]
+                 | callableIteratorAnyNext(Int, Val) [symbol(callableIteratorAnyNext)]
+                 | sumIterator(Int) [symbol(sumIterator)]
+                 | callableIteratorSumNext(Int, Val, Val) [symbol(callableIteratorSumNext)]
                  | callableForIteratorNext(Int, Id, Block) [symbol(callableForIteratorNext)]
                  | callableForIteratorElseNext(Int, Id, Block, Block) [symbol(callableForIteratorElseNext)]
                  | forIterator(Int, Id, Block) [symbol(forIterator)]
@@ -22031,6 +22035,53 @@ module PYTHON
   rule #all(rangeVal(Start:Int, Stop:Int)) => boolValue(rangeAllTruthy(Start, Stop, 1))
   rule #all(rangeVal(Start:Int, Stop:Int, Step:Int)) => boolValue(rangeAllTruthy(Start, Stop, Step))
     requires Step =/=Int 0
+  rule <k> #all(iteratorRef(I:Int)) => True ... </k>
+       <iterators> ... I |-> #noArgVals ... </iterators>
+  rule <k> #all(iteratorRef(I:Int)) => False ... </k>
+       <iterators> ... I |-> (argValsCons(V:Val, Rest:ArgVals) => Rest) ... </iterators>
+    requires notBool truthy(V)
+  rule <k> #all(iteratorRef(I:Int)) => #all(iteratorRef(I)) ... </k>
+       <iterators> ... I |-> (argValsCons(V:Val, Rest:ArgVals) => Rest) ... </iterators>
+    requires truthy(V)
+  rule <k> #all(iteratorRef(I:Int)) =>
+           argsVal(#noArgVals) ~> callApplyArgs(F) ~> callableIteratorAllNext(I, Sentinel)
+       ... </k>
+       <iterators> ... I |-> callableIterator(F:Val, Sentinel:Val) ... </iterators>
+  rule <k> _V:Val ~> callableIteratorAllNext(I:Int, _Sentinel:Val) =>
+           True
+       ... </k>
+       <iterators> ... I |-> #noArgVals ... </iterators>
+  rule <k> V:Val ~> callableIteratorAllNext(I:Int, Sentinel:Val) =>
+           True
+       ... </k>
+       <iterators> ... I |-> (callableIterator(_:Val, Sentinel) => #noArgVals) ... </iterators>
+    requires valEq(V, Sentinel)
+  rule <k> V:Val ~> callableIteratorAllNext(I:Int, Sentinel:Val) =>
+           False
+       ... </k>
+       <iterators> ... I |-> callableIterator(_:Val, Sentinel) ... </iterators>
+    requires notBool valEq(V, Sentinel)
+      andBool notBool truthy(V)
+  rule <k> V:Val ~> callableIteratorAllNext(I:Int, Sentinel:Val) =>
+           #all(iteratorRef(I))
+       ... </k>
+       <iterators> ... I |-> callableIterator(_:Val, Sentinel) ... </iterators>
+    requires notBool valEq(V, Sentinel)
+      andBool truthy(V)
+  rule <k> exceptionSignal(E:Val) ~> callableIteratorAllNext(I:Int, Sentinel:Val) =>
+           True
+       ... </k>
+       <iterators> ... I |-> (callableIterator(_:Val, Sentinel) => #noArgVals) ... </iterators>
+    requires exceptionMatches(E, #token("StopIteration", "Id"))
+  rule <k> exceptionSignal(E:Val) ~> callableIteratorAllNext(I:Int, _Sentinel:Val) =>
+           True
+       ... </k>
+       <iterators> ... I |-> #noArgVals ... </iterators>
+    requires exceptionMatches(E, #token("StopIteration", "Id"))
+  rule <k> exceptionSignal(E:Val) ~> callableIteratorAllNext(_I:Int, _Sentinel:Val) =>
+           exceptionSignal(E)
+       ... </k>
+    requires notBool exceptionMatches(E, #token("StopIteration", "Id"))
   rule #any([]) => False
   rule #any(listVal(VS:ValItems)) => boolValue(anyValItems(VS))
   rule #any(()) => False
@@ -22048,6 +22099,53 @@ module PYTHON
   rule #any(rangeVal(Start:Int, Stop:Int)) => boolValue(rangeAnyTruthy(Start, Stop, 1))
   rule #any(rangeVal(Start:Int, Stop:Int, Step:Int)) => boolValue(rangeAnyTruthy(Start, Stop, Step))
     requires Step =/=Int 0
+  rule <k> #any(iteratorRef(I:Int)) => False ... </k>
+       <iterators> ... I |-> #noArgVals ... </iterators>
+  rule <k> #any(iteratorRef(I:Int)) => True ... </k>
+       <iterators> ... I |-> (argValsCons(V:Val, Rest:ArgVals) => Rest) ... </iterators>
+    requires truthy(V)
+  rule <k> #any(iteratorRef(I:Int)) => #any(iteratorRef(I)) ... </k>
+       <iterators> ... I |-> (argValsCons(V:Val, Rest:ArgVals) => Rest) ... </iterators>
+    requires notBool truthy(V)
+  rule <k> #any(iteratorRef(I:Int)) =>
+           argsVal(#noArgVals) ~> callApplyArgs(F) ~> callableIteratorAnyNext(I, Sentinel)
+       ... </k>
+       <iterators> ... I |-> callableIterator(F:Val, Sentinel:Val) ... </iterators>
+  rule <k> _V:Val ~> callableIteratorAnyNext(I:Int, _Sentinel:Val) =>
+           False
+       ... </k>
+       <iterators> ... I |-> #noArgVals ... </iterators>
+  rule <k> V:Val ~> callableIteratorAnyNext(I:Int, Sentinel:Val) =>
+           False
+       ... </k>
+       <iterators> ... I |-> (callableIterator(_:Val, Sentinel) => #noArgVals) ... </iterators>
+    requires valEq(V, Sentinel)
+  rule <k> V:Val ~> callableIteratorAnyNext(I:Int, Sentinel:Val) =>
+           True
+       ... </k>
+       <iterators> ... I |-> callableIterator(_:Val, Sentinel) ... </iterators>
+    requires notBool valEq(V, Sentinel)
+      andBool truthy(V)
+  rule <k> V:Val ~> callableIteratorAnyNext(I:Int, Sentinel:Val) =>
+           #any(iteratorRef(I))
+       ... </k>
+       <iterators> ... I |-> callableIterator(_:Val, Sentinel) ... </iterators>
+    requires notBool valEq(V, Sentinel)
+      andBool notBool truthy(V)
+  rule <k> exceptionSignal(E:Val) ~> callableIteratorAnyNext(I:Int, Sentinel:Val) =>
+           False
+       ... </k>
+       <iterators> ... I |-> (callableIterator(_:Val, Sentinel) => #noArgVals) ... </iterators>
+    requires exceptionMatches(E, #token("StopIteration", "Id"))
+  rule <k> exceptionSignal(E:Val) ~> callableIteratorAnyNext(I:Int, _Sentinel:Val) =>
+           False
+       ... </k>
+       <iterators> ... I |-> #noArgVals ... </iterators>
+    requires exceptionMatches(E, #token("StopIteration", "Id"))
+  rule <k> exceptionSignal(E:Val) ~> callableIteratorAnyNext(_I:Int, _Sentinel:Val) =>
+           exceptionSignal(E)
+       ... </k>
+    requires notBool exceptionMatches(E, #token("StopIteration", "Id"))
   rule #sum([]) => 0
   rule <k> #sum(listVal(VS:ValItems)) => 0 ~> sumFold(VS) ... </k>
   rule #sum(()) => 0
@@ -22064,6 +22162,7 @@ module PYTHON
   rule #sum(rangeVal(Start:Int, Stop:Int)) => rangeSum(Start, Stop, 1)
   rule #sum(rangeVal(Start:Int, Stop:Int, Step:Int)) => rangeSum(Start, Stop, Step)
     requires Step =/=Int 0
+  rule <k> #sum(iteratorRef(I:Int)) => 0 ~> sumIterator(I) ... </k>
 
   rule <k> #sum([], Seed:Val) => exceptionSignal(#exception(#token("TypeError", "Id"))) ... </k>
     requires sumStartForbidden(Seed)
@@ -22126,6 +22225,12 @@ module PYTHON
     requires notBool sumStartForbidden(Seed) andBool Step =/=Int 0 andBool pyRangeLen(Start, Stop, Step) ==Int 0
   rule <k> #sum(rangeVal(Start:Int, Stop:Int, Step:Int), Seed:Val) => Seed ~> sumFold(rangeToValItems(Start, Stop, Step, 0, pyRangeLen(Start, Stop, Step))) ... </k>
     requires notBool sumStartForbidden(Seed) andBool Step =/=Int 0 andBool pyRangeLen(Start, Stop, Step) >Int 0
+  rule <k> #sum(iteratorRef(_I:Int), Seed:Val) =>
+           exceptionSignal(#exception(#token("TypeError", "Id")))
+       ... </k>
+    requires sumStartForbidden(Seed)
+  rule <k> #sum(iteratorRef(I:Int), Seed:Val) => Seed ~> sumIterator(I) ... </k>
+    requires notBool sumStartForbidden(Seed)
   rule <k> Acc:Val ~> sumFold(valItemsLast(V:Val)) =>
            Acc + V
        ... </k>
@@ -22142,6 +22247,59 @@ module PYTHON
            exceptionSignal(#exception(#token("TypeError", "Id")))
        ... </k>
     requires notBool sumAddSupported(Acc, V)
+  rule <k> Acc:Val ~> sumIterator(I:Int) =>
+           Acc
+       ... </k>
+       <iterators> ... I |-> #noArgVals ... </iterators>
+  rule <k> Acc:Val ~> sumIterator(I:Int) =>
+           Acc + V ~> sumIterator(I)
+       ... </k>
+       <iterators> ... I |-> (argValsCons(V:Val, Rest:ArgVals) => Rest) ... </iterators>
+    requires sumAddSupported(Acc, V)
+  rule <k> Acc:Val ~> sumIterator(I:Int) =>
+           exceptionSignal(#exception(#token("TypeError", "Id")))
+       ... </k>
+       <iterators> ... I |-> (argValsCons(V:Val, Rest:ArgVals) => Rest) ... </iterators>
+    requires notBool sumAddSupported(Acc, V)
+  rule <k> Acc:Val ~> sumIterator(I:Int) =>
+           argsVal(#noArgVals) ~> callApplyArgs(F) ~> callableIteratorSumNext(I, Sentinel, Acc)
+       ... </k>
+       <iterators> ... I |-> callableIterator(F:Val, Sentinel:Val) ... </iterators>
+  rule <k> _V:Val ~> callableIteratorSumNext(I:Int, _Sentinel:Val, Acc:Val) =>
+           Acc
+       ... </k>
+       <iterators> ... I |-> #noArgVals ... </iterators>
+  rule <k> V:Val ~> callableIteratorSumNext(I:Int, Sentinel:Val, Acc:Val) =>
+           Acc
+       ... </k>
+       <iterators> ... I |-> (callableIterator(_:Val, Sentinel) => #noArgVals) ... </iterators>
+    requires valEq(V, Sentinel)
+  rule <k> V:Val ~> callableIteratorSumNext(I:Int, Sentinel:Val, Acc:Val) =>
+           Acc + V ~> sumIterator(I)
+       ... </k>
+       <iterators> ... I |-> callableIterator(_:Val, Sentinel) ... </iterators>
+    requires notBool valEq(V, Sentinel)
+      andBool sumAddSupported(Acc, V)
+  rule <k> V:Val ~> callableIteratorSumNext(I:Int, Sentinel:Val, Acc:Val) =>
+           exceptionSignal(#exception(#token("TypeError", "Id")))
+       ... </k>
+       <iterators> ... I |-> callableIterator(_:Val, Sentinel) ... </iterators>
+    requires notBool valEq(V, Sentinel)
+      andBool notBool sumAddSupported(Acc, V)
+  rule <k> exceptionSignal(E:Val) ~> callableIteratorSumNext(I:Int, Sentinel:Val, Acc:Val) =>
+           Acc
+       ... </k>
+       <iterators> ... I |-> (callableIterator(_:Val, Sentinel) => #noArgVals) ... </iterators>
+    requires exceptionMatches(E, #token("StopIteration", "Id"))
+  rule <k> exceptionSignal(E:Val) ~> callableIteratorSumNext(I:Int, _Sentinel:Val, Acc:Val) =>
+           Acc
+       ... </k>
+       <iterators> ... I |-> #noArgVals ... </iterators>
+    requires exceptionMatches(E, #token("StopIteration", "Id"))
+  rule <k> exceptionSignal(E:Val) ~> callableIteratorSumNext(_I:Int, _Sentinel:Val, _Acc:Val) =>
+           exceptionSignal(E)
+       ... </k>
+    requires notBool exceptionMatches(E, #token("StopIteration", "Id"))
 
   rule #enumerate(V:Val) => #enumerateVal(enumerateArgVals(0, iterableArgVals(V)))
     requires enumerateIterableSupported(V)

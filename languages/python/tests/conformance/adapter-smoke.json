@@ -2188,6 +2188,13 @@
       "coverage": ["iter-builtin", "next-builtin", "callable-sentinel-iterator-profile", "stateful-iterator-ref", "callable-application-profile", "iterator-exhaustion-sink-state", "reentrant-exhaustion-profile", "for-statement", "for-else", "list-constructor", "tuple-constructor", "stop-iteration", "runtime-error", "type-error", "ordinary-python-source-adapter"]
     },
     {
+      "id": "adapter-iterator-reducer-builtins",
+      "source": "../adapter/adapter-iterator-reducer-builtins.py",
+      "reference": "Python 3.14.6 Standard Library Built-in Functions all, any, and sum; Built-in Types iterator protocol; CPython Lib/test/test_builtin.py all/any/sum iterator and short-circuit coverage",
+      "expected_result": "True ~> .K",
+      "coverage": ["all-builtin", "any-builtin", "sum-builtin", "iterator-protocol-profile", "stateful-iterator-ref", "iterator-consumption-profile", "short-circuit-profile", "callable-sentinel-iterator-profile", "iterator-exhaustion-sink-state", "stop-iteration", "type-error", "ordinary-python-source-adapter"]
+    },
+    {
       "id": "adapter-min-max-int",
       "source": "../adapter/adapter-min-max-int.py",
       "reference": "Python Standard Library Built-in Functions min and max; Built-in Types list, tuple, dict, set, and range",

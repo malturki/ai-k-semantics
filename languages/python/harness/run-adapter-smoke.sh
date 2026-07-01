@@ -352,6 +352,7 @@ run_case "adapter-map-builtin" "$ROOT/tests/adapter/adapter-map-builtin.py" "Tru
 run_case "adapter-filter-builtin" "$ROOT/tests/adapter/adapter-filter-builtin.py" "True ~> .K"
 run_case "adapter-iter-next-builtin" "$ROOT/tests/adapter/adapter-iter-next-builtin.py" "True ~> .K"
 run_case "adapter-iter-callable-sentinel-builtin" "$ROOT/tests/adapter/adapter-iter-callable-sentinel-builtin.py" "True ~> .K"
+run_case "adapter-iterator-reducer-builtins" "$ROOT/tests/adapter/adapter-iterator-reducer-builtins.py" "True ~> .K"
 run_case "adapter-sum-int" "$ROOT/tests/adapter/adapter-sum-int.py" "True ~> .K"
 run_case "adapter-sum-non-int" "$ROOT/tests/adapter/adapter-sum-non-int.py" "True ~> .K"
 run_case "adapter-min-max-int" "$ROOT/tests/adapter/adapter-min-max-int.py" "True ~> .K"

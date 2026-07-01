@@ -461,6 +461,7 @@ module PYTHON-SYNTAX
                | "#enumerate" "(" Exp "," Exp ")" [symbol(enumerate2Exp), strict(1, 2)]
                | "#zip" "(" ArgExps ")" [symbol(zipExp)]
                | "#zipStrict" "(" ArgExps "," Exp ")" [symbol(zipStrictExp)]
+               | "#reversed" "(" Exp ")" [symbol(reversedExp), strict]
                | "#min" "(" Exp ")" [symbol(minExp), strict]
                | "#max" "(" Exp ")" [symbol(maxExp), strict]
                | "#minDefault" "(" Exp "," Exp ")" [symbol(minDefaultExp)]
@@ -681,6 +682,7 @@ module PYTHON
                | dictArgsVal(DictVals) [symbol(dictArgsVal)]
                | "#enumerateVal" "(" ArgVals ")" [symbol(enumerateVal)]
                | "#zipVal" "(" ArgVals ")" [symbol(zipVal)]
+               | "#reversedVal" "(" ArgVals ")" [symbol(reversedVal)]
 
   syntax CompArgStack ::= "#noCompArgStack" [symbol(noCompArgStack)]
                         | compArgFrame(Target, MaybeCompFilters, MaybeCompClauses, Exp, ArgVals, Map, CompArgStack) [symbol(compArgFrame)]
@@ -1364,6 +1366,7 @@ module PYTHON
                 | enumerateIterableSupported(Val) [function, symbol(enumerateIterableSupported)]
                 | zipArgsSupported(ArgVals) [function, symbol(zipArgsSupported)]
                 | zipStrictEqualLengths(ArgVals) [function, symbol(zipStrictEqualLengths)]
+                | reversedSupported(Val) [function, symbol(reversedSupported)]
                 | matMulSupported(Val, Val) [function, symbol(matMulSupported)]
                 | absTypeErrorProfile(Val) [function, symbol(absTypeErrorProfile)]
                 | divmodSupported(Val, Val) [function, symbol(divmodSupported)]
@@ -2523,6 +2526,7 @@ module PYTHON
   rule truthy(frozensetVal(_:ValItems)) => true
   rule truthy(#enumerateVal(_:ArgVals)) => true
   rule truthy(#zipVal(_:ArgVals)) => true
+  rule truthy(#reversedVal(_:ArgVals)) => true
   rule truthy(#kwDefaultMissing) => false
   rule truthy(closure(_:Id, _:Exp)) => true
   rule truthy(closureArgs(_:IdItems, _:Exp)) => true
@@ -7704,6 +7708,7 @@ module PYTHON
   rule iterableArgVals(frozensetVal(VS:ValItems)) => valItemsToArgVals(VS)
   rule iterableArgVals(#enumerateVal(VS:ArgVals)) => VS
   rule iterableArgVals(#zipVal(VS:ArgVals)) => VS
+  rule iterableArgVals(#reversedVal(VS:ArgVals)) => VS
   rule iterableArgVals(rangeVal(Start:Int, Stop:Int)) => #noArgVals
     requires pyRangeLen(Start, Stop, 1) ==Int 0
   rule iterableArgVals(rangeVal(Start:Int, Stop:Int)) =>
@@ -12596,6 +12601,7 @@ module PYTHON
   rule concreteIterableExtraNonEmpty(frozensetVal(_:ValItems)) => true
   rule concreteIterableExtraNonEmpty(#enumerateVal(VS:ArgVals)) => notBool emptyArgVals(VS)
   rule concreteIterableExtraNonEmpty(#zipVal(VS:ArgVals)) => notBool emptyArgVals(VS)
+  rule concreteIterableExtraNonEmpty(#reversedVal(VS:ArgVals)) => notBool emptyArgVals(VS)
   rule concreteIterableExtraNonEmpty(rangeVal(Start:Int, Stop:Int)) => pyRangeLen(Start, Stop, 1) >Int 0
   rule concreteIterableExtraNonEmpty(rangeVal(Start:Int, Stop:Int, Step:Int)) =>
     pyRangeLen(Start, Stop, Step) >Int 0
@@ -12615,6 +12621,7 @@ module PYTHON
   rule concreteIterableExtraEmpty(frozensetVal(_:ValItems)) => false
   rule concreteIterableExtraEmpty(#enumerateVal(VS:ArgVals)) => emptyArgVals(VS)
   rule concreteIterableExtraEmpty(#zipVal(VS:ArgVals)) => emptyArgVals(VS)
+  rule concreteIterableExtraEmpty(#reversedVal(VS:ArgVals)) => emptyArgVals(VS)
   rule concreteIterableExtraEmpty(rangeVal(Start:Int, Stop:Int)) => pyRangeLen(Start, Stop, 1) ==Int 0
   rule concreteIterableExtraEmpty(rangeVal(Start:Int, Stop:Int, Step:Int)) =>
     pyRangeLen(Start, Stop, Step) ==Int 0
@@ -13083,6 +13090,8 @@ module PYTHON
   rule concreteIterableExtraItems(#enumerateVal(VS:ArgVals)) => argValsToValItems(VS)
     requires notBool emptyArgVals(VS)
   rule concreteIterableExtraItems(#zipVal(VS:ArgVals)) => argValsToValItems(VS)
+    requires notBool emptyArgVals(VS)
+  rule concreteIterableExtraItems(#reversedVal(VS:ArgVals)) => argValsToValItems(VS)
     requires notBool emptyArgVals(VS)
   rule concreteIterableExtraItems(rangeVal(Start:Int, Stop:Int)) =>
     rangeToValItems(Start, Stop, 1, 0, pyRangeLen(Start, Stop, 1))
@@ -13734,9 +13743,26 @@ module PYTHON
   rule enumerateIterableSupported(frozensetVal(_:ValItems)) => true
   rule enumerateIterableSupported(#enumerateVal(_:ArgVals)) => true
   rule enumerateIterableSupported(#zipVal(_:ArgVals)) => true
+  rule enumerateIterableSupported(#reversedVal(_:ArgVals)) => true
   rule enumerateIterableSupported(rangeVal(_:Int, _:Int)) => true
   rule enumerateIterableSupported(rangeVal(_:Int, _:Int, Step:Int)) => Step =/=Int 0
   rule enumerateIterableSupported(_:Val) => false [owise]
+
+  rule reversedSupported([]) => true
+  rule reversedSupported(listVal(_:ValItems)) => true
+  rule reversedSupported(()) => true
+  rule reversedSupported(tupleVal(_:ValItems)) => true
+  rule reversedSupported(_:String) => true
+  rule reversedSupported(#bytes()) => true
+  rule reversedSupported(bytesVal(_:ValItems)) => true
+  rule reversedSupported(#bytearray()) => true
+  rule reversedSupported(bytearrayVal(_:ValItems)) => true
+  rule reversedSupported(#memoryviewVal(V:Val)) => reversedSupported(V)
+  rule reversedSupported({}) => true
+  rule reversedSupported(dictVal(_:DictItems)) => true
+  rule reversedSupported(rangeVal(_:Int, _:Int)) => true
+  rule reversedSupported(rangeVal(_:Int, _:Int, Step:Int)) => Step =/=Int 0
+  rule reversedSupported(_:Val) => false [owise]
 
   rule matMulSupported(_:Val, _:Val) => false [owise]
 
@@ -21427,6 +21453,8 @@ module PYTHON
   rule #tupleCtor(#enumerateVal(VS:ArgVals)) => argValsToTupleVal(VS)
   rule #listCtor(#zipVal(VS:ArgVals)) => argValsToListVal(VS)
   rule #tupleCtor(#zipVal(VS:ArgVals)) => argValsToTupleVal(VS)
+  rule #listCtor(#reversedVal(VS:ArgVals)) => argValsToListVal(VS)
+  rule #tupleCtor(#reversedVal(VS:ArgVals)) => argValsToTupleVal(VS)
   rule #boolCtor() => False
   rule #boolCtor(V:Val) => boolValue(truthy(V))
   rule #strCtor() => ""
@@ -21986,6 +22014,12 @@ module PYTHON
            exceptionSignal(#exception(#token("TypeError", "Id")))
        ... </k>
     requires notBool zipArgsSupported(VS)
+  rule #reversed(V:Val) => #reversedVal(reverseArgVals(iterableArgVals(V)))
+    requires reversedSupported(V)
+  rule <k> #reversed(V:Val) =>
+           exceptionSignal(#exception(#token("TypeError", "Id")))
+       ... </k>
+    requires notBool reversedSupported(V)
   rule <k> #min([]) => exceptionSignal(#exception(#token("ValueError", "Id"))) ... </k>
   rule <k> #min(()) => exceptionSignal(#exception(#token("ValueError", "Id"))) ... </k>
   rule <k> #min("") => exceptionSignal(#exception(#token("ValueError", "Id"))) ... </k>
@@ -28431,6 +28465,11 @@ module PYTHON
            forItems(X, argValsToValItems(VS), Body)
        ... </k>
     requires notBool emptyArgVals(VS)
+  rule <k> #reversedVal(#noArgVals) ~> forIter(_:Id, _:Block) => stmtNoResult ... </k>
+  rule <k> #reversedVal(VS:ArgVals) ~> forIter(X:Id, Body:Block) =>
+           forItems(X, argValsToValItems(VS), Body)
+       ... </k>
+    requires notBool emptyArgVals(VS)
 
   rule <k> forItems(X:Id, valItemsCons(V:Val, VS:ValItems), block(SS:Stmts)) =>
            SS ~> forItems(X, VS, block(SS))
@@ -28487,6 +28526,11 @@ module PYTHON
     requires notBool emptyArgVals(VS)
   rule <k> #zipVal(#noArgVals) ~> forUnpackIter(_:IdItems, _:Block) => stmtNoResult ... </k>
   rule <k> #zipVal(VS:ArgVals) ~> forUnpackIter(IDS:IdItems, Body:Block) =>
+           forUnpackItems(IDS, argValsToValItems(VS), Body)
+       ... </k>
+    requires notBool emptyArgVals(VS)
+  rule <k> #reversedVal(#noArgVals) ~> forUnpackIter(_:IdItems, _:Block) => stmtNoResult ... </k>
+  rule <k> #reversedVal(VS:ArgVals) ~> forUnpackIter(IDS:IdItems, Body:Block) =>
            forUnpackItems(IDS, argValsToValItems(VS), Body)
        ... </k>
     requires notBool emptyArgVals(VS)
@@ -28740,6 +28784,11 @@ module PYTHON
            forTargetUnpackItems(TS, argValsToValItems(VS), Body)
        ... </k>
     requires notBool emptyArgVals(VS)
+  rule <k> #reversedVal(#noArgVals) ~> forTargetUnpackIter(_:Targets, _:Block) => stmtNoResult ... </k>
+  rule <k> #reversedVal(VS:ArgVals) ~> forTargetUnpackIter(TS:Targets, Body:Block) =>
+           forTargetUnpackItems(TS, argValsToValItems(VS), Body)
+       ... </k>
+    requires notBool emptyArgVals(VS)
   rule <k> rangeVal(Start:Int, Stop:Int) ~> forTargetUnpackIter(_:Targets, _:Block) => stmtNoResult ... </k>
     requires pyRangeLen(Start, Stop, 1) ==Int 0
   rule <k> rangeVal(Start:Int, Stop:Int) ~> forTargetUnpackIter(TS:Targets, Body:Block) =>
@@ -28811,6 +28860,11 @@ module PYTHON
     requires notBool emptyArgVals(VS)
   rule <k> #zipVal(#noArgVals) ~> forTargetIter(_:Target, _:Block) => stmtNoResult ... </k>
   rule <k> #zipVal(VS:ArgVals) ~> forTargetIter(T:Target, Body:Block) =>
+           forTargetItems(T, argValsToValItems(VS), Body)
+       ... </k>
+    requires notBool emptyArgVals(VS)
+  rule <k> #reversedVal(#noArgVals) ~> forTargetIter(_:Target, _:Block) => stmtNoResult ... </k>
+  rule <k> #reversedVal(VS:ArgVals) ~> forTargetIter(T:Target, Body:Block) =>
            forTargetItems(T, argValsToValItems(VS), Body)
        ... </k>
     requires notBool emptyArgVals(VS)
@@ -29381,6 +29435,11 @@ module PYTHON
            forElseItems(X, argValsToValItems(VS), Body, Else)
        ... </k>
     requires notBool emptyArgVals(VS)
+  rule <k> #reversedVal(#noArgVals) ~> forElseIter(_:Id, _:Block, Else:Block) => runLoopElse(Else) ... </k>
+  rule <k> #reversedVal(VS:ArgVals) ~> forElseIter(X:Id, Body:Block, Else:Block) =>
+           forElseItems(X, argValsToValItems(VS), Body, Else)
+       ... </k>
+    requires notBool emptyArgVals(VS)
 
   rule <k> forElseItems(X:Id, valItemsCons(V:Val, VS:ValItems), block(SS:Stmts), Else:Block) =>
            SS ~> forElseItems(X, VS, block(SS), Else)
@@ -29437,6 +29496,11 @@ module PYTHON
     requires notBool emptyArgVals(VS)
   rule <k> #zipVal(#noArgVals) ~> forUnpackElseIter(_:IdItems, _:Block, Else:Block) => runLoopElse(Else) ... </k>
   rule <k> #zipVal(VS:ArgVals) ~> forUnpackElseIter(IDS:IdItems, Body:Block, Else:Block) =>
+           forUnpackElseItems(IDS, argValsToValItems(VS), Body, Else)
+       ... </k>
+    requires notBool emptyArgVals(VS)
+  rule <k> #reversedVal(#noArgVals) ~> forUnpackElseIter(_:IdItems, _:Block, Else:Block) => runLoopElse(Else) ... </k>
+  rule <k> #reversedVal(VS:ArgVals) ~> forUnpackElseIter(IDS:IdItems, Body:Block, Else:Block) =>
            forUnpackElseItems(IDS, argValsToValItems(VS), Body, Else)
        ... </k>
     requires notBool emptyArgVals(VS)
@@ -29671,6 +29735,11 @@ module PYTHON
            forTargetUnpackElseItems(TS, argValsToValItems(VS), Body, Else)
        ... </k>
     requires notBool emptyArgVals(VS)
+  rule <k> #reversedVal(#noArgVals) ~> forTargetUnpackElseIter(_:Targets, _:Block, Else:Block) => runLoopElse(Else) ... </k>
+  rule <k> #reversedVal(VS:ArgVals) ~> forTargetUnpackElseIter(TS:Targets, Body:Block, Else:Block) =>
+           forTargetUnpackElseItems(TS, argValsToValItems(VS), Body, Else)
+       ... </k>
+    requires notBool emptyArgVals(VS)
   rule <k> rangeVal(Start:Int, Stop:Int) ~> forTargetUnpackElseIter(_:Targets, _:Block, Else:Block) => runLoopElse(Else) ... </k>
     requires pyRangeLen(Start, Stop, 1) ==Int 0
   rule <k> rangeVal(Start:Int, Stop:Int) ~> forTargetUnpackElseIter(TS:Targets, Body:Block, Else:Block) =>
@@ -29742,6 +29811,11 @@ module PYTHON
     requires notBool emptyArgVals(VS)
   rule <k> #zipVal(#noArgVals) ~> forTargetElseIter(_:Target, _:Block, Else:Block) => runLoopElse(Else) ... </k>
   rule <k> #zipVal(VS:ArgVals) ~> forTargetElseIter(T:Target, Body:Block, Else:Block) =>
+           forTargetElseItems(T, argValsToValItems(VS), Body, Else)
+       ... </k>
+    requires notBool emptyArgVals(VS)
+  rule <k> #reversedVal(#noArgVals) ~> forTargetElseIter(_:Target, _:Block, Else:Block) => runLoopElse(Else) ... </k>
+  rule <k> #reversedVal(VS:ArgVals) ~> forTargetElseIter(T:Target, Body:Block, Else:Block) =>
            forTargetElseItems(T, argValsToValItems(VS), Body, Else)
        ... </k>
     requires notBool emptyArgVals(VS)

@@ -902,6 +902,8 @@ def emit_exp(exp: ast.expr) -> str:
             return f"#zip({emit_arg_exps(args)})"
         case ast.Call(func=ast.Name(id="zip"), args=args, keywords=[ast.keyword(arg="strict", value=strict)]):
             return f"#zipStrict({emit_arg_exps(args)}, {emit_exp(strict)})"
+        case ast.Call(func=ast.Name(id="reversed"), args=[arg], keywords=[]):
+            return f"#reversed({emit_exp(arg)})"
         case ast.Call(func=ast.Name(id="slice"), args=[stop], keywords=[]):
             return f"#sliceCtor({emit_exp(stop)})"
         case ast.Call(func=ast.Name(id="slice"), args=[start, stop], keywords=[]):

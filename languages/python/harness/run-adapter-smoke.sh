@@ -347,6 +347,7 @@ run_case "adapter-sorted-reverse-builtin" "$ROOT/tests/adapter/adapter-sorted-re
 run_case "adapter-sorted-key-builtin" "$ROOT/tests/adapter/adapter-sorted-key-builtin.py" "True ~> .K"
 run_case "adapter-enumerate-builtin" "$ROOT/tests/adapter/adapter-enumerate-builtin.py" "True ~> .K"
 run_case "adapter-zip-builtin" "$ROOT/tests/adapter/adapter-zip-builtin.py" "True ~> .K"
+run_case "adapter-reversed-builtin" "$ROOT/tests/adapter/adapter-reversed-builtin.py" "True ~> .K"
 run_case "adapter-sum-int" "$ROOT/tests/adapter/adapter-sum-int.py" "True ~> .K"
 run_case "adapter-sum-non-int" "$ROOT/tests/adapter/adapter-sum-non-int.py" "True ~> .K"
 run_case "adapter-min-max-int" "$ROOT/tests/adapter/adapter-min-max-int.py" "True ~> .K"

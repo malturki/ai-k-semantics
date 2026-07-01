@@ -464,6 +464,7 @@ module PYTHON-SYNTAX
                | "#reversed" "(" Exp ")" [symbol(reversedExp), strict]
                | "#map" "(" ArgExps ")" [symbol(mapExp)]
                | "#mapStrict" "(" ArgExps "," Exp ")" [symbol(mapStrictExp)]
+               | "#filter" "(" ArgExps ")" [symbol(filterExp)]
                | "#min" "(" Exp ")" [symbol(minExp), strict]
                | "#max" "(" Exp ")" [symbol(maxExp), strict]
                | "#minDefault" "(" Exp "," Exp ")" [symbol(minDefaultExp)]
@@ -686,6 +687,7 @@ module PYTHON
                | "#zipVal" "(" ArgVals ")" [symbol(zipVal)]
                | "#reversedVal" "(" ArgVals ")" [symbol(reversedVal)]
                | "#mapVal" "(" Val "," ArgVals "," Val ")" [symbol(mapVal)]
+               | "#filterVal" "(" Val "," Val ")" [symbol(filterVal)]
 
   syntax CompArgStack ::= "#noCompArgStack" [symbol(noCompArgStack)]
                         | compArgFrame(Target, MaybeCompFilters, MaybeCompClauses, Exp, ArgVals, Map, CompArgStack) [symbol(compArgFrame)]
@@ -763,6 +765,17 @@ module PYTHON
                  | mapForUnpackElseIter(IdItems, Block, Block) [symbol(mapForUnpackElseIter)]
                  | mapForTargetUnpackElseIter(Targets, Block, Block) [symbol(mapForTargetUnpackElseIter)]
                  | mapForTargetElseIter(Target, Block, Block) [symbol(mapForTargetElseIter)]
+                 | "filterArgsResult" [symbol(filterArgsResult)]
+                 | filterCollect(Val, ArgVals, ArgVals) [symbol(filterCollect)]
+                 | filterCollectNext(Val, Val, ArgVals, ArgVals) [symbol(filterCollectNext)]
+                 | filterForIter(Id, Block) [symbol(filterForIter)]
+                 | filterForUnpackIter(IdItems, Block) [symbol(filterForUnpackIter)]
+                 | filterForTargetUnpackIter(Targets, Block) [symbol(filterForTargetUnpackIter)]
+                 | filterForTargetIter(Target, Block) [symbol(filterForTargetIter)]
+                 | filterForElseIter(Id, Block, Block) [symbol(filterForElseIter)]
+                 | filterForUnpackElseIter(IdItems, Block, Block) [symbol(filterForUnpackElseIter)]
+                 | filterForTargetUnpackElseIter(Targets, Block, Block) [symbol(filterForTargetUnpackElseIter)]
+                 | filterForTargetElseIter(Target, Block, Block) [symbol(filterForTargetElseIter)]
                  | listSortReverseApply(Id) [symbol(listSortReverseApply)]
                  | listSortKeyApply(Id) [symbol(listSortKeyApply)]
                  | listSortKeyReverseKey(Id, Exp) [symbol(listSortKeyReverseKey)]
@@ -1385,6 +1398,7 @@ module PYTHON
                 | reversedSupported(Val) [function, symbol(reversedSupported)]
                 | mapArgsEnough(ArgVals) [function, symbol(mapArgsEnough)]
                 | mapItersSupported(ArgVals) [function, symbol(mapItersSupported)]
+                | filterArgsExact(ArgVals) [function, symbol(filterArgsExact)]
                 | matMulSupported(Val, Val) [function, symbol(matMulSupported)]
                 | absTypeErrorProfile(Val) [function, symbol(absTypeErrorProfile)]
                 | divmodSupported(Val, Val) [function, symbol(divmodSupported)]
@@ -2548,6 +2562,7 @@ module PYTHON
   rule truthy(#zipVal(_:ArgVals)) => true
   rule truthy(#reversedVal(_:ArgVals)) => true
   rule truthy(#mapVal(_:Val, _:ArgVals, _:Val)) => true
+  rule truthy(#filterVal(_:Val, _:Val)) => true
   rule truthy(#kwDefaultMissing) => false
   rule truthy(closure(_:Id, _:Exp)) => true
   rule truthy(closureArgs(_:IdItems, _:Exp)) => true
@@ -7439,6 +7454,11 @@ module PYTHON
   rule mapItersSupported(#noArgVals) => true
   rule mapItersSupported(argValsCons(V:Val, VS:ArgVals)) =>
     enumerateIterableSupported(V) andBool mapItersSupported(VS)
+
+  rule filterArgsExact(#noArgVals) => false
+  rule filterArgsExact(argValsCons(_:Val, #noArgVals)) => false
+  rule filterArgsExact(argValsCons(_:Val, argValsCons(_:Val, #noArgVals))) => true
+  rule filterArgsExact(argValsCons(_:Val, argValsCons(_:Val, argValsCons(_:Val, _:ArgVals)))) => false
 
   rule emptyKwArgVals(#noKwArgVals) => true
   rule emptyKwArgVals(kwArgValsCons(_:Id, _:Val, _:KwArgVals)) => false
@@ -21497,6 +21517,14 @@ module PYTHON
            mapCollect(F, zipArgVals(Iters), Strict, Iters, #noArgVals) ~> buildTuple
        ... </k>
     requires mapItersSupported(Iters)
+  rule <k> #listCtor(#filterVal(F:Val, Iter:Val)) =>
+           filterCollect(F, iterableArgVals(Iter), #noArgVals) ~> buildList
+       ... </k>
+    requires enumerateIterableSupported(Iter)
+  rule <k> #tupleCtor(#filterVal(F:Val, Iter:Val)) =>
+           filterCollect(F, iterableArgVals(Iter), #noArgVals) ~> buildTuple
+       ... </k>
+    requires enumerateIterableSupported(Iter)
   rule #boolCtor() => False
   rule #boolCtor(V:Val) => boolValue(truthy(V))
   rule #strCtor() => ""
@@ -22156,6 +22184,104 @@ module PYTHON
            runLoopElse(Else)
        ... </k>
   rule <k> argsVal(VS:ArgVals) ~> mapForTargetElseIter(T:Target, Body:Block, Else:Block) =>
+           forTargetElseItems(T, argValsToValItems(VS), Body, Else)
+       ... </k>
+    requires notBool emptyArgVals(VS)
+  rule <k> #filter(Args:ArgExps) =>
+           evalArgs(Args, #noArgVals) ~> filterArgsResult
+       ... </k>
+  rule <k> argsVal(VS:ArgVals) ~> filterArgsResult =>
+           #filterVal(firstArgVal(VS), argValAt(VS, 1))
+       ... </k>
+    requires filterArgsExact(VS)
+      andBool enumerateIterableSupported(argValAt(VS, 1))
+  rule <k> argsVal(VS:ArgVals) ~> filterArgsResult =>
+           exceptionSignal(#exception(#token("TypeError", "Id")))
+       ... </k>
+    requires notBool filterArgsExact(VS)
+  rule <k> argsVal(VS:ArgVals) ~> filterArgsResult =>
+           exceptionSignal(#exception(#token("TypeError", "Id")))
+       ... </k>
+    requires filterArgsExact(VS)
+      andBool notBool enumerateIterableSupported(argValAt(VS, 1))
+  rule <k> filterCollect(_F:Val, #noArgVals, Acc:ArgVals) =>
+           argsVal(Acc)
+       ... </k>
+  rule <k> filterCollect(F:Val, argValsCons(V:Val, Rest:ArgVals), Acc:ArgVals) =>
+           filterCollect(F, Rest, appendArgVal(Acc, V))
+       ... </k>
+    requires isNoneVal(F)
+      andBool truthy(V)
+  rule <k> filterCollect(F:Val, argValsCons(V:Val, Rest:ArgVals), Acc:ArgVals) =>
+           filterCollect(F, Rest, Acc)
+       ... </k>
+    requires isNoneVal(F)
+      andBool notBool truthy(V)
+  rule <k> filterCollect(F:Val, argValsCons(V:Val, Rest:ArgVals), Acc:ArgVals) =>
+           argsVal(argValsCons(V, #noArgVals)) ~> callApplyArgs(F) ~> filterCollectNext(F, V, Rest, Acc)
+       ... </k>
+    requires notBool isNoneVal(F)
+  rule <k> Result:Val ~> filterCollectNext(F:Val, V:Val, Rest:ArgVals, Acc:ArgVals) =>
+           filterCollect(F, Rest, appendArgVal(Acc, V))
+       ... </k>
+    requires truthy(Result)
+  rule <k> Result:Val ~> filterCollectNext(F:Val, _V:Val, Rest:ArgVals, Acc:ArgVals) =>
+           filterCollect(F, Rest, Acc)
+       ... </k>
+    requires notBool truthy(Result)
+  rule <k> argsVal(#noArgVals) ~> filterForIter(_:Id, _:Block) =>
+           stmtNoResult
+       ... </k>
+  rule <k> argsVal(VS:ArgVals) ~> filterForIter(X:Id, Body:Block) =>
+           forItems(X, argValsToValItems(VS), Body)
+       ... </k>
+    requires notBool emptyArgVals(VS)
+  rule <k> argsVal(#noArgVals) ~> filterForUnpackIter(_:IdItems, _:Block) =>
+           stmtNoResult
+       ... </k>
+  rule <k> argsVal(VS:ArgVals) ~> filterForUnpackIter(IDS:IdItems, Body:Block) =>
+           forUnpackItems(IDS, argValsToValItems(VS), Body)
+       ... </k>
+    requires notBool emptyArgVals(VS)
+  rule <k> argsVal(#noArgVals) ~> filterForTargetUnpackIter(_:Targets, _:Block) =>
+           stmtNoResult
+       ... </k>
+  rule <k> argsVal(VS:ArgVals) ~> filterForTargetUnpackIter(TS:Targets, Body:Block) =>
+           forTargetUnpackItems(TS, argValsToValItems(VS), Body)
+       ... </k>
+    requires notBool emptyArgVals(VS)
+  rule <k> argsVal(#noArgVals) ~> filterForTargetIter(_:Target, _:Block) =>
+           stmtNoResult
+       ... </k>
+  rule <k> argsVal(VS:ArgVals) ~> filterForTargetIter(T:Target, Body:Block) =>
+           forTargetItems(T, argValsToValItems(VS), Body)
+       ... </k>
+    requires notBool emptyArgVals(VS)
+  rule <k> argsVal(#noArgVals) ~> filterForElseIter(_:Id, _:Block, Else:Block) =>
+           runLoopElse(Else)
+       ... </k>
+  rule <k> argsVal(VS:ArgVals) ~> filterForElseIter(X:Id, Body:Block, Else:Block) =>
+           forElseItems(X, argValsToValItems(VS), Body, Else)
+       ... </k>
+    requires notBool emptyArgVals(VS)
+  rule <k> argsVal(#noArgVals) ~> filterForUnpackElseIter(_:IdItems, _:Block, Else:Block) =>
+           runLoopElse(Else)
+       ... </k>
+  rule <k> argsVal(VS:ArgVals) ~> filterForUnpackElseIter(IDS:IdItems, Body:Block, Else:Block) =>
+           forUnpackElseItems(IDS, argValsToValItems(VS), Body, Else)
+       ... </k>
+    requires notBool emptyArgVals(VS)
+  rule <k> argsVal(#noArgVals) ~> filterForTargetUnpackElseIter(_:Targets, _:Block, Else:Block) =>
+           runLoopElse(Else)
+       ... </k>
+  rule <k> argsVal(VS:ArgVals) ~> filterForTargetUnpackElseIter(TS:Targets, Body:Block, Else:Block) =>
+           forTargetUnpackElseItems(TS, argValsToValItems(VS), Body, Else)
+       ... </k>
+    requires notBool emptyArgVals(VS)
+  rule <k> argsVal(#noArgVals) ~> filterForTargetElseIter(_:Target, _:Block, Else:Block) =>
+           runLoopElse(Else)
+       ... </k>
+  rule <k> argsVal(VS:ArgVals) ~> filterForTargetElseIter(T:Target, Body:Block, Else:Block) =>
            forTargetElseItems(T, argValsToValItems(VS), Body, Else)
        ... </k>
     requires notBool emptyArgVals(VS)
@@ -28613,6 +28739,10 @@ module PYTHON
            mapCollect(F, zipArgVals(Iters), Strict, Iters, #noArgVals) ~> mapForIter(X, Body)
        ... </k>
     requires mapItersSupported(Iters)
+  rule <k> #filterVal(F:Val, Iter:Val) ~> forIter(X:Id, Body:Block) =>
+           filterCollect(F, iterableArgVals(Iter), #noArgVals) ~> filterForIter(X, Body)
+       ... </k>
+    requires enumerateIterableSupported(Iter)
 
   rule <k> forItems(X:Id, valItemsCons(V:Val, VS:ValItems), block(SS:Stmts)) =>
            SS ~> forItems(X, VS, block(SS))
@@ -28681,6 +28811,10 @@ module PYTHON
            mapCollect(F, zipArgVals(Iters), Strict, Iters, #noArgVals) ~> mapForUnpackIter(IDS, Body)
        ... </k>
     requires mapItersSupported(Iters)
+  rule <k> #filterVal(F:Val, Iter:Val) ~> forUnpackIter(IDS:IdItems, Body:Block) =>
+           filterCollect(F, iterableArgVals(Iter), #noArgVals) ~> filterForUnpackIter(IDS, Body)
+       ... </k>
+    requires enumerateIterableSupported(Iter)
   rule <k> rangeVal(Start:Int, Stop:Int) ~> forUnpackIter(_:IdItems, _:Block) => stmtNoResult ... </k>
     requires pyRangeLen(Start, Stop, 1) ==Int 0
   rule <k> rangeVal(Start:Int, Stop:Int) ~> forUnpackIter(IDS:IdItems, Body:Block) =>
@@ -28940,6 +29074,10 @@ module PYTHON
            mapCollect(F, zipArgVals(Iters), Strict, Iters, #noArgVals) ~> mapForTargetUnpackIter(TS, Body)
        ... </k>
     requires mapItersSupported(Iters)
+  rule <k> #filterVal(F:Val, Iter:Val) ~> forTargetUnpackIter(TS:Targets, Body:Block) =>
+           filterCollect(F, iterableArgVals(Iter), #noArgVals) ~> filterForTargetUnpackIter(TS, Body)
+       ... </k>
+    requires enumerateIterableSupported(Iter)
   rule <k> rangeVal(Start:Int, Stop:Int) ~> forTargetUnpackIter(_:Targets, _:Block) => stmtNoResult ... </k>
     requires pyRangeLen(Start, Stop, 1) ==Int 0
   rule <k> rangeVal(Start:Int, Stop:Int) ~> forTargetUnpackIter(TS:Targets, Body:Block) =>
@@ -29023,6 +29161,10 @@ module PYTHON
            mapCollect(F, zipArgVals(Iters), Strict, Iters, #noArgVals) ~> mapForTargetIter(T, Body)
        ... </k>
     requires mapItersSupported(Iters)
+  rule <k> #filterVal(F:Val, Iter:Val) ~> forTargetIter(T:Target, Body:Block) =>
+           filterCollect(F, iterableArgVals(Iter), #noArgVals) ~> filterForTargetIter(T, Body)
+       ... </k>
+    requires enumerateIterableSupported(Iter)
   rule <k> rangeVal(Start:Int, Stop:Int) ~> forTargetIter(_:Target, _:Block) => stmtNoResult ... </k>
     requires pyRangeLen(Start, Stop, 1) ==Int 0
   rule <k> rangeVal(Start:Int, Stop:Int) ~> forTargetIter(T:Target, Body:Block) =>
@@ -29599,6 +29741,10 @@ module PYTHON
            mapCollect(F, zipArgVals(Iters), Strict, Iters, #noArgVals) ~> mapForElseIter(X, Body, Else)
        ... </k>
     requires mapItersSupported(Iters)
+  rule <k> #filterVal(F:Val, Iter:Val) ~> forElseIter(X:Id, Body:Block, Else:Block) =>
+           filterCollect(F, iterableArgVals(Iter), #noArgVals) ~> filterForElseIter(X, Body, Else)
+       ... </k>
+    requires enumerateIterableSupported(Iter)
 
   rule <k> forElseItems(X:Id, valItemsCons(V:Val, VS:ValItems), block(SS:Stmts), Else:Block) =>
            SS ~> forElseItems(X, VS, block(SS), Else)
@@ -29667,6 +29813,10 @@ module PYTHON
            mapCollect(F, zipArgVals(Iters), Strict, Iters, #noArgVals) ~> mapForUnpackElseIter(IDS, Body, Else)
        ... </k>
     requires mapItersSupported(Iters)
+  rule <k> #filterVal(F:Val, Iter:Val) ~> forUnpackElseIter(IDS:IdItems, Body:Block, Else:Block) =>
+           filterCollect(F, iterableArgVals(Iter), #noArgVals) ~> filterForUnpackElseIter(IDS, Body, Else)
+       ... </k>
+    requires enumerateIterableSupported(Iter)
   rule <k> rangeVal(Start:Int, Stop:Int) ~> forUnpackElseIter(_:IdItems, _:Block, Else:Block) => runLoopElse(Else) ... </k>
     requires pyRangeLen(Start, Stop, 1) ==Int 0
   rule <k> rangeVal(Start:Int, Stop:Int) ~> forUnpackElseIter(IDS:IdItems, Body:Block, Else:Block) =>
@@ -29907,6 +30057,10 @@ module PYTHON
            mapCollect(F, zipArgVals(Iters), Strict, Iters, #noArgVals) ~> mapForTargetUnpackElseIter(TS, Body, Else)
        ... </k>
     requires mapItersSupported(Iters)
+  rule <k> #filterVal(F:Val, Iter:Val) ~> forTargetUnpackElseIter(TS:Targets, Body:Block, Else:Block) =>
+           filterCollect(F, iterableArgVals(Iter), #noArgVals) ~> filterForTargetUnpackElseIter(TS, Body, Else)
+       ... </k>
+    requires enumerateIterableSupported(Iter)
   rule <k> rangeVal(Start:Int, Stop:Int) ~> forTargetUnpackElseIter(_:Targets, _:Block, Else:Block) => runLoopElse(Else) ... </k>
     requires pyRangeLen(Start, Stop, 1) ==Int 0
   rule <k> rangeVal(Start:Int, Stop:Int) ~> forTargetUnpackElseIter(TS:Targets, Body:Block, Else:Block) =>
@@ -29990,6 +30144,10 @@ module PYTHON
            mapCollect(F, zipArgVals(Iters), Strict, Iters, #noArgVals) ~> mapForTargetElseIter(T, Body, Else)
        ... </k>
     requires mapItersSupported(Iters)
+  rule <k> #filterVal(F:Val, Iter:Val) ~> forTargetElseIter(T:Target, Body:Block, Else:Block) =>
+           filterCollect(F, iterableArgVals(Iter), #noArgVals) ~> filterForTargetElseIter(T, Body, Else)
+       ... </k>
+    requires enumerateIterableSupported(Iter)
   rule <k> rangeVal(Start:Int, Stop:Int) ~> forTargetElseIter(_:Target, _:Block, Else:Block) => runLoopElse(Else) ... </k>
     requires pyRangeLen(Start, Stop, 1) ==Int 0
   rule <k> rangeVal(Start:Int, Stop:Int) ~> forTargetElseIter(T:Target, Body:Block, Else:Block) =>
@@ -30562,6 +30720,8 @@ module PYTHON
   rule <k> exceptionSignal(V:Val) ~> mapStrictEval(_:Exp) => exceptionSignal(V) ... </k>
   rule <k> exceptionSignal(V:Val) ~> mapStrictResult(_:ArgVals) => exceptionSignal(V) ... </k>
   rule <k> exceptionSignal(V:Val) ~> mapCollectNext(_:Val, _:ArgVals, _:Val, _:ArgVals, _:ArgVals) => exceptionSignal(V) ... </k>
+  rule <k> exceptionSignal(V:Val) ~> filterArgsResult => exceptionSignal(V) ... </k>
+  rule <k> exceptionSignal(V:Val) ~> filterCollectNext(_:Val, _:Val, _:ArgVals, _:ArgVals) => exceptionSignal(V) ... </k>
   rule <k> exceptionSignal(V:Val) ~> minDefaultEval(_:Exp) => exceptionSignal(V) ... </k>
   rule <k> exceptionSignal(V:Val) ~> maxDefaultEval(_:Exp) => exceptionSignal(V) ... </k>
   rule <k> exceptionSignal(V:Val) ~> minDefaultApply(_:Val) => exceptionSignal(V) ... </k>
@@ -30633,6 +30793,10 @@ module PYTHON
   rule <k> exceptionSignal(V:Val) ~> mapForUnpackIter(_:IdItems, _:Block) => exceptionSignal(V) ... </k>
   rule <k> exceptionSignal(V:Val) ~> mapForTargetUnpackIter(_:Targets, _:Block) => exceptionSignal(V) ... </k>
   rule <k> exceptionSignal(V:Val) ~> mapForTargetIter(_:Target, _:Block) => exceptionSignal(V) ... </k>
+  rule <k> exceptionSignal(V:Val) ~> filterForIter(_:Id, _:Block) => exceptionSignal(V) ... </k>
+  rule <k> exceptionSignal(V:Val) ~> filterForUnpackIter(_:IdItems, _:Block) => exceptionSignal(V) ... </k>
+  rule <k> exceptionSignal(V:Val) ~> filterForTargetUnpackIter(_:Targets, _:Block) => exceptionSignal(V) ... </k>
+  rule <k> exceptionSignal(V:Val) ~> filterForTargetIter(_:Target, _:Block) => exceptionSignal(V) ... </k>
   rule <k> breakSignal ~> forItems(_:Id, _:ValItems, _:Block) => stmtNoResult ... </k>
   rule <k> breakSignal ~> forDone => stmtNoResult ... </k>
   rule <k> continueSignal ~> forItems(X:Id, VS:ValItems, Body:Block) =>
@@ -30688,6 +30852,10 @@ module PYTHON
   rule <k> exceptionSignal(V:Val) ~> mapForUnpackElseIter(_:IdItems, _:Block, _:Block) => exceptionSignal(V) ... </k>
   rule <k> exceptionSignal(V:Val) ~> mapForTargetUnpackElseIter(_:Targets, _:Block, _:Block) => exceptionSignal(V) ... </k>
   rule <k> exceptionSignal(V:Val) ~> mapForTargetElseIter(_:Target, _:Block, _:Block) => exceptionSignal(V) ... </k>
+  rule <k> exceptionSignal(V:Val) ~> filterForElseIter(_:Id, _:Block, _:Block) => exceptionSignal(V) ... </k>
+  rule <k> exceptionSignal(V:Val) ~> filterForUnpackElseIter(_:IdItems, _:Block, _:Block) => exceptionSignal(V) ... </k>
+  rule <k> exceptionSignal(V:Val) ~> filterForTargetUnpackElseIter(_:Targets, _:Block, _:Block) => exceptionSignal(V) ... </k>
+  rule <k> exceptionSignal(V:Val) ~> filterForTargetElseIter(_:Target, _:Block, _:Block) => exceptionSignal(V) ... </k>
   rule <k> breakSignal ~> forElseItems(_:Id, _:ValItems, _:Block, _:Block) => stmtNoResult ... </k>
   rule <k> breakSignal ~> forElseDone(_:Block) => stmtNoResult ... </k>
   rule <k> continueSignal ~> forElseItems(X:Id, VS:ValItems, Body:Block, Else:Block) =>

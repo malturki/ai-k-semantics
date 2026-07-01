@@ -910,6 +910,10 @@ def emit_exp(exp: ast.expr) -> str:
             return f"#mapStrict({emit_arg_exps(args)}, {emit_exp(strict)})"
         case ast.Call(func=ast.Name(id="map"), keywords=keywords) if keywords:
             raise unsupported(exp, "map currently supports only the strict= keyword")
+        case ast.Call(func=ast.Name(id="filter"), args=args, keywords=[]):
+            return f"#filter({emit_arg_exps(args)})"
+        case ast.Call(func=ast.Name(id="filter"), keywords=keywords) if keywords:
+            raise unsupported(exp, "filter is positional-only in the current builtin profile")
         case ast.Call(func=ast.Name(id="slice"), args=[stop], keywords=[]):
             return f"#sliceCtor({emit_exp(stop)})"
         case ast.Call(func=ast.Name(id="slice"), args=[start, stop], keywords=[]):

@@ -3091,6 +3091,13 @@
       "coverage": ["for-statement", "set-iteration-profile", "empty-set-iteration", "simple-name-target", "sequence-unpacking-target", "starred-target-unpacking", "loop-else-normal-completion", "loop-else-break-suppression", "break-statement", "ordinary-python-source-adapter"]
     },
     {
+      "id": "adapter-for-frozenset",
+      "source": "../adapter/adapter-for-frozenset.py",
+      "reference": "Python Language Reference 8.3 The for statement; Python Standard Library Built-in Types frozenset",
+      "expected_result": "True ~> .K",
+      "coverage": ["for-statement", "frozenset-iteration-profile", "empty-frozenset-iteration", "simple-name-target", "sequence-unpacking-target", "starred-target-unpacking", "loop-else-normal-completion", "loop-else-break-suppression", "break-statement", "ordinary-python-source-adapter"]
+    },
+    {
       "id": "adapter-for-break-continue",
       "source": "../adapter/adapter-for-break-continue.py",
       "reference": "Python Language Reference 8.3 The for statement; 7.9 The break statement; 7.10 The continue statement",

@@ -491,6 +491,7 @@ run_case "adapter-for-string" "$ROOT/tests/adapter/adapter-for-string.py" "True 
 run_case "adapter-for-bytes" "$ROOT/tests/adapter/adapter-for-bytes.py" "True ~> .K"
 run_case "adapter-for-dict" "$ROOT/tests/adapter/adapter-for-dict.py" "True ~> .K"
 run_case "adapter-for-set" "$ROOT/tests/adapter/adapter-for-set.py" "True ~> .K"
+run_case "adapter-for-frozenset" "$ROOT/tests/adapter/adapter-for-frozenset.py" "True ~> .K"
 run_case "adapter-for-break-continue" "$ROOT/tests/adapter/adapter-for-break-continue.py" "True ~> .K"
 run_case "adapter-for-return" "$ROOT/tests/adapter/adapter-for-return.py" "True ~> .K"
 run_case "adapter-for-unpack" "$ROOT/tests/adapter/adapter-for-unpack.py" "True ~> .K"

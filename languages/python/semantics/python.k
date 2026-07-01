@@ -28161,6 +28161,10 @@ module PYTHON
   rule <k> setVal(VS:ValItems) ~> forIter(X:Id, Body:Block) =>
            forItems(X, VS, Body)
        ... </k>
+  rule <k> frozenset() ~> forIter(_:Id, _:Block) => stmtNoResult ... </k>
+  rule <k> frozensetVal(VS:ValItems) ~> forIter(X:Id, Body:Block) =>
+           forItems(X, VS, Body)
+       ... </k>
 
   rule <k> forItems(X:Id, valItemsCons(V:Val, VS:ValItems), block(SS:Stmts)) =>
            SS ~> forItems(X, VS, block(SS))
@@ -28204,6 +28208,10 @@ module PYTHON
        ... </k>
   rule <k> set() ~> forUnpackIter(_:IdItems, _:Block) => stmtNoResult ... </k>
   rule <k> setVal(VS:ValItems) ~> forUnpackIter(IDS:IdItems, Body:Block) =>
+           forUnpackItems(IDS, VS, Body)
+       ... </k>
+  rule <k> frozenset() ~> forUnpackIter(_:IdItems, _:Block) => stmtNoResult ... </k>
+  rule <k> frozensetVal(VS:ValItems) ~> forUnpackIter(IDS:IdItems, Body:Block) =>
            forUnpackItems(IDS, VS, Body)
        ... </k>
   rule <k> rangeVal(Start:Int, Stop:Int) ~> forUnpackIter(_:IdItems, _:Block) => stmtNoResult ... </k>
@@ -28442,6 +28450,10 @@ module PYTHON
   rule <k> setVal(VS:ValItems) ~> forTargetUnpackIter(TS:Targets, Body:Block) =>
            forTargetUnpackItems(TS, VS, Body)
        ... </k>
+  rule <k> frozenset() ~> forTargetUnpackIter(_:Targets, _:Block) => stmtNoResult ... </k>
+  rule <k> frozensetVal(VS:ValItems) ~> forTargetUnpackIter(TS:Targets, Body:Block) =>
+           forTargetUnpackItems(TS, VS, Body)
+       ... </k>
   rule <k> rangeVal(Start:Int, Stop:Int) ~> forTargetUnpackIter(_:Targets, _:Block) => stmtNoResult ... </k>
     requires pyRangeLen(Start, Stop, 1) ==Int 0
   rule <k> rangeVal(Start:Int, Stop:Int) ~> forTargetUnpackIter(TS:Targets, Body:Block) =>
@@ -28502,6 +28514,10 @@ module PYTHON
   rule <k> setVal(VS:ValItems) ~> forTargetIter(T:Target, Body:Block) =>
            forTargetItems(T, VS, Body)
        ... </k>
+  rule <k> frozenset() ~> forTargetIter(_:Target, _:Block) => stmtNoResult ... </k>
+  rule <k> frozensetVal(VS:ValItems) ~> forTargetIter(T:Target, Body:Block) =>
+           forTargetItems(T, VS, Body)
+       ... </k>
   rule <k> rangeVal(Start:Int, Stop:Int) ~> forTargetIter(_:Target, _:Block) => stmtNoResult ... </k>
     requires pyRangeLen(Start, Stop, 1) ==Int 0
   rule <k> rangeVal(Start:Int, Stop:Int) ~> forTargetIter(T:Target, Body:Block) =>
@@ -28560,6 +28576,10 @@ module PYTHON
        ... </k>
   rule <k> set() ~> forStarUnpackIter(_:IdItems, _:Id, _:IdItems, _:Block) => stmtNoResult ... </k>
   rule <k> setVal(VS:ValItems) ~> forStarUnpackIter(Prefix:IdItems, Star:Id, Suffix:IdItems, Body:Block) =>
+           forStarUnpackItems(Prefix, Star, Suffix, VS, Body)
+       ... </k>
+  rule <k> frozenset() ~> forStarUnpackIter(_:IdItems, _:Id, _:IdItems, _:Block) => stmtNoResult ... </k>
+  rule <k> frozensetVal(VS:ValItems) ~> forStarUnpackIter(Prefix:IdItems, Star:Id, Suffix:IdItems, Body:Block) =>
            forStarUnpackItems(Prefix, Star, Suffix, VS, Body)
        ... </k>
   rule <k> rangeVal(Start:Int, Stop:Int) ~> forStarUnpackIter(_:IdItems, _:Id, _:IdItems, _:Block) => stmtNoResult ... </k>
@@ -29051,6 +29071,10 @@ module PYTHON
   rule <k> setVal(VS:ValItems) ~> forElseIter(X:Id, Body:Block, Else:Block) =>
            forElseItems(X, VS, Body, Else)
        ... </k>
+  rule <k> frozenset() ~> forElseIter(_:Id, _:Block, Else:Block) => runLoopElse(Else) ... </k>
+  rule <k> frozensetVal(VS:ValItems) ~> forElseIter(X:Id, Body:Block, Else:Block) =>
+           forElseItems(X, VS, Body, Else)
+       ... </k>
 
   rule <k> forElseItems(X:Id, valItemsCons(V:Val, VS:ValItems), block(SS:Stmts), Else:Block) =>
            SS ~> forElseItems(X, VS, block(SS), Else)
@@ -29094,6 +29118,10 @@ module PYTHON
        ... </k>
   rule <k> set() ~> forUnpackElseIter(_:IdItems, _:Block, Else:Block) => runLoopElse(Else) ... </k>
   rule <k> setVal(VS:ValItems) ~> forUnpackElseIter(IDS:IdItems, Body:Block, Else:Block) =>
+           forUnpackElseItems(IDS, VS, Body, Else)
+       ... </k>
+  rule <k> frozenset() ~> forUnpackElseIter(_:IdItems, _:Block, Else:Block) => runLoopElse(Else) ... </k>
+  rule <k> frozensetVal(VS:ValItems) ~> forUnpackElseIter(IDS:IdItems, Body:Block, Else:Block) =>
            forUnpackElseItems(IDS, VS, Body, Else)
        ... </k>
   rule <k> rangeVal(Start:Int, Stop:Int) ~> forUnpackElseIter(_:IdItems, _:Block, Else:Block) => runLoopElse(Else) ... </k>
@@ -29313,6 +29341,10 @@ module PYTHON
   rule <k> setVal(VS:ValItems) ~> forTargetUnpackElseIter(TS:Targets, Body:Block, Else:Block) =>
            forTargetUnpackElseItems(TS, VS, Body, Else)
        ... </k>
+  rule <k> frozenset() ~> forTargetUnpackElseIter(_:Targets, _:Block, Else:Block) => runLoopElse(Else) ... </k>
+  rule <k> frozensetVal(VS:ValItems) ~> forTargetUnpackElseIter(TS:Targets, Body:Block, Else:Block) =>
+           forTargetUnpackElseItems(TS, VS, Body, Else)
+       ... </k>
   rule <k> rangeVal(Start:Int, Stop:Int) ~> forTargetUnpackElseIter(_:Targets, _:Block, Else:Block) => runLoopElse(Else) ... </k>
     requires pyRangeLen(Start, Stop, 1) ==Int 0
   rule <k> rangeVal(Start:Int, Stop:Int) ~> forTargetUnpackElseIter(TS:Targets, Body:Block, Else:Block) =>
@@ -29373,6 +29405,10 @@ module PYTHON
   rule <k> setVal(VS:ValItems) ~> forTargetElseIter(T:Target, Body:Block, Else:Block) =>
            forTargetElseItems(T, VS, Body, Else)
        ... </k>
+  rule <k> frozenset() ~> forTargetElseIter(_:Target, _:Block, Else:Block) => runLoopElse(Else) ... </k>
+  rule <k> frozensetVal(VS:ValItems) ~> forTargetElseIter(T:Target, Body:Block, Else:Block) =>
+           forTargetElseItems(T, VS, Body, Else)
+       ... </k>
   rule <k> rangeVal(Start:Int, Stop:Int) ~> forTargetElseIter(_:Target, _:Block, Else:Block) => runLoopElse(Else) ... </k>
     requires pyRangeLen(Start, Stop, 1) ==Int 0
   rule <k> rangeVal(Start:Int, Stop:Int) ~> forTargetElseIter(T:Target, Body:Block, Else:Block) =>
@@ -29431,6 +29467,10 @@ module PYTHON
        ... </k>
   rule <k> set() ~> forStarUnpackElseIter(_:IdItems, _:Id, _:IdItems, _:Block, Else:Block) => runLoopElse(Else) ... </k>
   rule <k> setVal(VS:ValItems) ~> forStarUnpackElseIter(Prefix:IdItems, Star:Id, Suffix:IdItems, Body:Block, Else:Block) =>
+           forStarUnpackElseItems(Prefix, Star, Suffix, VS, Body, Else)
+       ... </k>
+  rule <k> frozenset() ~> forStarUnpackElseIter(_:IdItems, _:Id, _:IdItems, _:Block, Else:Block) => runLoopElse(Else) ... </k>
+  rule <k> frozensetVal(VS:ValItems) ~> forStarUnpackElseIter(Prefix:IdItems, Star:Id, Suffix:IdItems, Body:Block, Else:Block) =>
            forStarUnpackElseItems(Prefix, Star, Suffix, VS, Body, Else)
        ... </k>
   rule <k> rangeVal(Start:Int, Stop:Int) ~> forStarUnpackElseIter(_:IdItems, _:Id, _:IdItems, _:Block, Else:Block) => runLoopElse(Else) ... </k>

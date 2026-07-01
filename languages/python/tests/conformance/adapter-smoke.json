@@ -3861,6 +3861,13 @@
       "coverage": ["frozenset-constructor", "frozenset-set-equality", "frozenset-ordering-comparisons", "mixed-set-frozenset-operators", "frozenset-methods", "frozenset-hashable-key", "frozenset-iterable-conversions", "frozenset-type-errors", "ordinary-python-source-adapter"]
     },
     {
+      "id": "adapter-frozenset-iterable-builtins",
+      "source": "../adapter/adapter-frozenset-iterable-builtins.py",
+      "reference": "Python 3.14.6 Standard Library Built-in Functions all, any, sum, min, and max; Standard Library Built-in Types frozenset iterable behavior",
+      "expected_result": "True ~> .K",
+      "coverage": ["frozenset-iteration-profile", "all-builtin", "any-builtin", "sum-builtin", "min-builtin", "max-builtin", "min-max-default-keywords", "min-max-key-keyword", "empty-iterable-value-error", "type-error", "ordinary-python-source-adapter"]
+    },
+    {
       "id": "adapter-annotated-assignment",
       "source": "../adapter/adapter-annotated-assignment.py",
       "reference": "Python Language Reference 7.2.2 Annotated assignment statements; 8.10 Annotations",

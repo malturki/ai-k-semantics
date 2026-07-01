@@ -21710,6 +21710,8 @@ module PYTHON
   rule #all(dictVal(DS:DictItems)) => boolValue(allValItems(dictKeysToValItems(DS)))
   rule #all(set()) => True
   rule #all(setVal(VS:ValItems)) => boolValue(allValItems(VS))
+  rule #all(frozenset()) => True
+  rule #all(frozensetVal(VS:ValItems)) => boolValue(allValItems(VS))
   rule #all(rangeVal(Start:Int, Stop:Int)) => boolValue(rangeAllTruthy(Start, Stop, 1))
   rule #all(rangeVal(Start:Int, Stop:Int, Step:Int)) => boolValue(rangeAllTruthy(Start, Stop, Step))
     requires Step =/=Int 0
@@ -21725,6 +21727,8 @@ module PYTHON
   rule #any(dictVal(DS:DictItems)) => boolValue(anyValItems(dictKeysToValItems(DS)))
   rule #any(set()) => False
   rule #any(setVal(VS:ValItems)) => boolValue(anyValItems(VS))
+  rule #any(frozenset()) => False
+  rule #any(frozensetVal(VS:ValItems)) => boolValue(anyValItems(VS))
   rule #any(rangeVal(Start:Int, Stop:Int)) => boolValue(rangeAnyTruthy(Start, Stop, 1))
   rule #any(rangeVal(Start:Int, Stop:Int, Step:Int)) => boolValue(rangeAnyTruthy(Start, Stop, Step))
     requires Step =/=Int 0
@@ -21739,6 +21743,8 @@ module PYTHON
   rule <k> #sum(dictVal(DS:DictItems)) => 0 ~> sumFold(dictKeysToValItems(DS)) ... </k>
   rule #sum(set()) => 0
   rule <k> #sum(setVal(VS:ValItems)) => 0 ~> sumFold(VS) ... </k>
+  rule #sum(frozenset()) => 0
+  rule <k> #sum(frozensetVal(VS:ValItems)) => 0 ~> sumFold(VS) ... </k>
   rule #sum(rangeVal(Start:Int, Stop:Int)) => rangeSum(Start, Stop, 1)
   rule #sum(rangeVal(Start:Int, Stop:Int, Step:Int)) => rangeSum(Start, Stop, Step)
     requires Step =/=Int 0
@@ -21784,6 +21790,14 @@ module PYTHON
     requires sumStartForbidden(Seed)
   rule <k> #sum(setVal(VS:ValItems), Seed:Val) => Seed ~> sumFold(VS) ... </k>
     requires notBool sumStartForbidden(Seed)
+  rule <k> #sum(frozenset(), Seed:Val) => exceptionSignal(#exception(#token("TypeError", "Id"))) ... </k>
+    requires sumStartForbidden(Seed)
+  rule #sum(frozenset(), Seed:Val) => Seed
+    requires notBool sumStartForbidden(Seed)
+  rule <k> #sum(frozensetVal(_:ValItems), Seed:Val) => exceptionSignal(#exception(#token("TypeError", "Id"))) ... </k>
+    requires sumStartForbidden(Seed)
+  rule <k> #sum(frozensetVal(VS:ValItems), Seed:Val) => Seed ~> sumFold(VS) ... </k>
+    requires notBool sumStartForbidden(Seed)
   rule <k> #sum(rangeVal(_Start:Int, _Stop:Int), Seed:Val) => exceptionSignal(#exception(#token("TypeError", "Id"))) ... </k>
     requires sumStartForbidden(Seed)
   rule #sum(rangeVal(Start:Int, Stop:Int), Seed:Val) => Seed
@@ -21819,6 +21833,7 @@ module PYTHON
   rule #min(#memoryviewVal(V:Val)) => #min(V)
   rule <k> #min(({}):Val) => exceptionSignal(#exception(#token("ValueError", "Id"))) ... </k>
   rule <k> #min(set()) => exceptionSignal(#exception(#token("ValueError", "Id"))) ... </k>
+  rule <k> #min(frozenset()) => exceptionSignal(#exception(#token("ValueError", "Id"))) ... </k>
   rule <k> #min(rangeVal(Start:Int, Stop:Int)) => exceptionSignal(#exception(#token("ValueError", "Id"))) ... </k>
     requires pyRangeLen(Start, Stop, 1) ==Int 0
   rule <k> #min(rangeVal(Start:Int, Stop:Int, Step:Int)) => exceptionSignal(#exception(#token("ValueError", "Id"))) ... </k>
@@ -21839,6 +21854,8 @@ module PYTHON
     requires valItemsAllIntLike(dictKeysToValItems(DS))
   rule #min(setVal(VS:ValItems)) => minValItems(VS)
     requires valItemsAllIntLike(VS)
+  rule #min(frozensetVal(VS:ValItems)) => minValItems(VS)
+    requires valItemsAllIntLike(VS)
   rule #min(rangeVal(Start:Int, Stop:Int)) => rangeMin(Start, Stop, 1)
     requires pyRangeLen(Start, Stop, 1) >Int 0
   rule #min(rangeVal(Start:Int, Stop:Int, Step:Int)) => rangeMin(Start, Stop, Step)
@@ -21850,6 +21867,7 @@ module PYTHON
   rule #max(#memoryviewVal(V:Val)) => #max(V)
   rule <k> #max(({}):Val) => exceptionSignal(#exception(#token("ValueError", "Id"))) ... </k>
   rule <k> #max(set()) => exceptionSignal(#exception(#token("ValueError", "Id"))) ... </k>
+  rule <k> #max(frozenset()) => exceptionSignal(#exception(#token("ValueError", "Id"))) ... </k>
   rule <k> #max(rangeVal(Start:Int, Stop:Int)) => exceptionSignal(#exception(#token("ValueError", "Id"))) ... </k>
     requires pyRangeLen(Start, Stop, 1) ==Int 0
   rule <k> #max(rangeVal(Start:Int, Stop:Int, Step:Int)) => exceptionSignal(#exception(#token("ValueError", "Id"))) ... </k>
@@ -21870,6 +21888,8 @@ module PYTHON
     requires valItemsAllIntLike(dictKeysToValItems(DS))
   rule #max(setVal(VS:ValItems)) => maxValItems(VS)
     requires valItemsAllIntLike(VS)
+  rule #max(frozensetVal(VS:ValItems)) => maxValItems(VS)
+    requires valItemsAllIntLike(VS)
   rule #max(rangeVal(Start:Int, Stop:Int)) => rangeMax(Start, Stop, 1)
     requires pyRangeLen(Start, Stop, 1) >Int 0
   rule #max(rangeVal(Start:Int, Stop:Int, Step:Int)) => rangeMax(Start, Stop, Step)
@@ -21882,6 +21902,7 @@ module PYTHON
   rule <k> Default:Val ~> minDefaultApply(#bytes()) => Default ... </k>
   rule <k> Default:Val ~> minDefaultApply(({}):Val) => Default ... </k>
   rule <k> Default:Val ~> minDefaultApply(set()) => Default ... </k>
+  rule <k> Default:Val ~> minDefaultApply(frozenset()) => Default ... </k>
   rule <k> Default:Val ~> minDefaultApply(rangeVal(Start:Int, Stop:Int)) => Default ... </k>
     requires pyRangeLen(Start, Stop, 1) ==Int 0
   rule <k> Default:Val ~> minDefaultApply(rangeVal(Start:Int, Stop:Int, Step:Int)) => Default ... </k>
@@ -21904,6 +21925,8 @@ module PYTHON
     requires valItemsAllIntLike(dictKeysToValItems(DS))
   rule <k> _Default:Val ~> minDefaultApply(setVal(VS:ValItems)) => minValItems(VS) ... </k>
     requires valItemsAllIntLike(VS)
+  rule <k> _Default:Val ~> minDefaultApply(frozensetVal(VS:ValItems)) => minValItems(VS) ... </k>
+    requires valItemsAllIntLike(VS)
   rule <k> _Default:Val ~> minDefaultApply(rangeVal(Start:Int, Stop:Int)) => rangeMin(Start, Stop, 1) ... </k>
     requires pyRangeLen(Start, Stop, 1) >Int 0
   rule <k> _Default:Val ~> minDefaultApply(rangeVal(Start:Int, Stop:Int, Step:Int)) => rangeMin(Start, Stop, Step) ... </k>
@@ -21916,6 +21939,7 @@ module PYTHON
   rule <k> Default:Val ~> maxDefaultApply(#bytes()) => Default ... </k>
   rule <k> Default:Val ~> maxDefaultApply(({}):Val) => Default ... </k>
   rule <k> Default:Val ~> maxDefaultApply(set()) => Default ... </k>
+  rule <k> Default:Val ~> maxDefaultApply(frozenset()) => Default ... </k>
   rule <k> Default:Val ~> maxDefaultApply(rangeVal(Start:Int, Stop:Int)) => Default ... </k>
     requires pyRangeLen(Start, Stop, 1) ==Int 0
   rule <k> Default:Val ~> maxDefaultApply(rangeVal(Start:Int, Stop:Int, Step:Int)) => Default ... </k>
@@ -21938,6 +21962,8 @@ module PYTHON
     requires valItemsAllIntLike(dictKeysToValItems(DS))
   rule <k> _Default:Val ~> maxDefaultApply(setVal(VS:ValItems)) => maxValItems(VS) ... </k>
     requires valItemsAllIntLike(VS)
+  rule <k> _Default:Val ~> maxDefaultApply(frozensetVal(VS:ValItems)) => maxValItems(VS) ... </k>
+    requires valItemsAllIntLike(VS)
   rule <k> _Default:Val ~> maxDefaultApply(rangeVal(Start:Int, Stop:Int)) => rangeMax(Start, Stop, 1) ... </k>
     requires pyRangeLen(Start, Stop, 1) >Int 0
   rule <k> _Default:Val ~> maxDefaultApply(rangeVal(Start:Int, Stop:Int, Step:Int)) => rangeMax(Start, Stop, Step) ... </k>
@@ -21951,6 +21977,7 @@ module PYTHON
   rule <k> _Key:Val ~> minKeyApply(#bytes()) => exceptionSignal(#exception(#token("ValueError", "Id"))) ... </k>
   rule <k> _Key:Val ~> minKeyApply(({}):Val) => exceptionSignal(#exception(#token("ValueError", "Id"))) ... </k>
   rule <k> _Key:Val ~> minKeyApply(set()) => exceptionSignal(#exception(#token("ValueError", "Id"))) ... </k>
+  rule <k> _Key:Val ~> minKeyApply(frozenset()) => exceptionSignal(#exception(#token("ValueError", "Id"))) ... </k>
   rule <k> _Key:Val ~> minKeyApply(rangeVal(Start:Int, Stop:Int)) => exceptionSignal(#exception(#token("ValueError", "Id"))) ... </k>
     requires pyRangeLen(Start, Stop, 1) ==Int 0
   rule <k> _Key:Val ~> minKeyApply(rangeVal(Start:Int, Stop:Int, Step:Int)) => exceptionSignal(#exception(#token("ValueError", "Id"))) ... </k>
@@ -21960,6 +21987,7 @@ module PYTHON
   rule <k> Key:Val ~> minKeyApply(bytesVal(VS:ValItems)) => minKeyFold(VS, Key) ... </k>
   rule <k> Key:Val ~> minKeyApply(dictVal(DS:DictItems)) => minKeyFold(dictKeysToValItems(DS), Key) ... </k>
   rule <k> Key:Val ~> minKeyApply(setVal(VS:ValItems)) => minKeyFold(VS, Key) ... </k>
+  rule <k> Key:Val ~> minKeyApply(frozensetVal(VS:ValItems)) => minKeyFold(VS, Key) ... </k>
   rule <k> Key:Val ~> minKeyApply(rangeVal(Start:Int, Stop:Int)) =>
            minKeyFold(rangeToValItems(Start, Stop, 1, 0, pyRangeLen(Start, Stop, 1)), Key)
        ... </k>
@@ -22015,6 +22043,7 @@ module PYTHON
   rule <k> _Key:Val ~> maxKeyApply(#bytes()) => exceptionSignal(#exception(#token("ValueError", "Id"))) ... </k>
   rule <k> _Key:Val ~> maxKeyApply(({}):Val) => exceptionSignal(#exception(#token("ValueError", "Id"))) ... </k>
   rule <k> _Key:Val ~> maxKeyApply(set()) => exceptionSignal(#exception(#token("ValueError", "Id"))) ... </k>
+  rule <k> _Key:Val ~> maxKeyApply(frozenset()) => exceptionSignal(#exception(#token("ValueError", "Id"))) ... </k>
   rule <k> _Key:Val ~> maxKeyApply(rangeVal(Start:Int, Stop:Int)) => exceptionSignal(#exception(#token("ValueError", "Id"))) ... </k>
     requires pyRangeLen(Start, Stop, 1) ==Int 0
   rule <k> _Key:Val ~> maxKeyApply(rangeVal(Start:Int, Stop:Int, Step:Int)) => exceptionSignal(#exception(#token("ValueError", "Id"))) ... </k>
@@ -22024,6 +22053,7 @@ module PYTHON
   rule <k> Key:Val ~> maxKeyApply(bytesVal(VS:ValItems)) => maxKeyFold(VS, Key) ... </k>
   rule <k> Key:Val ~> maxKeyApply(dictVal(DS:DictItems)) => maxKeyFold(dictKeysToValItems(DS), Key) ... </k>
   rule <k> Key:Val ~> maxKeyApply(setVal(VS:ValItems)) => maxKeyFold(VS, Key) ... </k>
+  rule <k> Key:Val ~> maxKeyApply(frozensetVal(VS:ValItems)) => maxKeyFold(VS, Key) ... </k>
   rule <k> Key:Val ~> maxKeyApply(rangeVal(Start:Int, Stop:Int)) =>
            maxKeyFold(rangeToValItems(Start, Stop, 1, 0, pyRangeLen(Start, Stop, 1)), Key)
        ... </k>
@@ -22085,6 +22115,7 @@ module PYTHON
   rule <k> _Key:Val ~> minDefaultKeyApply(#bytes(), Default:Val) => Default ... </k>
   rule <k> _Key:Val ~> minDefaultKeyApply(({}):Val, Default:Val) => Default ... </k>
   rule <k> _Key:Val ~> minDefaultKeyApply(set(), Default:Val) => Default ... </k>
+  rule <k> _Key:Val ~> minDefaultKeyApply(frozenset(), Default:Val) => Default ... </k>
   rule <k> _Key:Val ~> minDefaultKeyApply(rangeVal(Start:Int, Stop:Int), Default:Val) => Default ... </k>
     requires pyRangeLen(Start, Stop, 1) ==Int 0
   rule <k> _Key:Val ~> minDefaultKeyApply(rangeVal(Start:Int, Stop:Int, Step:Int), Default:Val) => Default ... </k>
@@ -22107,6 +22138,9 @@ module PYTHON
        ... </k>
   rule <k> Key:Val ~> minDefaultKeyApply(setVal(VS:ValItems), _Default:Val) =>
            Key ~> minKeyApply(setVal(VS))
+       ... </k>
+  rule <k> Key:Val ~> minDefaultKeyApply(frozensetVal(VS:ValItems), _Default:Val) =>
+           Key ~> minKeyApply(frozensetVal(VS))
        ... </k>
   rule <k> Key:Val ~> minDefaultKeyApply(rangeVal(Start:Int, Stop:Int), _Default:Val) =>
            Key ~> minKeyApply(rangeVal(Start, Stop))
@@ -22143,6 +22177,7 @@ module PYTHON
   rule <k> _Key:Val ~> maxDefaultKeyApply(#bytes(), Default:Val) => Default ... </k>
   rule <k> _Key:Val ~> maxDefaultKeyApply(({}):Val, Default:Val) => Default ... </k>
   rule <k> _Key:Val ~> maxDefaultKeyApply(set(), Default:Val) => Default ... </k>
+  rule <k> _Key:Val ~> maxDefaultKeyApply(frozenset(), Default:Val) => Default ... </k>
   rule <k> _Key:Val ~> maxDefaultKeyApply(rangeVal(Start:Int, Stop:Int), Default:Val) => Default ... </k>
     requires pyRangeLen(Start, Stop, 1) ==Int 0
   rule <k> _Key:Val ~> maxDefaultKeyApply(rangeVal(Start:Int, Stop:Int, Step:Int), Default:Val) => Default ... </k>
@@ -22165,6 +22200,9 @@ module PYTHON
        ... </k>
   rule <k> Key:Val ~> maxDefaultKeyApply(setVal(VS:ValItems), _Default:Val) =>
            Key ~> maxKeyApply(setVal(VS))
+       ... </k>
+  rule <k> Key:Val ~> maxDefaultKeyApply(frozensetVal(VS:ValItems), _Default:Val) =>
+           Key ~> maxKeyApply(frozensetVal(VS))
        ... </k>
   rule <k> Key:Val ~> maxDefaultKeyApply(rangeVal(Start:Int, Stop:Int), _Default:Val) =>
            Key ~> maxKeyApply(rangeVal(Start, Stop))

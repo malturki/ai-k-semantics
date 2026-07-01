@@ -356,6 +356,7 @@ run_case "adapter-min-max-key-float" "$ROOT/tests/adapter/adapter-min-max-key-fl
 run_case "adapter-min-max-key-default" "$ROOT/tests/adapter/adapter-min-max-key-default.py" "True ~> .K"
 run_case "adapter-min-max-string" "$ROOT/tests/adapter/adapter-min-max-string.py" "True ~> .K"
 run_case "adapter-min-max-float" "$ROOT/tests/adapter/adapter-min-max-float.py" "True ~> .K"
+run_case "adapter-min-max-unordered-numeric" "$ROOT/tests/adapter/adapter-min-max-unordered-numeric.py" "True ~> .K"
 run_case "adapter-int-constructor" "$ROOT/tests/adapter/adapter-int-constructor.py" "True ~> .K"
 run_case "adapter-float-constructor" "$ROOT/tests/adapter/adapter-float-constructor.py" "True ~> .K"
 run_case "adapter-float-string-constructor" "$ROOT/tests/adapter/adapter-float-string-constructor.py" "True ~> .K"

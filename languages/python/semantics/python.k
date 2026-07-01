@@ -21852,10 +21852,17 @@ module PYTHON
     requires valItemsAllIntLike(VS)
   rule #min(dictVal(DS:DictItems)) => minValItems(dictKeysToValItems(DS))
     requires valItemsAllIntLike(dictKeysToValItems(DS))
+  rule #min(dictVal(DS:DictItems)) => minNumericItems(dictKeysToValItems(DS))
+    requires (notBool valItemsAllIntLike(dictKeysToValItems(DS)))
+      andBool valItemsAllNumericComparable(dictKeysToValItems(DS))
   rule #min(setVal(VS:ValItems)) => minValItems(VS)
     requires valItemsAllIntLike(VS)
+  rule #min(setVal(VS:ValItems)) => minNumericItems(VS)
+    requires (notBool valItemsAllIntLike(VS)) andBool valItemsAllNumericComparable(VS)
   rule #min(frozensetVal(VS:ValItems)) => minValItems(VS)
     requires valItemsAllIntLike(VS)
+  rule #min(frozensetVal(VS:ValItems)) => minNumericItems(VS)
+    requires (notBool valItemsAllIntLike(VS)) andBool valItemsAllNumericComparable(VS)
   rule #min(rangeVal(Start:Int, Stop:Int)) => rangeMin(Start, Stop, 1)
     requires pyRangeLen(Start, Stop, 1) >Int 0
   rule #min(rangeVal(Start:Int, Stop:Int, Step:Int)) => rangeMin(Start, Stop, Step)
@@ -21886,10 +21893,17 @@ module PYTHON
     requires valItemsAllIntLike(VS)
   rule #max(dictVal(DS:DictItems)) => maxValItems(dictKeysToValItems(DS))
     requires valItemsAllIntLike(dictKeysToValItems(DS))
+  rule #max(dictVal(DS:DictItems)) => maxNumericItems(dictKeysToValItems(DS))
+    requires (notBool valItemsAllIntLike(dictKeysToValItems(DS)))
+      andBool valItemsAllNumericComparable(dictKeysToValItems(DS))
   rule #max(setVal(VS:ValItems)) => maxValItems(VS)
     requires valItemsAllIntLike(VS)
+  rule #max(setVal(VS:ValItems)) => maxNumericItems(VS)
+    requires (notBool valItemsAllIntLike(VS)) andBool valItemsAllNumericComparable(VS)
   rule #max(frozensetVal(VS:ValItems)) => maxValItems(VS)
     requires valItemsAllIntLike(VS)
+  rule #max(frozensetVal(VS:ValItems)) => maxNumericItems(VS)
+    requires (notBool valItemsAllIntLike(VS)) andBool valItemsAllNumericComparable(VS)
   rule #max(rangeVal(Start:Int, Stop:Int)) => rangeMax(Start, Stop, 1)
     requires pyRangeLen(Start, Stop, 1) >Int 0
   rule #max(rangeVal(Start:Int, Stop:Int, Step:Int)) => rangeMax(Start, Stop, Step)
@@ -21923,10 +21937,17 @@ module PYTHON
     requires valItemsAllIntLike(VS)
   rule <k> _Default:Val ~> minDefaultApply(dictVal(DS:DictItems)) => minValItems(dictKeysToValItems(DS)) ... </k>
     requires valItemsAllIntLike(dictKeysToValItems(DS))
+  rule <k> _Default:Val ~> minDefaultApply(dictVal(DS:DictItems)) => minNumericItems(dictKeysToValItems(DS)) ... </k>
+    requires (notBool valItemsAllIntLike(dictKeysToValItems(DS)))
+      andBool valItemsAllNumericComparable(dictKeysToValItems(DS))
   rule <k> _Default:Val ~> minDefaultApply(setVal(VS:ValItems)) => minValItems(VS) ... </k>
     requires valItemsAllIntLike(VS)
+  rule <k> _Default:Val ~> minDefaultApply(setVal(VS:ValItems)) => minNumericItems(VS) ... </k>
+    requires (notBool valItemsAllIntLike(VS)) andBool valItemsAllNumericComparable(VS)
   rule <k> _Default:Val ~> minDefaultApply(frozensetVal(VS:ValItems)) => minValItems(VS) ... </k>
     requires valItemsAllIntLike(VS)
+  rule <k> _Default:Val ~> minDefaultApply(frozensetVal(VS:ValItems)) => minNumericItems(VS) ... </k>
+    requires (notBool valItemsAllIntLike(VS)) andBool valItemsAllNumericComparable(VS)
   rule <k> _Default:Val ~> minDefaultApply(rangeVal(Start:Int, Stop:Int)) => rangeMin(Start, Stop, 1) ... </k>
     requires pyRangeLen(Start, Stop, 1) >Int 0
   rule <k> _Default:Val ~> minDefaultApply(rangeVal(Start:Int, Stop:Int, Step:Int)) => rangeMin(Start, Stop, Step) ... </k>
@@ -21960,10 +21981,17 @@ module PYTHON
     requires valItemsAllIntLike(VS)
   rule <k> _Default:Val ~> maxDefaultApply(dictVal(DS:DictItems)) => maxValItems(dictKeysToValItems(DS)) ... </k>
     requires valItemsAllIntLike(dictKeysToValItems(DS))
+  rule <k> _Default:Val ~> maxDefaultApply(dictVal(DS:DictItems)) => maxNumericItems(dictKeysToValItems(DS)) ... </k>
+    requires (notBool valItemsAllIntLike(dictKeysToValItems(DS)))
+      andBool valItemsAllNumericComparable(dictKeysToValItems(DS))
   rule <k> _Default:Val ~> maxDefaultApply(setVal(VS:ValItems)) => maxValItems(VS) ... </k>
     requires valItemsAllIntLike(VS)
+  rule <k> _Default:Val ~> maxDefaultApply(setVal(VS:ValItems)) => maxNumericItems(VS) ... </k>
+    requires (notBool valItemsAllIntLike(VS)) andBool valItemsAllNumericComparable(VS)
   rule <k> _Default:Val ~> maxDefaultApply(frozensetVal(VS:ValItems)) => maxValItems(VS) ... </k>
     requires valItemsAllIntLike(VS)
+  rule <k> _Default:Val ~> maxDefaultApply(frozensetVal(VS:ValItems)) => maxNumericItems(VS) ... </k>
+    requires (notBool valItemsAllIntLike(VS)) andBool valItemsAllNumericComparable(VS)
   rule <k> _Default:Val ~> maxDefaultApply(rangeVal(Start:Int, Stop:Int)) => rangeMax(Start, Stop, 1) ... </k>
     requires pyRangeLen(Start, Stop, 1) >Int 0
   rule <k> _Default:Val ~> maxDefaultApply(rangeVal(Start:Int, Stop:Int, Step:Int)) => rangeMax(Start, Stop, Step) ... </k>

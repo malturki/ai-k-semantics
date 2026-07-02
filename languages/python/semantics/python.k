@@ -866,6 +866,7 @@ module PYTHON
                  | filterForTargetUnpackElseIter(Targets, Block, Block) [symbol(filterForTargetUnpackElseIter)]
                  | filterForTargetElseIter(Target, Block, Block) [symbol(filterForTargetElseIter)]
                  | "iterArgsResult" [symbol(iterArgsResult)]
+                 | "iterCollectedResult" [symbol(iterCollectedResult)]
                  | "nextArgsResult" [symbol(nextArgsResult)]
                  | callableIterator(Val, Val) [symbol(callableIterator)]
                  | callableIteratorNext(Int, Val) [symbol(callableIteratorNext)]
@@ -1522,6 +1523,7 @@ module PYTHON
                 | iterArgsExactOne(ArgVals) [function, symbol(iterArgsExactOne)]
                 | nextArgsOneOrTwo(ArgVals) [function, symbol(nextArgsOneOrTwo)]
                 | isIteratorRef(Val) [function, symbol(isIteratorRef)]
+                | iterProducerVal(Val) [function, symbol(iterProducerVal)]
                 | matMulSupported(Val, Val) [function, symbol(matMulSupported)]
                 | absTypeErrorProfile(Val) [function, symbol(absTypeErrorProfile)]
                 | divmodSupported(Val, Val) [function, symbol(divmodSupported)]
@@ -7604,6 +7606,10 @@ module PYTHON
 
   rule isIteratorRef(iteratorRef(_:Int)) => true
   rule isIteratorRef(_:Val) => false [owise]
+
+  rule iterProducerVal(#mapVal(_:Val, _:ArgVals, _:Val)) => true
+  rule iterProducerVal(#filterVal(_:Val, _:Val)) => true
+  rule iterProducerVal(_:Val) => false [owise]
 
   rule emptyKwArgVals(#noKwArgVals) => true
   rule emptyKwArgVals(kwArgValsCons(_:Id, _:Val, _:KwArgVals)) => false
@@ -23337,6 +23343,30 @@ module PYTHON
   rule <k> argsVal(argValsCons(iteratorRef(I:Int), #noArgVals)) ~> iterArgsResult =>
            iteratorRef(I)
        ... </k>
+  rule <k> argsVal(argValsCons(#mapVal(F:Val, Iters:ArgVals, Strict:Val), #noArgVals)) ~> iterArgsResult =>
+           mapCollect(F, zipArgVals(Iters), Strict, Iters, #noArgVals) ~> iterCollectedResult
+       ... </k>
+    requires mapItersSupported(Iters)
+  rule <k> argsVal(argValsCons(#mapVal(_F:Val, Iters:ArgVals, _Strict:Val), #noArgVals)) ~> iterArgsResult =>
+           exceptionSignal(#exception(#token("TypeError", "Id")))
+       ... </k>
+    requires notBool mapItersSupported(Iters)
+  rule <k> argsVal(argValsCons(#filterVal(F:Val, Iter:Val), #noArgVals)) ~> iterArgsResult =>
+           filterCollect(F, iterableArgVals(Iter), #noArgVals) ~> iterCollectedResult
+       ... </k>
+    requires enumerateIterableSupported(Iter)
+  rule <k> argsVal(argValsCons(#filterVal(_F:Val, Iter:Val), #noArgVals)) ~> iterArgsResult =>
+           exceptionSignal(#exception(#token("TypeError", "Id")))
+       ... </k>
+    requires notBool enumerateIterableSupported(Iter)
+  rule <k> argsVal(VS:ArgVals) ~> iterCollectedResult =>
+           iteratorRef(I)
+       ... </k>
+       <iterators> M => M [ I <- VS ] </iterators>
+       <nextIterator> I => I +Int 1 </nextIterator>
+  rule <k> exceptionSignal(E:Val) ~> iterCollectedResult =>
+           exceptionSignal(E)
+       ... </k>
   rule <k> argsVal(argValsCons(V:Val, #noArgVals)) ~> iterArgsResult =>
            iteratorRef(I)
        ... </k>
@@ -23348,6 +23378,7 @@ module PYTHON
        ... </k>
     requires notBool enumerateIterableSupported(V)
       andBool notBool isIteratorRef(V)
+      andBool notBool iterProducerVal(V)
   rule <k> argsVal(argValsCons(F:Val, argValsCons(_Sentinel:Val, #noArgVals))) ~> iterArgsResult =>
            exceptionSignal(#exception(#token("TypeError", "Id")))
        ... </k>

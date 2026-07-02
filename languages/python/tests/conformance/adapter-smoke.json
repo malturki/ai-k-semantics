@@ -2188,6 +2188,13 @@
       "coverage": ["filter-builtin", "iterator-producing-builtin-profile", "predicate-callable-profile", "none-predicate-truth-filter", "concrete-iterable-profile", "for-statement", "for-else", "sequence-unpacking-target", "list-constructor", "tuple-constructor", "value-error", "type-error", "ordinary-python-source-adapter"]
     },
     {
+      "id": "adapter-iterator-map-filter-refs",
+      "source": "../adapter/adapter-iterator-map-filter-refs.py",
+      "reference": "Python 3.14.6 Standard Library Built-in Functions map, filter, iter, and next; Built-in Types iterator protocol",
+      "expected_result": "True ~> .K",
+      "coverage": ["map-builtin", "filter-builtin", "iter-builtin", "next-builtin", "iterator-protocol-profile", "stateful-iterator-ref", "iterator-producing-builtin-profile", "callable-application-profile", "predicate-callable-profile", "none-predicate-truth-filter", "list-constructor", "tuple-constructor", "for-statement", "ordinary-python-source-adapter"]
+    },
+    {
       "id": "adapter-iter-next-builtin",
       "source": "../adapter/adapter-iter-next-builtin.py",
       "reference": "Python 3.14.6 Standard Library Built-in Functions iter and next; Built-in Types iterator protocol; CPython Lib/test/test_builtin.py iter/next and Lib/test/test_iter.py concrete iterator behavior",

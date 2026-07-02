@@ -352,6 +352,7 @@ run_case "adapter-zip-builtin" "$ROOT/tests/adapter/adapter-zip-builtin.py" "Tru
 run_case "adapter-reversed-builtin" "$ROOT/tests/adapter/adapter-reversed-builtin.py" "True ~> .K"
 run_case "adapter-map-builtin" "$ROOT/tests/adapter/adapter-map-builtin.py" "True ~> .K"
 run_case "adapter-filter-builtin" "$ROOT/tests/adapter/adapter-filter-builtin.py" "True ~> .K"
+run_case "adapter-iterator-map-filter-refs" "$ROOT/tests/adapter/adapter-iterator-map-filter-refs.py" "True ~> .K"
 run_case "adapter-iter-next-builtin" "$ROOT/tests/adapter/adapter-iter-next-builtin.py" "True ~> .K"
 run_case "adapter-iter-callable-sentinel-builtin" "$ROOT/tests/adapter/adapter-iter-callable-sentinel-builtin.py" "True ~> .K"
 run_case "adapter-iterator-reducer-builtins" "$ROOT/tests/adapter/adapter-iterator-reducer-builtins.py" "True ~> .K"

@@ -2216,6 +2216,13 @@
       "coverage": ["min-builtin", "max-builtin", "numeric-comparison", "dict-key-iteration-profile", "set-iteration-profile", "frozenset-iteration-profile", "min-max-default-keywords", "min-max-key-keyword", "ordinary-python-source-adapter"]
     },
     {
+      "id": "adapter-iterator-min-max-builtins",
+      "source": "../adapter/adapter-iterator-min-max-builtins.py",
+      "reference": "Python 3.14.6 Standard Library Built-in Functions min and max; Built-in Types iterator protocol; CPython Lib/test/test_builtin.py min/max iterable, default, key, and key=None coverage",
+      "expected_result": "True ~> .K",
+      "coverage": ["min-builtin", "max-builtin", "iterator-protocol-profile", "stateful-iterator-ref", "iterator-consumption-profile", "min-max-default-keywords", "min-max-key-keyword", "key-none-profile", "first-encountered-tie-profile", "callable-sentinel-iterator-profile", "iterator-exhaustion-sink-state", "value-error", "ordinary-python-source-adapter"]
+    },
+    {
       "id": "adapter-int-constructor",
       "source": "../adapter/adapter-int-constructor.py",
       "reference": "Python Standard Library Built-in Types int",

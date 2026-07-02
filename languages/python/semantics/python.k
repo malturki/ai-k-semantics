@@ -1099,6 +1099,14 @@ module PYTHON
                  | maxArgsKeyDefaultDefault(ArgVals, Exp) [symbol(maxArgsKeyDefaultDefault)]
                  | minArgsKeyDefaultReject(ArgVals, Val) [symbol(minArgsKeyDefaultReject)]
                  | maxArgsKeyDefaultReject(ArgVals, Val) [symbol(maxArgsKeyDefaultReject)]
+                 | "minIteratorApply" [symbol(minIteratorApply)]
+                 | "maxIteratorApply" [symbol(maxIteratorApply)]
+                 | minDefaultIteratorApply(Val) [symbol(minDefaultIteratorApply)]
+                 | maxDefaultIteratorApply(Val) [symbol(maxDefaultIteratorApply)]
+                 | minKeyIteratorApply(Val) [symbol(minKeyIteratorApply)]
+                 | maxKeyIteratorApply(Val) [symbol(maxKeyIteratorApply)]
+                 | minDefaultKeyIteratorApply(Val, Val) [symbol(minDefaultKeyIteratorApply)]
+                 | maxDefaultKeyIteratorApply(Val, Val) [symbol(maxDefaultKeyIteratorApply)]
                  | evalDict(DictExps, DictVals) [symbol(evalDict)]
                  | evalDictValue(Exp, DictExps, DictVals) [symbol(evalDictValue)]
                  | evalDictNext(DictExps, DictVals, Val) [symbol(evalDictNext)]
@@ -22715,6 +22723,8 @@ module PYTHON
     requires pyRangeLen(Start, Stop, 1) >Int 0
   rule #min(rangeVal(Start:Int, Stop:Int, Step:Int)) => rangeMin(Start, Stop, Step)
     requires Step =/=Int 0 andBool pyRangeLen(Start, Stop, Step) >Int 0
+  rule <k> #min(iteratorRef(I:Int)) => #listCtor(iteratorRef(I)) ~> minIteratorApply ... </k>
+  rule <k> V:Val ~> minIteratorApply => #min(V) ... </k>
   rule <k> #max([]) => exceptionSignal(#exception(#token("ValueError", "Id"))) ... </k>
   rule <k> #max(()) => exceptionSignal(#exception(#token("ValueError", "Id"))) ... </k>
   rule <k> #max("") => exceptionSignal(#exception(#token("ValueError", "Id"))) ... </k>
@@ -22756,6 +22766,8 @@ module PYTHON
     requires pyRangeLen(Start, Stop, 1) >Int 0
   rule #max(rangeVal(Start:Int, Stop:Int, Step:Int)) => rangeMax(Start, Stop, Step)
     requires Step =/=Int 0 andBool pyRangeLen(Start, Stop, Step) >Int 0
+  rule <k> #max(iteratorRef(I:Int)) => #listCtor(iteratorRef(I)) ~> maxIteratorApply ... </k>
+  rule <k> V:Val ~> maxIteratorApply => #max(V) ... </k>
   rule <k> minDefaultExp(Iter:Exp, Default:Exp) => Iter ~> minDefaultEval(Default) ... </k>
   rule <k> V:Val ~> minDefaultEval(Default:Exp) => Default ~> minDefaultApply(V) ... </k>
   rule <k> Default:Val ~> minDefaultApply([]) => Default ... </k>
@@ -22800,6 +22812,12 @@ module PYTHON
     requires pyRangeLen(Start, Stop, 1) >Int 0
   rule <k> _Default:Val ~> minDefaultApply(rangeVal(Start:Int, Stop:Int, Step:Int)) => rangeMin(Start, Stop, Step) ... </k>
     requires Step =/=Int 0 andBool pyRangeLen(Start, Stop, Step) >Int 0
+  rule <k> Default:Val ~> minDefaultApply(iteratorRef(I:Int)) =>
+           #listCtor(iteratorRef(I)) ~> minDefaultIteratorApply(Default)
+       ... </k>
+  rule <k> V:Val ~> minDefaultIteratorApply(Default:Val) =>
+           Default ~> minDefaultApply(V)
+       ... </k>
   rule <k> maxDefaultExp(Iter:Exp, Default:Exp) => Iter ~> maxDefaultEval(Default) ... </k>
   rule <k> V:Val ~> maxDefaultEval(Default:Exp) => Default ~> maxDefaultApply(V) ... </k>
   rule <k> Default:Val ~> maxDefaultApply([]) => Default ... </k>
@@ -22844,6 +22862,12 @@ module PYTHON
     requires pyRangeLen(Start, Stop, 1) >Int 0
   rule <k> _Default:Val ~> maxDefaultApply(rangeVal(Start:Int, Stop:Int, Step:Int)) => rangeMax(Start, Stop, Step) ... </k>
     requires Step =/=Int 0 andBool pyRangeLen(Start, Stop, Step) >Int 0
+  rule <k> Default:Val ~> maxDefaultApply(iteratorRef(I:Int)) =>
+           #listCtor(iteratorRef(I)) ~> maxDefaultIteratorApply(Default)
+       ... </k>
+  rule <k> V:Val ~> maxDefaultIteratorApply(Default:Val) =>
+           Default ~> maxDefaultApply(V)
+       ... </k>
   rule <k> minKeyExp(Iter:Exp, Key:Exp) => Iter ~> minKeyEval(Key) ... </k>
   rule <k> V:Val ~> minKeyEval(Key:Exp) => Key ~> minKeyApply(V) ... </k>
   rule <k> None ~> minKeyApply(V:Val) => #min(V) ... </k>
@@ -22872,6 +22896,13 @@ module PYTHON
            minKeyFold(rangeToValItems(Start, Stop, Step, 0, pyRangeLen(Start, Stop, Step)), Key)
        ... </k>
     requires Step =/=Int 0 andBool pyRangeLen(Start, Stop, Step) >Int 0
+  rule <k> Key:Val ~> minKeyApply(iteratorRef(I:Int)) =>
+           #listCtor(iteratorRef(I)) ~> minKeyIteratorApply(Key)
+       ... </k>
+    requires notBool isNoneVal(Key)
+  rule <k> V:Val ~> minKeyIteratorApply(Key:Val) =>
+           Key ~> minKeyApply(V)
+       ... </k>
   rule <k> minKeyFold(valItemsLast(V:Val), Key:Val) =>
            callExp(Key, V) ~> minKeySingle(V)
        ... </k>
@@ -22938,6 +22969,13 @@ module PYTHON
            maxKeyFold(rangeToValItems(Start, Stop, Step, 0, pyRangeLen(Start, Stop, Step)), Key)
        ... </k>
     requires Step =/=Int 0 andBool pyRangeLen(Start, Stop, Step) >Int 0
+  rule <k> Key:Val ~> maxKeyApply(iteratorRef(I:Int)) =>
+           #listCtor(iteratorRef(I)) ~> maxKeyIteratorApply(Key)
+       ... </k>
+    requires notBool isNoneVal(Key)
+  rule <k> V:Val ~> maxKeyIteratorApply(Key:Val) =>
+           Key ~> maxKeyApply(V)
+       ... </k>
   rule <k> maxKeyFold(valItemsLast(V:Val), Key:Val) =>
            callExp(Key, V) ~> maxKeySingle(V)
        ... </k>
@@ -23026,6 +23064,16 @@ module PYTHON
            Key ~> minKeyApply(rangeVal(Start, Stop, Step))
        ... </k>
     requires Step =/=Int 0 andBool pyRangeLen(Start, Stop, Step) >Int 0
+  rule <k> None ~> minDefaultKeyApply(iteratorRef(I:Int), Default:Val) =>
+           #listCtor(iteratorRef(I)) ~> minDefaultIteratorApply(Default)
+       ... </k>
+  rule <k> Key:Val ~> minDefaultKeyApply(iteratorRef(I:Int), Default:Val) =>
+           #listCtor(iteratorRef(I)) ~> minDefaultKeyIteratorApply(Key, Default)
+       ... </k>
+    requires notBool isNoneVal(Key)
+  rule <k> V:Val ~> minDefaultKeyIteratorApply(Key:Val, Default:Val) =>
+           Key ~> minDefaultKeyApply(V, Default)
+       ... </k>
   rule <k> minKeyDefaultExp(Iter:Exp, Key:Exp, Default:Exp) =>
            Iter ~> minKeyDefaultKey(Key, Default)
        ... </k>
@@ -23088,6 +23136,16 @@ module PYTHON
            Key ~> maxKeyApply(rangeVal(Start, Stop, Step))
        ... </k>
     requires Step =/=Int 0 andBool pyRangeLen(Start, Stop, Step) >Int 0
+  rule <k> None ~> maxDefaultKeyApply(iteratorRef(I:Int), Default:Val) =>
+           #listCtor(iteratorRef(I)) ~> maxDefaultIteratorApply(Default)
+       ... </k>
+  rule <k> Key:Val ~> maxDefaultKeyApply(iteratorRef(I:Int), Default:Val) =>
+           #listCtor(iteratorRef(I)) ~> maxDefaultKeyIteratorApply(Key, Default)
+       ... </k>
+    requires notBool isNoneVal(Key)
+  rule <k> V:Val ~> maxDefaultKeyIteratorApply(Key:Val, Default:Val) =>
+           Key ~> maxDefaultKeyApply(V, Default)
+       ... </k>
   rule <k> maxKeyDefaultExp(Iter:Exp, Key:Exp, Default:Exp) =>
            Iter ~> maxKeyDefaultKey(Key, Default)
        ... </k>
@@ -31273,6 +31331,14 @@ module PYTHON
   rule <k> exceptionSignal(V:Val) ~> maxArgsKeyDefaultDefault(_:ArgVals, _:Exp) => exceptionSignal(V) ... </k>
   rule <k> exceptionSignal(V:Val) ~> minArgsKeyDefaultReject(_:ArgVals, _:Val) => exceptionSignal(V) ... </k>
   rule <k> exceptionSignal(V:Val) ~> maxArgsKeyDefaultReject(_:ArgVals, _:Val) => exceptionSignal(V) ... </k>
+  rule <k> exceptionSignal(V:Val) ~> minIteratorApply => exceptionSignal(V) ... </k>
+  rule <k> exceptionSignal(V:Val) ~> maxIteratorApply => exceptionSignal(V) ... </k>
+  rule <k> exceptionSignal(V:Val) ~> minDefaultIteratorApply(_:Val) => exceptionSignal(V) ... </k>
+  rule <k> exceptionSignal(V:Val) ~> maxDefaultIteratorApply(_:Val) => exceptionSignal(V) ... </k>
+  rule <k> exceptionSignal(V:Val) ~> minKeyIteratorApply(_:Val) => exceptionSignal(V) ... </k>
+  rule <k> exceptionSignal(V:Val) ~> maxKeyIteratorApply(_:Val) => exceptionSignal(V) ... </k>
+  rule <k> exceptionSignal(V:Val) ~> minDefaultKeyIteratorApply(_:Val, _:Val) => exceptionSignal(V) ... </k>
+  rule <k> exceptionSignal(V:Val) ~> maxDefaultKeyIteratorApply(_:Val, _:Val) => exceptionSignal(V) ... </k>
   rule <k> exceptionSignal(V:Val) ~> whileStmtBranch(_:Exp, _:Block) => exceptionSignal(V) ... </k>
   rule <k> exceptionSignal(V:Val) ~> whileElseStmtBranch(_:Exp, _:Block, _:Block) => exceptionSignal(V) ... </k>
   rule <k> breakSignal ~> whileStmtAgain(_:Exp, _:Block) => stmtNoResult ... </k>

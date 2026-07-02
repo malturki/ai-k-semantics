@@ -2132,6 +2132,13 @@
       "coverage": ["sorted-builtin", "key-argument", "reverse-argument", "stable-sort", "truth-value-testing", "evaluation-order", "exception-propagation", "type-error", "ordinary-python-source-adapter"]
     },
     {
+      "id": "adapter-iterator-sorted-builtin",
+      "source": "../adapter/adapter-iterator-sorted-builtin.py",
+      "reference": "Python 3.14.6 Standard Library Built-in Functions sorted; Built-in Types iterator protocol; CPython Lib/test/test_builtin.py sorted iterable, key, key=None, reverse, and stability coverage",
+      "expected_result": "True ~> .K",
+      "coverage": ["sorted-builtin", "iterator-protocol-profile", "stateful-iterator-ref", "iterator-consumption-profile", "key-argument", "key-none-profile", "reverse-argument", "stable-sort", "callable-sentinel-iterator-profile", "iterator-exhaustion-sink-state", "type-error", "ordinary-python-source-adapter"]
+    },
+    {
       "id": "adapter-sum-int",
       "source": "../adapter/adapter-sum-int.py",
       "reference": "Python Standard Library Built-in Functions sum; Built-in Types list, tuple, dict, set, and range",

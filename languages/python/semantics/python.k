@@ -755,6 +755,10 @@ module PYTHON
                  | sortedKeyCollectReverse(ArgVals, KeyedVals, Val, Val) [symbol(sortedKeyCollectReverse)]
                  | sortedKeyAdd(Val, ArgVals, KeyedVals, Val) [symbol(sortedKeyAdd)]
                  | sortedKeyAddReverse(Val, ArgVals, KeyedVals, Val, Val) [symbol(sortedKeyAddReverse)]
+                 | "sortedIteratorApply" [symbol(sortedIteratorApply)]
+                 | sortedReverseIteratorApply(Val) [symbol(sortedReverseIteratorApply)]
+                 | sortedKeyIteratorApply(Val) [symbol(sortedKeyIteratorApply)]
+                 | sortedKeyReverseIteratorApply(Val, Val) [symbol(sortedKeyReverseIteratorApply)]
                  | mapArgsResult(Val) [symbol(mapArgsResult)]
                  | mapStrictEval(Exp) [symbol(mapStrictEval)]
                  | mapStrictResult(ArgVals) [symbol(mapStrictResult)]
@@ -20715,6 +20719,11 @@ module PYTHON
       andBool notBool argValsAllOrderComparable(iterableArgVals(V))
   rule <k> #sorted(V:Val) => exceptionSignal(#exception(#token("TypeError", "Id"))) ... </k>
     requires notBool sortedIterableSupported(V)
+      andBool notBool isIteratorRef(V)
+  rule <k> #sorted(iteratorRef(I:Int)) =>
+           #listCtor(iteratorRef(I)) ~> sortedIteratorApply
+       ... </k>
+  rule <k> V:Val ~> sortedIteratorApply => #sorted(V) ... </k>
   rule <k> #sortedReverse(Iter:Exp, Reverse:Exp) =>
            Iter ~> sortedReverseFlag(Reverse)
        ... </k>
@@ -20742,6 +20751,13 @@ module PYTHON
            exceptionSignal(#exception(#token("TypeError", "Id")))
        ... </k>
     requires notBool sortedIterableSupported(Iter)
+      andBool notBool isIteratorRef(Iter)
+  rule <k> Reverse:Val ~> sortedReverseApply(iteratorRef(I:Int)) =>
+           #listCtor(iteratorRef(I)) ~> sortedReverseIteratorApply(Reverse)
+       ... </k>
+  rule <k> V:Val ~> sortedReverseIteratorApply(Reverse:Val) =>
+           Reverse ~> sortedReverseApply(V)
+       ... </k>
   rule <k> #sortedKey(Iter:Exp, Key:Exp) =>
            Iter ~> sortedKeyEval(Key)
        ... </k>
@@ -20761,7 +20777,15 @@ module PYTHON
            exceptionSignal(#exception(#token("TypeError", "Id")))
        ... </k>
     requires (notBool sortedIterableSupported(Iter))
+      andBool notBool isIteratorRef(Iter)
       andBool notBool isNoneVal(Key)
+  rule <k> Key:Val ~> sortedKeyApply(iteratorRef(I:Int)) =>
+           #listCtor(iteratorRef(I)) ~> sortedKeyIteratorApply(Key)
+       ... </k>
+    requires notBool isNoneVal(Key)
+  rule <k> V:Val ~> sortedKeyIteratorApply(Key:Val) =>
+           Key ~> sortedKeyApply(V)
+       ... </k>
   rule <k> #sortedKeyReverse(Iter:Exp, Key:Exp, Reverse:Exp) =>
            Iter ~> sortedKeyReverseKey(Key, Reverse)
        ... </k>
@@ -20802,12 +20826,25 @@ module PYTHON
            exceptionSignal(#exception(#token("TypeError", "Id")))
        ... </k>
     requires (notBool sortedIterableSupported(Iter))
+      andBool notBool isIteratorRef(Iter)
       andBool notBool isNoneVal(Key)
   rule <k> Key:Val ~> sortedKeyApplyReverse(Iter:Val, _Reverse:Val) =>
            exceptionSignal(#exception(#token("TypeError", "Id")))
        ... </k>
     requires (notBool sortedIterableSupported(Iter))
+      andBool notBool isIteratorRef(Iter)
       andBool notBool isNoneVal(Key)
+  rule <k> Reverse:Val ~> sortedKeyReverseApply(iteratorRef(I:Int), Key:Val) =>
+           #listCtor(iteratorRef(I)) ~> sortedKeyReverseIteratorApply(Key, Reverse)
+       ... </k>
+    requires notBool isNoneVal(Key)
+  rule <k> Key:Val ~> sortedKeyApplyReverse(iteratorRef(I:Int), Reverse:Val) =>
+           #listCtor(iteratorRef(I)) ~> sortedKeyReverseIteratorApply(Key, Reverse)
+       ... </k>
+    requires notBool isNoneVal(Key)
+  rule <k> V:Val ~> sortedKeyReverseIteratorApply(Key:Val, Reverse:Val) =>
+           Key ~> sortedKeyApplyReverse(V, Reverse)
+       ... </k>
   rule <k> sortedKeyCollect(#noArgVals, Acc:KeyedVals, _Key:Val) =>
            sortedKeyedListVal(Acc)
        ... </k>
@@ -31237,6 +31274,10 @@ module PYTHON
   rule <k> exceptionSignal(V:Val) ~> sortedKeyApplyReverse(_:Val, _:Val) => exceptionSignal(V) ... </k>
   rule <k> exceptionSignal(V:Val) ~> sortedKeyAdd(_:Val, _:ArgVals, _:KeyedVals, _:Val) => exceptionSignal(V) ... </k>
   rule <k> exceptionSignal(V:Val) ~> sortedKeyAddReverse(_:Val, _:ArgVals, _:KeyedVals, _:Val, _:Val) => exceptionSignal(V) ... </k>
+  rule <k> exceptionSignal(V:Val) ~> sortedIteratorApply => exceptionSignal(V) ... </k>
+  rule <k> exceptionSignal(V:Val) ~> sortedReverseIteratorApply(_:Val) => exceptionSignal(V) ... </k>
+  rule <k> exceptionSignal(V:Val) ~> sortedKeyIteratorApply(_:Val) => exceptionSignal(V) ... </k>
+  rule <k> exceptionSignal(V:Val) ~> sortedKeyReverseIteratorApply(_:Val, _:Val) => exceptionSignal(V) ... </k>
   rule <k> exceptionSignal(V:Val) ~> listSortReverseApply(_:Id) => exceptionSignal(V) ... </k>
   rule <k> exceptionSignal(V:Val) ~> listSortKeyApply(_:Id) => exceptionSignal(V) ... </k>
   rule <k> exceptionSignal(V:Val) ~> listSortKeyReverseKey(_:Id, _:Exp) => exceptionSignal(V) ... </k>

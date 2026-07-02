@@ -3861,6 +3861,13 @@
       "coverage": ["list-comprehension", "dict-comprehension", "set-comprehension", "single-for-comprehension", "sequence-unpacking-target", "nested-starred-targets", "comprehension-if-clauses", "truth-value-testing", "comprehension-target-scope", "ordinary-python-source-adapter"]
     },
     {
+      "id": "adapter-iterator-comprehensions",
+      "source": "../adapter/adapter-iterator-comprehensions.py",
+      "reference": "Python 3.14.6 Language Reference 6.2.4 Displays for lists, sets and dictionaries, 6.2.5 List displays, 6.2.6 Set displays, and 6.2.7 Dictionary displays; Built-in Types iterator protocol; CPython Lib/test/test_listcomps.py and Lib/test/test_setcomps.py comprehension coverage",
+      "expected_result": "True ~> .K",
+      "coverage": ["list-comprehension", "dict-comprehension", "set-comprehension", "single-for-comprehension", "iterator-protocol-profile", "stateful-iterator-ref", "iterator-consumption-profile", "sequence-unpacking-target", "comprehension-if-clauses", "truth-value-testing", "duplicate-element-normalization", "dict-duplicate-key-overwrite", "callable-sentinel-iterator-profile", "iterator-exhaustion-sink-state", "ordinary-python-source-adapter"]
+    },
+    {
       "id": "adapter-comprehension-target-two-for",
       "source": "../adapter/adapter-comprehension-target-two-for.py",
       "reference": "Python Language Reference 6.2.4 Displays for lists, sets and dictionaries; 6.2.5 List displays; 6.2.6 Set displays; 6.2.7 Dictionary displays",

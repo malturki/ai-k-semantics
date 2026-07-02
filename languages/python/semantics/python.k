@@ -743,6 +743,21 @@ module PYTHON
                  | formatApply(Val) [symbol(formatApply)]
                  | "bytesIteratorApply" [symbol(bytesIteratorApply)]
                  | "bytearrayIteratorApply" [symbol(bytearrayIteratorApply)]
+                 | listCompIteratorApply(Id, Exp, Map) [symbol(listCompIteratorApply)]
+                 | listCompTargetIteratorApply(Target, Exp, Map) [symbol(listCompTargetIteratorApply)]
+                 | listCompTargetIfsIteratorApply(Target, CompFilters, Exp, Map) [symbol(listCompTargetIfsIteratorApply)]
+                 | listCompIfIteratorApply(Id, Exp, Exp, Map) [symbol(listCompIfIteratorApply)]
+                 | listCompIfsIteratorApply(Id, CompFilters, Exp, Map) [symbol(listCompIfsIteratorApply)]
+                 | setCompIteratorApply(Id, Exp, Map) [symbol(setCompIteratorApply)]
+                 | setCompTargetIteratorApply(Target, Exp, Map) [symbol(setCompTargetIteratorApply)]
+                 | setCompTargetIfsIteratorApply(Target, CompFilters, Exp, Map) [symbol(setCompTargetIfsIteratorApply)]
+                 | setCompIfIteratorApply(Id, Exp, Exp, Map) [symbol(setCompIfIteratorApply)]
+                 | setCompIfsIteratorApply(Id, CompFilters, Exp, Map) [symbol(setCompIfsIteratorApply)]
+                 | dictCompIteratorApply(Id, Exp, Exp, Map) [symbol(dictCompIteratorApply)]
+                 | dictCompTargetIteratorApply(Target, Exp, Exp, Map) [symbol(dictCompTargetIteratorApply)]
+                 | dictCompTargetIfsIteratorApply(Target, CompFilters, Exp, Exp, Map) [symbol(dictCompTargetIfsIteratorApply)]
+                 | dictCompIfIteratorApply(Id, Exp, Exp, Exp, Map) [symbol(dictCompIfIteratorApply)]
+                 | dictCompIfsIteratorApply(Id, CompFilters, Exp, Exp, Map) [symbol(dictCompIfsIteratorApply)]
                  | "setIteratorApply" [symbol(setIteratorApply)]
                  | "frozensetIteratorApply" [symbol(frozensetIteratorApply)]
                  | sortedReverseFlag(Exp) [symbol(sortedReverseFlag)]
@@ -18307,10 +18322,15 @@ module PYTHON
   rule <k> argsVal(#noArgVals) ~> buildList => [] ... </k>
   rule <k> argsVal(VS:ArgVals) ~> buildList => listVal(argValsToValItems(VS)) ... </k>
     requires notBool emptyArgVals(VS)
+  rule <k> listCompExp(iteratorRef(I:Int), X:Id, Elem:Exp) =>
+           #listCtor(iteratorRef(I)) ~> listCompIteratorApply(X, Elem, Rho)
+       ... </k>
+       <env> Rho </env>
   rule <k> listCompExp(Iter:Val, X:Id, Elem:Exp) =>
            listCompIter(X, Elem, iterableArgVals(Iter), #noArgVals, Rho)
        ... </k>
        <env> Rho </env>
+    requires notBool isIteratorRef(Iter)
   rule <k> listCompIter(_:Id, _:Exp, #noArgVals, #noArgVals, Rho:Map) =>
            [] ~> restoreEnv(Rho)
        ... </k>
@@ -18325,10 +18345,15 @@ module PYTHON
   rule <k> V:Val ~> listCompNext(X:Id, Elem:Exp, Rest:ArgVals, Acc:ArgVals, Rho:Map) =>
            listCompIter(X, Elem, Rest, appendArgVal(Acc, V), Rho)
        ... </k>
+  rule <k> listCompTargetExp(iteratorRef(I:Int), T:Target, Elem:Exp) =>
+           #listCtor(iteratorRef(I)) ~> listCompTargetIteratorApply(T, Elem, Rho)
+       ... </k>
+       <env> Rho </env>
   rule <k> listCompTargetExp(Iter:Val, T:Target, Elem:Exp) =>
            listCompTargetIter(T, Elem, iterableArgVals(Iter), #noArgVals, Rho)
        ... </k>
        <env> Rho </env>
+    requires notBool isIteratorRef(Iter)
   rule <k> listCompTargetIter(_:Target, _:Exp, #noArgVals, #noArgVals, Rho:Map) =>
            [] ~> restoreEnv(Rho)
        ... </k>
@@ -18344,10 +18369,15 @@ module PYTHON
   rule <k> V:Val ~> listCompTargetNext(T:Target, Elem:Exp, Rest:ArgVals, Acc:ArgVals, Rho:Map) =>
            listCompTargetIter(T, Elem, Rest, appendArgVal(Acc, V), Rho)
        ... </k>
+  rule <k> listCompTargetIfsExp(iteratorRef(I:Int), T:Target, Filters:CompFilters, Elem:Exp) =>
+           #listCtor(iteratorRef(I)) ~> listCompTargetIfsIteratorApply(T, Filters, Elem, Rho)
+       ... </k>
+       <env> Rho </env>
   rule <k> listCompTargetIfsExp(Iter:Val, T:Target, Filters:CompFilters, Elem:Exp) =>
            listCompTargetIfsIter(T, Filters, Elem, iterableArgVals(Iter), #noArgVals, Rho)
        ... </k>
        <env> Rho </env>
+    requires notBool isIteratorRef(Iter)
   rule <k> listCompTargetIfsIter(_:Target, _:CompFilters, _:Exp, #noArgVals, #noArgVals, Rho:Map) =>
            [] ~> restoreEnv(Rho)
        ... </k>
@@ -18385,10 +18415,15 @@ module PYTHON
   rule <k> V:Val ~> listCompTargetIfsNext(T:Target, Filters:CompFilters, Elem:Exp, Rest:ArgVals, Acc:ArgVals, Rho:Map) =>
            listCompTargetIfsIter(T, Filters, Elem, Rest, appendArgVal(Acc, V), Rho)
        ... </k>
+  rule <k> listCompIfExp(iteratorRef(I:Int), X:Id, Filter:Exp, Elem:Exp) =>
+           #listCtor(iteratorRef(I)) ~> listCompIfIteratorApply(X, Filter, Elem, Rho)
+       ... </k>
+       <env> Rho </env>
   rule <k> listCompIfExp(Iter:Val, X:Id, Filter:Exp, Elem:Exp) =>
            listCompIfIter(X, Filter, Elem, iterableArgVals(Iter), #noArgVals, Rho)
        ... </k>
        <env> Rho </env>
+    requires notBool isIteratorRef(Iter)
   rule <k> listCompIfIter(_:Id, _:Exp, _:Exp, #noArgVals, #noArgVals, Rho:Map) =>
            [] ~> restoreEnv(Rho)
        ... </k>
@@ -18411,10 +18446,62 @@ module PYTHON
   rule <k> V:Val ~> listCompIfNext(X:Id, Filter:Exp, Elem:Exp, Rest:ArgVals, Acc:ArgVals, Rho:Map) =>
            listCompIfIter(X, Filter, Elem, Rest, appendArgVal(Acc, V), Rho)
        ... </k>
+
+  rule <k> V:Val ~> listCompIteratorApply(X:Id, Elem:Exp, Rho:Map) =>
+           listCompIter(X, Elem, iterableArgVals(V), #noArgVals, Rho)
+       ... </k>
+  rule <k> V:Val ~> listCompTargetIteratorApply(T:Target, Elem:Exp, Rho:Map) =>
+           listCompTargetIter(T, Elem, iterableArgVals(V), #noArgVals, Rho)
+       ... </k>
+  rule <k> V:Val ~> listCompTargetIfsIteratorApply(T:Target, Filters:CompFilters, Elem:Exp, Rho:Map) =>
+           listCompTargetIfsIter(T, Filters, Elem, iterableArgVals(V), #noArgVals, Rho)
+       ... </k>
+  rule <k> V:Val ~> listCompIfIteratorApply(X:Id, Filter:Exp, Elem:Exp, Rho:Map) =>
+           listCompIfIter(X, Filter, Elem, iterableArgVals(V), #noArgVals, Rho)
+       ... </k>
+  rule <k> V:Val ~> listCompIfsIteratorApply(X:Id, Filters:CompFilters, Elem:Exp, Rho:Map) =>
+           listCompIfsIter(X, Filters, Elem, iterableArgVals(V), #noArgVals, Rho)
+       ... </k>
+  rule <k> V:Val ~> setCompIteratorApply(X:Id, Elem:Exp, Rho:Map) =>
+           setCompIter(X, Elem, iterableArgVals(V), #noArgVals, Rho)
+       ... </k>
+  rule <k> V:Val ~> setCompTargetIteratorApply(T:Target, Elem:Exp, Rho:Map) =>
+           setCompTargetIter(T, Elem, iterableArgVals(V), #noArgVals, Rho)
+       ... </k>
+  rule <k> V:Val ~> setCompTargetIfsIteratorApply(T:Target, Filters:CompFilters, Elem:Exp, Rho:Map) =>
+           setCompTargetIfsIter(T, Filters, Elem, iterableArgVals(V), #noArgVals, Rho)
+       ... </k>
+  rule <k> V:Val ~> setCompIfIteratorApply(X:Id, Filter:Exp, Elem:Exp, Rho:Map) =>
+           setCompIfIter(X, Filter, Elem, iterableArgVals(V), #noArgVals, Rho)
+       ... </k>
+  rule <k> V:Val ~> setCompIfsIteratorApply(X:Id, Filters:CompFilters, Elem:Exp, Rho:Map) =>
+           setCompIfsIter(X, Filters, Elem, iterableArgVals(V), #noArgVals, Rho)
+       ... </k>
+  rule <k> V:Val ~> dictCompIteratorApply(X:Id, Key:Exp, Value:Exp, Rho:Map) =>
+           dictCompIter(X, Key, Value, iterableArgVals(V), #noDictVals, Rho)
+       ... </k>
+  rule <k> V:Val ~> dictCompTargetIteratorApply(T:Target, Key:Exp, Value:Exp, Rho:Map) =>
+           dictCompTargetIter(T, Key, Value, iterableArgVals(V), #noDictVals, Rho)
+       ... </k>
+  rule <k> V:Val ~> dictCompTargetIfsIteratorApply(T:Target, Filters:CompFilters, Key:Exp, Value:Exp, Rho:Map) =>
+           dictCompTargetIfsIter(T, Filters, Key, Value, iterableArgVals(V), #noDictVals, Rho)
+       ... </k>
+  rule <k> V:Val ~> dictCompIfIteratorApply(X:Id, Filter:Exp, Key:Exp, Value:Exp, Rho:Map) =>
+           dictCompIfIter(X, Filter, Key, Value, iterableArgVals(V), #noDictVals, Rho)
+       ... </k>
+  rule <k> V:Val ~> dictCompIfsIteratorApply(X:Id, Filters:CompFilters, Key:Exp, Value:Exp, Rho:Map) =>
+           dictCompIfsIter(X, Filters, Key, Value, iterableArgVals(V), #noDictVals, Rho)
+       ... </k>
+
+  rule <k> listCompIfsExp(iteratorRef(I:Int), X:Id, Filters:CompFilters, Elem:Exp) =>
+           #listCtor(iteratorRef(I)) ~> listCompIfsIteratorApply(X, Filters, Elem, Rho)
+       ... </k>
+       <env> Rho </env>
   rule <k> listCompIfsExp(Iter:Val, X:Id, Filters:CompFilters, Elem:Exp) =>
            listCompIfsIter(X, Filters, Elem, iterableArgVals(Iter), #noArgVals, Rho)
        ... </k>
        <env> Rho </env>
+    requires notBool isIteratorRef(Iter)
   rule <k> listCompIfsIter(_:Id, _:CompFilters, _:Exp, #noArgVals, #noArgVals, Rho:Map) =>
            [] ~> restoreEnv(Rho)
        ... </k>
@@ -19052,10 +19139,15 @@ module PYTHON
   rule <k> V:Val ~> listCompManyNext(T:Target, Filters:MaybeCompFilters, RestClauses:MaybeCompClauses, Elem:Exp, RestItems:ArgVals, Acc:ArgVals, Stack:CompArgStack, BaseRho:Map, OuterRho:Map) =>
            listCompManyIter(T, Filters, RestClauses, Elem, RestItems, appendArgVal(Acc, V), Stack, BaseRho, OuterRho)
        ... </k>
+  rule <k> setCompExp(iteratorRef(I:Int), X:Id, Elem:Exp) =>
+           #listCtor(iteratorRef(I)) ~> setCompIteratorApply(X, Elem, Rho)
+       ... </k>
+       <env> Rho </env>
   rule <k> setCompExp(Iter:Val, X:Id, Elem:Exp) =>
            setCompIter(X, Elem, iterableArgVals(Iter), #noArgVals, Rho)
        ... </k>
        <env> Rho </env>
+    requires notBool isIteratorRef(Iter)
   rule <k> setCompIter(_:Id, _:Exp, #noArgVals, #noArgVals, Rho:Map) =>
            set() ~> restoreEnv(Rho)
        ... </k>
@@ -19070,10 +19162,15 @@ module PYTHON
   rule <k> V:Val ~> setCompNext(X:Id, Elem:Exp, Rest:ArgVals, Acc:ArgVals, Rho:Map) =>
            setCompIter(X, Elem, Rest, appendArgVal(Acc, V), Rho)
        ... </k>
+  rule <k> setCompTargetExp(iteratorRef(I:Int), T:Target, Elem:Exp) =>
+           #listCtor(iteratorRef(I)) ~> setCompTargetIteratorApply(T, Elem, Rho)
+       ... </k>
+       <env> Rho </env>
   rule <k> setCompTargetExp(Iter:Val, T:Target, Elem:Exp) =>
            setCompTargetIter(T, Elem, iterableArgVals(Iter), #noArgVals, Rho)
        ... </k>
        <env> Rho </env>
+    requires notBool isIteratorRef(Iter)
   rule <k> setCompTargetIter(_:Target, _:Exp, #noArgVals, #noArgVals, Rho:Map) =>
            set() ~> restoreEnv(Rho)
        ... </k>
@@ -19089,10 +19186,15 @@ module PYTHON
   rule <k> V:Val ~> setCompTargetNext(T:Target, Elem:Exp, Rest:ArgVals, Acc:ArgVals, Rho:Map) =>
            setCompTargetIter(T, Elem, Rest, appendArgVal(Acc, V), Rho)
        ... </k>
+  rule <k> setCompTargetIfsExp(iteratorRef(I:Int), T:Target, Filters:CompFilters, Elem:Exp) =>
+           #listCtor(iteratorRef(I)) ~> setCompTargetIfsIteratorApply(T, Filters, Elem, Rho)
+       ... </k>
+       <env> Rho </env>
   rule <k> setCompTargetIfsExp(Iter:Val, T:Target, Filters:CompFilters, Elem:Exp) =>
            setCompTargetIfsIter(T, Filters, Elem, iterableArgVals(Iter), #noArgVals, Rho)
        ... </k>
        <env> Rho </env>
+    requires notBool isIteratorRef(Iter)
   rule <k> setCompTargetIfsIter(_:Target, _:CompFilters, _:Exp, #noArgVals, #noArgVals, Rho:Map) =>
            set() ~> restoreEnv(Rho)
        ... </k>
@@ -19130,10 +19232,15 @@ module PYTHON
   rule <k> V:Val ~> setCompTargetIfsNext(T:Target, Filters:CompFilters, Elem:Exp, Rest:ArgVals, Acc:ArgVals, Rho:Map) =>
            setCompTargetIfsIter(T, Filters, Elem, Rest, appendArgVal(Acc, V), Rho)
        ... </k>
+  rule <k> setCompIfExp(iteratorRef(I:Int), X:Id, Filter:Exp, Elem:Exp) =>
+           #listCtor(iteratorRef(I)) ~> setCompIfIteratorApply(X, Filter, Elem, Rho)
+       ... </k>
+       <env> Rho </env>
   rule <k> setCompIfExp(Iter:Val, X:Id, Filter:Exp, Elem:Exp) =>
            setCompIfIter(X, Filter, Elem, iterableArgVals(Iter), #noArgVals, Rho)
        ... </k>
        <env> Rho </env>
+    requires notBool isIteratorRef(Iter)
   rule <k> setCompIfIter(_:Id, _:Exp, _:Exp, #noArgVals, #noArgVals, Rho:Map) =>
            set() ~> restoreEnv(Rho)
        ... </k>
@@ -19156,10 +19263,15 @@ module PYTHON
   rule <k> V:Val ~> setCompIfNext(X:Id, Filter:Exp, Elem:Exp, Rest:ArgVals, Acc:ArgVals, Rho:Map) =>
            setCompIfIter(X, Filter, Elem, Rest, appendArgVal(Acc, V), Rho)
        ... </k>
+  rule <k> setCompIfsExp(iteratorRef(I:Int), X:Id, Filters:CompFilters, Elem:Exp) =>
+           #listCtor(iteratorRef(I)) ~> setCompIfsIteratorApply(X, Filters, Elem, Rho)
+       ... </k>
+       <env> Rho </env>
   rule <k> setCompIfsExp(Iter:Val, X:Id, Filters:CompFilters, Elem:Exp) =>
            setCompIfsIter(X, Filters, Elem, iterableArgVals(Iter), #noArgVals, Rho)
        ... </k>
        <env> Rho </env>
+    requires notBool isIteratorRef(Iter)
   rule <k> setCompIfsIter(_:Id, _:CompFilters, _:Exp, #noArgVals, #noArgVals, Rho:Map) =>
            set() ~> restoreEnv(Rho)
        ... </k>
@@ -19834,10 +19946,15 @@ module PYTHON
   rule <k> dictArgsVal(#noDictVals) ~> buildDict => ({}):Val ... </k>
   rule <k> dictArgsVal(DVS:DictVals) ~> buildDict => dictVal(dictValsToDictItems(DVS)) ... </k>
     requires notBool emptyDictVals(DVS)
+  rule <k> dictCompExp(iteratorRef(I:Int), X:Id, Key:Exp, Value:Exp) =>
+           #listCtor(iteratorRef(I)) ~> dictCompIteratorApply(X, Key, Value, Rho)
+       ... </k>
+       <env> Rho </env>
   rule <k> dictCompExp(Iter:Val, X:Id, Key:Exp, Value:Exp) =>
            dictCompIter(X, Key, Value, iterableArgVals(Iter), #noDictVals, Rho)
        ... </k>
        <env> Rho </env>
+    requires notBool isIteratorRef(Iter)
   rule <k> dictCompIter(_:Id, _:Exp, _:Exp, #noArgVals, #noDictVals, Rho:Map) =>
            ({}):Val ~> restoreEnv(Rho)
        ... </k>
@@ -19855,10 +19972,15 @@ module PYTHON
   rule <k> V:Val ~> dictCompValue(X:Id, Key:Exp, Value:Exp, Rest:ArgVals, Acc:DictVals, Rho:Map, K:Val) =>
            dictCompIter(X, Key, Value, Rest, appendDictVal(Acc, K, V), Rho)
        ... </k>
+  rule <k> dictCompTargetExp(iteratorRef(I:Int), T:Target, Key:Exp, Value:Exp) =>
+           #listCtor(iteratorRef(I)) ~> dictCompTargetIteratorApply(T, Key, Value, Rho)
+       ... </k>
+       <env> Rho </env>
   rule <k> dictCompTargetExp(Iter:Val, T:Target, Key:Exp, Value:Exp) =>
            dictCompTargetIter(T, Key, Value, iterableArgVals(Iter), #noDictVals, Rho)
        ... </k>
        <env> Rho </env>
+    requires notBool isIteratorRef(Iter)
   rule <k> dictCompTargetIter(_:Target, _:Exp, _:Exp, #noArgVals, #noDictVals, Rho:Map) =>
            ({}):Val ~> restoreEnv(Rho)
        ... </k>
@@ -19877,10 +19999,15 @@ module PYTHON
   rule <k> V:Val ~> dictCompTargetValue(T:Target, Key:Exp, Value:Exp, Rest:ArgVals, Acc:DictVals, Rho:Map, K:Val) =>
            dictCompTargetIter(T, Key, Value, Rest, appendDictVal(Acc, K, V), Rho)
        ... </k>
+  rule <k> dictCompTargetIfsExp(iteratorRef(I:Int), T:Target, Filters:CompFilters, Key:Exp, Value:Exp) =>
+           #listCtor(iteratorRef(I)) ~> dictCompTargetIfsIteratorApply(T, Filters, Key, Value, Rho)
+       ... </k>
+       <env> Rho </env>
   rule <k> dictCompTargetIfsExp(Iter:Val, T:Target, Filters:CompFilters, Key:Exp, Value:Exp) =>
            dictCompTargetIfsIter(T, Filters, Key, Value, iterableArgVals(Iter), #noDictVals, Rho)
        ... </k>
        <env> Rho </env>
+    requires notBool isIteratorRef(Iter)
   rule <k> dictCompTargetIfsIter(_:Target, _:CompFilters, _:Exp, _:Exp, #noArgVals, #noDictVals, Rho:Map) =>
            ({}):Val ~> restoreEnv(Rho)
        ... </k>
@@ -19921,10 +20048,15 @@ module PYTHON
   rule <k> V:Val ~> dictCompTargetIfsValue(T:Target, Filters:CompFilters, Key:Exp, Value:Exp, Rest:ArgVals, Acc:DictVals, Rho:Map, K:Val) =>
            dictCompTargetIfsIter(T, Filters, Key, Value, Rest, appendDictVal(Acc, K, V), Rho)
        ... </k>
+  rule <k> dictCompIfExp(iteratorRef(I:Int), X:Id, Filter:Exp, Key:Exp, Value:Exp) =>
+           #listCtor(iteratorRef(I)) ~> dictCompIfIteratorApply(X, Filter, Key, Value, Rho)
+       ... </k>
+       <env> Rho </env>
   rule <k> dictCompIfExp(Iter:Val, X:Id, Filter:Exp, Key:Exp, Value:Exp) =>
            dictCompIfIter(X, Filter, Key, Value, iterableArgVals(Iter), #noDictVals, Rho)
        ... </k>
        <env> Rho </env>
+    requires notBool isIteratorRef(Iter)
   rule <k> dictCompIfIter(_:Id, _:Exp, _:Exp, _:Exp, #noArgVals, #noDictVals, Rho:Map) =>
            ({}):Val ~> restoreEnv(Rho)
        ... </k>
@@ -19950,10 +20082,15 @@ module PYTHON
   rule <k> V:Val ~> dictCompIfValue(X:Id, Filter:Exp, Key:Exp, Value:Exp, Rest:ArgVals, Acc:DictVals, Rho:Map, K:Val) =>
            dictCompIfIter(X, Filter, Key, Value, Rest, appendDictVal(Acc, K, V), Rho)
        ... </k>
+  rule <k> dictCompIfsExp(iteratorRef(I:Int), X:Id, Filters:CompFilters, Key:Exp, Value:Exp) =>
+           #listCtor(iteratorRef(I)) ~> dictCompIfsIteratorApply(X, Filters, Key, Value, Rho)
+       ... </k>
+       <env> Rho </env>
   rule <k> dictCompIfsExp(Iter:Val, X:Id, Filters:CompFilters, Key:Exp, Value:Exp) =>
            dictCompIfsIter(X, Filters, Key, Value, iterableArgVals(Iter), #noDictVals, Rho)
        ... </k>
        <env> Rho </env>
+    requires notBool isIteratorRef(Iter)
   rule <k> dictCompIfsIter(_:Id, _:CompFilters, _:Exp, _:Exp, #noArgVals, #noDictVals, Rho:Map) =>
            ({}):Val ~> restoreEnv(Rho)
        ... </k>
@@ -31332,6 +31469,21 @@ module PYTHON
   rule <k> exceptionSignal(V:Val) ~> dictFromKeysApply(_:Val) => exceptionSignal(V) ... </k>
   rule <k> exceptionSignal(V:Val) ~> bytesIteratorApply => exceptionSignal(V) ... </k>
   rule <k> exceptionSignal(V:Val) ~> bytearrayIteratorApply => exceptionSignal(V) ... </k>
+  rule <k> exceptionSignal(V:Val) ~> listCompIteratorApply(_:Id, _:Exp, _:Map) => exceptionSignal(V) ... </k>
+  rule <k> exceptionSignal(V:Val) ~> listCompTargetIteratorApply(_:Target, _:Exp, _:Map) => exceptionSignal(V) ... </k>
+  rule <k> exceptionSignal(V:Val) ~> listCompTargetIfsIteratorApply(_:Target, _:CompFilters, _:Exp, _:Map) => exceptionSignal(V) ... </k>
+  rule <k> exceptionSignal(V:Val) ~> listCompIfIteratorApply(_:Id, _:Exp, _:Exp, _:Map) => exceptionSignal(V) ... </k>
+  rule <k> exceptionSignal(V:Val) ~> listCompIfsIteratorApply(_:Id, _:CompFilters, _:Exp, _:Map) => exceptionSignal(V) ... </k>
+  rule <k> exceptionSignal(V:Val) ~> setCompIteratorApply(_:Id, _:Exp, _:Map) => exceptionSignal(V) ... </k>
+  rule <k> exceptionSignal(V:Val) ~> setCompTargetIteratorApply(_:Target, _:Exp, _:Map) => exceptionSignal(V) ... </k>
+  rule <k> exceptionSignal(V:Val) ~> setCompTargetIfsIteratorApply(_:Target, _:CompFilters, _:Exp, _:Map) => exceptionSignal(V) ... </k>
+  rule <k> exceptionSignal(V:Val) ~> setCompIfIteratorApply(_:Id, _:Exp, _:Exp, _:Map) => exceptionSignal(V) ... </k>
+  rule <k> exceptionSignal(V:Val) ~> setCompIfsIteratorApply(_:Id, _:CompFilters, _:Exp, _:Map) => exceptionSignal(V) ... </k>
+  rule <k> exceptionSignal(V:Val) ~> dictCompIteratorApply(_:Id, _:Exp, _:Exp, _:Map) => exceptionSignal(V) ... </k>
+  rule <k> exceptionSignal(V:Val) ~> dictCompTargetIteratorApply(_:Target, _:Exp, _:Exp, _:Map) => exceptionSignal(V) ... </k>
+  rule <k> exceptionSignal(V:Val) ~> dictCompTargetIfsIteratorApply(_:Target, _:CompFilters, _:Exp, _:Exp, _:Map) => exceptionSignal(V) ... </k>
+  rule <k> exceptionSignal(V:Val) ~> dictCompIfIteratorApply(_:Id, _:Exp, _:Exp, _:Exp, _:Map) => exceptionSignal(V) ... </k>
+  rule <k> exceptionSignal(V:Val) ~> dictCompIfsIteratorApply(_:Id, _:CompFilters, _:Exp, _:Exp, _:Map) => exceptionSignal(V) ... </k>
   rule <k> exceptionSignal(V:Val) ~> setIteratorApply => exceptionSignal(V) ... </k>
   rule <k> exceptionSignal(V:Val) ~> frozensetIteratorApply => exceptionSignal(V) ... </k>
   rule <k> exceptionSignal(V:Val) ~> sortedReverseFlag(_:Exp) => exceptionSignal(V) ... </k>

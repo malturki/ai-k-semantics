@@ -571,6 +571,7 @@ run_case "adapter-dict-constructor-keywords" "$ROOT/tests/adapter/adapter-dict-c
 run_case "adapter-dict-constructor-kw-unpack" "$ROOT/tests/adapter/adapter-dict-constructor-kw-unpack.py" "True ~> .K"
 run_case "adapter-dict-constructor-duplicate-keywords" "$ROOT/tests/adapter/adapter-dict-constructor-duplicate-keywords.py" "True ~> .K"
 run_case "adapter-set-constructor" "$ROOT/tests/adapter/adapter-set-constructor.py" "True ~> .K"
+run_case "adapter-iterator-set-frozenset-constructors" "$ROOT/tests/adapter/adapter-iterator-set-frozenset-constructors.py" "True ~> .K"
 run_case "adapter-len-string-range" "$ROOT/tests/adapter/adapter-len-string-range.py" "True ~> .K"
 run_case "adapter-len-range-step" "$ROOT/tests/adapter/adapter-len-range-step.py" "True ~> .K"
 run_case "adapter-dict" "$ROOT/tests/adapter/adapter-dict.py" "True ~> .K"

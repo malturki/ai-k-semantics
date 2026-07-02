@@ -741,6 +741,8 @@ module PYTHON
                  | formatDefault() [symbol(formatDefault)]
                  | formatSpec(Exp) [symbol(formatSpec)]
                  | formatApply(Val) [symbol(formatApply)]
+                 | "setIteratorApply" [symbol(setIteratorApply)]
+                 | "frozensetIteratorApply" [symbol(frozensetIteratorApply)]
                  | sortedReverseFlag(Exp) [symbol(sortedReverseFlag)]
                  | sortedReverseApply(Val) [symbol(sortedReverseApply)]
                  | sortedKeyEval(Exp) [symbol(sortedKeyEval)]
@@ -20698,19 +20700,44 @@ module PYTHON
       andBool notBool dictFromKeysArgValsSupported(iterableArgVals(Iter))
   rule #setCtor() => set()
   rule #setCtor(V:Val) => setFromArgVals(iterableArgVals(V))
+    requires unpackValueSupported(V)
+      andBool dictFromKeysArgValsSupported(iterableArgVals(V))
+      andBool notBool isIteratorRef(V)
+  rule <k> #setCtor(V:Val) =>
+           exceptionSignal(#exception(#token("TypeError", "Id")))
+       ... </k>
+    requires notBool unpackValueSupported(V)
+      andBool notBool isIteratorRef(V)
+  rule <k> #setCtor(V:Val) =>
+           exceptionSignal(#exception(#token("TypeError", "Id")))
+       ... </k>
+    requires unpackValueSupported(V)
+      andBool notBool dictFromKeysArgValsSupported(iterableArgVals(V))
+      andBool notBool isIteratorRef(V)
+  rule <k> #setCtor(iteratorRef(I:Int)) =>
+           #listCtor(iteratorRef(I)) ~> setIteratorApply
+       ... </k>
+  rule <k> V:Val ~> setIteratorApply => #setCtor(V) ... </k>
   rule #frozensetCtor() => frozenset()
   rule #frozensetCtor(V:Val) => frozenSetFromArgVals(iterableArgVals(V))
     requires unpackValueSupported(V)
       andBool dictFromKeysArgValsSupported(iterableArgVals(V))
+      andBool notBool isIteratorRef(V)
   rule <k> #frozensetCtor(V:Val) =>
            exceptionSignal(#exception(#token("TypeError", "Id")))
        ... </k>
     requires notBool unpackValueSupported(V)
+      andBool notBool isIteratorRef(V)
   rule <k> #frozensetCtor(V:Val) =>
            exceptionSignal(#exception(#token("TypeError", "Id")))
        ... </k>
     requires unpackValueSupported(V)
       andBool notBool dictFromKeysArgValsSupported(iterableArgVals(V))
+      andBool notBool isIteratorRef(V)
+  rule <k> #frozensetCtor(iteratorRef(I:Int)) =>
+           #listCtor(iteratorRef(I)) ~> frozensetIteratorApply
+       ... </k>
+  rule <k> V:Val ~> frozensetIteratorApply => #frozensetCtor(V) ... </k>
   rule #sorted(V:Val) => sortedListVal(iterableArgVals(V))
     requires sortedIterableSupported(V)
       andBool argValsAllOrderComparable(iterableArgVals(V))
@@ -31262,6 +31289,8 @@ module PYTHON
   rule <k> exceptionSignal(V:Val) ~> dictFromKeysDefault => exceptionSignal(V) ... </k>
   rule <k> exceptionSignal(V:Val) ~> dictFromKeysIterDefault(_:Exp) => exceptionSignal(V) ... </k>
   rule <k> exceptionSignal(V:Val) ~> dictFromKeysApply(_:Val) => exceptionSignal(V) ... </k>
+  rule <k> exceptionSignal(V:Val) ~> setIteratorApply => exceptionSignal(V) ... </k>
+  rule <k> exceptionSignal(V:Val) ~> frozensetIteratorApply => exceptionSignal(V) ... </k>
   rule <k> exceptionSignal(V:Val) ~> sortedReverseFlag(_:Exp) => exceptionSignal(V) ... </k>
   rule <k> exceptionSignal(V:Val) ~> sortedReverseApply(_:Val) => exceptionSignal(V) ... </k>
   rule <k> exceptionSignal(V:Val) ~> sortedKeyEval(_:Exp) => exceptionSignal(V) ... </k>

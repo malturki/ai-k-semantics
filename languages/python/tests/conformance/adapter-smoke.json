@@ -3644,6 +3644,13 @@
       "coverage": ["set-constructor", "concrete-iterable-subset", "duplicate-element-normalization", "dict-key-iteration-subset", "range-iteration-subset", "ordinary-python-source-adapter"]
     },
     {
+      "id": "adapter-iterator-set-frozenset-constructors",
+      "source": "../adapter/adapter-iterator-set-frozenset-constructors.py",
+      "reference": "Python 3.14.6 Standard Library Built-in Types set and frozenset constructors; Built-in Types iterator protocol; CPython Lib/test/test_set.py constructor and hashability coverage",
+      "expected_result": "True ~> .K",
+      "coverage": ["set-constructor", "frozenset-constructor", "iterator-protocol-profile", "stateful-iterator-ref", "iterator-consumption-profile", "duplicate-element-normalization", "callable-sentinel-iterator-profile", "iterator-exhaustion-sink-state", "type-error", "ordinary-python-source-adapter"]
+    },
+    {
       "id": "adapter-len-string-range",
       "source": "../adapter/adapter-len-string-range.py",
       "reference": "Python Standard Library Built-in Functions len(); Built-in Types str and range",

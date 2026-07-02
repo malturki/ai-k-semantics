@@ -880,6 +880,10 @@ module PYTHON
                  | callableForIteratorElseNext(Int, Id, Block, Block) [symbol(callableForIteratorElseNext)]
                  | forIterator(Int, Id, Block) [symbol(forIterator)]
                  | forIteratorElse(Int, Id, Block, Block) [symbol(forIteratorElse)]
+                 | callableForTargetIteratorNext(Int, Target, Block) [symbol(callableForTargetIteratorNext)]
+                 | callableForTargetIteratorElseNext(Int, Target, Block, Block) [symbol(callableForTargetIteratorElseNext)]
+                 | forTargetIterator(Int, Target, Block) [symbol(forTargetIterator)]
+                 | forTargetIteratorElse(Int, Target, Block, Block) [symbol(forTargetIteratorElse)]
                  | listSortReverseApply(Id) [symbol(listSortReverseApply)]
                  | listSortKeyApply(Id) [symbol(listSortKeyApply)]
                  | listSortKeyReverseKey(Id, Exp) [symbol(listSortKeyReverseKey)]
@@ -2370,6 +2374,8 @@ module PYTHON
   syntax Map ::= bindTarget(Map, Target, Val) [function, symbol(bindTarget)]
   syntax Map ::= bindTargets(Map, Targets, ValItems) [function, symbol(bindTargets)]
   syntax Map ::= bindTargetStarSeq(Map, MaybeTargets, Id, MaybeTargets, ValItems) [function, symbol(bindTargetStarSeq)]
+  syntax Targets ::= idItemsToTargets(IdItems) [function, symbol(idItemsToTargets)]
+  syntax MaybeTargets ::= idItemsToMaybeTargets(IdItems) [function, symbol(idItemsToMaybeTargets)]
   syntax Map ::= bindMatchPattern(Map, Val, MatchPattern) [function, symbol(bindMatchPattern)]
   syntax Map ::= bindMatchSequence(Map, Val, MatchPatterns) [function, symbol(bindMatchSequence)]
   syntax Map ::= bindMatchStarSequence(Map, Val, MatchPatterns, MatchPatterns) [function, symbol(bindMatchStarSequence)]
@@ -5861,6 +5867,12 @@ module PYTHON
     requires idItemsLen(IDS) >Int 0
   rule concatIdItems(idItemsCons(X:Id, IDS1:IdItems), IDS2:IdItems) =>
     idItemsCons(X, concatIdItems(IDS1, IDS2))
+
+  rule idItemsToTargets(idItemsLast(X:Id)) => targetsLast(targetName(X))
+  rule idItemsToTargets(idItemsCons(X:Id, IDS:IdItems)) => targetsCons(targetName(X), idItemsToTargets(IDS))
+  rule idItemsToMaybeTargets(#noIds) => #noTargets
+  rule idItemsToMaybeTargets(idItemsLast(X:Id)) => #targets(targetsLast(targetName(X)))
+  rule idItemsToMaybeTargets(idItemsCons(X:Id, IDS:IdItems)) => #targets(targetsCons(targetName(X), idItemsToTargets(IDS)))
 
   rule argValsLen(#noArgVals) => 0
   rule argValsLen(argValsCons(_:Val, VS:ArgVals)) => 1 +Int argValsLen(VS)
@@ -29981,6 +29993,32 @@ module PYTHON
   rule <k> iteratorRef(I:Int) ~> forIter(X:Id, Body:Block) =>
            forIterator(I, X, Body)
        ... </k>
+  rule <k> iteratorRef(I:Int) ~> forUnpackIter(IDS:IdItems, Body:Block) =>
+           forTargetIterator(I, targetSeq(idItemsToTargets(IDS)), Body)
+       ... </k>
+    requires idItemsLen(IDS) >Int 0
+  rule <k> iteratorRef(I:Int) ~> forTargetUnpackIter(TS:Targets, Body:Block) =>
+           forTargetIterator(I, targetSeq(TS), Body)
+       ... </k>
+  rule <k> iteratorRef(I:Int) ~> forTargetIter(T:Target, Body:Block) =>
+           forTargetIterator(I, T, Body)
+       ... </k>
+  rule <k> iteratorRef(I:Int) ~> forStarUnpackIter(Prefix:IdItems, Star:Id, Suffix:IdItems, Body:Block) =>
+           forTargetIterator(I, targetStarSeq(idItemsToMaybeTargets(Prefix), Star, idItemsToMaybeTargets(Suffix)), Body)
+       ... </k>
+  rule <k> iteratorRef(I:Int) ~> forUnpackElseIter(IDS:IdItems, Body:Block, Else:Block) =>
+           forTargetIteratorElse(I, targetSeq(idItemsToTargets(IDS)), Body, Else)
+       ... </k>
+    requires idItemsLen(IDS) >Int 0
+  rule <k> iteratorRef(I:Int) ~> forTargetUnpackElseIter(TS:Targets, Body:Block, Else:Block) =>
+           forTargetIteratorElse(I, targetSeq(TS), Body, Else)
+       ... </k>
+  rule <k> iteratorRef(I:Int) ~> forTargetElseIter(T:Target, Body:Block, Else:Block) =>
+           forTargetIteratorElse(I, T, Body, Else)
+       ... </k>
+  rule <k> iteratorRef(I:Int) ~> forStarUnpackElseIter(Prefix:IdItems, Star:Id, Suffix:IdItems, Body:Block, Else:Block) =>
+           forTargetIteratorElse(I, targetStarSeq(idItemsToMaybeTargets(Prefix), Star, idItemsToMaybeTargets(Suffix)), Body, Else)
+       ... </k>
   rule <k> forIterator(I:Int, _:Id, _:Block) =>
            stmtNoResult
        ... </k>
@@ -30034,6 +30072,122 @@ module PYTHON
        ... </k>
        <env> Rho => Rho [ X <- V ] </env>
        <iterators> ... I |-> (argValsCons(V:Val, Rest:ArgVals) => Rest) ... </iterators>
+
+  rule <k> forTargetIterator(I:Int, _:Target, _:Block) =>
+           stmtNoResult
+       ... </k>
+       <iterators> ... I |-> #noArgVals ... </iterators>
+  rule <k> forTargetIterator(I:Int, T:Target, Body:Block) =>
+           argsVal(#noArgVals) ~> callApplyArgs(F) ~> callableForTargetIteratorNext(I, T, Body)
+       ... </k>
+       <iterators> ... I |-> callableIterator(F:Val, _Sentinel:Val) ... </iterators>
+  rule <k> _V:Val ~> callableForTargetIteratorNext(I:Int, _:Target, _:Block) =>
+           stmtNoResult
+       ... </k>
+       <iterators> ... I |-> #noArgVals ... </iterators>
+  rule <k> V:Val ~> callableForTargetIteratorNext(I:Int, _:Target, _:Block) =>
+           stmtNoResult
+       ... </k>
+       <iterators> ... I |-> (callableIterator(_:Val, Sentinel:Val) => #noArgVals) ... </iterators>
+    requires valEq(V, Sentinel)
+  rule <k> V:Val ~> callableForTargetIteratorNext(I:Int, T:Target, block(SS:Stmts)) =>
+           SS ~> forTargetIterator(I, T, block(SS))
+       ... </k>
+       <env> Rho => bindTarget(Rho, T, V) </env>
+       <iterators> ... I |-> callableIterator(_:Val, Sentinel:Val) ... </iterators>
+    requires notBool valEq(V, Sentinel)
+      andBool targetValueArityOk(T, V)
+  rule <k> V:Val ~> callableForTargetIteratorNext(I:Int, T:Target, {}) =>
+           forTargetIterator(I, T, {})
+       ... </k>
+       <env> Rho => bindTarget(Rho, T, V) </env>
+       <iterators> ... I |-> callableIterator(_:Val, Sentinel:Val) ... </iterators>
+    requires notBool valEq(V, Sentinel)
+      andBool targetValueArityOk(T, V)
+  rule <k> exceptionSignal(E:Val) ~> callableForTargetIteratorNext(I:Int, _:Target, _:Block) =>
+           stmtNoResult
+       ... </k>
+       <iterators> ... I |-> (callableIterator(_:Val, _Sentinel:Val) => #noArgVals) ... </iterators>
+    requires exceptionMatches(E, #token("StopIteration", "Id"))
+  rule <k> exceptionSignal(E:Val) ~> callableForTargetIteratorNext(I:Int, _:Target, _:Block) =>
+           stmtNoResult
+       ... </k>
+       <iterators> ... I |-> #noArgVals ... </iterators>
+    requires exceptionMatches(E, #token("StopIteration", "Id"))
+  rule <k> exceptionSignal(E:Val) ~> callableForTargetIteratorNext(_I:Int, _:Target, _:Block) =>
+           exceptionSignal(E)
+       ... </k>
+    requires notBool exceptionMatches(E, #token("StopIteration", "Id"))
+  rule <k> forTargetIterator(I:Int, T:Target, block(SS:Stmts)) =>
+           SS ~> forTargetIterator(I, T, block(SS))
+       ... </k>
+       <env> Rho => bindTarget(Rho, T, V) </env>
+       <iterators> ... I |-> (argValsCons(V:Val, Rest:ArgVals) => Rest) ... </iterators>
+    requires targetValueArityOk(T, V)
+  rule <k> forTargetIterator(I:Int, T:Target, {}) =>
+           forTargetIterator(I, T, {})
+       ... </k>
+       <env> Rho => bindTarget(Rho, T, V) </env>
+       <iterators> ... I |-> (argValsCons(V:Val, Rest:ArgVals) => Rest) ... </iterators>
+    requires targetValueArityOk(T, V)
+
+  rule <k> forTargetIteratorElse(I:Int, _:Target, _:Block, Else:Block) =>
+           runLoopElse(Else)
+       ... </k>
+       <iterators> ... I |-> #noArgVals ... </iterators>
+  rule <k> forTargetIteratorElse(I:Int, T:Target, Body:Block, Else:Block) =>
+           argsVal(#noArgVals) ~> callApplyArgs(F) ~> callableForTargetIteratorElseNext(I, T, Body, Else)
+       ... </k>
+       <iterators> ... I |-> callableIterator(F:Val, _Sentinel:Val) ... </iterators>
+  rule <k> _V:Val ~> callableForTargetIteratorElseNext(I:Int, _:Target, _:Block, Else:Block) =>
+           runLoopElse(Else)
+       ... </k>
+       <iterators> ... I |-> #noArgVals ... </iterators>
+  rule <k> V:Val ~> callableForTargetIteratorElseNext(I:Int, _:Target, _:Block, Else:Block) =>
+           runLoopElse(Else)
+       ... </k>
+       <iterators> ... I |-> (callableIterator(_:Val, Sentinel:Val) => #noArgVals) ... </iterators>
+    requires valEq(V, Sentinel)
+  rule <k> V:Val ~> callableForTargetIteratorElseNext(I:Int, T:Target, block(SS:Stmts), Else:Block) =>
+           SS ~> forTargetIteratorElse(I, T, block(SS), Else)
+       ... </k>
+       <env> Rho => bindTarget(Rho, T, V) </env>
+       <iterators> ... I |-> callableIterator(_:Val, Sentinel:Val) ... </iterators>
+    requires notBool valEq(V, Sentinel)
+      andBool targetValueArityOk(T, V)
+  rule <k> V:Val ~> callableForTargetIteratorElseNext(I:Int, T:Target, {}, Else:Block) =>
+           forTargetIteratorElse(I, T, {}, Else)
+       ... </k>
+       <env> Rho => bindTarget(Rho, T, V) </env>
+       <iterators> ... I |-> callableIterator(_:Val, Sentinel:Val) ... </iterators>
+    requires notBool valEq(V, Sentinel)
+      andBool targetValueArityOk(T, V)
+  rule <k> exceptionSignal(E:Val) ~> callableForTargetIteratorElseNext(I:Int, _:Target, _:Block, Else:Block) =>
+           runLoopElse(Else)
+       ... </k>
+       <iterators> ... I |-> (callableIterator(_:Val, _Sentinel:Val) => #noArgVals) ... </iterators>
+    requires exceptionMatches(E, #token("StopIteration", "Id"))
+  rule <k> exceptionSignal(E:Val) ~> callableForTargetIteratorElseNext(I:Int, _:Target, _:Block, Else:Block) =>
+           runLoopElse(Else)
+       ... </k>
+       <iterators> ... I |-> #noArgVals ... </iterators>
+    requires exceptionMatches(E, #token("StopIteration", "Id"))
+  rule <k> exceptionSignal(E:Val) ~> callableForTargetIteratorElseNext(_I:Int, _:Target, _:Block, _Else:Block) =>
+           exceptionSignal(E)
+       ... </k>
+    requires notBool exceptionMatches(E, #token("StopIteration", "Id"))
+  rule <k> forTargetIteratorElse(I:Int, T:Target, block(SS:Stmts), Else:Block) =>
+           SS ~> forTargetIteratorElse(I, T, block(SS), Else)
+       ... </k>
+       <env> Rho => bindTarget(Rho, T, V) </env>
+       <iterators> ... I |-> (argValsCons(V:Val, Rest:ArgVals) => Rest) ... </iterators>
+    requires targetValueArityOk(T, V)
+  rule <k> forTargetIteratorElse(I:Int, T:Target, {}, Else:Block) =>
+           forTargetIteratorElse(I, T, {}, Else)
+       ... </k>
+       <env> Rho => bindTarget(Rho, T, V) </env>
+       <iterators> ... I |-> (argValsCons(V:Val, Rest:ArgVals) => Rest) ... </iterators>
+    requires targetValueArityOk(T, V)
 
   rule <k> forItems(X:Id, valItemsCons(V:Val, VS:ValItems), block(SS:Stmts)) =>
            SS ~> forItems(X, VS, block(SS))
@@ -32245,9 +32399,11 @@ module PYTHON
   rule <k> exceptionSignal(V:Val) ~> filterForTargetUnpackIter(_:Targets, _:Block) => exceptionSignal(V) ... </k>
   rule <k> exceptionSignal(V:Val) ~> filterForTargetIter(_:Target, _:Block) => exceptionSignal(V) ... </k>
   rule <k> exceptionSignal(V:Val) ~> forIterator(_:Int, _:Id, _:Block) => exceptionSignal(V) ... </k>
+  rule <k> exceptionSignal(V:Val) ~> forTargetIterator(_:Int, _:Target, _:Block) => exceptionSignal(V) ... </k>
   rule <k> breakSignal ~> forItems(_:Id, _:ValItems, _:Block) => stmtNoResult ... </k>
   rule <k> breakSignal ~> forDone => stmtNoResult ... </k>
   rule <k> breakSignal ~> forIterator(_:Int, _:Id, _:Block) => stmtNoResult ... </k>
+  rule <k> breakSignal ~> forTargetIterator(_:Int, _:Target, _:Block) => stmtNoResult ... </k>
   rule <k> continueSignal ~> forItems(X:Id, VS:ValItems, Body:Block) =>
            forItems(X, VS, Body)
        ... </k>
@@ -32255,9 +32411,13 @@ module PYTHON
   rule <k> continueSignal ~> forIterator(I:Int, X:Id, Body:Block) =>
            forIterator(I, X, Body)
        ... </k>
+  rule <k> continueSignal ~> forTargetIterator(I:Int, T:Target, Body:Block) =>
+           forTargetIterator(I, T, Body)
+       ... </k>
   rule <k> returnSignal(V:Val) ~> forItems(_:Id, _:ValItems, _:Block) => returnSignal(V) ... </k>
   rule <k> returnSignal(V:Val) ~> forDone => returnSignal(V) ... </k>
   rule <k> returnSignal(V:Val) ~> forIterator(_:Int, _:Id, _:Block) => returnSignal(V) ... </k>
+  rule <k> returnSignal(V:Val) ~> forTargetIterator(_:Int, _:Target, _:Block) => returnSignal(V) ... </k>
   rule <k> exceptionSignal(V:Val) ~> forItems(_:Id, _:ValItems, _:Block) => exceptionSignal(V) ... </k>
   rule <k> exceptionSignal(V:Val) ~> forDone => exceptionSignal(V) ... </k>
   rule <k> breakSignal ~> forUnpackItems(_:IdItems, _:ValItems, _:Block) => stmtNoResult ... </k>
@@ -32310,9 +32470,11 @@ module PYTHON
   rule <k> exceptionSignal(V:Val) ~> filterForTargetUnpackElseIter(_:Targets, _:Block, _:Block) => exceptionSignal(V) ... </k>
   rule <k> exceptionSignal(V:Val) ~> filterForTargetElseIter(_:Target, _:Block, _:Block) => exceptionSignal(V) ... </k>
   rule <k> exceptionSignal(V:Val) ~> forIteratorElse(_:Int, _:Id, _:Block, _:Block) => exceptionSignal(V) ... </k>
+  rule <k> exceptionSignal(V:Val) ~> forTargetIteratorElse(_:Int, _:Target, _:Block, _:Block) => exceptionSignal(V) ... </k>
   rule <k> breakSignal ~> forElseItems(_:Id, _:ValItems, _:Block, _:Block) => stmtNoResult ... </k>
   rule <k> breakSignal ~> forElseDone(_:Block) => stmtNoResult ... </k>
   rule <k> breakSignal ~> forIteratorElse(_:Int, _:Id, _:Block, _:Block) => stmtNoResult ... </k>
+  rule <k> breakSignal ~> forTargetIteratorElse(_:Int, _:Target, _:Block, _:Block) => stmtNoResult ... </k>
   rule <k> continueSignal ~> forElseItems(X:Id, VS:ValItems, Body:Block, Else:Block) =>
            forElseItems(X, VS, Body, Else)
        ... </k>
@@ -32320,9 +32482,13 @@ module PYTHON
   rule <k> continueSignal ~> forIteratorElse(I:Int, X:Id, Body:Block, Else:Block) =>
            forIteratorElse(I, X, Body, Else)
        ... </k>
+  rule <k> continueSignal ~> forTargetIteratorElse(I:Int, T:Target, Body:Block, Else:Block) =>
+           forTargetIteratorElse(I, T, Body, Else)
+       ... </k>
   rule <k> returnSignal(V:Val) ~> forElseItems(_:Id, _:ValItems, _:Block, _:Block) => returnSignal(V) ... </k>
   rule <k> returnSignal(V:Val) ~> forElseDone(_:Block) => returnSignal(V) ... </k>
   rule <k> returnSignal(V:Val) ~> forIteratorElse(_:Int, _:Id, _:Block, _:Block) => returnSignal(V) ... </k>
+  rule <k> returnSignal(V:Val) ~> forTargetIteratorElse(_:Int, _:Target, _:Block, _:Block) => returnSignal(V) ... </k>
   rule <k> exceptionSignal(V:Val) ~> forElseItems(_:Id, _:ValItems, _:Block, _:Block) => exceptionSignal(V) ... </k>
   rule <k> exceptionSignal(V:Val) ~> forElseDone(_:Block) => exceptionSignal(V) ... </k>
   rule <k> breakSignal ~> forUnpackElseItems(_:IdItems, _:ValItems, _:Block, _:Block) => stmtNoResult ... </k>

@@ -3266,6 +3266,13 @@
       "coverage": ["for-statement", "starred-target-unpacking", "empty-starred-rest-list", "loop-else-normal-completion", "loop-else-break-suppression", "break-statement", "continue-statement", "return-statement", "ordinary-python-source-adapter"]
     },
     {
+      "id": "adapter-iterator-for-targets",
+      "source": "../adapter/adapter-iterator-for-targets.py",
+      "reference": "Python 3.14.6 Language Reference 8.3 The for statement; 7.2 Assignment statements; PEP 3132 Extended Iterable Unpacking; Built-in Types iterator protocol",
+      "expected_result": "True ~> .K",
+      "coverage": ["for-statement", "for-else", "iterator-protocol-profile", "stateful-iterator-ref", "iterator-consumption-profile", "sequence-unpacking-target", "nested-sequence-targets", "starred-target-unpacking", "break-statement", "continue-statement", "loop-else-normal-completion", "loop-else-break-suppression", "iterator-exhaustion-sink-state", "ordinary-python-source-adapter"]
+    },
+    {
       "id": "adapter-for-else-normal",
       "source": "../adapter/adapter-for-else-normal.py",
       "reference": "Python Language Reference 8.3 The for statement",

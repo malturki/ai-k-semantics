@@ -516,6 +516,7 @@ run_case "adapter-for-unpack-nested-else" "$ROOT/tests/adapter/adapter-for-unpac
 run_case "adapter-for-unpack-break-continue" "$ROOT/tests/adapter/adapter-for-unpack-break-continue.py" "True ~> .K"
 run_case "adapter-for-unpack-else" "$ROOT/tests/adapter/adapter-for-unpack-else.py" "True ~> .K"
 run_case "adapter-for-star-unpack" "$ROOT/tests/adapter/adapter-for-star-unpack.py" "True ~> .K"
+run_case "adapter-iterator-for-targets" "$ROOT/tests/adapter/adapter-iterator-for-targets.py" "True ~> .K"
 run_case "adapter-for-else-normal" "$ROOT/tests/adapter/adapter-for-else-normal.py" "True ~> .K"
 run_case "adapter-for-else-break" "$ROOT/tests/adapter/adapter-for-else-break.py" "True ~> .K"
 run_case "adapter-for-else-continue" "$ROOT/tests/adapter/adapter-for-else-continue.py" "True ~> .K"

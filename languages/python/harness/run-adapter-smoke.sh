@@ -607,6 +607,7 @@ run_case "adapter-iterator-two-for-comprehensions" "$ROOT/tests/adapter/adapter-
 run_case "adapter-iterator-three-for-comprehensions" "$ROOT/tests/adapter/adapter-iterator-three-for-comprehensions.py" "True ~> .K"
 run_case "adapter-iterator-three-for-target-comprehensions" "$ROOT/tests/adapter/adapter-iterator-three-for-target-comprehensions.py" "True ~> .K"
 run_case "adapter-iterator-three-for-filter-comprehensions" "$ROOT/tests/adapter/adapter-iterator-three-for-filter-comprehensions.py" "True ~> .K"
+run_case "adapter-iterator-three-for-target-filter-comprehensions" "$ROOT/tests/adapter/adapter-iterator-three-for-target-filter-comprehensions.py" "True ~> .K"
 run_case "adapter-comprehension-target-two-for" "$ROOT/tests/adapter/adapter-comprehension-target-two-for.py" "True ~> .K"
 run_case "adapter-comprehension-target-two-for-filters" "$ROOT/tests/adapter/adapter-comprehension-target-two-for-filters.py" "True ~> .K"
 run_case "adapter-comprehension-target-three-for" "$ROOT/tests/adapter/adapter-comprehension-target-three-for.py" "True ~> .K"

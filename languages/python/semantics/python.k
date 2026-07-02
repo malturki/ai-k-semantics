@@ -809,6 +809,15 @@ module PYTHON
                  | dictCompForForIfsIteratorApply(Id, MaybeCompFilters, Exp, Id, MaybeCompFilters, Exp, Id, MaybeCompFilters, Exp, Exp, Map) [symbol(dictCompForForIfsIteratorApply)]
                  | dictCompForForIfsMiddleIteratorApply(Id, MaybeCompFilters, Exp, Id, MaybeCompFilters, Exp, Id, MaybeCompFilters, Exp, Exp, ArgVals, DictVals, Map) [symbol(dictCompForForIfsMiddleIteratorApply)]
                  | dictCompForForIfsInnerIteratorApply(Id, MaybeCompFilters, Exp, Id, MaybeCompFilters, Exp, Id, MaybeCompFilters, Exp, Exp, ArgVals, ArgVals, DictVals, Map) [symbol(dictCompForForIfsInnerIteratorApply)]
+                 | listCompTargetForForIfsIteratorApply(Target, MaybeCompFilters, Exp, Target, MaybeCompFilters, Exp, Target, MaybeCompFilters, Exp, Map) [symbol(listCompTargetForForIfsIteratorApply)]
+                 | listCompTargetForForIfsMiddleIteratorApply(Target, MaybeCompFilters, Exp, Target, MaybeCompFilters, Exp, Target, MaybeCompFilters, Exp, ArgVals, ArgVals, Map) [symbol(listCompTargetForForIfsMiddleIteratorApply)]
+                 | listCompTargetForForIfsInnerIteratorApply(Target, MaybeCompFilters, Exp, Target, MaybeCompFilters, Exp, Target, MaybeCompFilters, Exp, ArgVals, ArgVals, ArgVals, Map) [symbol(listCompTargetForForIfsInnerIteratorApply)]
+                 | setCompTargetForForIfsIteratorApply(Target, MaybeCompFilters, Exp, Target, MaybeCompFilters, Exp, Target, MaybeCompFilters, Exp, Map) [symbol(setCompTargetForForIfsIteratorApply)]
+                 | setCompTargetForForIfsMiddleIteratorApply(Target, MaybeCompFilters, Exp, Target, MaybeCompFilters, Exp, Target, MaybeCompFilters, Exp, ArgVals, ArgVals, Map) [symbol(setCompTargetForForIfsMiddleIteratorApply)]
+                 | setCompTargetForForIfsInnerIteratorApply(Target, MaybeCompFilters, Exp, Target, MaybeCompFilters, Exp, Target, MaybeCompFilters, Exp, ArgVals, ArgVals, ArgVals, Map) [symbol(setCompTargetForForIfsInnerIteratorApply)]
+                 | dictCompTargetForForIfsIteratorApply(Target, MaybeCompFilters, Exp, Target, MaybeCompFilters, Exp, Target, MaybeCompFilters, Exp, Exp, Map) [symbol(dictCompTargetForForIfsIteratorApply)]
+                 | dictCompTargetForForIfsMiddleIteratorApply(Target, MaybeCompFilters, Exp, Target, MaybeCompFilters, Exp, Target, MaybeCompFilters, Exp, Exp, ArgVals, DictVals, Map) [symbol(dictCompTargetForForIfsMiddleIteratorApply)]
+                 | dictCompTargetForForIfsInnerIteratorApply(Target, MaybeCompFilters, Exp, Target, MaybeCompFilters, Exp, Target, MaybeCompFilters, Exp, Exp, ArgVals, ArgVals, DictVals, Map) [symbol(dictCompTargetForForIfsInnerIteratorApply)]
                  | "setIteratorApply" [symbol(setIteratorApply)]
                  | "frozensetIteratorApply" [symbol(frozensetIteratorApply)]
                  | sortedReverseFlag(Exp) [symbol(sortedReverseFlag)]
@@ -18696,6 +18705,33 @@ module PYTHON
   rule <k> V:Val ~> dictCompForForIfsInnerIteratorApply(X:Id, OuterFilters:MaybeCompFilters, Middle:Exp, Y:Id, MiddleFilters:MaybeCompFilters, Inner:Exp, Z:Id, InnerFilters:MaybeCompFilters, Key:Exp, Value:Exp, RestOuter:ArgVals, RestMiddle:ArgVals, Acc:DictVals, Rho:Map) =>
            dictCompForForIfsInnerIter(X, OuterFilters, Middle, Y, MiddleFilters, Inner, Z, InnerFilters, Key, Value, RestOuter, RestMiddle, iterableArgVals(V), Acc, Rho)
        ... </k>
+  rule <k> V:Val ~> listCompTargetForForIfsIteratorApply(Outer:Target, OuterFilters:MaybeCompFilters, Middle:Exp, MiddleTarget:Target, MiddleFilters:MaybeCompFilters, Inner:Exp, InnerTarget:Target, InnerFilters:MaybeCompFilters, Elem:Exp, Rho:Map) =>
+           listCompTargetForForIfsIter(Outer, OuterFilters, Middle, MiddleTarget, MiddleFilters, Inner, InnerTarget, InnerFilters, Elem, iterableArgVals(V), #noArgVals, Rho)
+       ... </k>
+  rule <k> V:Val ~> listCompTargetForForIfsMiddleIteratorApply(Outer:Target, OuterFilters:MaybeCompFilters, Middle:Exp, MiddleTarget:Target, MiddleFilters:MaybeCompFilters, Inner:Exp, InnerTarget:Target, InnerFilters:MaybeCompFilters, Elem:Exp, RestOuter:ArgVals, Acc:ArgVals, Rho:Map) =>
+           listCompTargetForForIfsMiddleIter(Outer, OuterFilters, Middle, MiddleTarget, MiddleFilters, Inner, InnerTarget, InnerFilters, Elem, RestOuter, iterableArgVals(V), Acc, Rho)
+       ... </k>
+  rule <k> V:Val ~> listCompTargetForForIfsInnerIteratorApply(Outer:Target, OuterFilters:MaybeCompFilters, Middle:Exp, MiddleTarget:Target, MiddleFilters:MaybeCompFilters, Inner:Exp, InnerTarget:Target, InnerFilters:MaybeCompFilters, Elem:Exp, RestOuter:ArgVals, RestMiddle:ArgVals, Acc:ArgVals, Rho:Map) =>
+           listCompTargetForForIfsInnerIter(Outer, OuterFilters, Middle, MiddleTarget, MiddleFilters, Inner, InnerTarget, InnerFilters, Elem, RestOuter, RestMiddle, iterableArgVals(V), Acc, Rho)
+       ... </k>
+  rule <k> V:Val ~> setCompTargetForForIfsIteratorApply(Outer:Target, OuterFilters:MaybeCompFilters, Middle:Exp, MiddleTarget:Target, MiddleFilters:MaybeCompFilters, Inner:Exp, InnerTarget:Target, InnerFilters:MaybeCompFilters, Elem:Exp, Rho:Map) =>
+           setCompTargetForForIfsIter(Outer, OuterFilters, Middle, MiddleTarget, MiddleFilters, Inner, InnerTarget, InnerFilters, Elem, iterableArgVals(V), #noArgVals, Rho)
+       ... </k>
+  rule <k> V:Val ~> setCompTargetForForIfsMiddleIteratorApply(Outer:Target, OuterFilters:MaybeCompFilters, Middle:Exp, MiddleTarget:Target, MiddleFilters:MaybeCompFilters, Inner:Exp, InnerTarget:Target, InnerFilters:MaybeCompFilters, Elem:Exp, RestOuter:ArgVals, Acc:ArgVals, Rho:Map) =>
+           setCompTargetForForIfsMiddleIter(Outer, OuterFilters, Middle, MiddleTarget, MiddleFilters, Inner, InnerTarget, InnerFilters, Elem, RestOuter, iterableArgVals(V), Acc, Rho)
+       ... </k>
+  rule <k> V:Val ~> setCompTargetForForIfsInnerIteratorApply(Outer:Target, OuterFilters:MaybeCompFilters, Middle:Exp, MiddleTarget:Target, MiddleFilters:MaybeCompFilters, Inner:Exp, InnerTarget:Target, InnerFilters:MaybeCompFilters, Elem:Exp, RestOuter:ArgVals, RestMiddle:ArgVals, Acc:ArgVals, Rho:Map) =>
+           setCompTargetForForIfsInnerIter(Outer, OuterFilters, Middle, MiddleTarget, MiddleFilters, Inner, InnerTarget, InnerFilters, Elem, RestOuter, RestMiddle, iterableArgVals(V), Acc, Rho)
+       ... </k>
+  rule <k> V:Val ~> dictCompTargetForForIfsIteratorApply(Outer:Target, OuterFilters:MaybeCompFilters, Middle:Exp, MiddleTarget:Target, MiddleFilters:MaybeCompFilters, Inner:Exp, InnerTarget:Target, InnerFilters:MaybeCompFilters, Key:Exp, Value:Exp, Rho:Map) =>
+           dictCompTargetForForIfsIter(Outer, OuterFilters, Middle, MiddleTarget, MiddleFilters, Inner, InnerTarget, InnerFilters, Key, Value, iterableArgVals(V), #noDictVals, Rho)
+       ... </k>
+  rule <k> V:Val ~> dictCompTargetForForIfsMiddleIteratorApply(Outer:Target, OuterFilters:MaybeCompFilters, Middle:Exp, MiddleTarget:Target, MiddleFilters:MaybeCompFilters, Inner:Exp, InnerTarget:Target, InnerFilters:MaybeCompFilters, Key:Exp, Value:Exp, RestOuter:ArgVals, Acc:DictVals, Rho:Map) =>
+           dictCompTargetForForIfsMiddleIter(Outer, OuterFilters, Middle, MiddleTarget, MiddleFilters, Inner, InnerTarget, InnerFilters, Key, Value, RestOuter, iterableArgVals(V), Acc, Rho)
+       ... </k>
+  rule <k> V:Val ~> dictCompTargetForForIfsInnerIteratorApply(Outer:Target, OuterFilters:MaybeCompFilters, Middle:Exp, MiddleTarget:Target, MiddleFilters:MaybeCompFilters, Inner:Exp, InnerTarget:Target, InnerFilters:MaybeCompFilters, Key:Exp, Value:Exp, RestOuter:ArgVals, RestMiddle:ArgVals, Acc:DictVals, Rho:Map) =>
+           dictCompTargetForForIfsInnerIter(Outer, OuterFilters, Middle, MiddleTarget, MiddleFilters, Inner, InnerTarget, InnerFilters, Key, Value, RestOuter, RestMiddle, iterableArgVals(V), Acc, Rho)
+       ... </k>
 
   rule <k> listCompIfsExp(iteratorRef(I:Int), X:Id, Filters:CompFilters, Elem:Exp) =>
            #listCtor(iteratorRef(I)) ~> listCompIfsIteratorApply(X, Filters, Elem, Rho)
@@ -19234,10 +19270,15 @@ module PYTHON
   rule <k> V:Val ~> listCompTargetForForNext(Outer:Target, Middle:Exp, MiddleTarget:Target, Inner:Exp, InnerTarget:Target, Elem:Exp, RestOuter:ArgVals, RestMiddle:ArgVals, RestInner:ArgVals, Acc:ArgVals, Rho:Map) =>
            listCompTargetForForInnerIter(Outer, Middle, MiddleTarget, Inner, InnerTarget, Elem, RestOuter, RestMiddle, RestInner, appendArgVal(Acc, V), Rho)
        ... </k>
+  rule <k> listCompTargetForForIfsExp(iteratorRef(I:Int), Outer:Target, OuterFilters:MaybeCompFilters, Middle:Exp, MiddleTarget:Target, MiddleFilters:MaybeCompFilters, Inner:Exp, InnerTarget:Target, InnerFilters:MaybeCompFilters, Elem:Exp) =>
+           #listCtor(iteratorRef(I)) ~> listCompTargetForForIfsIteratorApply(Outer, OuterFilters, Middle, MiddleTarget, MiddleFilters, Inner, InnerTarget, InnerFilters, Elem, Rho)
+       ... </k>
+       <env> Rho </env>
   rule <k> listCompTargetForForIfsExp(Iter:Val, Outer:Target, OuterFilters:MaybeCompFilters, Middle:Exp, MiddleTarget:Target, MiddleFilters:MaybeCompFilters, Inner:Exp, InnerTarget:Target, InnerFilters:MaybeCompFilters, Elem:Exp) =>
            listCompTargetForForIfsIter(Outer, OuterFilters, Middle, MiddleTarget, MiddleFilters, Inner, InnerTarget, InnerFilters, Elem, iterableArgVals(Iter), #noArgVals, Rho)
        ... </k>
        <env> Rho </env>
+    requires notBool isIteratorRef(Iter)
   rule <k> listCompTargetForForIfsIter(_:Target, _:MaybeCompFilters, _:Exp, _:Target, _:MaybeCompFilters, _:Exp, _:Target, _:MaybeCompFilters, _:Exp, #noArgVals, #noArgVals, Rho:Map) =>
            [] ~> restoreEnv(Rho)
        ... </k>
@@ -19277,9 +19318,13 @@ module PYTHON
            listCompTargetForForIfsIter(Outer, OuterFilters, Middle, MiddleTarget, MiddleFilters, Inner, InnerTarget, InnerFilters, Elem, RestOuter, Acc, Rho)
        ... </k>
     requires notBool truthy(V)
+  rule <k> iteratorRef(I:Int) ~> listCompTargetForForIfsMiddle(Outer:Target, OuterFilters:MaybeCompFilters, Middle:Exp, MiddleTarget:Target, MiddleFilters:MaybeCompFilters, Inner:Exp, InnerTarget:Target, InnerFilters:MaybeCompFilters, Elem:Exp, RestOuter:ArgVals, Acc:ArgVals, Rho:Map) =>
+           #listCtor(iteratorRef(I)) ~> listCompTargetForForIfsMiddleIteratorApply(Outer, OuterFilters, Middle, MiddleTarget, MiddleFilters, Inner, InnerTarget, InnerFilters, Elem, RestOuter, Acc, Rho)
+       ... </k>
   rule <k> MiddleIter:Val ~> listCompTargetForForIfsMiddle(Outer:Target, OuterFilters:MaybeCompFilters, Middle:Exp, MiddleTarget:Target, MiddleFilters:MaybeCompFilters, Inner:Exp, InnerTarget:Target, InnerFilters:MaybeCompFilters, Elem:Exp, RestOuter:ArgVals, Acc:ArgVals, Rho:Map) =>
            listCompTargetForForIfsMiddleIter(Outer, OuterFilters, Middle, MiddleTarget, MiddleFilters, Inner, InnerTarget, InnerFilters, Elem, RestOuter, iterableArgVals(MiddleIter), Acc, Rho)
        ... </k>
+    requires notBool isIteratorRef(MiddleIter)
   rule <k> listCompTargetForForIfsMiddleIter(Outer:Target, OuterFilters:MaybeCompFilters, Middle:Exp, MiddleTarget:Target, MiddleFilters:MaybeCompFilters, Inner:Exp, InnerTarget:Target, InnerFilters:MaybeCompFilters, Elem:Exp, RestOuter:ArgVals, #noArgVals, Acc:ArgVals, Rho:Map) =>
            listCompTargetForForIfsIter(Outer, OuterFilters, Middle, MiddleTarget, MiddleFilters, Inner, InnerTarget, InnerFilters, Elem, RestOuter, Acc, Rho)
        ... </k>
@@ -19315,9 +19360,13 @@ module PYTHON
            listCompTargetForForIfsMiddleIter(Outer, OuterFilters, Middle, MiddleTarget, MiddleFilters, Inner, InnerTarget, InnerFilters, Elem, RestOuter, RestMiddle, Acc, Rho)
        ... </k>
     requires notBool truthy(V)
+  rule <k> iteratorRef(I:Int) ~> listCompTargetForForIfsInner(Outer:Target, OuterFilters:MaybeCompFilters, Middle:Exp, MiddleTarget:Target, MiddleFilters:MaybeCompFilters, Inner:Exp, InnerTarget:Target, InnerFilters:MaybeCompFilters, Elem:Exp, RestOuter:ArgVals, RestMiddle:ArgVals, Acc:ArgVals, Rho:Map) =>
+           #listCtor(iteratorRef(I)) ~> listCompTargetForForIfsInnerIteratorApply(Outer, OuterFilters, Middle, MiddleTarget, MiddleFilters, Inner, InnerTarget, InnerFilters, Elem, RestOuter, RestMiddle, Acc, Rho)
+       ... </k>
   rule <k> InnerIter:Val ~> listCompTargetForForIfsInner(Outer:Target, OuterFilters:MaybeCompFilters, Middle:Exp, MiddleTarget:Target, MiddleFilters:MaybeCompFilters, Inner:Exp, InnerTarget:Target, InnerFilters:MaybeCompFilters, Elem:Exp, RestOuter:ArgVals, RestMiddle:ArgVals, Acc:ArgVals, Rho:Map) =>
            listCompTargetForForIfsInnerIter(Outer, OuterFilters, Middle, MiddleTarget, MiddleFilters, Inner, InnerTarget, InnerFilters, Elem, RestOuter, RestMiddle, iterableArgVals(InnerIter), Acc, Rho)
        ... </k>
+    requires notBool isIteratorRef(InnerIter)
   rule <k> listCompTargetForForIfsInnerIter(Outer:Target, OuterFilters:MaybeCompFilters, Middle:Exp, MiddleTarget:Target, MiddleFilters:MaybeCompFilters, Inner:Exp, InnerTarget:Target, InnerFilters:MaybeCompFilters, Elem:Exp, RestOuter:ArgVals, RestMiddle:ArgVals, #noArgVals, Acc:ArgVals, Rho:Map) =>
            listCompTargetForForIfsMiddleIter(Outer, OuterFilters, Middle, MiddleTarget, MiddleFilters, Inner, InnerTarget, InnerFilters, Elem, RestOuter, RestMiddle, Acc, Rho)
        ... </k>
@@ -19990,10 +20039,15 @@ module PYTHON
   rule <k> V:Val ~> setCompTargetForForNext(Outer:Target, Middle:Exp, MiddleTarget:Target, Inner:Exp, InnerTarget:Target, Elem:Exp, RestOuter:ArgVals, RestMiddle:ArgVals, RestInner:ArgVals, Acc:ArgVals, Rho:Map) =>
            setCompTargetForForInnerIter(Outer, Middle, MiddleTarget, Inner, InnerTarget, Elem, RestOuter, RestMiddle, RestInner, appendArgVal(Acc, V), Rho)
        ... </k>
+  rule <k> setCompTargetForForIfsExp(iteratorRef(I:Int), Outer:Target, OuterFilters:MaybeCompFilters, Middle:Exp, MiddleTarget:Target, MiddleFilters:MaybeCompFilters, Inner:Exp, InnerTarget:Target, InnerFilters:MaybeCompFilters, Elem:Exp) =>
+           #listCtor(iteratorRef(I)) ~> setCompTargetForForIfsIteratorApply(Outer, OuterFilters, Middle, MiddleTarget, MiddleFilters, Inner, InnerTarget, InnerFilters, Elem, Rho)
+       ... </k>
+       <env> Rho </env>
   rule <k> setCompTargetForForIfsExp(Iter:Val, Outer:Target, OuterFilters:MaybeCompFilters, Middle:Exp, MiddleTarget:Target, MiddleFilters:MaybeCompFilters, Inner:Exp, InnerTarget:Target, InnerFilters:MaybeCompFilters, Elem:Exp) =>
            setCompTargetForForIfsIter(Outer, OuterFilters, Middle, MiddleTarget, MiddleFilters, Inner, InnerTarget, InnerFilters, Elem, iterableArgVals(Iter), #noArgVals, Rho)
        ... </k>
        <env> Rho </env>
+    requires notBool isIteratorRef(Iter)
   rule <k> setCompTargetForForIfsIter(_:Target, _:MaybeCompFilters, _:Exp, _:Target, _:MaybeCompFilters, _:Exp, _:Target, _:MaybeCompFilters, _:Exp, #noArgVals, #noArgVals, Rho:Map) =>
            set() ~> restoreEnv(Rho)
        ... </k>
@@ -20033,9 +20087,13 @@ module PYTHON
            setCompTargetForForIfsIter(Outer, OuterFilters, Middle, MiddleTarget, MiddleFilters, Inner, InnerTarget, InnerFilters, Elem, RestOuter, Acc, Rho)
        ... </k>
     requires notBool truthy(V)
+  rule <k> iteratorRef(I:Int) ~> setCompTargetForForIfsMiddle(Outer:Target, OuterFilters:MaybeCompFilters, Middle:Exp, MiddleTarget:Target, MiddleFilters:MaybeCompFilters, Inner:Exp, InnerTarget:Target, InnerFilters:MaybeCompFilters, Elem:Exp, RestOuter:ArgVals, Acc:ArgVals, Rho:Map) =>
+           #listCtor(iteratorRef(I)) ~> setCompTargetForForIfsMiddleIteratorApply(Outer, OuterFilters, Middle, MiddleTarget, MiddleFilters, Inner, InnerTarget, InnerFilters, Elem, RestOuter, Acc, Rho)
+       ... </k>
   rule <k> MiddleIter:Val ~> setCompTargetForForIfsMiddle(Outer:Target, OuterFilters:MaybeCompFilters, Middle:Exp, MiddleTarget:Target, MiddleFilters:MaybeCompFilters, Inner:Exp, InnerTarget:Target, InnerFilters:MaybeCompFilters, Elem:Exp, RestOuter:ArgVals, Acc:ArgVals, Rho:Map) =>
            setCompTargetForForIfsMiddleIter(Outer, OuterFilters, Middle, MiddleTarget, MiddleFilters, Inner, InnerTarget, InnerFilters, Elem, RestOuter, iterableArgVals(MiddleIter), Acc, Rho)
        ... </k>
+    requires notBool isIteratorRef(MiddleIter)
   rule <k> setCompTargetForForIfsMiddleIter(Outer:Target, OuterFilters:MaybeCompFilters, Middle:Exp, MiddleTarget:Target, MiddleFilters:MaybeCompFilters, Inner:Exp, InnerTarget:Target, InnerFilters:MaybeCompFilters, Elem:Exp, RestOuter:ArgVals, #noArgVals, Acc:ArgVals, Rho:Map) =>
            setCompTargetForForIfsIter(Outer, OuterFilters, Middle, MiddleTarget, MiddleFilters, Inner, InnerTarget, InnerFilters, Elem, RestOuter, Acc, Rho)
        ... </k>
@@ -20071,9 +20129,13 @@ module PYTHON
            setCompTargetForForIfsMiddleIter(Outer, OuterFilters, Middle, MiddleTarget, MiddleFilters, Inner, InnerTarget, InnerFilters, Elem, RestOuter, RestMiddle, Acc, Rho)
        ... </k>
     requires notBool truthy(V)
+  rule <k> iteratorRef(I:Int) ~> setCompTargetForForIfsInner(Outer:Target, OuterFilters:MaybeCompFilters, Middle:Exp, MiddleTarget:Target, MiddleFilters:MaybeCompFilters, Inner:Exp, InnerTarget:Target, InnerFilters:MaybeCompFilters, Elem:Exp, RestOuter:ArgVals, RestMiddle:ArgVals, Acc:ArgVals, Rho:Map) =>
+           #listCtor(iteratorRef(I)) ~> setCompTargetForForIfsInnerIteratorApply(Outer, OuterFilters, Middle, MiddleTarget, MiddleFilters, Inner, InnerTarget, InnerFilters, Elem, RestOuter, RestMiddle, Acc, Rho)
+       ... </k>
   rule <k> InnerIter:Val ~> setCompTargetForForIfsInner(Outer:Target, OuterFilters:MaybeCompFilters, Middle:Exp, MiddleTarget:Target, MiddleFilters:MaybeCompFilters, Inner:Exp, InnerTarget:Target, InnerFilters:MaybeCompFilters, Elem:Exp, RestOuter:ArgVals, RestMiddle:ArgVals, Acc:ArgVals, Rho:Map) =>
            setCompTargetForForIfsInnerIter(Outer, OuterFilters, Middle, MiddleTarget, MiddleFilters, Inner, InnerTarget, InnerFilters, Elem, RestOuter, RestMiddle, iterableArgVals(InnerIter), Acc, Rho)
        ... </k>
+    requires notBool isIteratorRef(InnerIter)
   rule <k> setCompTargetForForIfsInnerIter(Outer:Target, OuterFilters:MaybeCompFilters, Middle:Exp, MiddleTarget:Target, MiddleFilters:MaybeCompFilters, Inner:Exp, InnerTarget:Target, InnerFilters:MaybeCompFilters, Elem:Exp, RestOuter:ArgVals, RestMiddle:ArgVals, #noArgVals, Acc:ArgVals, Rho:Map) =>
            setCompTargetForForIfsMiddleIter(Outer, OuterFilters, Middle, MiddleTarget, MiddleFilters, Inner, InnerTarget, InnerFilters, Elem, RestOuter, RestMiddle, Acc, Rho)
        ... </k>
@@ -20905,10 +20967,15 @@ module PYTHON
   rule <k> V:Val ~> dictCompTargetForForValue(Outer:Target, Middle:Exp, MiddleTarget:Target, Inner:Exp, InnerTarget:Target, Key:Exp, Value:Exp, RestOuter:ArgVals, RestMiddle:ArgVals, RestInner:ArgVals, Acc:DictVals, Rho:Map, K:Val) =>
            dictCompTargetForForInnerIter(Outer, Middle, MiddleTarget, Inner, InnerTarget, Key, Value, RestOuter, RestMiddle, RestInner, appendDictVal(Acc, K, V), Rho)
        ... </k>
+  rule <k> dictCompTargetForForIfsExp(iteratorRef(I:Int), Outer:Target, OuterFilters:MaybeCompFilters, Middle:Exp, MiddleTarget:Target, MiddleFilters:MaybeCompFilters, Inner:Exp, InnerTarget:Target, InnerFilters:MaybeCompFilters, Key:Exp, Value:Exp) =>
+           #listCtor(iteratorRef(I)) ~> dictCompTargetForForIfsIteratorApply(Outer, OuterFilters, Middle, MiddleTarget, MiddleFilters, Inner, InnerTarget, InnerFilters, Key, Value, Rho)
+       ... </k>
+       <env> Rho </env>
   rule <k> dictCompTargetForForIfsExp(Iter:Val, Outer:Target, OuterFilters:MaybeCompFilters, Middle:Exp, MiddleTarget:Target, MiddleFilters:MaybeCompFilters, Inner:Exp, InnerTarget:Target, InnerFilters:MaybeCompFilters, Key:Exp, Value:Exp) =>
            dictCompTargetForForIfsIter(Outer, OuterFilters, Middle, MiddleTarget, MiddleFilters, Inner, InnerTarget, InnerFilters, Key, Value, iterableArgVals(Iter), #noDictVals, Rho)
        ... </k>
        <env> Rho </env>
+    requires notBool isIteratorRef(Iter)
   rule <k> dictCompTargetForForIfsIter(_:Target, _:MaybeCompFilters, _:Exp, _:Target, _:MaybeCompFilters, _:Exp, _:Target, _:MaybeCompFilters, _:Exp, _:Exp, #noArgVals, #noDictVals, Rho:Map) =>
            ({}):Val ~> restoreEnv(Rho)
        ... </k>
@@ -20948,9 +21015,13 @@ module PYTHON
            dictCompTargetForForIfsIter(Outer, OuterFilters, Middle, MiddleTarget, MiddleFilters, Inner, InnerTarget, InnerFilters, Key, Value, RestOuter, Acc, Rho)
        ... </k>
     requires notBool truthy(V)
+  rule <k> iteratorRef(I:Int) ~> dictCompTargetForForIfsMiddle(Outer:Target, OuterFilters:MaybeCompFilters, Middle:Exp, MiddleTarget:Target, MiddleFilters:MaybeCompFilters, Inner:Exp, InnerTarget:Target, InnerFilters:MaybeCompFilters, Key:Exp, Value:Exp, RestOuter:ArgVals, Acc:DictVals, Rho:Map) =>
+           #listCtor(iteratorRef(I)) ~> dictCompTargetForForIfsMiddleIteratorApply(Outer, OuterFilters, Middle, MiddleTarget, MiddleFilters, Inner, InnerTarget, InnerFilters, Key, Value, RestOuter, Acc, Rho)
+       ... </k>
   rule <k> MiddleIter:Val ~> dictCompTargetForForIfsMiddle(Outer:Target, OuterFilters:MaybeCompFilters, Middle:Exp, MiddleTarget:Target, MiddleFilters:MaybeCompFilters, Inner:Exp, InnerTarget:Target, InnerFilters:MaybeCompFilters, Key:Exp, Value:Exp, RestOuter:ArgVals, Acc:DictVals, Rho:Map) =>
            dictCompTargetForForIfsMiddleIter(Outer, OuterFilters, Middle, MiddleTarget, MiddleFilters, Inner, InnerTarget, InnerFilters, Key, Value, RestOuter, iterableArgVals(MiddleIter), Acc, Rho)
        ... </k>
+    requires notBool isIteratorRef(MiddleIter)
   rule <k> dictCompTargetForForIfsMiddleIter(Outer:Target, OuterFilters:MaybeCompFilters, Middle:Exp, MiddleTarget:Target, MiddleFilters:MaybeCompFilters, Inner:Exp, InnerTarget:Target, InnerFilters:MaybeCompFilters, Key:Exp, Value:Exp, RestOuter:ArgVals, #noArgVals, Acc:DictVals, Rho:Map) =>
            dictCompTargetForForIfsIter(Outer, OuterFilters, Middle, MiddleTarget, MiddleFilters, Inner, InnerTarget, InnerFilters, Key, Value, RestOuter, Acc, Rho)
        ... </k>
@@ -20986,9 +21057,13 @@ module PYTHON
            dictCompTargetForForIfsMiddleIter(Outer, OuterFilters, Middle, MiddleTarget, MiddleFilters, Inner, InnerTarget, InnerFilters, Key, Value, RestOuter, RestMiddle, Acc, Rho)
        ... </k>
     requires notBool truthy(V)
+  rule <k> iteratorRef(I:Int) ~> dictCompTargetForForIfsInner(Outer:Target, OuterFilters:MaybeCompFilters, Middle:Exp, MiddleTarget:Target, MiddleFilters:MaybeCompFilters, Inner:Exp, InnerTarget:Target, InnerFilters:MaybeCompFilters, Key:Exp, Value:Exp, RestOuter:ArgVals, RestMiddle:ArgVals, Acc:DictVals, Rho:Map) =>
+           #listCtor(iteratorRef(I)) ~> dictCompTargetForForIfsInnerIteratorApply(Outer, OuterFilters, Middle, MiddleTarget, MiddleFilters, Inner, InnerTarget, InnerFilters, Key, Value, RestOuter, RestMiddle, Acc, Rho)
+       ... </k>
   rule <k> InnerIter:Val ~> dictCompTargetForForIfsInner(Outer:Target, OuterFilters:MaybeCompFilters, Middle:Exp, MiddleTarget:Target, MiddleFilters:MaybeCompFilters, Inner:Exp, InnerTarget:Target, InnerFilters:MaybeCompFilters, Key:Exp, Value:Exp, RestOuter:ArgVals, RestMiddle:ArgVals, Acc:DictVals, Rho:Map) =>
            dictCompTargetForForIfsInnerIter(Outer, OuterFilters, Middle, MiddleTarget, MiddleFilters, Inner, InnerTarget, InnerFilters, Key, Value, RestOuter, RestMiddle, iterableArgVals(InnerIter), Acc, Rho)
        ... </k>
+    requires notBool isIteratorRef(InnerIter)
   rule <k> dictCompTargetForForIfsInnerIter(Outer:Target, OuterFilters:MaybeCompFilters, Middle:Exp, MiddleTarget:Target, MiddleFilters:MaybeCompFilters, Inner:Exp, InnerTarget:Target, InnerFilters:MaybeCompFilters, Key:Exp, Value:Exp, RestOuter:ArgVals, RestMiddle:ArgVals, #noArgVals, Acc:DictVals, Rho:Map) =>
            dictCompTargetForForIfsMiddleIter(Outer, OuterFilters, Middle, MiddleTarget, MiddleFilters, Inner, InnerTarget, InnerFilters, Key, Value, RestOuter, RestMiddle, Acc, Rho)
        ... </k>
@@ -31964,6 +32039,15 @@ module PYTHON
   rule <k> exceptionSignal(V:Val) ~> dictCompForForIfsIteratorApply(_:Id, _:MaybeCompFilters, _:Exp, _:Id, _:MaybeCompFilters, _:Exp, _:Id, _:MaybeCompFilters, _:Exp, _:Exp, _:Map) => exceptionSignal(V) ... </k>
   rule <k> exceptionSignal(V:Val) ~> dictCompForForIfsMiddleIteratorApply(_:Id, _:MaybeCompFilters, _:Exp, _:Id, _:MaybeCompFilters, _:Exp, _:Id, _:MaybeCompFilters, _:Exp, _:Exp, _:ArgVals, _:DictVals, _:Map) => exceptionSignal(V) ... </k>
   rule <k> exceptionSignal(V:Val) ~> dictCompForForIfsInnerIteratorApply(_:Id, _:MaybeCompFilters, _:Exp, _:Id, _:MaybeCompFilters, _:Exp, _:Id, _:MaybeCompFilters, _:Exp, _:Exp, _:ArgVals, _:ArgVals, _:DictVals, _:Map) => exceptionSignal(V) ... </k>
+  rule <k> exceptionSignal(V:Val) ~> listCompTargetForForIfsIteratorApply(_:Target, _:MaybeCompFilters, _:Exp, _:Target, _:MaybeCompFilters, _:Exp, _:Target, _:MaybeCompFilters, _:Exp, _:Map) => exceptionSignal(V) ... </k>
+  rule <k> exceptionSignal(V:Val) ~> listCompTargetForForIfsMiddleIteratorApply(_:Target, _:MaybeCompFilters, _:Exp, _:Target, _:MaybeCompFilters, _:Exp, _:Target, _:MaybeCompFilters, _:Exp, _:ArgVals, _:ArgVals, _:Map) => exceptionSignal(V) ... </k>
+  rule <k> exceptionSignal(V:Val) ~> listCompTargetForForIfsInnerIteratorApply(_:Target, _:MaybeCompFilters, _:Exp, _:Target, _:MaybeCompFilters, _:Exp, _:Target, _:MaybeCompFilters, _:Exp, _:ArgVals, _:ArgVals, _:ArgVals, _:Map) => exceptionSignal(V) ... </k>
+  rule <k> exceptionSignal(V:Val) ~> setCompTargetForForIfsIteratorApply(_:Target, _:MaybeCompFilters, _:Exp, _:Target, _:MaybeCompFilters, _:Exp, _:Target, _:MaybeCompFilters, _:Exp, _:Map) => exceptionSignal(V) ... </k>
+  rule <k> exceptionSignal(V:Val) ~> setCompTargetForForIfsMiddleIteratorApply(_:Target, _:MaybeCompFilters, _:Exp, _:Target, _:MaybeCompFilters, _:Exp, _:Target, _:MaybeCompFilters, _:Exp, _:ArgVals, _:ArgVals, _:Map) => exceptionSignal(V) ... </k>
+  rule <k> exceptionSignal(V:Val) ~> setCompTargetForForIfsInnerIteratorApply(_:Target, _:MaybeCompFilters, _:Exp, _:Target, _:MaybeCompFilters, _:Exp, _:Target, _:MaybeCompFilters, _:Exp, _:ArgVals, _:ArgVals, _:ArgVals, _:Map) => exceptionSignal(V) ... </k>
+  rule <k> exceptionSignal(V:Val) ~> dictCompTargetForForIfsIteratorApply(_:Target, _:MaybeCompFilters, _:Exp, _:Target, _:MaybeCompFilters, _:Exp, _:Target, _:MaybeCompFilters, _:Exp, _:Exp, _:Map) => exceptionSignal(V) ... </k>
+  rule <k> exceptionSignal(V:Val) ~> dictCompTargetForForIfsMiddleIteratorApply(_:Target, _:MaybeCompFilters, _:Exp, _:Target, _:MaybeCompFilters, _:Exp, _:Target, _:MaybeCompFilters, _:Exp, _:Exp, _:ArgVals, _:DictVals, _:Map) => exceptionSignal(V) ... </k>
+  rule <k> exceptionSignal(V:Val) ~> dictCompTargetForForIfsInnerIteratorApply(_:Target, _:MaybeCompFilters, _:Exp, _:Target, _:MaybeCompFilters, _:Exp, _:Target, _:MaybeCompFilters, _:Exp, _:Exp, _:ArgVals, _:ArgVals, _:DictVals, _:Map) => exceptionSignal(V) ... </k>
   rule <k> exceptionSignal(V:Val) ~> setIteratorApply => exceptionSignal(V) ... </k>
   rule <k> exceptionSignal(V:Val) ~> frozensetIteratorApply => exceptionSignal(V) ... </k>
   rule <k> exceptionSignal(V:Val) ~> sortedReverseFlag(_:Exp) => exceptionSignal(V) ... </k>

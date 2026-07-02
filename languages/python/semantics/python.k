@@ -791,6 +791,15 @@ module PYTHON
                  | dictCompForForIteratorApply(Id, Exp, Id, Exp, Id, Exp, Exp, Map) [symbol(dictCompForForIteratorApply)]
                  | dictCompForForMiddleIteratorApply(Id, Exp, Id, Exp, Id, Exp, Exp, ArgVals, DictVals, Map) [symbol(dictCompForForMiddleIteratorApply)]
                  | dictCompForForInnerIteratorApply(Id, Exp, Id, Exp, Id, Exp, Exp, ArgVals, ArgVals, DictVals, Map) [symbol(dictCompForForInnerIteratorApply)]
+                 | listCompTargetForForIteratorApply(Target, Exp, Target, Exp, Target, Exp, Map) [symbol(listCompTargetForForIteratorApply)]
+                 | listCompTargetForForMiddleIteratorApply(Target, Exp, Target, Exp, Target, Exp, ArgVals, ArgVals, Map) [symbol(listCompTargetForForMiddleIteratorApply)]
+                 | listCompTargetForForInnerIteratorApply(Target, Exp, Target, Exp, Target, Exp, ArgVals, ArgVals, ArgVals, Map) [symbol(listCompTargetForForInnerIteratorApply)]
+                 | setCompTargetForForIteratorApply(Target, Exp, Target, Exp, Target, Exp, Map) [symbol(setCompTargetForForIteratorApply)]
+                 | setCompTargetForForMiddleIteratorApply(Target, Exp, Target, Exp, Target, Exp, ArgVals, ArgVals, Map) [symbol(setCompTargetForForMiddleIteratorApply)]
+                 | setCompTargetForForInnerIteratorApply(Target, Exp, Target, Exp, Target, Exp, ArgVals, ArgVals, ArgVals, Map) [symbol(setCompTargetForForInnerIteratorApply)]
+                 | dictCompTargetForForIteratorApply(Target, Exp, Target, Exp, Target, Exp, Exp, Map) [symbol(dictCompTargetForForIteratorApply)]
+                 | dictCompTargetForForMiddleIteratorApply(Target, Exp, Target, Exp, Target, Exp, Exp, ArgVals, DictVals, Map) [symbol(dictCompTargetForForMiddleIteratorApply)]
+                 | dictCompTargetForForInnerIteratorApply(Target, Exp, Target, Exp, Target, Exp, Exp, ArgVals, ArgVals, DictVals, Map) [symbol(dictCompTargetForForInnerIteratorApply)]
                  | "setIteratorApply" [symbol(setIteratorApply)]
                  | "frozensetIteratorApply" [symbol(frozensetIteratorApply)]
                  | sortedReverseFlag(Exp) [symbol(sortedReverseFlag)]
@@ -18624,6 +18633,33 @@ module PYTHON
   rule <k> V:Val ~> dictCompForForInnerIteratorApply(X:Id, Middle:Exp, Y:Id, Inner:Exp, Z:Id, Key:Exp, Value:Exp, RestOuter:ArgVals, RestMiddle:ArgVals, Acc:DictVals, Rho:Map) =>
            dictCompForForInnerIter(X, Middle, Y, Inner, Z, Key, Value, RestOuter, RestMiddle, iterableArgVals(V), Acc, Rho)
        ... </k>
+  rule <k> V:Val ~> listCompTargetForForIteratorApply(Outer:Target, Middle:Exp, MiddleTarget:Target, Inner:Exp, InnerTarget:Target, Elem:Exp, Rho:Map) =>
+           listCompTargetForForIter(Outer, Middle, MiddleTarget, Inner, InnerTarget, Elem, iterableArgVals(V), #noArgVals, Rho)
+       ... </k>
+  rule <k> V:Val ~> listCompTargetForForMiddleIteratorApply(Outer:Target, Middle:Exp, MiddleTarget:Target, Inner:Exp, InnerTarget:Target, Elem:Exp, RestOuter:ArgVals, Acc:ArgVals, Rho:Map) =>
+           listCompTargetForForMiddleIter(Outer, Middle, MiddleTarget, Inner, InnerTarget, Elem, RestOuter, iterableArgVals(V), Acc, Rho)
+       ... </k>
+  rule <k> V:Val ~> listCompTargetForForInnerIteratorApply(Outer:Target, Middle:Exp, MiddleTarget:Target, Inner:Exp, InnerTarget:Target, Elem:Exp, RestOuter:ArgVals, RestMiddle:ArgVals, Acc:ArgVals, Rho:Map) =>
+           listCompTargetForForInnerIter(Outer, Middle, MiddleTarget, Inner, InnerTarget, Elem, RestOuter, RestMiddle, iterableArgVals(V), Acc, Rho)
+       ... </k>
+  rule <k> V:Val ~> setCompTargetForForIteratorApply(Outer:Target, Middle:Exp, MiddleTarget:Target, Inner:Exp, InnerTarget:Target, Elem:Exp, Rho:Map) =>
+           setCompTargetForForIter(Outer, Middle, MiddleTarget, Inner, InnerTarget, Elem, iterableArgVals(V), #noArgVals, Rho)
+       ... </k>
+  rule <k> V:Val ~> setCompTargetForForMiddleIteratorApply(Outer:Target, Middle:Exp, MiddleTarget:Target, Inner:Exp, InnerTarget:Target, Elem:Exp, RestOuter:ArgVals, Acc:ArgVals, Rho:Map) =>
+           setCompTargetForForMiddleIter(Outer, Middle, MiddleTarget, Inner, InnerTarget, Elem, RestOuter, iterableArgVals(V), Acc, Rho)
+       ... </k>
+  rule <k> V:Val ~> setCompTargetForForInnerIteratorApply(Outer:Target, Middle:Exp, MiddleTarget:Target, Inner:Exp, InnerTarget:Target, Elem:Exp, RestOuter:ArgVals, RestMiddle:ArgVals, Acc:ArgVals, Rho:Map) =>
+           setCompTargetForForInnerIter(Outer, Middle, MiddleTarget, Inner, InnerTarget, Elem, RestOuter, RestMiddle, iterableArgVals(V), Acc, Rho)
+       ... </k>
+  rule <k> V:Val ~> dictCompTargetForForIteratorApply(Outer:Target, Middle:Exp, MiddleTarget:Target, Inner:Exp, InnerTarget:Target, Key:Exp, Value:Exp, Rho:Map) =>
+           dictCompTargetForForIter(Outer, Middle, MiddleTarget, Inner, InnerTarget, Key, Value, iterableArgVals(V), #noDictVals, Rho)
+       ... </k>
+  rule <k> V:Val ~> dictCompTargetForForMiddleIteratorApply(Outer:Target, Middle:Exp, MiddleTarget:Target, Inner:Exp, InnerTarget:Target, Key:Exp, Value:Exp, RestOuter:ArgVals, Acc:DictVals, Rho:Map) =>
+           dictCompTargetForForMiddleIter(Outer, Middle, MiddleTarget, Inner, InnerTarget, Key, Value, RestOuter, iterableArgVals(V), Acc, Rho)
+       ... </k>
+  rule <k> V:Val ~> dictCompTargetForForInnerIteratorApply(Outer:Target, Middle:Exp, MiddleTarget:Target, Inner:Exp, InnerTarget:Target, Key:Exp, Value:Exp, RestOuter:ArgVals, RestMiddle:ArgVals, Acc:DictVals, Rho:Map) =>
+           dictCompTargetForForInnerIter(Outer, Middle, MiddleTarget, Inner, InnerTarget, Key, Value, RestOuter, RestMiddle, iterableArgVals(V), Acc, Rho)
+       ... </k>
 
   rule <k> listCompIfsExp(iteratorRef(I:Int), X:Id, Filters:CompFilters, Elem:Exp) =>
            #listCtor(iteratorRef(I)) ~> listCompIfsIteratorApply(X, Filters, Elem, Rho)
@@ -19095,10 +19131,15 @@ module PYTHON
   rule <k> V:Val ~> listCompForForIfsNext(X:Id, OuterFilters:MaybeCompFilters, Middle:Exp, Y:Id, MiddleFilters:MaybeCompFilters, Inner:Exp, Z:Id, InnerFilters:MaybeCompFilters, Elem:Exp, RestOuter:ArgVals, RestMiddle:ArgVals, RestInner:ArgVals, Acc:ArgVals, Rho:Map) =>
            listCompForForIfsInnerIter(X, OuterFilters, Middle, Y, MiddleFilters, Inner, Z, InnerFilters, Elem, RestOuter, RestMiddle, RestInner, appendArgVal(Acc, V), Rho)
        ... </k>
+  rule <k> listCompTargetForForExp(iteratorRef(I:Int), Outer:Target, Middle:Exp, MiddleTarget:Target, Inner:Exp, InnerTarget:Target, Elem:Exp) =>
+           #listCtor(iteratorRef(I)) ~> listCompTargetForForIteratorApply(Outer, Middle, MiddleTarget, Inner, InnerTarget, Elem, Rho)
+       ... </k>
+       <env> Rho </env>
   rule <k> listCompTargetForForExp(Iter:Val, Outer:Target, Middle:Exp, MiddleTarget:Target, Inner:Exp, InnerTarget:Target, Elem:Exp) =>
            listCompTargetForForIter(Outer, Middle, MiddleTarget, Inner, InnerTarget, Elem, iterableArgVals(Iter), #noArgVals, Rho)
        ... </k>
        <env> Rho </env>
+    requires notBool isIteratorRef(Iter)
   rule <k> listCompTargetForForIter(_:Target, _:Exp, _:Target, _:Exp, _:Target, _:Exp, #noArgVals, #noArgVals, Rho:Map) =>
            [] ~> restoreEnv(Rho)
        ... </k>
@@ -19111,9 +19152,13 @@ module PYTHON
        ... </k>
        <env> _ => bindTarget(Rho, Outer, V) </env>
     requires targetValueArityOk(Outer, V)
+  rule <k> iteratorRef(I:Int) ~> listCompTargetForForMiddle(Outer:Target, Middle:Exp, MiddleTarget:Target, Inner:Exp, InnerTarget:Target, Elem:Exp, RestOuter:ArgVals, Acc:ArgVals, Rho:Map) =>
+           #listCtor(iteratorRef(I)) ~> listCompTargetForForMiddleIteratorApply(Outer, Middle, MiddleTarget, Inner, InnerTarget, Elem, RestOuter, Acc, Rho)
+       ... </k>
   rule <k> MiddleIter:Val ~> listCompTargetForForMiddle(Outer:Target, Middle:Exp, MiddleTarget:Target, Inner:Exp, InnerTarget:Target, Elem:Exp, RestOuter:ArgVals, Acc:ArgVals, Rho:Map) =>
            listCompTargetForForMiddleIter(Outer, Middle, MiddleTarget, Inner, InnerTarget, Elem, RestOuter, iterableArgVals(MiddleIter), Acc, Rho)
        ... </k>
+    requires notBool isIteratorRef(MiddleIter)
   rule <k> listCompTargetForForMiddleIter(Outer:Target, Middle:Exp, MiddleTarget:Target, Inner:Exp, InnerTarget:Target, Elem:Exp, RestOuter:ArgVals, #noArgVals, Acc:ArgVals, Rho:Map) =>
            listCompTargetForForIter(Outer, Middle, MiddleTarget, Inner, InnerTarget, Elem, RestOuter, Acc, Rho)
        ... </k>
@@ -19122,9 +19167,13 @@ module PYTHON
        ... </k>
        <env> RhoCurrent:Map => bindTarget(RhoCurrent, MiddleTarget, V) </env>
     requires targetValueArityOk(MiddleTarget, V)
+  rule <k> iteratorRef(I:Int) ~> listCompTargetForForInner(Outer:Target, Middle:Exp, MiddleTarget:Target, Inner:Exp, InnerTarget:Target, Elem:Exp, RestOuter:ArgVals, RestMiddle:ArgVals, Acc:ArgVals, Rho:Map) =>
+           #listCtor(iteratorRef(I)) ~> listCompTargetForForInnerIteratorApply(Outer, Middle, MiddleTarget, Inner, InnerTarget, Elem, RestOuter, RestMiddle, Acc, Rho)
+       ... </k>
   rule <k> InnerIter:Val ~> listCompTargetForForInner(Outer:Target, Middle:Exp, MiddleTarget:Target, Inner:Exp, InnerTarget:Target, Elem:Exp, RestOuter:ArgVals, RestMiddle:ArgVals, Acc:ArgVals, Rho:Map) =>
            listCompTargetForForInnerIter(Outer, Middle, MiddleTarget, Inner, InnerTarget, Elem, RestOuter, RestMiddle, iterableArgVals(InnerIter), Acc, Rho)
        ... </k>
+    requires notBool isIteratorRef(InnerIter)
   rule <k> listCompTargetForForInnerIter(Outer:Target, Middle:Exp, MiddleTarget:Target, Inner:Exp, InnerTarget:Target, Elem:Exp, RestOuter:ArgVals, RestMiddle:ArgVals, #noArgVals, Acc:ArgVals, Rho:Map) =>
            listCompTargetForForMiddleIter(Outer, Middle, MiddleTarget, Inner, InnerTarget, Elem, RestOuter, RestMiddle, Acc, Rho)
        ... </k>
@@ -19825,10 +19874,15 @@ module PYTHON
   rule <k> V:Val ~> setCompForForIfsNext(X:Id, OuterFilters:MaybeCompFilters, Middle:Exp, Y:Id, MiddleFilters:MaybeCompFilters, Inner:Exp, Z:Id, InnerFilters:MaybeCompFilters, Elem:Exp, RestOuter:ArgVals, RestMiddle:ArgVals, RestInner:ArgVals, Acc:ArgVals, Rho:Map) =>
            setCompForForIfsInnerIter(X, OuterFilters, Middle, Y, MiddleFilters, Inner, Z, InnerFilters, Elem, RestOuter, RestMiddle, RestInner, appendArgVal(Acc, V), Rho)
        ... </k>
+  rule <k> setCompTargetForForExp(iteratorRef(I:Int), Outer:Target, Middle:Exp, MiddleTarget:Target, Inner:Exp, InnerTarget:Target, Elem:Exp) =>
+           #listCtor(iteratorRef(I)) ~> setCompTargetForForIteratorApply(Outer, Middle, MiddleTarget, Inner, InnerTarget, Elem, Rho)
+       ... </k>
+       <env> Rho </env>
   rule <k> setCompTargetForForExp(Iter:Val, Outer:Target, Middle:Exp, MiddleTarget:Target, Inner:Exp, InnerTarget:Target, Elem:Exp) =>
            setCompTargetForForIter(Outer, Middle, MiddleTarget, Inner, InnerTarget, Elem, iterableArgVals(Iter), #noArgVals, Rho)
        ... </k>
        <env> Rho </env>
+    requires notBool isIteratorRef(Iter)
   rule <k> setCompTargetForForIter(_:Target, _:Exp, _:Target, _:Exp, _:Target, _:Exp, #noArgVals, #noArgVals, Rho:Map) =>
            set() ~> restoreEnv(Rho)
        ... </k>
@@ -19841,9 +19895,13 @@ module PYTHON
        ... </k>
        <env> _ => bindTarget(Rho, Outer, V) </env>
     requires targetValueArityOk(Outer, V)
+  rule <k> iteratorRef(I:Int) ~> setCompTargetForForMiddle(Outer:Target, Middle:Exp, MiddleTarget:Target, Inner:Exp, InnerTarget:Target, Elem:Exp, RestOuter:ArgVals, Acc:ArgVals, Rho:Map) =>
+           #listCtor(iteratorRef(I)) ~> setCompTargetForForMiddleIteratorApply(Outer, Middle, MiddleTarget, Inner, InnerTarget, Elem, RestOuter, Acc, Rho)
+       ... </k>
   rule <k> MiddleIter:Val ~> setCompTargetForForMiddle(Outer:Target, Middle:Exp, MiddleTarget:Target, Inner:Exp, InnerTarget:Target, Elem:Exp, RestOuter:ArgVals, Acc:ArgVals, Rho:Map) =>
            setCompTargetForForMiddleIter(Outer, Middle, MiddleTarget, Inner, InnerTarget, Elem, RestOuter, iterableArgVals(MiddleIter), Acc, Rho)
        ... </k>
+    requires notBool isIteratorRef(MiddleIter)
   rule <k> setCompTargetForForMiddleIter(Outer:Target, Middle:Exp, MiddleTarget:Target, Inner:Exp, InnerTarget:Target, Elem:Exp, RestOuter:ArgVals, #noArgVals, Acc:ArgVals, Rho:Map) =>
            setCompTargetForForIter(Outer, Middle, MiddleTarget, Inner, InnerTarget, Elem, RestOuter, Acc, Rho)
        ... </k>
@@ -19852,9 +19910,13 @@ module PYTHON
        ... </k>
        <env> RhoCurrent:Map => bindTarget(RhoCurrent, MiddleTarget, V) </env>
     requires targetValueArityOk(MiddleTarget, V)
+  rule <k> iteratorRef(I:Int) ~> setCompTargetForForInner(Outer:Target, Middle:Exp, MiddleTarget:Target, Inner:Exp, InnerTarget:Target, Elem:Exp, RestOuter:ArgVals, RestMiddle:ArgVals, Acc:ArgVals, Rho:Map) =>
+           #listCtor(iteratorRef(I)) ~> setCompTargetForForInnerIteratorApply(Outer, Middle, MiddleTarget, Inner, InnerTarget, Elem, RestOuter, RestMiddle, Acc, Rho)
+       ... </k>
   rule <k> InnerIter:Val ~> setCompTargetForForInner(Outer:Target, Middle:Exp, MiddleTarget:Target, Inner:Exp, InnerTarget:Target, Elem:Exp, RestOuter:ArgVals, RestMiddle:ArgVals, Acc:ArgVals, Rho:Map) =>
            setCompTargetForForInnerIter(Outer, Middle, MiddleTarget, Inner, InnerTarget, Elem, RestOuter, RestMiddle, iterableArgVals(InnerIter), Acc, Rho)
        ... </k>
+    requires notBool isIteratorRef(InnerIter)
   rule <k> setCompTargetForForInnerIter(Outer:Target, Middle:Exp, MiddleTarget:Target, Inner:Exp, InnerTarget:Target, Elem:Exp, RestOuter:ArgVals, RestMiddle:ArgVals, #noArgVals, Acc:ArgVals, Rho:Map) =>
            setCompTargetForForMiddleIter(Outer, Middle, MiddleTarget, Inner, InnerTarget, Elem, RestOuter, RestMiddle, Acc, Rho)
        ... </k>
@@ -20711,10 +20773,15 @@ module PYTHON
   rule <k> V:Val ~> dictCompForForIfsValue(X:Id, OuterFilters:MaybeCompFilters, Middle:Exp, Y:Id, MiddleFilters:MaybeCompFilters, Inner:Exp, Z:Id, InnerFilters:MaybeCompFilters, Key:Exp, Value:Exp, RestOuter:ArgVals, RestMiddle:ArgVals, RestInner:ArgVals, Acc:DictVals, Rho:Map, K:Val) =>
            dictCompForForIfsInnerIter(X, OuterFilters, Middle, Y, MiddleFilters, Inner, Z, InnerFilters, Key, Value, RestOuter, RestMiddle, RestInner, appendDictVal(Acc, K, V), Rho)
        ... </k>
+  rule <k> dictCompTargetForForExp(iteratorRef(I:Int), Outer:Target, Middle:Exp, MiddleTarget:Target, Inner:Exp, InnerTarget:Target, Key:Exp, Value:Exp) =>
+           #listCtor(iteratorRef(I)) ~> dictCompTargetForForIteratorApply(Outer, Middle, MiddleTarget, Inner, InnerTarget, Key, Value, Rho)
+       ... </k>
+       <env> Rho </env>
   rule <k> dictCompTargetForForExp(Iter:Val, Outer:Target, Middle:Exp, MiddleTarget:Target, Inner:Exp, InnerTarget:Target, Key:Exp, Value:Exp) =>
            dictCompTargetForForIter(Outer, Middle, MiddleTarget, Inner, InnerTarget, Key, Value, iterableArgVals(Iter), #noDictVals, Rho)
        ... </k>
        <env> Rho </env>
+    requires notBool isIteratorRef(Iter)
   rule <k> dictCompTargetForForIter(_:Target, _:Exp, _:Target, _:Exp, _:Target, _:Exp, _:Exp, #noArgVals, #noDictVals, Rho:Map) =>
            ({}):Val ~> restoreEnv(Rho)
        ... </k>
@@ -20727,9 +20794,13 @@ module PYTHON
        ... </k>
        <env> _ => bindTarget(Rho, Outer, V) </env>
     requires targetValueArityOk(Outer, V)
+  rule <k> iteratorRef(I:Int) ~> dictCompTargetForForMiddle(Outer:Target, Middle:Exp, MiddleTarget:Target, Inner:Exp, InnerTarget:Target, Key:Exp, Value:Exp, RestOuter:ArgVals, Acc:DictVals, Rho:Map) =>
+           #listCtor(iteratorRef(I)) ~> dictCompTargetForForMiddleIteratorApply(Outer, Middle, MiddleTarget, Inner, InnerTarget, Key, Value, RestOuter, Acc, Rho)
+       ... </k>
   rule <k> MiddleIter:Val ~> dictCompTargetForForMiddle(Outer:Target, Middle:Exp, MiddleTarget:Target, Inner:Exp, InnerTarget:Target, Key:Exp, Value:Exp, RestOuter:ArgVals, Acc:DictVals, Rho:Map) =>
            dictCompTargetForForMiddleIter(Outer, Middle, MiddleTarget, Inner, InnerTarget, Key, Value, RestOuter, iterableArgVals(MiddleIter), Acc, Rho)
        ... </k>
+    requires notBool isIteratorRef(MiddleIter)
   rule <k> dictCompTargetForForMiddleIter(Outer:Target, Middle:Exp, MiddleTarget:Target, Inner:Exp, InnerTarget:Target, Key:Exp, Value:Exp, RestOuter:ArgVals, #noArgVals, Acc:DictVals, Rho:Map) =>
            dictCompTargetForForIter(Outer, Middle, MiddleTarget, Inner, InnerTarget, Key, Value, RestOuter, Acc, Rho)
        ... </k>
@@ -20738,9 +20809,13 @@ module PYTHON
        ... </k>
        <env> RhoCurrent:Map => bindTarget(RhoCurrent, MiddleTarget, V) </env>
     requires targetValueArityOk(MiddleTarget, V)
+  rule <k> iteratorRef(I:Int) ~> dictCompTargetForForInner(Outer:Target, Middle:Exp, MiddleTarget:Target, Inner:Exp, InnerTarget:Target, Key:Exp, Value:Exp, RestOuter:ArgVals, RestMiddle:ArgVals, Acc:DictVals, Rho:Map) =>
+           #listCtor(iteratorRef(I)) ~> dictCompTargetForForInnerIteratorApply(Outer, Middle, MiddleTarget, Inner, InnerTarget, Key, Value, RestOuter, RestMiddle, Acc, Rho)
+       ... </k>
   rule <k> InnerIter:Val ~> dictCompTargetForForInner(Outer:Target, Middle:Exp, MiddleTarget:Target, Inner:Exp, InnerTarget:Target, Key:Exp, Value:Exp, RestOuter:ArgVals, RestMiddle:ArgVals, Acc:DictVals, Rho:Map) =>
            dictCompTargetForForInnerIter(Outer, Middle, MiddleTarget, Inner, InnerTarget, Key, Value, RestOuter, RestMiddle, iterableArgVals(InnerIter), Acc, Rho)
        ... </k>
+    requires notBool isIteratorRef(InnerIter)
   rule <k> dictCompTargetForForInnerIter(Outer:Target, Middle:Exp, MiddleTarget:Target, Inner:Exp, InnerTarget:Target, Key:Exp, Value:Exp, RestOuter:ArgVals, RestMiddle:ArgVals, #noArgVals, Acc:DictVals, Rho:Map) =>
            dictCompTargetForForMiddleIter(Outer, Middle, MiddleTarget, Inner, InnerTarget, Key, Value, RestOuter, RestMiddle, Acc, Rho)
        ... </k>
@@ -31796,6 +31871,15 @@ module PYTHON
   rule <k> exceptionSignal(V:Val) ~> dictCompForForIteratorApply(_:Id, _:Exp, _:Id, _:Exp, _:Id, _:Exp, _:Exp, _:Map) => exceptionSignal(V) ... </k>
   rule <k> exceptionSignal(V:Val) ~> dictCompForForMiddleIteratorApply(_:Id, _:Exp, _:Id, _:Exp, _:Id, _:Exp, _:Exp, _:ArgVals, _:DictVals, _:Map) => exceptionSignal(V) ... </k>
   rule <k> exceptionSignal(V:Val) ~> dictCompForForInnerIteratorApply(_:Id, _:Exp, _:Id, _:Exp, _:Id, _:Exp, _:Exp, _:ArgVals, _:ArgVals, _:DictVals, _:Map) => exceptionSignal(V) ... </k>
+  rule <k> exceptionSignal(V:Val) ~> listCompTargetForForIteratorApply(_:Target, _:Exp, _:Target, _:Exp, _:Target, _:Exp, _:Map) => exceptionSignal(V) ... </k>
+  rule <k> exceptionSignal(V:Val) ~> listCompTargetForForMiddleIteratorApply(_:Target, _:Exp, _:Target, _:Exp, _:Target, _:Exp, _:ArgVals, _:ArgVals, _:Map) => exceptionSignal(V) ... </k>
+  rule <k> exceptionSignal(V:Val) ~> listCompTargetForForInnerIteratorApply(_:Target, _:Exp, _:Target, _:Exp, _:Target, _:Exp, _:ArgVals, _:ArgVals, _:ArgVals, _:Map) => exceptionSignal(V) ... </k>
+  rule <k> exceptionSignal(V:Val) ~> setCompTargetForForIteratorApply(_:Target, _:Exp, _:Target, _:Exp, _:Target, _:Exp, _:Map) => exceptionSignal(V) ... </k>
+  rule <k> exceptionSignal(V:Val) ~> setCompTargetForForMiddleIteratorApply(_:Target, _:Exp, _:Target, _:Exp, _:Target, _:Exp, _:ArgVals, _:ArgVals, _:Map) => exceptionSignal(V) ... </k>
+  rule <k> exceptionSignal(V:Val) ~> setCompTargetForForInnerIteratorApply(_:Target, _:Exp, _:Target, _:Exp, _:Target, _:Exp, _:ArgVals, _:ArgVals, _:ArgVals, _:Map) => exceptionSignal(V) ... </k>
+  rule <k> exceptionSignal(V:Val) ~> dictCompTargetForForIteratorApply(_:Target, _:Exp, _:Target, _:Exp, _:Target, _:Exp, _:Exp, _:Map) => exceptionSignal(V) ... </k>
+  rule <k> exceptionSignal(V:Val) ~> dictCompTargetForForMiddleIteratorApply(_:Target, _:Exp, _:Target, _:Exp, _:Target, _:Exp, _:Exp, _:ArgVals, _:DictVals, _:Map) => exceptionSignal(V) ... </k>
+  rule <k> exceptionSignal(V:Val) ~> dictCompTargetForForInnerIteratorApply(_:Target, _:Exp, _:Target, _:Exp, _:Target, _:Exp, _:Exp, _:ArgVals, _:ArgVals, _:DictVals, _:Map) => exceptionSignal(V) ... </k>
   rule <k> exceptionSignal(V:Val) ~> setIteratorApply => exceptionSignal(V) ... </k>
   rule <k> exceptionSignal(V:Val) ~> frozensetIteratorApply => exceptionSignal(V) ... </k>
   rule <k> exceptionSignal(V:Val) ~> sortedReverseFlag(_:Exp) => exceptionSignal(V) ... </k>

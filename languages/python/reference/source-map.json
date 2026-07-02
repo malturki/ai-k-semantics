@@ -116,9 +116,9 @@
               "section": "Objects, values and types"
             }
           ],
-          "k_coverage": ["semantics/python.k: internal integer value subset; singleton identity subset for None/True/False/Ellipsis; adapter-backed pass-only fresh user class values and fresh user object values with current identity/default-equality behavior"],
-          "test_coverage": ["tests/examples/smoke-arithmetic.py", "tests/adapter/adapter-is-none.py", "tests/adapter/adapter-is-bool.py", "tests/adapter/adapter-ellipsis.py", "tests/adapter/adapter-class-basic.py"],
-          "gaps": ["Need full heap object identity, type objects, object attributes, mutability, aliasing, lifetime model, and standard object/type hierarchy beyond language singletons and the current pass-only user-class profile."]
+          "k_coverage": ["semantics/python.k: internal integer value subset; singleton identity subset for None/True/False/Ellipsis; adapter-backed fresh user class values and fresh user object values with current identity/default-equality behavior; current class-attribute payload profile for simple class-body assignments and instance fallback lookup"],
+          "test_coverage": ["tests/examples/smoke-arithmetic.py", "tests/adapter/adapter-is-none.py", "tests/adapter/adapter-is-bool.py", "tests/adapter/adapter-ellipsis.py", "tests/adapter/adapter-class-basic.py", "tests/adapter/adapter-class-attributes.py"],
+          "gaps": ["Need full heap object identity, real type objects, instance attributes, mutability, aliasing, lifetime model, and standard object/type hierarchy beyond language singletons and the current user-class/class-attribute profile."]
         },
         {
           "id": "data.standard-type-hierarchy",
@@ -201,7 +201,7 @@
         {
           "id": "execution.code-blocks-frames",
           "title": "Code blocks, execution frames, and runtime context",
-          "status": "not-started",
+          "status": "partial",
           "references": [
             {
               "title": "Execution model",
@@ -691,9 +691,9 @@
               "section": "Class definitions"
             }
           ],
-          "k_coverage": ["semantics/python.k and harness/python_to_k_input.py: adapter-backed pass-only ClassDef lowers to #class(Name), allocates and binds a fresh classVal(Name, id) in the current environment, treats class values as callable/truthy, constructs fresh userObjectVal(Name, classId, objectId) instances on no-argument calls, defines current class/object identity and default equality for those values, and supports isinstance(obj, ClassName) through a dynamic class-value check"],
-          "test_coverage": ["tests/adapter/adapter-class-basic.py"],
-          "gaps": ["Need class body execution, namespace creation, bases, MRO, metaclass selection, type parameters, decorators, attributes, methods, descriptors, __init__/__new__, real type objects, subclassing, issubclass, class patterns over user classes, and exact diagnostics."]
+          "k_coverage": ["semantics/python.k and harness/python_to_k_input.py: adapter-backed ClassDef lowers pass-only classes to #class(Name) and simple pass/name-assignment bodies to #classAttrs(Name, ...); allocates and binds a fresh classVal(Name, id, attrs) in the current environment; evaluates simple class-body assignment expressions in a temporary class namespace that can read globals and earlier class attributes; restores the outer environment before binding the class name; treats class values as callable/truthy; constructs fresh userObjectVal(Name, classId, objectId, attrs) instances on no-argument calls; defines current class/object identity and default equality for those values; supports direct class and instance fallback attribute lookup, getattr/default, hasattr, and isinstance(obj, ClassName) through a dynamic class-value check"],
+          "test_coverage": ["tests/adapter/adapter-class-basic.py", "tests/adapter/adapter-class-attributes.py"],
+          "gaps": ["Need general class body execution, statements beyond pass/simple name assignment, __module__/__qualname__/__doc__, namespace mapping behavior, bases, MRO, metaclass selection, type parameters, decorators, instance attributes, methods, descriptors, __init__/__new__, real type objects, subclassing, issubclass over user classes, class patterns over user classes, attribute mutation/deletion, and exact diagnostics."]
         },
         {
           "id": "compound.async-defs",

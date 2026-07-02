@@ -64,6 +64,9 @@ module PYTHON-SYNTAX
                      | "#kwStarArg" "(" Exp ")" [symbol(kwStarArgExp)]
                      | "#kwStarArgs" "(" Exp "," KwArgExps ")" [symbol(kwStarArgExpsCons)]
 
+  syntax ClassAttrExps ::= "#noClassAttrs" [symbol(noClassAttrExps)]
+                         | "#classAttr" "(" Id "," Exp "," ClassAttrExps ")" [symbol(classAttrExpsCons)]
+
   syntax DictExps ::= "#noDictItems" [symbol(noDictExps)]
                     | "#dictItem" "(" Exp "," Exp ")" [symbol(dictExpItem)]
                     | "#dictItems" "(" Exp "," Exp "," DictExps ")" [symbol(dictExpsCons)]
@@ -310,6 +313,7 @@ module PYTHON-SYNTAX
                 | "#defDecorated" "(" Id "," ArgExps "," FunctionSpec ")" [symbol(functionDefDecoratedStmt)]
                 | "#genDef" "(" Id "," IdItems "," YieldExps ")" [symbol(generatorFunctionDefStmt)]
                 | "#class" "(" Id ")" [symbol(classDefStmt)]
+                | "#classAttrs" "(" Id "," ClassAttrExps ")" [symbol(classDefAttrsStmt)]
                 | "#if" "(" Exp "," Block "," Block ")" [symbol(ifStmt)]
                 | "#while" "(" Exp "," Block ")" [symbol(whileStmt)]
                 | "#whileElse" "(" Exp "," Block "," Block ")" [symbol(whileElseStmt)]
@@ -608,6 +612,10 @@ module PYTHON
   imports FLOAT
   imports MAP
 
+  syntax ClassAttrs ::= "#noRuntimeClassAttrs" [symbol(noRuntimeClassAttrs)]
+                      | classAttr(Id, Val, ClassAttrs) [symbol(runtimeClassAttr)]
+                      | classAttrSet(ClassAttrs, Id, Val) [function, symbol(classAttrSet)]
+
   syntax Val ::= closure(Id, Exp) [symbol(closure)]
                | closureArgs(IdItems, Exp) [symbol(closureArgs)]
                | closureDefaults(IdItems, ArgVals, Exp) [symbol(closureDefaults)]
@@ -683,8 +691,8 @@ module PYTHON
                | functionValPosKwOnlyKwArgs(IdItems, IdItems, Id, Block) [symbol(functionValPosKwOnlyKwArgs)]
                | functionValPosKwDefaultsKwArgs(IdItems, ArgVals, IdItems, ArgVals, Id, Block) [symbol(functionValPosKwDefaultsKwArgs)]
                | generatorFunctionVal(IdItems, YieldExps) [symbol(generatorFunctionVal)]
-               | classVal(Id, Int) [symbol(classVal)]
-               | userObjectVal(Id, Int, Int) [symbol(userObjectVal)]
+               | classVal(Id, Int, ClassAttrs) [symbol(classVal)]
+               | userObjectVal(Id, Int, Int, ClassAttrs) [symbol(userObjectVal)]
                | "#exceptionInstance" "(" Id "," ArgVals ")" [symbol(exceptionInstanceVal)]
                | buildFunctionDefault(FunctionDefaultBuilder, ArgVals) [function, symbol(buildFunctionDefault)]
                | buildFunctionTwoDefaults(FunctionTwoDefaultBuilder, ArgVals, ArgVals) [function, symbol(buildFunctionTwoDefaults)]
@@ -748,6 +756,8 @@ module PYTHON
                  | getattrDefaultDynApply(Val, String) [symbol(getattrDefaultDynApply)]
                  | hasattrDynName(Exp) [symbol(hasattrDynName)]
                  | hasattrDynApply(Val) [symbol(hasattrDynApply)]
+                 | collectClassAttrs(Id, ClassAttrExps, ClassAttrs, Map) [symbol(collectClassAttrs)]
+                 | classAttrBind(Id, Id, ClassAttrExps, ClassAttrs, Map) [symbol(classAttrBind)]
                  | formatDefault() [symbol(formatDefault)]
                  | formatSpec(Exp) [symbol(formatSpec)]
                  | formatApply(Val) [symbol(formatApply)]
@@ -1498,8 +1508,10 @@ module PYTHON
                 | matchBuiltinClassArgKw(Val, Id, MatchPattern, MatchAttrPatterns) [function, symbol(matchBuiltinClassArgKw)]
                 | matchClassAttrs(Val, MatchAttrPatterns) [function, symbol(matchClassAttrs)]
                 | classHasMatchAttr(Val, Id) [function, symbol(classHasMatchAttr)]
+                | classAttrsHas(ClassAttrs, Id) [function, symbol(classAttrsHas)]
                 | getattrStringSupported(String) [function, symbol(getattrStringSupported)]
                 | classHasAttrString(Val, String) [function, symbol(classHasAttrString)]
+                | classAttrsHasString(ClassAttrs, String) [function, symbol(classAttrsHasString)]
                 | contextManagerSupported(Val) [function, symbol(contextManagerSupported)]
                 | contextManagerSuppressesException(Val, Val) [function, symbol(contextManagerSuppressesException)]
                 | matchSimplePattern(Val, MatchPattern) [function, symbol(matchSimplePattern)]
@@ -2515,6 +2527,8 @@ module PYTHON
   syntax Val ::= complexCtorRealArg(KwArgVals) [function, symbol(complexCtorRealArg)]
                | complexCtorImagArg(KwArgVals) [function, symbol(complexCtorImagArg)]
                | matchClassAttrVal(Val, Id) [function, symbol(matchClassAttrVal)]
+               | classAttrGet(ClassAttrs, Id) [function, symbol(classAttrGet)]
+               | classAttrStringGet(ClassAttrs, String) [function, symbol(classAttrStringGet)]
                | matchStarMiddle(Val, MatchPatterns, MatchPatterns) [function, symbol(matchStarMiddle)]
                | matchMappingRestVal(Val, MatchMapPatterns) [function, symbol(matchMappingRestVal)]
   syntax Val ::= listSlice(ValItems, Int, Int) [function, symbol(listSlice)]
@@ -2784,8 +2798,8 @@ module PYTHON
   rule truthy(functionValPosKwOnlyKwArgs(_:IdItems, _:IdItems, _:Id, _:Block)) => true
   rule truthy(functionValPosKwDefaultsKwArgs(_:IdItems, _:ArgVals, _:IdItems, _:ArgVals, _:Id, _:Block)) => true
   rule truthy(generatorFunctionVal(_:IdItems, _:YieldExps)) => true
-  rule truthy(classVal(_:Id, _:Int)) => true
-  rule truthy(userObjectVal(_:Id, _:Int, _:Int)) => true
+  rule truthy(classVal(_:Id, _:Int, _:ClassAttrs)) => true
+  rule truthy(userObjectVal(_:Id, _:Int, _:Int, _:ClassAttrs)) => true
   rule truthy(rangeVal(Start:Int, Stop:Int)) => Start <Int Stop
   rule truthy(rangeVal(Start:Int, Stop:Int, Step:Int)) => pyRangeLen(Start, Stop, Step) >Int 0
     requires Step =/=Int 0
@@ -2916,13 +2930,13 @@ module PYTHON
   rule callableVal(functionValPosKwOnlyKwArgs(_:IdItems, _:IdItems, _:Id, _:Block)) => true
   rule callableVal(functionValPosKwDefaultsKwArgs(_:IdItems, _:ArgVals, _:IdItems, _:ArgVals, _:Id, _:Block)) => true
   rule callableVal(generatorFunctionVal(_:IdItems, _:YieldExps)) => true
-  rule callableVal(classVal(_:Id, _:Int)) => true
+  rule callableVal(classVal(_:Id, _:Int, _:ClassAttrs)) => true
   rule callableVal(_:Val) => false [owise]
 
-  rule isClassVal(classVal(_:Id, _:Int)) => true
+  rule isClassVal(classVal(_:Id, _:Int, _:ClassAttrs)) => true
   rule isClassVal(_:Val) => false [owise]
 
-  rule isUserObjectVal(userObjectVal(_:Id, _:Int, _:Int)) => true
+  rule isUserObjectVal(userObjectVal(_:Id, _:Int, _:Int, _:ClassAttrs)) => true
   rule isUserObjectVal(_:Val) => false [owise]
 
   rule contextManagerSupported(#memoryviewVal(_:Val)) => true
@@ -4604,6 +4618,9 @@ module PYTHON
   rule isIntLike(functionValPosKwDefaults(_:IdItems, _:ArgVals, _:IdItems, _:ArgVals, _:Block)) => false
   rule isIntLike(functionValPosKwOnlyKwArgs(_:IdItems, _:IdItems, _:Id, _:Block)) => false
   rule isIntLike(functionValPosKwDefaultsKwArgs(_:IdItems, _:ArgVals, _:IdItems, _:ArgVals, _:Id, _:Block)) => false
+  rule isIntLike(generatorFunctionVal(_:IdItems, _:YieldExps)) => false
+  rule isIntLike(classVal(_:Id, _:Int, _:ClassAttrs)) => false
+  rule isIntLike(userObjectVal(_:Id, _:Int, _:Int, _:ClassAttrs)) => false
   rule isIntLike(iteratorRef(_:Int)) => false
   rule isIntLike(rangeVal(_:Int, _:Int)) => false
   rule isIntLike(rangeVal(_:Int, _:Int, _:Int)) => false
@@ -5627,8 +5644,8 @@ module PYTHON
   rule singletonIdentity(functionValPosKwOnlyKwArgs(_:IdItems, _:IdItems, _:Id, _:Block)) => false
   rule singletonIdentity(functionValPosKwDefaultsKwArgs(_:IdItems, _:ArgVals, _:IdItems, _:ArgVals, _:Id, _:Block)) => false
   rule singletonIdentity(generatorFunctionVal(_:IdItems, _:YieldExps)) => false
-  rule singletonIdentity(classVal(_:Id, _:Int)) => false
-  rule singletonIdentity(userObjectVal(_:Id, _:Int, _:Int)) => false
+  rule singletonIdentity(classVal(_:Id, _:Int, _:ClassAttrs)) => false
+  rule singletonIdentity(userObjectVal(_:Id, _:Int, _:Int, _:ClassAttrs)) => false
   rule singletonIdentity(rangeVal(_:Int, _:Int)) => false
   rule singletonIdentity(rangeVal(_:Int, _:Int, _:Int)) => false
   rule singletonIdentity(sliceVal(_:Val, _:Val, _:Val)) => false
@@ -6110,7 +6127,7 @@ module PYTHON
   rule isinstanceAny(V:Val, idItemsCons(C:Id, CS:IdItems)) =>
     matchBuiltinClass(V, C) orBool isinstanceAny(V, CS)
 
-  rule userInstanceOf(userObjectVal(C:Id, ClassId:Int, _:Int), D:Id, ExpectedClassId:Int) =>
+  rule userInstanceOf(userObjectVal(C:Id, ClassId:Int, _:Int, _:ClassAttrs), D:Id, ExpectedClassId:Int) =>
     ClassId ==Int ExpectedClassId andBool Id2String(C) ==String Id2String(D)
   rule userInstanceOf(_:Val, _:Id, _:Int) => false [owise]
 
@@ -6145,6 +6162,40 @@ module PYTHON
   rule matchClassAttrs(V:Val, #matchAttrPattern(A:Id, _P:MatchPattern, _Rest:MatchAttrPatterns)) => false
     requires notBool classHasMatchAttr(V, A)
 
+  rule classAttrSet(#noRuntimeClassAttrs, A:Id, V:Val) => classAttr(A, V, #noRuntimeClassAttrs)
+  rule classAttrSet(classAttr(A:Id, _Old:Val, Rest:ClassAttrs), B:Id, V:Val) =>
+    classAttr(A, V, Rest)
+    requires Id2String(A) ==String Id2String(B)
+  rule classAttrSet(classAttr(A:Id, Old:Val, Rest:ClassAttrs), B:Id, V:Val) =>
+    classAttr(A, Old, classAttrSet(Rest, B, V))
+    requires Id2String(A) =/=String Id2String(B)
+
+  rule classAttrsHas(#noRuntimeClassAttrs, _:Id) => false
+  rule classAttrsHas(classAttr(A:Id, _:Val, _Rest:ClassAttrs), B:Id) => true
+    requires Id2String(A) ==String Id2String(B)
+  rule classAttrsHas(classAttr(A:Id, _:Val, Rest:ClassAttrs), B:Id) => classAttrsHas(Rest, B)
+    requires Id2String(A) =/=String Id2String(B)
+
+  rule classAttrsHasString(#noRuntimeClassAttrs, _:String) => false
+  rule classAttrsHasString(classAttr(A:Id, _:Val, _Rest:ClassAttrs), B:String) => true
+    requires Id2String(A) ==String B
+  rule classAttrsHasString(classAttr(A:Id, _:Val, Rest:ClassAttrs), B:String) => classAttrsHasString(Rest, B)
+    requires Id2String(A) =/=String B
+
+  rule classAttrGet(classAttr(A:Id, V:Val, _Rest:ClassAttrs), B:Id) => V
+    requires Id2String(A) ==String Id2String(B)
+  rule classAttrGet(classAttr(A:Id, _V:Val, Rest:ClassAttrs), B:Id) => classAttrGet(Rest, B)
+    requires Id2String(A) =/=String Id2String(B)
+
+  rule classAttrStringGet(classAttr(A:Id, V:Val, _Rest:ClassAttrs), B:String) => V
+    requires Id2String(A) ==String B
+  rule classAttrStringGet(classAttr(A:Id, _V:Val, Rest:ClassAttrs), B:String) => classAttrStringGet(Rest, B)
+    requires Id2String(A) =/=String B
+
+  rule classHasMatchAttr(classVal(_:Id, _:Int, Attrs:ClassAttrs), A:Id) => true
+    requires classAttrsHas(Attrs, A)
+  rule classHasMatchAttr(userObjectVal(_:Id, _:Int, _:Int, Attrs:ClassAttrs), A:Id) => true
+    requires classAttrsHas(Attrs, A)
   rule classHasMatchAttr(rangeVal(_:Int, _:Int), A:Id) => true
     requires Id2String(A) ==String "start" orBool Id2String(A) ==String "stop" orBool Id2String(A) ==String "step"
   rule classHasMatchAttr(rangeVal(_:Int, _:Int, _:Int), A:Id) => true
@@ -6173,6 +6224,10 @@ module PYTHON
   rule getattrStringSupported("missing") => true
   rule getattrStringSupported(_:String) => false [owise]
 
+  rule classHasAttrString(classVal(_:Id, _:Int, Attrs:ClassAttrs), A:String) => true
+    requires classAttrsHasString(Attrs, A)
+  rule classHasAttrString(userObjectVal(_:Id, _:Int, _:Int, Attrs:ClassAttrs), A:String) => true
+    requires classAttrsHasString(Attrs, A)
   rule classHasAttrString(rangeVal(_:Int, _:Int), A:String) => true
     requires A ==String "start" orBool A ==String "stop" orBool A ==String "step"
   rule classHasAttrString(rangeVal(_:Int, _:Int, _:Int), A:String) => true
@@ -6191,6 +6246,10 @@ module PYTHON
         orBool A ==String "denominator")
   rule classHasAttrString(_:Val, _:String) => false [owise]
 
+  rule matchClassAttrVal(classVal(_:Id, _:Int, Attrs:ClassAttrs), Attr:Id) => classAttrGet(Attrs, Attr)
+    requires classAttrsHas(Attrs, Attr)
+  rule matchClassAttrVal(userObjectVal(_:Id, _:Int, _:Int, Attrs:ClassAttrs), Attr:Id) => classAttrGet(Attrs, Attr)
+    requires classAttrsHas(Attrs, Attr)
   rule matchClassAttrVal(rangeVal(Start:Int, _:Int), Attr:Id) => Start
     requires Id2String(Attr) ==String "start"
   rule matchClassAttrVal(rangeVal(_:Int, Stop:Int), Attr:Id) => Stop
@@ -6226,6 +6285,10 @@ module PYTHON
   rule matchClassAttrVal(V:Val, Attr:Id) => 1
     requires isIntLike(V) andBool Id2String(Attr) ==String "denominator"
 
+  rule matchClassAttrStringVal(classVal(_:Id, _:Int, Attrs:ClassAttrs), Attr:String) => classAttrStringGet(Attrs, Attr)
+    requires classAttrsHasString(Attrs, Attr)
+  rule matchClassAttrStringVal(userObjectVal(_:Id, _:Int, _:Int, Attrs:ClassAttrs), Attr:String) => classAttrStringGet(Attrs, Attr)
+    requires classAttrsHasString(Attrs, Attr)
   rule matchClassAttrStringVal(rangeVal(Start:Int, _:Int), Attr:String) => Start
     requires Attr ==String "start"
   rule matchClassAttrStringVal(rangeVal(_:Int, Stop:Int), Attr:String) => Stop
@@ -6644,17 +6707,17 @@ module PYTHON
   rule valEq(_:Float, Ellipsis) => false
   rule valEq(Ellipsis, _:String) => false
   rule valEq(_:String, Ellipsis) => false
-  rule valEq(classVal(C1:Id, I1:Int), classVal(C2:Id, I2:Int)) =>
+  rule valEq(classVal(C1:Id, I1:Int, _:ClassAttrs), classVal(C2:Id, I2:Int, _:ClassAttrs)) =>
     I1 ==Int I2 andBool Id2String(C1) ==String Id2String(C2)
-  rule valEq(classVal(_:Id, _:Int), V:Val) => false
+  rule valEq(classVal(_:Id, _:Int, _:ClassAttrs), V:Val) => false
     requires notBool isClassVal(V)
-  rule valEq(V:Val, classVal(_:Id, _:Int)) => false
+  rule valEq(V:Val, classVal(_:Id, _:Int, _:ClassAttrs)) => false
     requires notBool isClassVal(V)
-  rule valEq(userObjectVal(C1:Id, ClassId1:Int, I1:Int), userObjectVal(C2:Id, ClassId2:Int, I2:Int)) =>
+  rule valEq(userObjectVal(C1:Id, ClassId1:Int, I1:Int, _:ClassAttrs), userObjectVal(C2:Id, ClassId2:Int, I2:Int, _:ClassAttrs)) =>
     I1 ==Int I2 andBool ClassId1 ==Int ClassId2 andBool Id2String(C1) ==String Id2String(C2)
-  rule valEq(userObjectVal(_:Id, _:Int, _:Int), V:Val) => false
+  rule valEq(userObjectVal(_:Id, _:Int, _:Int, _:ClassAttrs), V:Val) => false
     requires notBool isUserObjectVal(V)
-  rule valEq(V:Val, userObjectVal(_:Id, _:Int, _:Int)) => false
+  rule valEq(V:Val, userObjectVal(_:Id, _:Int, _:Int, _:ClassAttrs)) => false
     requires notBool isUserObjectVal(V)
 
   rule exceptionMatches(#exception(E:Id), F:Id) => exceptionTypeMatchesString(Id2String(E), Id2String(F))
@@ -6858,12 +6921,12 @@ module PYTHON
   rule exceptionTypeMatchesString("ZeroDivisionError", "BaseException") => true
   rule exceptionTypeMatchesString(_E:String, _F:String) => false [owise]
 
-  rule valIs(classVal(C1:Id, I1:Int), classVal(C2:Id, I2:Int)) =>
+  rule valIs(classVal(C1:Id, I1:Int, _:ClassAttrs), classVal(C2:Id, I2:Int, _:ClassAttrs)) =>
     I1 ==Int I2 andBool Id2String(C1) ==String Id2String(C2)
-  rule valIs(userObjectVal(C1:Id, ClassId1:Int, I1:Int), userObjectVal(C2:Id, ClassId2:Int, I2:Int)) =>
+  rule valIs(userObjectVal(C1:Id, ClassId1:Int, I1:Int, _:ClassAttrs), userObjectVal(C2:Id, ClassId2:Int, I2:Int, _:ClassAttrs)) =>
     I1 ==Int I2 andBool ClassId1 ==Int ClassId2 andBool Id2String(C1) ==String Id2String(C2)
-  rule valIs(classVal(_:Id, _:Int), userObjectVal(_:Id, _:Int, _:Int)) => false
-  rule valIs(userObjectVal(_:Id, _:Int, _:Int), classVal(_:Id, _:Int)) => false
+  rule valIs(classVal(_:Id, _:Int, _:ClassAttrs), userObjectVal(_:Id, _:Int, _:Int, _:ClassAttrs)) => false
+  rule valIs(userObjectVal(_:Id, _:Int, _:Int, _:ClassAttrs), classVal(_:Id, _:Int, _:ClassAttrs)) => false
   rule valIs(V1:Val, V2:Val) => valEq(V1, V2)
     requires singletonIdentity(V1) andBool singletonIdentity(V2)
   rule valIs(V1:Val, V2:Val) => false
@@ -15737,6 +15800,12 @@ module PYTHON
     rangeSliceStep(Start, Stop, RangeStep, pySliceLowerNeg(Lower, pyRangeLen(Start, Stop, RangeStep)), pySliceUpperNeg(Upper, pyRangeLen(Start, Stop, RangeStep)), intValue(Step))
     requires RangeStep =/=Int 0 andBool isIntLike(Step) andBool intValue(Step) <Int 0
 
+  rule attrExp(classVal(_:Id, _:Int, Attrs:ClassAttrs), Attr:Id) => classAttrGet(Attrs, Attr)
+    requires classAttrsHas(Attrs, Attr)
+  rule attrExp(userObjectVal(_:Id, _:Int, _:Int, Attrs:ClassAttrs), Attr:Id) => classAttrGet(Attrs, Attr)
+    requires classAttrsHas(Attrs, Attr)
+  rule <k> attrExp(V:Val, Attr:Id) => exceptionSignal(#exception(#token("AttributeError", "Id"))) ... </k>
+    requires (isClassVal(V) orBool isUserObjectVal(V)) andBool notBool classHasMatchAttr(V, Attr)
   rule attrExp(rangeVal(Start:Int, _:Int), Attr:Id) => Start
     requires Id2String(Attr) ==String "start"
   rule attrExp(rangeVal(_:Int, Stop:Int), Attr:Id) => Stop
@@ -15798,6 +15867,11 @@ module PYTHON
     requires classHasAttrString(V, Attr)
   rule <k> Attr:String ~> getattrDynApply(V:Val)
         => exceptionSignal(#exception(#token("AttributeError", "Id"))) ... </k>
+    requires (isClassVal(V) orBool isUserObjectVal(V))
+      andBool notBool classHasAttrString(V, Attr)
+      andBool notBool getattrStringSupported(Attr)
+  rule <k> Attr:String ~> getattrDynApply(V:Val)
+        => exceptionSignal(#exception(#token("AttributeError", "Id"))) ... </k>
     requires getattrStringSupported(Attr) andBool notBool classHasAttrString(V, Attr)
   rule <k> Attr:String ~> getattrDynApply(_V:Val)
         => exceptionSignal(#exception(#token("NotImplementedError", "Id"))) ... </k>
@@ -15819,6 +15893,11 @@ module PYTHON
     requires classHasAttrString(V, Attr)
   rule <k> Default:Val ~> getattrDefaultDynApply(V:Val, Attr:String)
         => Default ... </k>
+    requires (isClassVal(V) orBool isUserObjectVal(V))
+      andBool notBool classHasAttrString(V, Attr)
+      andBool notBool getattrStringSupported(Attr)
+  rule <k> Default:Val ~> getattrDefaultDynApply(V:Val, Attr:String)
+        => Default ... </k>
     requires getattrStringSupported(Attr) andBool notBool classHasAttrString(V, Attr)
   rule <k> _Default:Val ~> getattrDefaultDynApply(_V:Val, Attr:String)
         => exceptionSignal(#exception(#token("NotImplementedError", "Id"))) ... </k>
@@ -15830,6 +15909,10 @@ module PYTHON
   rule <k> Attr:String ~> hasattrDynApply(V:Val)
         => boolValue(classHasAttrString(V, Attr)) ... </k>
     requires getattrStringSupported(Attr)
+  rule <k> Attr:String ~> hasattrDynApply(V:Val)
+        => boolValue(classHasAttrString(V, Attr)) ... </k>
+    requires (isClassVal(V) orBool isUserObjectVal(V))
+      andBool notBool getattrStringSupported(Attr)
   rule <k> Attr:String ~> hasattrDynApply(_V:Val)
         => exceptionSignal(#exception(#token("NotImplementedError", "Id"))) ... </k>
     requires notBool getattrStringSupported(Attr)
@@ -16495,7 +16578,7 @@ module PYTHON
            exceptionSignal(#exception(#token("TypeError", "Id")))
        ... </k>
     requires notBool callableVal(F)
-  rule <k> _A:Val ~> callApply(classVal(_:Id, _:Int)) =>
+  rule <k> _A:Val ~> callApply(classVal(_:Id, _:Int, _:ClassAttrs)) =>
            exceptionSignal(#exception(#token("TypeError", "Id")))
        ... </k>
   rule <k> A:Val ~> callApply(closure(X:Id, Body:Exp)) => Body ~> restoreEnv(Rho) ... </k>
@@ -16953,11 +17036,11 @@ module PYTHON
            exceptionSignal(#exception(#token("TypeError", "Id")))
        ... </k>
     requires notBool callableVal(F)
-  rule <k> argsVal(#noArgVals) ~> callApplyArgs(classVal(C:Id, ClassId:Int)) =>
-           userObjectVal(C, ClassId, I)
+  rule <k> argsVal(#noArgVals) ~> callApplyArgs(classVal(C:Id, ClassId:Int, Attrs:ClassAttrs)) =>
+           userObjectVal(C, ClassId, I, Attrs)
        ... </k>
        <nextObject> I => I +Int 1 </nextObject>
-  rule <k> argsVal(VS:ArgVals) ~> callApplyArgs(classVal(_:Id, _:Int)) =>
+  rule <k> argsVal(VS:ArgVals) ~> callApplyArgs(classVal(_:Id, _:Int, _:ClassAttrs)) =>
            exceptionSignal(#exception(#token("TypeError", "Id")))
        ... </k>
     requires argValsLen(VS) >Int 0
@@ -17977,7 +18060,7 @@ module PYTHON
   rule <k> kwArgsVal(_:KwArgVals) ~> callApplyKwArgs(generatorFunctionVal(_:IdItems, _:YieldExps)) =>
            exceptionSignal(#exception(#token("TypeError", "Id")))
        ... </k>
-  rule <k> kwArgsVal(_:KwArgVals) ~> callApplyKwArgs(classVal(_:Id, _:Int)) =>
+  rule <k> kwArgsVal(_:KwArgVals) ~> callApplyKwArgs(classVal(_:Id, _:Int, _:ClassAttrs)) =>
            exceptionSignal(#exception(#token("TypeError", "Id")))
        ... </k>
 
@@ -17995,7 +18078,7 @@ module PYTHON
   rule <k> kwArgsVal(_:KwArgVals) ~> callApplyMixedArgs(generatorFunctionVal(_:IdItems, _:YieldExps), _:ArgVals) =>
            exceptionSignal(#exception(#token("TypeError", "Id")))
        ... </k>
-  rule <k> kwArgsVal(_:KwArgVals) ~> callApplyMixedArgs(classVal(_:Id, _:Int), _:ArgVals) =>
+  rule <k> kwArgsVal(_:KwArgVals) ~> callApplyMixedArgs(classVal(_:Id, _:Int, _:ClassAttrs), _:ArgVals) =>
            exceptionSignal(#exception(#token("TypeError", "Id")))
        ... </k>
   rule <k> kwArgsVal(KWS:KwArgVals) ~> callApplyMixedArgs(closure(X:Id, Body:Exp), VS:ArgVals) =>
@@ -22876,7 +22959,7 @@ module PYTHON
   rule #callable(V:Val) => boolValue(callableVal(V))
   rule #isinstance(V:Val, C:Id) => boolValue(matchBuiltinClass(V, C))
     requires isinstanceClassSupported(C)
-  rule #isinstanceDynamic(V:Val, classVal(C:Id, ClassId:Int)) => boolValue(userInstanceOf(V, C, ClassId))
+  rule #isinstanceDynamic(V:Val, classVal(C:Id, ClassId:Int, _:ClassAttrs)) => boolValue(userInstanceOf(V, C, ClassId))
   rule #isinstanceAny(V:Val, CS:IdItems) => boolValue(isinstanceAny(V, CS))
     requires isinstanceClassesSupported(CS)
   rule #issubclass(C:Id, I:Id) => boolValue(builtinSubclass(C, I))
@@ -28828,9 +28911,24 @@ module PYTHON
        <env> Rho => Rho [ F <- generatorFunctionVal(IDS, Yields) ] </env>
        <result> _ => .K </result>
   rule <k> classDefStmt(C:Id) => stmtNoResult ... </k>
-       <env> Rho => Rho [ C <- classVal(C, I) ] </env>
+       <env> Rho => Rho [ C <- classVal(C, I, #noRuntimeClassAttrs) ] </env>
        <nextObject> I => I +Int 1 </nextObject>
        <result> _ => .K </result>
+  rule <k> classDefAttrsStmt(C:Id, Attrs:ClassAttrExps) =>
+           collectClassAttrs(C, Attrs, #noRuntimeClassAttrs, Rho)
+       ... </k>
+       <env> Rho </env>
+  rule <k> collectClassAttrs(C:Id, #noClassAttrs, Attrs:ClassAttrs, Rho:Map) => stmtNoResult ... </k>
+       <env> _ => Rho [ C <- classVal(C, I, Attrs) ] </env>
+       <nextObject> I => I +Int 1 </nextObject>
+       <result> _ => .K </result>
+  rule <k> collectClassAttrs(C:Id, #classAttr(A:Id, E:Exp, Rest:ClassAttrExps), Attrs:ClassAttrs, Rho:Map) =>
+           E ~> classAttrBind(C, A, Rest, Attrs, Rho)
+       ... </k>
+  rule <k> V:Val ~> classAttrBind(C:Id, A:Id, Rest:ClassAttrExps, Attrs:ClassAttrs, Rho:Map) =>
+           collectClassAttrs(C, Rest, classAttrSet(Attrs, A, V), Rho)
+       ... </k>
+       <env> ClassRho => ClassRho [ A <- V ] </env>
   rule <k> functionDefVarArgsStmt(F:Id, IDS:IdItems, Var:Id, Body:Block) => stmtNoResult ... </k>
        <env> Rho => Rho [ F <- functionValVarArgs(IDS, Var, Body) ] </env>
        <result> _ => .K </result>
@@ -32319,6 +32417,10 @@ module PYTHON
   rule <k> exceptionSignal(V:Val) ~> getattrDefaultDynApply(_:Val, _:String) => exceptionSignal(V) ... </k>
   rule <k> exceptionSignal(V:Val) ~> hasattrDynName(_:Exp) => exceptionSignal(V) ... </k>
   rule <k> exceptionSignal(V:Val) ~> hasattrDynApply(_:Val) => exceptionSignal(V) ... </k>
+  rule <k> exceptionSignal(V:Val) ~> collectClassAttrs(_:Id, _:ClassAttrExps, _:ClassAttrs, Rho:Map) => exceptionSignal(V) ... </k>
+       <env> _ => Rho </env>
+  rule <k> exceptionSignal(V:Val) ~> classAttrBind(_:Id, _:Id, _:ClassAttrExps, _:ClassAttrs, Rho:Map) => exceptionSignal(V) ... </k>
+       <env> _ => Rho </env>
   rule <k> exceptionSignal(V:Val) ~> formatDefault() => exceptionSignal(V) ... </k>
   rule <k> exceptionSignal(V:Val) ~> formatSpec(_:Exp) => exceptionSignal(V) ... </k>
   rule <k> exceptionSignal(V:Val) ~> formatApply(_:Val) => exceptionSignal(V) ... </k>

@@ -1712,6 +1712,13 @@
       "coverage": ["class-definition", "pass-only-class-profile", "user-class-value", "user-object-instance", "object-identity", "object-default-equality", "callable-builtin", "dynamic-isinstance", "ordinary-python-source-adapter"]
     },
     {
+      "id": "adapter-class-attributes",
+      "source": "../adapter/adapter-class-attributes.py",
+      "reference": "Python 3.14.6 Language Reference 8.8 Class definitions; 3.2 Objects, values and types; Built-in Functions getattr, hasattr",
+      "expected_result": "True ~> .K",
+      "coverage": ["class-definition", "class-body-namespace-profile", "simple-class-attribute-assignment", "class-attribute-lookup", "instance-class-attribute-fallback", "getattr-builtin", "hasattr-builtin", "ordinary-python-source-adapter"]
+    },
+    {
       "id": "adapter-issubclass-builtin",
       "source": "../adapter/adapter-issubclass-builtin.py",
       "reference": "Python Standard Library Built-in Functions issubclass; Python data model standard type hierarchy bool subclass of int",

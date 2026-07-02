@@ -119,6 +119,7 @@ run_case "adapter-hash-builtin" "$ROOT/tests/adapter/adapter-hash-builtin.py" "T
 run_case "adapter-callable-builtin" "$ROOT/tests/adapter/adapter-callable-builtin.py" "True ~> .K"
 run_case "adapter-isinstance-builtin" "$ROOT/tests/adapter/adapter-isinstance-builtin.py" "True ~> .K"
 run_case "adapter-class-basic" "$ROOT/tests/adapter/adapter-class-basic.py" "True ~> .K"
+run_case "adapter-class-attributes" "$ROOT/tests/adapter/adapter-class-attributes.py" "True ~> .K"
 run_case "adapter-issubclass-builtin" "$ROOT/tests/adapter/adapter-issubclass-builtin.py" "True ~> .K"
 run_case "adapter-getattr-builtin" "$ROOT/tests/adapter/adapter-getattr-builtin.py" "True ~> .K"
 run_case "adapter-hasattr-builtin" "$ROOT/tests/adapter/adapter-hasattr-builtin.py" "True ~> .K"

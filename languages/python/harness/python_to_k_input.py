@@ -1940,9 +1940,30 @@ def emit_simple_class_def(
         raise unsupported(node, "class bases and metaclass keywords are not supported yet")
     if getattr(node, "type_params", []):
         raise unsupported(node, "class type parameters are not supported yet")
-    if len(body) == 1 and isinstance(body[0], ast.Pass):
+    attrs: list[tuple[str, ast.expr]] = []
+    for stmt in body:
+        match stmt:
+            case ast.Pass():
+                continue
+            case ast.Assign(targets=[ast.Name(id=attr, ctx=ast.Store())], value=value, type_comment=None):
+                attrs.append((attr, value))
+            case ast.Assign(type_comment=type_comment) if type_comment is not None:
+                raise unsupported(stmt, "class-body type comments are not supported yet")
+            case _:
+                raise unsupported(
+                    stmt,
+                    "only pass and simple name assignments are supported in the current class body profile",
+                )
+    if not attrs:
         return f"#class({emit_id(name)})"
-    raise unsupported(node, "only pass-only class bodies are supported in the current class profile")
+    return f"#classAttrs({emit_id(name)}, {emit_class_attr_exps(attrs)})"
+
+
+def emit_class_attr_exps(attrs: list[tuple[str, ast.expr]]) -> str:
+    if not attrs:
+        return "#noClassAttrs"
+    name, value = attrs[0]
+    return f"#classAttr({emit_id(name)}, {emit_exp(value)}, {emit_class_attr_exps(attrs[1:])})"
 
 
 def emit_list_comprehension(

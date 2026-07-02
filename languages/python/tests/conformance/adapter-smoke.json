@@ -4099,6 +4099,13 @@
       "coverage": ["sequence-unpacking-assignment", "expression-rhs", "flat-name-targets", "ordinary-python-source-adapter"]
     },
     {
+      "id": "adapter-iterator-unpack-assignment",
+      "source": "../adapter/adapter-iterator-unpack-assignment.py",
+      "reference": "Python 3.14.6 Language Reference 7.2 Assignment statements; PEP 3132 Extended Iterable Unpacking; Built-in Types iterator protocol",
+      "expected_result": "True ~> .K",
+      "coverage": ["sequence-unpacking-assignment", "starred-target-assignment", "nested-sequence-targets", "iterator-protocol-profile", "stateful-iterator-ref", "iterator-consumption-profile", "callable-sentinel-iterator-profile", "iterator-exhaustion-sink-state", "value-error", "ordinary-python-source-adapter"]
+    },
+    {
       "id": "adapter-unpack-arity-errors",
       "source": "../adapter/adapter-unpack-arity-errors.py",
       "reference": "Python Language Reference 7.2 Assignment statements",

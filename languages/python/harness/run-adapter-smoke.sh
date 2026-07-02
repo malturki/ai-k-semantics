@@ -636,6 +636,7 @@ run_case "adapter-bytes-unpacking" "$ROOT/tests/adapter/adapter-bytes-unpacking.
 run_case "adapter-unpack-set" "$ROOT/tests/adapter/adapter-unpack-set.py" "True ~> .K"
 run_case "adapter-unpack-frozenset" "$ROOT/tests/adapter/adapter-unpack-frozenset.py" "True ~> .K"
 run_case "adapter-unpack-expression-rhs" "$ROOT/tests/adapter/adapter-unpack-expression-rhs.py" "True ~> .K"
+run_case "adapter-iterator-unpack-assignment" "$ROOT/tests/adapter/adapter-iterator-unpack-assignment.py" "True ~> .K"
 run_case "adapter-unpack-arity-errors" "$ROOT/tests/adapter/adapter-unpack-arity-errors.py" "True ~> .K"
 run_case "adapter-star-unpack-assignment" "$ROOT/tests/adapter/adapter-star-unpack-assignment.py" "True ~> .K"
 run_case "adapter-nested-starred-targets" "$ROOT/tests/adapter/adapter-nested-starred-targets.py" "True ~> .K"

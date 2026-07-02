@@ -1342,6 +1342,10 @@ module PYTHON
                  | bindFunctionPosKwDefaultsKwArgs(Id, IdItems, ArgExps, IdItems, Id, Block) [symbol(bindFunctionPosKwDefaultsKwArgs)]
                  | bindFunctionPosKwDefaultValsKwArgs(Id, IdItems, ArgVals, IdItems, Id, Block) [symbol(bindFunctionPosKwDefaultValsKwArgs)]
                  | assignMany(IdItems, Val) [symbol(assignMany)]
+                 | unpackAssignIterator(IdItems) [symbol(unpackAssignIterator)]
+                 | unpackTargetAssignIterator(Targets) [symbol(unpackTargetAssignIterator)]
+                 | targetAssignIterator(Target) [symbol(targetAssignIterator)]
+                 | unpackStarAssignIterator(IdItems, Id, IdItems) [symbol(unpackStarAssignIterator)]
                  | augMatMulApply(Id) [symbol(augMatMulApply)]
                  | augMatMulStore(Id) [symbol(augMatMulStore)]
                  | augBitOrApply(Id, Val) [symbol(augBitOrApply)]
@@ -27731,6 +27735,12 @@ module PYTHON
   rule <k> annOnlyStmt(_:Id) => stmtNoResult ... </k>
        <result> _ => .K </result>
 
+  rule <k> unpackAssignStmt(IDS:IdItems, iteratorRef(I:Int)) =>
+           #listCtor(iteratorRef(I)) ~> unpackAssignIterator(IDS)
+       ... </k>
+  rule <k> V:Val ~> unpackAssignIterator(IDS:IdItems) =>
+           unpackAssignStmt(IDS, V)
+       ... </k>
   rule <k> unpackAssignStmt(IDS:IdItems, listVal(VS:ValItems)) => stmtNoResult ... </k>
        <env> Rho => bindVals(Rho, IDS, VS) </env>
        <result> _ => .K </result>
@@ -27781,6 +27791,12 @@ module PYTHON
     requires unpackValueSupported(V)
       andBool idItemsLen(IDS) =/=Int unpackValueLen(V)
 
+  rule <k> unpackTargetAssignStmt(TS:Targets, iteratorRef(I:Int)) =>
+           #listCtor(iteratorRef(I)) ~> unpackTargetAssignIterator(TS)
+       ... </k>
+  rule <k> V:Val ~> unpackTargetAssignIterator(TS:Targets) =>
+           unpackTargetAssignStmt(TS, V)
+       ... </k>
   rule <k> unpackTargetAssignStmt(TS:Targets, listVal(VS:ValItems)) => stmtNoResult ... </k>
        <env> Rho => bindTargets(Rho, TS, VS) </env>
        <result> _ => .K </result>
@@ -27831,6 +27847,12 @@ module PYTHON
     requires unpackValueSupported(V)
       andBool targetsLen(TS) =/=Int unpackValueLen(V)
 
+  rule <k> targetAssignStmt(targetStarSeq(Prefix:MaybeTargets, Star:Id, Suffix:MaybeTargets), iteratorRef(I:Int)) =>
+           #listCtor(iteratorRef(I)) ~> targetAssignIterator(targetStarSeq(Prefix, Star, Suffix))
+       ... </k>
+  rule <k> V:Val ~> targetAssignIterator(T:Target) =>
+           targetAssignStmt(T, V)
+       ... </k>
   rule <k> targetAssignStmt(T:Target, V:Val) => stmtNoResult ... </k>
        <env> Rho => bindTarget(Rho, T, V) </env>
        <result> _ => .K </result>
@@ -27841,6 +27863,12 @@ module PYTHON
     requires unpackValueSupported(V)
       andBool maybeTargetsLen(Prefix) +Int maybeTargetsLen(Suffix) >Int unpackValueLen(V)
 
+  rule <k> unpackStarAssignStmt(Prefix:IdItems, Star:Id, Suffix:IdItems, iteratorRef(I:Int)) =>
+           #listCtor(iteratorRef(I)) ~> unpackStarAssignIterator(Prefix, Star, Suffix)
+       ... </k>
+  rule <k> V:Val ~> unpackStarAssignIterator(Prefix:IdItems, Star:Id, Suffix:IdItems) =>
+           unpackStarAssignStmt(Prefix, Star, Suffix, V)
+       ... </k>
   rule <k> unpackStarAssignStmt(Prefix:IdItems, Star:Id, Suffix:IdItems, listVal(VS:ValItems)) => stmtNoResult ... </k>
        <env> Rho => bindStarUnpack(Rho, Prefix, Star, Suffix, VS) </env>
        <result> _ => .K </result>
@@ -31423,6 +31451,10 @@ module PYTHON
        ... </k>
   rule <k> returnSignal(V:Val) ~> whileElseStmtAgain(_:Exp, _:Block, _:Block) => returnSignal(V) ... </k>
   rule <k> exceptionSignal(V:Val) ~> whileElseStmtAgain(_:Exp, _:Block, _:Block) => exceptionSignal(V) ... </k>
+  rule <k> exceptionSignal(V:Val) ~> unpackAssignIterator(_:IdItems) => exceptionSignal(V) ... </k>
+  rule <k> exceptionSignal(V:Val) ~> unpackTargetAssignIterator(_:Targets) => exceptionSignal(V) ... </k>
+  rule <k> exceptionSignal(V:Val) ~> targetAssignIterator(_:Target) => exceptionSignal(V) ... </k>
+  rule <k> exceptionSignal(V:Val) ~> unpackStarAssignIterator(_:IdItems, _:Id, _:IdItems) => exceptionSignal(V) ... </k>
   rule <k> exceptionSignal(V:Val) ~> forIter(_:Id, _:Block) => exceptionSignal(V) ... </k>
   rule <k> exceptionSignal(V:Val) ~> forUnpackIter(_:IdItems, _:Block) => exceptionSignal(V) ... </k>
   rule <k> exceptionSignal(V:Val) ~> forTargetUnpackIter(_:Targets, _:Block) => exceptionSignal(V) ... </k>

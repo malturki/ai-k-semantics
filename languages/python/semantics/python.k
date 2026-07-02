@@ -26541,6 +26541,9 @@ module PYTHON
       andBool notBool bytesDecodeValid(B, Enc)
       andBool bytesErrorsKnown(Errors)
       andBool notBool bytesErrorsStrict(Errors)
+      andBool notBool bytesErrorsIgnore(Errors)
+      andBool notBool bytesErrorsReplace(Errors)
+      andBool notBool bytesErrorsBackslashReplace(Errors)
   rule <k> #methodCall2(X:Id, Method:Id, Needle:Val, Start:Val) =>
            #methodCall3(X, Method, Needle, Start, None)
        ... </k>

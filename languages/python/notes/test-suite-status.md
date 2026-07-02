@@ -2,7 +2,7 @@
 
 Current status: local smoke tests pass; a CPython 3.14.6 reference interpreter has been built locally; the full CPython suite has not been run against the K semantics.
 
-2026-07-02 adapter-index note: reconciled the adapter smoke manifest with 24 already-running CPython/K-green adapter files covering f-strings, string conversion builtins, `chr`, matrix-multiply TypeErrors, non-int `sum`, extended `min`/`max`, class-pattern keyword attributes, dict duplicate keyword diagnostics, and false assertions. Added shell-runner entries for the CPython/K-green bytes decode, maketrans/translate, and bytes `%` formatting cases that were already present in the manifest. Four manifest-only decode error-handler cases still hit the current `NotImplementedError` UTF-8 invalid-sequence path and remain semantic targets: `adapter-bytes-decode-error-handlers`, `adapter-bytearray-decode-error-handlers`, `adapter-bytes-decode-backslashreplace`, and `adapter-bytearray-decode-backslashreplace`.
+2026-07-02 adapter-index note: reconciled the adapter smoke manifest with 24 already-running CPython/K-green adapter files covering f-strings, string conversion builtins, `chr`, matrix-multiply TypeErrors, non-int `sum`, extended `min`/`max`, class-pattern keyword attributes, dict duplicate keyword diagnostics, and false assertions. Added shell-runner entries for the CPython/K-green bytes decode, maketrans/translate, and bytes `%` formatting cases that were already present in the manifest. The reconciliation exposed four decode error-handler cases hitting the generic `NotImplementedError` UTF-8 invalid-sequence fallback; the same-day decode fallback disambiguation added them to the shell runner.
 
 ## What Runs Now
 

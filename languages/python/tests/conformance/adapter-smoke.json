@@ -4099,6 +4099,13 @@
       "coverage": ["generator-expression", "materialized-generator-expression-profile", "stateful-iterator-ref", "iterator-consumption-profile", "next-builtin", "next-default", "list-constructor", "tuple-constructor", "for-statement", "single-for-comprehension", "two-for-comprehension", "more-than-three-for-comprehension", "comprehension-if-clauses", "sequence-unpacking-target", "nested-starred-targets", "comprehension-target-scope", "ordinary-python-source-adapter"]
     },
     {
+      "id": "adapter-generator-function-basic",
+      "source": "../adapter/adapter-generator-function-basic.py",
+      "reference": "Python 3.14.6 Language Reference 6.2.9 Yield expressions; 6.2.9.1 Generator-iterator methods; 8.7 Function definitions; Built-in Types iterator protocol",
+      "expected_result": "True ~> .K",
+      "coverage": ["generator-function", "yield-expression", "simple-yield-statement-profile", "materialized-generator-function-profile", "stateful-iterator-ref", "iterator-consumption-profile", "next-builtin", "next-default", "list-constructor", "tuple-constructor", "for-statement", "callable-builtin", "ordinary-python-source-adapter"]
+    },
+    {
       "id": "adapter-comprehension-target-two-for",
       "source": "../adapter/adapter-comprehension-target-two-for.py",
       "reference": "Python Language Reference 6.2.4 Displays for lists, sets and dictionaries; 6.2.5 List displays; 6.2.6 Set displays; 6.2.7 Dictionary displays",

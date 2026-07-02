@@ -168,6 +168,9 @@ module PYTHON-SYNTAX
   syntax CmpChain ::= "#cmpLast" "(" CmpOp "," Exp ")" [symbol(cmpChainLast)]
                     | "#cmpCons" "(" CmpOp "," Exp "," CmpChain ")" [symbol(cmpChainCons)]
 
+  syntax YieldExps ::= "#yield" "(" Exp ")" [symbol(yieldExpsLast)]
+                     | "#yields" "(" Exp "," YieldExps ")" [symbol(yieldExpsCons)]
+
   syntax WithItem ::= "#withItem" "(" Exp ")" [symbol(withItem)]
                     | "#withItemAs" "(" Exp "," Id ")" [symbol(withItemAs)]
                     | "#withItemAsTarget" "(" Exp "," Target ")" [symbol(withItemAsTarget)]
@@ -305,6 +308,7 @@ module PYTHON-SYNTAX
                 | "#defPosKwOnlyKwArgs" "(" Id "," IdItems "," IdItems "," Id "," Block ")" [symbol(functionDefPosKwOnlyKwArgsStmt)]
                 | "#defPosKwDefaultsKwArgs" "(" Id "," IdItems "," ArgExps "," IdItems "," ArgExps "," Id "," Block ")" [symbol(functionDefPosKwDefaultsKwArgsStmt)]
                 | "#defDecorated" "(" Id "," ArgExps "," FunctionSpec ")" [symbol(functionDefDecoratedStmt)]
+                | "#genDef" "(" Id "," IdItems "," YieldExps ")" [symbol(generatorFunctionDefStmt)]
                 | "#if" "(" Exp "," Block "," Block ")" [symbol(ifStmt)]
                 | "#while" "(" Exp "," Block ")" [symbol(whileStmt)]
                 | "#whileElse" "(" Exp "," Block "," Block ")" [symbol(whileElseStmt)]
@@ -676,6 +680,7 @@ module PYTHON
                | functionValPosKwDefaults(IdItems, ArgVals, IdItems, ArgVals, Block) [symbol(functionValPosKwDefaults)]
                | functionValPosKwOnlyKwArgs(IdItems, IdItems, Id, Block) [symbol(functionValPosKwOnlyKwArgs)]
                | functionValPosKwDefaultsKwArgs(IdItems, ArgVals, IdItems, ArgVals, Id, Block) [symbol(functionValPosKwDefaultsKwArgs)]
+               | generatorFunctionVal(IdItems, YieldExps) [symbol(generatorFunctionVal)]
                | "#exceptionInstance" "(" Id "," ArgVals ")" [symbol(exceptionInstanceVal)]
                | buildFunctionDefault(FunctionDefaultBuilder, ArgVals) [function, symbol(buildFunctionDefault)]
                | buildFunctionTwoDefaults(FunctionTwoDefaultBuilder, ArgVals, ArgVals) [function, symbol(buildFunctionTwoDefaults)]
@@ -945,6 +950,9 @@ module PYTHON
                  | bindLambdaPosKwDefaultValsKwArgs(IdItems, ArgVals, IdItems, Id, Exp) [symbol(bindLambdaPosKwDefaultValsKwArgs)]
                  | "buildList" [symbol(buildList)]
                  | "buildGeneratorIterator" [symbol(buildGeneratorIterator)]
+                 | collectGeneratorYields(YieldExps, ArgVals, Map) [symbol(collectGeneratorYields)]
+                 | collectGeneratorYieldNext(YieldExps, ArgVals, Map) [symbol(collectGeneratorYieldNext)]
+                 | collectGeneratorYieldLast(ArgVals, Map) [symbol(collectGeneratorYieldLast)]
                  | listCompIter(Id, Exp, ArgVals, ArgVals, Map) [symbol(listCompIter)]
                  | listCompNext(Id, Exp, ArgVals, ArgVals, Map) [symbol(listCompNext)]
                  | listCompTargetIter(Target, Exp, ArgVals, ArgVals, Map) [symbol(listCompTargetIter)]
@@ -2768,6 +2776,7 @@ module PYTHON
   rule truthy(functionValPosKwDefaults(_:IdItems, _:ArgVals, _:IdItems, _:ArgVals, _:Block)) => true
   rule truthy(functionValPosKwOnlyKwArgs(_:IdItems, _:IdItems, _:Id, _:Block)) => true
   rule truthy(functionValPosKwDefaultsKwArgs(_:IdItems, _:ArgVals, _:IdItems, _:ArgVals, _:Id, _:Block)) => true
+  rule truthy(generatorFunctionVal(_:IdItems, _:YieldExps)) => true
   rule truthy(rangeVal(Start:Int, Stop:Int)) => Start <Int Stop
   rule truthy(rangeVal(Start:Int, Stop:Int, Step:Int)) => pyRangeLen(Start, Stop, Step) >Int 0
     requires Step =/=Int 0
@@ -2897,6 +2906,7 @@ module PYTHON
   rule callableVal(functionValPosKwDefaults(_:IdItems, _:ArgVals, _:IdItems, _:ArgVals, _:Block)) => true
   rule callableVal(functionValPosKwOnlyKwArgs(_:IdItems, _:IdItems, _:Id, _:Block)) => true
   rule callableVal(functionValPosKwDefaultsKwArgs(_:IdItems, _:ArgVals, _:IdItems, _:ArgVals, _:Id, _:Block)) => true
+  rule callableVal(generatorFunctionVal(_:IdItems, _:YieldExps)) => true
   rule callableVal(_:Val) => false [owise]
 
   rule contextManagerSupported(#memoryviewVal(_:Val)) => true
@@ -16601,6 +16611,15 @@ module PYTHON
            exceptionSignal(#exception(#token("TypeError", "Id")))
        ... </k>
     requires notBool sameArity(IDS, argValsCons(A, #noArgVals))
+  rule <k> A:Val ~> callApply(generatorFunctionVal(IDS:IdItems, Yields:YieldExps)) =>
+           collectGeneratorYields(Yields, #noArgVals, Rho)
+       ... </k>
+       <env> Rho => bindArgs(Rho, IDS, argValsCons(A, #noArgVals)) </env>
+    requires sameArity(IDS, argValsCons(A, #noArgVals))
+  rule <k> A:Val ~> callApply(generatorFunctionVal(IDS:IdItems, _:YieldExps)) =>
+           exceptionSignal(#exception(#token("TypeError", "Id")))
+       ... </k>
+    requires notBool sameArity(IDS, argValsCons(A, #noArgVals))
   rule <k> A:Val ~> callApply(functionValDefaults(IDS:IdItems, Defaults:ArgVals, block(SS:Stmts))) =>
            SS ~> functionDone(Rho)
        ... </k>
@@ -17057,6 +17076,15 @@ module PYTHON
        <env> Rho => bindArgs(Rho, IDS, VS) </env>
     requires sameArity(IDS, VS)
   rule <k> argsVal(VS:ArgVals) ~> callApplyArgs(functionValArgs(IDS:IdItems, _Body:Block)) =>
+           exceptionSignal(#exception(#token("TypeError", "Id")))
+       ... </k>
+    requires notBool sameArity(IDS, VS)
+  rule <k> argsVal(VS:ArgVals) ~> callApplyArgs(generatorFunctionVal(IDS:IdItems, Yields:YieldExps)) =>
+           collectGeneratorYields(Yields, #noArgVals, Rho)
+       ... </k>
+       <env> Rho => bindArgs(Rho, IDS, VS) </env>
+    requires sameArity(IDS, VS)
+  rule <k> argsVal(VS:ArgVals) ~> callApplyArgs(generatorFunctionVal(IDS:IdItems, _:YieldExps)) =>
            exceptionSignal(#exception(#token("TypeError", "Id")))
        ... </k>
     requires notBool sameArity(IDS, VS)
@@ -17893,6 +17921,9 @@ module PYTHON
        ... </k>
        <env> Rho => (bindArgs(bindArgs(Rho, Pos, buildKwDefaultArgs(Pos, KWS, PosDefaults)), KwOnly, buildKwDefaultArgs(KwOnly, KWS, KwDefaults))) [ Kw <- kwExtrasEitherDict(KWS, Pos, KwOnly) ] </env>
     requires posKwOnlyKwArgsKeywordDefaultsCallArityOk(Pos, KwOnly, KWS, PosDefaults, KwDefaults)
+  rule <k> kwArgsVal(_:KwArgVals) ~> callApplyKwArgs(generatorFunctionVal(_:IdItems, _:YieldExps)) =>
+           exceptionSignal(#exception(#token("TypeError", "Id")))
+       ... </k>
 
   rule <k> callMixedArgsExp(F:Exp, Args:ArgExps, KWS:KwArgExps) => F ~> callMixedArgs(Args, KWS) ... </k>
   rule <k> F:Val ~> callMixedArgs(Args:ArgExps, KWS:KwArgExps) =>
@@ -17905,6 +17936,9 @@ module PYTHON
            exceptionSignal(#exception(#token("TypeError", "Id")))
        ... </k>
     requires notBool callableVal(F)
+  rule <k> kwArgsVal(_:KwArgVals) ~> callApplyMixedArgs(generatorFunctionVal(_:IdItems, _:YieldExps), _:ArgVals) =>
+           exceptionSignal(#exception(#token("TypeError", "Id")))
+       ... </k>
   rule <k> kwArgsVal(KWS:KwArgVals) ~> callApplyMixedArgs(closure(X:Id, Body:Exp), VS:ArgVals) =>
            Body ~> restoreEnv(Rho)
        ... </k>
@@ -18412,6 +18446,18 @@ module PYTHON
   rule <k> listVal(VS:ValItems) ~> buildGeneratorIterator => iteratorRef(I) ... </k>
        <iterators> M => M [ I <- valItemsToArgVals(VS) ] </iterators>
        <nextIterator> I => I +Int 1 </nextIterator>
+  rule <k> collectGeneratorYields(yieldExpsLast(E:Exp), Acc:ArgVals, Rho:Map) =>
+           E ~> collectGeneratorYieldLast(Acc, Rho)
+       ... </k>
+  rule <k> collectGeneratorYields(yieldExpsCons(E:Exp, Rest:YieldExps), Acc:ArgVals, Rho:Map) =>
+           E ~> collectGeneratorYieldNext(Rest, Acc, Rho)
+       ... </k>
+  rule <k> V:Val ~> collectGeneratorYieldNext(Rest:YieldExps, Acc:ArgVals, Rho:Map) =>
+           collectGeneratorYields(Rest, appendArgVal(Acc, V), Rho)
+       ... </k>
+  rule <k> V:Val ~> collectGeneratorYieldLast(Acc:ArgVals, Rho:Map) =>
+           argValsToListVal(appendArgVal(Acc, V)) ~> restoreEnv(Rho) ~> buildGeneratorIterator
+       ... </k>
   rule <k> listCompExp(iteratorRef(I:Int), X:Id, Elem:Exp) =>
            #listCtor(iteratorRef(I)) ~> listCompIteratorApply(X, Elem, Rho)
        ... </k>
@@ -28716,6 +28762,9 @@ module PYTHON
   rule <k> functionDefArgsStmt(F:Id, IDS:IdItems, Body:Block) => stmtNoResult ... </k>
        <env> Rho => Rho [ F <- functionValArgs(IDS, Body) ] </env>
        <result> _ => .K </result>
+  rule <k> generatorFunctionDefStmt(F:Id, IDS:IdItems, Yields:YieldExps) => stmtNoResult ... </k>
+       <env> Rho => Rho [ F <- generatorFunctionVal(IDS, Yields) ] </env>
+       <result> _ => .K </result>
   rule <k> functionDefVarArgsStmt(F:Id, IDS:IdItems, Var:Id, Body:Block) => stmtNoResult ... </k>
        <env> Rho => Rho [ F <- functionValVarArgs(IDS, Var, Body) ] </env>
        <result> _ => .K </result>
@@ -32334,6 +32383,12 @@ module PYTHON
   rule <k> exceptionSignal(V:Val) ~> callApplyMixedArgs(_:Val, _:ArgVals) => exceptionSignal(V) ... </k>
   rule <k> exceptionSignal(V:Val) ~> buildList => exceptionSignal(V) ... </k>
   rule <k> exceptionSignal(V:Val) ~> buildGeneratorIterator => exceptionSignal(V) ... </k>
+  rule <k> exceptionSignal(V:Val) ~> collectGeneratorYieldNext(_:YieldExps, _:ArgVals, Rho:Map) =>
+           exceptionSignal(V) ~> restoreEnv(Rho)
+       ... </k>
+  rule <k> exceptionSignal(V:Val) ~> collectGeneratorYieldLast(_:ArgVals, Rho:Map) =>
+           exceptionSignal(V) ~> restoreEnv(Rho)
+       ... </k>
   rule <k> exceptionSignal(V:Val) ~> buildTuple => exceptionSignal(V) ... </k>
   rule <k> exceptionSignal(V:Val) ~> memoryviewApply => exceptionSignal(V) ... </k>
   rule <k> exceptionSignal(V:Val) ~> withEnter(_:Block) => exceptionSignal(V) ... </k>

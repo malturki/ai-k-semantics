@@ -1869,6 +1869,53 @@ def emit_generator_expression(
     return f"#genExp({materialized})"
 
 
+def simple_generator_yields(body: list[ast.stmt]) -> list[ast.Yield] | None:
+    yields: list[ast.Yield] = []
+    for stmt in body:
+        if isinstance(stmt, ast.Expr) and isinstance(stmt.value, ast.Yield):
+            yields.append(stmt.value)
+            continue
+        return None
+    return yields or None
+
+
+def emit_yield_value(value: ast.expr | None) -> str:
+    if value is None:
+        return "None"
+    return emit_exp(value)
+
+
+def emit_yield_exps(yields: list[ast.Yield]) -> str:
+    if len(yields) == 1:
+        return f"#yield({emit_yield_value(yields[0].value)})"
+    return f"#yields({emit_yield_value(yields[0].value)}, {emit_yield_exps(yields[1:])})"
+
+
+def emit_simple_generator_function_def(
+    name: str,
+    args: ast.arguments,
+    body: list[ast.stmt],
+    decorators: list[ast.expr],
+    returns: ast.expr | None,
+) -> str | None:
+    if decorators or returns is not None:
+        return None
+    if (
+        args.posonlyargs
+        or args.defaults
+        or args.vararg is not None
+        or args.kwonlyargs
+        or any(default is not None for default in args.kw_defaults)
+        or args.kwarg is not None
+    ):
+        return None
+    yields = simple_generator_yields(body)
+    if yields is None:
+        return None
+    names = [arg.arg for arg in args.args]
+    return f"#genDef({emit_id(name)}, {emit_id_items(names)}, {emit_yield_exps(yields)})"
+
+
 def emit_list_comprehension(
     node: ast.AST, elt: ast.expr, generator: ast.comprehension
 ) -> str:
@@ -2349,6 +2396,9 @@ def emit_function_def(
     # not expose metadata/introspection, so annotations are erased in this subset.
     if type_comment is not None:
         raise unsupported(node, "function type comments are not supported yet")
+    generator_function = emit_simple_generator_function_def(name, args, body, decorators, returns)
+    if generator_function is not None:
+        return generator_function
     if decorators:
         return emit_decorated_function_def(node, name, args, body, decorators)
     if args.kwonlyargs:

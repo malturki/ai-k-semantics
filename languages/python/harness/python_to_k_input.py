@@ -1208,6 +1208,8 @@ def emit_exp(exp: ast.expr) -> str:
             return emit_set_comprehension_three_generators(exp, elt, outer, middle, inner)
         case ast.SetComp(elt=elt, generators=generators):
             return emit_set_comprehension_many(exp, elt, generators)
+        case ast.GeneratorExp(elt=elt, generators=generators):
+            return emit_generator_expression(exp, elt, generators)
         case ast.List(elts=elts, ctx=ast.Load()):
             return emit_list(elts)
         case ast.Tuple(elts=elts, ctx=ast.Load()):
@@ -1846,6 +1848,25 @@ def emit_list_comprehension_many(
         f"{emit_maybe_comp_filters(outer.ifs)}, "
         f"{emit_maybe_comp_clauses(generators[1:])}, {emit_exp(elt)})"
     )
+
+
+def emit_generator_expression(
+    node: ast.AST, elt: ast.expr, generators: list[ast.comprehension]
+) -> str:
+    ensure_non_async_comprehension(node, "generator expression", generators)
+    if len(generators) == 1:
+        materialized = emit_list_comprehension(node, elt, generators[0])
+    elif len(generators) == 2:
+        materialized = emit_list_comprehension_two_generators(
+            node, elt, generators[0], generators[1]
+        )
+    elif len(generators) == 3:
+        materialized = emit_list_comprehension_three_generators(
+            node, elt, generators[0], generators[1], generators[2]
+        )
+    else:
+        materialized = emit_list_comprehension_many(node, elt, generators)
+    return f"#genExp({materialized})"
 
 
 def emit_list_comprehension(

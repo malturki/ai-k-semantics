@@ -398,6 +398,7 @@ module PYTHON-SYNTAX
                | "#setCompForForIfs" "(" Exp "," Id "," MaybeCompFilters "," Exp "," Id "," MaybeCompFilters "," Exp "," Id "," MaybeCompFilters "," Exp ")" [symbol(setCompForForIfsExp), strict(1)]
                | "#setCompTargetForForIfs" "(" Exp "," Target "," MaybeCompFilters "," Exp "," Target "," MaybeCompFilters "," Exp "," Target "," MaybeCompFilters "," Exp ")" [symbol(setCompTargetForForIfsExp), strict(1)]
                | "#setCompMany" "(" Exp "," Target "," MaybeCompFilters "," MaybeCompClauses "," Exp ")" [symbol(setCompManyExp), strict(1)]
+               | "#genExp" "(" Exp ")" [symbol(genExpExp)]
                | "#listCtor" "(" ")" [symbol(listCtorExp)]
                | "#listCtor" "(" Exp ")" [symbol(listCtor1Exp), strict]
                | "#tupleCtor" "(" ")" [symbol(tupleCtorExp)]
@@ -943,6 +944,7 @@ module PYTHON
                  | bindLambdaPosKwDefaultsKwArgs(IdItems, ArgExps, IdItems, Id, Exp) [symbol(bindLambdaPosKwDefaultsKwArgs)]
                  | bindLambdaPosKwDefaultValsKwArgs(IdItems, ArgVals, IdItems, Id, Exp) [symbol(bindLambdaPosKwDefaultValsKwArgs)]
                  | "buildList" [symbol(buildList)]
+                 | "buildGeneratorIterator" [symbol(buildGeneratorIterator)]
                  | listCompIter(Id, Exp, ArgVals, ArgVals, Map) [symbol(listCompIter)]
                  | listCompNext(Id, Exp, ArgVals, ArgVals, Map) [symbol(listCompNext)]
                  | listCompTargetIter(Target, Exp, ArgVals, ArgVals, Map) [symbol(listCompTargetIter)]
@@ -18403,6 +18405,13 @@ module PYTHON
   rule <k> argsVal(#noArgVals) ~> buildList => [] ... </k>
   rule <k> argsVal(VS:ArgVals) ~> buildList => listVal(argValsToValItems(VS)) ... </k>
     requires notBool emptyArgVals(VS)
+  rule <k> genExpExp(E:Exp) => E ~> buildGeneratorIterator ... </k>
+  rule <k> [] ~> buildGeneratorIterator => iteratorRef(I) ... </k>
+       <iterators> M => M [ I <- #noArgVals ] </iterators>
+       <nextIterator> I => I +Int 1 </nextIterator>
+  rule <k> listVal(VS:ValItems) ~> buildGeneratorIterator => iteratorRef(I) ... </k>
+       <iterators> M => M [ I <- valItemsToArgVals(VS) ] </iterators>
+       <nextIterator> I => I +Int 1 </nextIterator>
   rule <k> listCompExp(iteratorRef(I:Int), X:Id, Elem:Exp) =>
            #listCtor(iteratorRef(I)) ~> listCompIteratorApply(X, Elem, Rho)
        ... </k>
@@ -32324,6 +32333,7 @@ module PYTHON
   rule <k> exceptionSignal(V:Val) ~> evalMixedKwArgs(_:KwArgExps, _:Val) => exceptionSignal(V) ... </k>
   rule <k> exceptionSignal(V:Val) ~> callApplyMixedArgs(_:Val, _:ArgVals) => exceptionSignal(V) ... </k>
   rule <k> exceptionSignal(V:Val) ~> buildList => exceptionSignal(V) ... </k>
+  rule <k> exceptionSignal(V:Val) ~> buildGeneratorIterator => exceptionSignal(V) ... </k>
   rule <k> exceptionSignal(V:Val) ~> buildTuple => exceptionSignal(V) ... </k>
   rule <k> exceptionSignal(V:Val) ~> memoryviewApply => exceptionSignal(V) ... </k>
   rule <k> exceptionSignal(V:Val) ~> withEnter(_:Block) => exceptionSignal(V) ... </k>

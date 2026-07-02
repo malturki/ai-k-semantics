@@ -1215,6 +1215,13 @@
       "coverage": ["bytes-constructor", "negative-size-value-error", "non-integer-item-type-error", "out-of-range-byte-value-error", "string-without-encoding-type-error", "ordinary-python-source-adapter"]
     },
     {
+      "id": "adapter-iterator-bytes-bytearray-constructors",
+      "source": "../adapter/adapter-iterator-bytes-bytearray-constructors.py",
+      "reference": "Python 3.14.6 Standard Library Built-in Functions bytes and bytearray constructors; Built-in Types binary sequence types and iterator protocol; CPython Lib/test/test_bytes.py constructor cases",
+      "expected_result": "True ~> .K",
+      "coverage": ["bytes-constructor", "bytearray-constructor", "iterator-protocol-profile", "stateful-iterator-ref", "iterator-consumption-profile", "iterable-of-byte-integers", "callable-sentinel-iterator-profile", "iterator-exhaustion-sink-state", "type-error", "value-error", "ordinary-python-source-adapter"]
+    },
+    {
       "id": "adapter-bytes-string-encoding-constructor",
       "source": "../adapter/adapter-bytes-string-encoding-constructor.py",
       "reference": "Python Standard Library Built-in Functions bytes constructor; bytes(string, encoding[, errors]) string encoding form",

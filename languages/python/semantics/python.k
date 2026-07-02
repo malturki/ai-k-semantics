@@ -741,6 +741,8 @@ module PYTHON
                  | formatDefault() [symbol(formatDefault)]
                  | formatSpec(Exp) [symbol(formatSpec)]
                  | formatApply(Val) [symbol(formatApply)]
+                 | "bytesIteratorApply" [symbol(bytesIteratorApply)]
+                 | "bytearrayIteratorApply" [symbol(bytearrayIteratorApply)]
                  | "setIteratorApply" [symbol(setIteratorApply)]
                  | "frozensetIteratorApply" [symbol(frozensetIteratorApply)]
                  | sortedReverseFlag(Exp) [symbol(sortedReverseFlag)]
@@ -4488,6 +4490,7 @@ module PYTHON
   rule isIntLike(functionValPosKwDefaults(_:IdItems, _:ArgVals, _:IdItems, _:ArgVals, _:Block)) => false
   rule isIntLike(functionValPosKwOnlyKwArgs(_:IdItems, _:IdItems, _:Id, _:Block)) => false
   rule isIntLike(functionValPosKwDefaultsKwArgs(_:IdItems, _:ArgVals, _:IdItems, _:ArgVals, _:Id, _:Block)) => false
+  rule isIntLike(iteratorRef(_:Int)) => false
   rule isIntLike(rangeVal(_:Int, _:Int)) => false
   rule isIntLike(rangeVal(_:Int, _:Int, _:Int)) => false
   rule isIntLike(sliceVal(_:Val, _:Val, _:Val)) => false
@@ -21173,6 +21176,10 @@ module PYTHON
     requires isIntLike(V) andBool intValue(V) >=Int 0
   rule <k> #bytesCtor(V:Val) => exceptionSignal(#exception(#token("ValueError", "Id"))) ... </k>
     requires isIntLike(V) andBool intValue(V) <Int 0
+  rule <k> #bytesCtor(iteratorRef(I:Int)) =>
+           #listCtor(iteratorRef(I)) ~> bytesIteratorApply
+       ... </k>
+  rule <k> V:Val ~> bytesIteratorApply => #bytesCtor(V) ... </k>
   rule #bytesCtor(#bytes()) => #bytes()
   rule #bytesCtor(bytesVal(VS:ValItems)) => bytesVal(VS)
   rule #bytesCtor(#bytearray()) => #bytes()
@@ -21240,6 +21247,7 @@ module PYTHON
       andBool notBool valItemsAllByteInts(rangeToValItems(Start, Stop, Step, 0, pyRangeLen(Start, Stop, Step)))
   rule <k> #bytesCtor(V:Val) => exceptionSignal(#exception(#token("TypeError", "Id"))) ... </k>
     requires notBool bytesCtorSourceSupported(V)
+      andBool notBool isIteratorRef(V)
   rule #bytesCtor(S:String, Enc:String) => bytesStringUtf8(S)
     requires bytesEncodingUtf8(Enc)
   rule #bytesCtor(S:String, Enc:String) => bytesStringAscii(S)
@@ -21357,6 +21365,10 @@ module PYTHON
     requires isIntLike(V) andBool intValue(V) >=Int 0
   rule <k> #bytearrayCtor(V:Val) => exceptionSignal(#exception(#token("ValueError", "Id"))) ... </k>
     requires isIntLike(V) andBool intValue(V) <Int 0
+  rule <k> #bytearrayCtor(iteratorRef(I:Int)) =>
+           #listCtor(iteratorRef(I)) ~> bytearrayIteratorApply
+       ... </k>
+  rule <k> V:Val ~> bytearrayIteratorApply => #bytearrayCtor(V) ... </k>
   rule #bytearrayCtor(#bytes()) => #bytearray()
   rule #bytearrayCtor(bytesVal(VS:ValItems)) => bytearrayVal(VS)
   rule #bytearrayCtor(#bytearray()) => #bytearray()
@@ -21424,6 +21436,7 @@ module PYTHON
       andBool notBool valItemsAllByteInts(rangeToValItems(Start, Stop, Step, 0, pyRangeLen(Start, Stop, Step)))
   rule <k> #bytearrayCtor(V:Val) => exceptionSignal(#exception(#token("TypeError", "Id"))) ... </k>
     requires notBool bytesCtorSourceSupported(V)
+      andBool notBool isIteratorRef(V)
   rule #bytearrayCtor(S:String, Enc:String) => bytesToBytearray(bytesStringUtf8(S))
     requires bytesEncodingUtf8(Enc)
   rule #bytearrayCtor(S:String, Enc:String) => bytesToBytearray(bytesStringAscii(S))
@@ -31317,6 +31330,8 @@ module PYTHON
   rule <k> exceptionSignal(V:Val) ~> dictFromKeysDefault => exceptionSignal(V) ... </k>
   rule <k> exceptionSignal(V:Val) ~> dictFromKeysIterDefault(_:Exp) => exceptionSignal(V) ... </k>
   rule <k> exceptionSignal(V:Val) ~> dictFromKeysApply(_:Val) => exceptionSignal(V) ... </k>
+  rule <k> exceptionSignal(V:Val) ~> bytesIteratorApply => exceptionSignal(V) ... </k>
+  rule <k> exceptionSignal(V:Val) ~> bytearrayIteratorApply => exceptionSignal(V) ... </k>
   rule <k> exceptionSignal(V:Val) ~> setIteratorApply => exceptionSignal(V) ... </k>
   rule <k> exceptionSignal(V:Val) ~> frozensetIteratorApply => exceptionSignal(V) ... </k>
   rule <k> exceptionSignal(V:Val) ~> sortedReverseFlag(_:Exp) => exceptionSignal(V) ... </k>

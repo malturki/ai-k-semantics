@@ -242,6 +242,7 @@ run_case "adapter-bytes-join-basic" "$ROOT/tests/adapter/adapter-bytes-join-basi
 run_case "adapter-bytes-join-byteslike-diagnostics" "$ROOT/tests/adapter/adapter-bytes-join-byteslike-diagnostics.py" "True ~> .K"
 run_case "adapter-bytes-constructor" "$ROOT/tests/adapter/adapter-bytes-constructor.py" "True ~> .K"
 run_case "adapter-bytes-constructor-errors" "$ROOT/tests/adapter/adapter-bytes-constructor-errors.py" "True ~> .K"
+run_case "adapter-iterator-bytes-bytearray-constructors" "$ROOT/tests/adapter/adapter-iterator-bytes-bytearray-constructors.py" "True ~> .K"
 run_case "adapter-bytes-string-encoding-constructor" "$ROOT/tests/adapter/adapter-bytes-string-encoding-constructor.py" "True ~> .K"
 run_case "adapter-bytes-string-error-handlers" "$ROOT/tests/adapter/adapter-bytes-string-error-handlers.py" "True ~> .K"
 run_case "adapter-bytes-string-replacement-error-handlers" "$ROOT/tests/adapter/adapter-bytes-string-replacement-error-handlers.py" "True ~> .K"

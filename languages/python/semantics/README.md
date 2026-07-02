@@ -66,6 +66,7 @@ The base modules should model portable Python semantics from the official docs. 
 - module-scope single-name and multi-name `global` declarations as no-ops
 - list literals in a trailing-comma value-element subset
 - adapter-backed list displays with supported expression elements, starred unpacking over current ordered concrete iterables, and non-async one-or-more-generator list comprehensions over current concrete iterables with simple-name targets or current recursive sequence targets and zero or more filter clauses on each generator
+- adapter-backed arbitrary-many non-async list comprehensions materialize supported live iterator references at outer and nested generator sources before recursive traversal, preserving one-shot iterator consumption, recursive sequence targets, and filter order in the current iterator profile
 - list truthiness, equality, lexicographic ordering, same-type concatenation, repetition with integer/bool `*`, nonzero-step slicing, membership, and positive/negative integer indexing
 - tuple literals in a trailing-comma value-element subset
 - adapter-backed tuple displays with supported expression elements and starred unpacking over current ordered concrete iterables
@@ -73,10 +74,12 @@ The base modules should model portable Python semantics from the official docs. 
 - dictionary literals in a trailing-comma key/value subset
 - adapter-backed dictionary displays with supported key/value expressions, including duplicate key replacement in the supported key-equality subset
 - adapter-backed non-async one-or-more-generator dictionary comprehensions over current concrete iterables with simple-name targets or current recursive sequence targets and zero or more filter clauses on each generator, with duplicate key replacement in the supported key-equality subset
+- adapter-backed arbitrary-many non-async dictionary comprehensions materialize supported live iterator references at outer and nested generator sources before recursive traversal, preserving one-shot iterator consumption, recursive sequence targets, filter order, and key-before-value evaluation in the current iterator profile
 - dictionary truthiness, equality, key membership, key subscription lookup, and key iteration in `for` loops
 - nonempty set literals in a trailing-comma value subset
 - adapter-backed set displays with supported expression elements and starred unpacking over current ordered concrete iterables, including duplicate element normalization, plus empty `set()`
 - adapter-backed non-async one-or-more-generator set comprehensions over current concrete iterables with simple-name targets or current recursive sequence targets and zero or more filter clauses on each generator, with duplicate element normalization
+- adapter-backed arbitrary-many non-async set comprehensions materialize supported live iterator references at outer and nested generator sources before recursive traversal, preserving one-shot iterator consumption, recursive sequence targets, filter order, and duplicate element normalization in the current iterator profile
 - set truthiness, equality, set-to-set ordering comparisons, membership, and length
 - adapter-backed no-argument `list()`, `tuple()`, `dict()`, and `set()` constructors as explicit internal constructor expressions
 - adapter-backed `list(x)` and `tuple(x)` for current ordered concrete string/bytes/list/tuple/dict/set/range values, with sets using the current internal set iteration order profile, with dictionaries yielding keys

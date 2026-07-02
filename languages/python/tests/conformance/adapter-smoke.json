@@ -1705,6 +1705,13 @@
       "coverage": ["isinstance-builtin", "builtin-classinfo", "classinfo-tuple", "bool-is-int", "ordinary-python-source-adapter"]
     },
     {
+      "id": "adapter-class-basic",
+      "source": "../adapter/adapter-class-basic.py",
+      "reference": "Python 3.14.6 Language Reference 8.8 Class definitions; 3.2 Objects, values and types; Built-in Functions callable, isinstance, bool",
+      "expected_result": "True ~> .K",
+      "coverage": ["class-definition", "pass-only-class-profile", "user-class-value", "user-object-instance", "object-identity", "object-default-equality", "callable-builtin", "dynamic-isinstance", "ordinary-python-source-adapter"]
+    },
+    {
       "id": "adapter-issubclass-builtin",
       "source": "../adapter/adapter-issubclass-builtin.py",
       "reference": "Python Standard Library Built-in Functions issubclass; Python data model standard type hierarchy bool subclass of int",

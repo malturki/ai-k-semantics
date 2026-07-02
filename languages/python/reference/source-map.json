@@ -116,9 +116,9 @@
               "section": "Objects, values and types"
             }
           ],
-          "k_coverage": ["semantics/python.k: internal integer value subset; singleton identity subset for None/True/False/Ellipsis"],
-          "test_coverage": ["tests/examples/smoke-arithmetic.py", "tests/adapter/adapter-is-none.py", "tests/adapter/adapter-is-bool.py", "tests/adapter/adapter-ellipsis.py"],
-          "gaps": ["Need heap object identity, type objects, mutability, aliasing, and lifetime model beyond language singletons."]
+          "k_coverage": ["semantics/python.k: internal integer value subset; singleton identity subset for None/True/False/Ellipsis; adapter-backed pass-only fresh user class values and fresh user object values with current identity/default-equality behavior"],
+          "test_coverage": ["tests/examples/smoke-arithmetic.py", "tests/adapter/adapter-is-none.py", "tests/adapter/adapter-is-bool.py", "tests/adapter/adapter-ellipsis.py", "tests/adapter/adapter-class-basic.py"],
+          "gaps": ["Need full heap object identity, type objects, object attributes, mutability, aliasing, lifetime model, and standard object/type hierarchy beyond language singletons and the current pass-only user-class profile."]
         },
         {
           "id": "data.standard-type-hierarchy",
@@ -138,7 +138,7 @@
         {
           "id": "data.special-methods",
           "title": "Special method names and interpreter protocols",
-          "status": "not-started",
+          "status": "partial",
           "references": [
             {
               "title": "Data model",
@@ -691,9 +691,9 @@
               "section": "Class definitions"
             }
           ],
-          "k_coverage": [],
-          "test_coverage": [],
-          "gaps": ["Need class body execution, namespace creation, metaclass selection, MRO, descriptors, and decorators."]
+          "k_coverage": ["semantics/python.k and harness/python_to_k_input.py: adapter-backed pass-only ClassDef lowers to #class(Name), allocates and binds a fresh classVal(Name, id) in the current environment, treats class values as callable/truthy, constructs fresh userObjectVal(Name, classId, objectId) instances on no-argument calls, defines current class/object identity and default equality for those values, and supports isinstance(obj, ClassName) through a dynamic class-value check"],
+          "test_coverage": ["tests/adapter/adapter-class-basic.py"],
+          "gaps": ["Need class body execution, namespace creation, bases, MRO, metaclass selection, type parameters, decorators, attributes, methods, descriptors, __init__/__new__, real type objects, subclassing, issubclass, class patterns over user classes, and exact diagnostics."]
         },
         {
           "id": "compound.async-defs",

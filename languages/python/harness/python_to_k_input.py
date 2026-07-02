@@ -829,6 +829,14 @@ def emit_stmt(stmt: ast.stmt) -> str:
             type_comment=type_comment,
         ):
             return emit_function_def(stmt, name, args, body, decorators, returns, type_comment)
+        case ast.ClassDef(
+            name=name,
+            bases=bases,
+            keywords=keywords,
+            body=body,
+            decorator_list=decorators,
+        ):
+            return emit_simple_class_def(stmt, name, bases, keywords, body, decorators)
         case ast.If(test=test, body=body, orelse=orelse):
             return f"#if({emit_exp(test)}, {emit_block(body)}, {emit_block(orelse)})"
         case ast.While(test=test, body=body, orelse=[]):
@@ -1036,6 +1044,8 @@ def emit_exp(exp: ast.expr) -> str:
         case ast.Call(func=ast.Name(id="callable"), args=[arg], keywords=[]):
             return f"#callable({emit_exp(arg)})"
         case ast.Call(func=ast.Name(id="isinstance"), args=[obj, classinfo], keywords=[]):
+            if isinstance(classinfo, ast.Name) and classinfo.id not in SUPPORTED_BUILTIN_CLASS_NAMES:
+                return f"#isinstanceDynamic({emit_exp(obj)}, {emit_exp(classinfo)})"
             emitted_classinfo, is_tuple = emit_builtin_classinfo(exp, classinfo)
             if is_tuple:
                 return f"#isinstanceAny({emit_exp(obj)}, {emitted_classinfo})"
@@ -1914,6 +1924,25 @@ def emit_simple_generator_function_def(
         return None
     names = [arg.arg for arg in args.args]
     return f"#genDef({emit_id(name)}, {emit_id_items(names)}, {emit_yield_exps(yields)})"
+
+
+def emit_simple_class_def(
+    node: ast.AST,
+    name: str,
+    bases: list[ast.expr],
+    keywords: list[ast.keyword],
+    body: list[ast.stmt],
+    decorators: list[ast.expr],
+) -> str:
+    if decorators:
+        raise unsupported(node, "class decorators are not supported yet")
+    if bases or keywords:
+        raise unsupported(node, "class bases and metaclass keywords are not supported yet")
+    if getattr(node, "type_params", []):
+        raise unsupported(node, "class type parameters are not supported yet")
+    if len(body) == 1 and isinstance(body[0], ast.Pass):
+        return f"#class({emit_id(name)})"
+    raise unsupported(node, "only pass-only class bodies are supported in the current class profile")
 
 
 def emit_list_comprehension(

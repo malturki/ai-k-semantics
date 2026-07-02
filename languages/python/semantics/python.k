@@ -309,6 +309,7 @@ module PYTHON-SYNTAX
                 | "#defPosKwDefaultsKwArgs" "(" Id "," IdItems "," ArgExps "," IdItems "," ArgExps "," Id "," Block ")" [symbol(functionDefPosKwDefaultsKwArgsStmt)]
                 | "#defDecorated" "(" Id "," ArgExps "," FunctionSpec ")" [symbol(functionDefDecoratedStmt)]
                 | "#genDef" "(" Id "," IdItems "," YieldExps ")" [symbol(generatorFunctionDefStmt)]
+                | "#class" "(" Id ")" [symbol(classDefStmt)]
                 | "#if" "(" Exp "," Block "," Block ")" [symbol(ifStmt)]
                 | "#while" "(" Exp "," Block ")" [symbol(whileStmt)]
                 | "#whileElse" "(" Exp "," Block "," Block ")" [symbol(whileElseStmt)]
@@ -455,6 +456,7 @@ module PYTHON-SYNTAX
                | "#hash" "(" Exp ")" [symbol(hashExp), strict]
                | "#callable" "(" Exp ")" [symbol(callableExp), strict]
                | "#isinstance" "(" Exp "," Id ")" [symbol(isinstanceExp), strict(1)]
+               | "#isinstanceDynamic" "(" Exp "," Exp ")" [symbol(isinstanceDynamicExp), seqstrict]
                | "#isinstanceAny" "(" Exp "," IdItems ")" [symbol(isinstanceAnyExp), strict(1)]
                | "#issubclass" "(" Id "," Id ")" [symbol(issubclassExp)]
                | "#issubclassAny" "(" Id "," IdItems ")" [symbol(issubclassAnyExp)]
@@ -681,6 +683,8 @@ module PYTHON
                | functionValPosKwOnlyKwArgs(IdItems, IdItems, Id, Block) [symbol(functionValPosKwOnlyKwArgs)]
                | functionValPosKwDefaultsKwArgs(IdItems, ArgVals, IdItems, ArgVals, Id, Block) [symbol(functionValPosKwDefaultsKwArgs)]
                | generatorFunctionVal(IdItems, YieldExps) [symbol(generatorFunctionVal)]
+               | classVal(Id, Int) [symbol(classVal)]
+               | userObjectVal(Id, Int, Int) [symbol(userObjectVal)]
                | "#exceptionInstance" "(" Id "," ArgVals ")" [symbol(exceptionInstanceVal)]
                | buildFunctionDefault(FunctionDefaultBuilder, ArgVals) [function, symbol(buildFunctionDefault)]
                | buildFunctionTwoDefaults(FunctionTwoDefaultBuilder, ArgVals, ArgVals) [function, symbol(buildFunctionTwoDefaults)]
@@ -1471,6 +1475,8 @@ module PYTHON
 
   syntax Bool ::= truthy(Val) [function, symbol(truthy)]
                 | callableVal(Val) [function, symbol(callableVal)]
+                | isClassVal(Val) [function, symbol(isClassVal)]
+                | isUserObjectVal(Val) [function, symbol(isUserObjectVal)]
                 | isIntLike(Val) [function, symbol(isIntLike)]
                 | isFloatVal(Val) [function, symbol(isFloatVal)]
                 | isFloatLike(Val) [function, symbol(isFloatLike)]
@@ -1484,6 +1490,7 @@ module PYTHON
                 | isinstanceClassSupported(Id) [function, symbol(isinstanceClassSupported)]
                 | isinstanceClassesSupported(IdItems) [function, symbol(isinstanceClassesSupported)]
                 | isinstanceAny(Val, IdItems) [function, symbol(isinstanceAny)]
+                | userInstanceOf(Val, Id, Int) [function, symbol(userInstanceOf)]
                 | builtinSubclass(Id, Id) [function, symbol(builtinSubclass)]
                 | builtinSubclassAny(Id, IdItems) [function, symbol(builtinSubclassAny)]
                 | matchBuiltinClassArg(Val, Id, MatchPattern) [function, symbol(matchBuiltinClassArg)]
@@ -2777,6 +2784,8 @@ module PYTHON
   rule truthy(functionValPosKwOnlyKwArgs(_:IdItems, _:IdItems, _:Id, _:Block)) => true
   rule truthy(functionValPosKwDefaultsKwArgs(_:IdItems, _:ArgVals, _:IdItems, _:ArgVals, _:Id, _:Block)) => true
   rule truthy(generatorFunctionVal(_:IdItems, _:YieldExps)) => true
+  rule truthy(classVal(_:Id, _:Int)) => true
+  rule truthy(userObjectVal(_:Id, _:Int, _:Int)) => true
   rule truthy(rangeVal(Start:Int, Stop:Int)) => Start <Int Stop
   rule truthy(rangeVal(Start:Int, Stop:Int, Step:Int)) => pyRangeLen(Start, Stop, Step) >Int 0
     requires Step =/=Int 0
@@ -2907,7 +2916,14 @@ module PYTHON
   rule callableVal(functionValPosKwOnlyKwArgs(_:IdItems, _:IdItems, _:Id, _:Block)) => true
   rule callableVal(functionValPosKwDefaultsKwArgs(_:IdItems, _:ArgVals, _:IdItems, _:ArgVals, _:Id, _:Block)) => true
   rule callableVal(generatorFunctionVal(_:IdItems, _:YieldExps)) => true
+  rule callableVal(classVal(_:Id, _:Int)) => true
   rule callableVal(_:Val) => false [owise]
+
+  rule isClassVal(classVal(_:Id, _:Int)) => true
+  rule isClassVal(_:Val) => false [owise]
+
+  rule isUserObjectVal(userObjectVal(_:Id, _:Int, _:Int)) => true
+  rule isUserObjectVal(_:Val) => false [owise]
 
   rule contextManagerSupported(#memoryviewVal(_:Val)) => true
   rule contextManagerSupported(_:Val) => false [owise]
@@ -5610,6 +5626,9 @@ module PYTHON
   rule singletonIdentity(functionValPosKwDefaults(_:IdItems, _:ArgVals, _:IdItems, _:ArgVals, _:Block)) => false
   rule singletonIdentity(functionValPosKwOnlyKwArgs(_:IdItems, _:IdItems, _:Id, _:Block)) => false
   rule singletonIdentity(functionValPosKwDefaultsKwArgs(_:IdItems, _:ArgVals, _:IdItems, _:ArgVals, _:Id, _:Block)) => false
+  rule singletonIdentity(generatorFunctionVal(_:IdItems, _:YieldExps)) => false
+  rule singletonIdentity(classVal(_:Id, _:Int)) => false
+  rule singletonIdentity(userObjectVal(_:Id, _:Int, _:Int)) => false
   rule singletonIdentity(rangeVal(_:Int, _:Int)) => false
   rule singletonIdentity(rangeVal(_:Int, _:Int, _:Int)) => false
   rule singletonIdentity(sliceVal(_:Val, _:Val, _:Val)) => false
@@ -6090,6 +6109,10 @@ module PYTHON
   rule isinstanceAny(V:Val, idItemsLast(C:Id)) => matchBuiltinClass(V, C)
   rule isinstanceAny(V:Val, idItemsCons(C:Id, CS:IdItems)) =>
     matchBuiltinClass(V, C) orBool isinstanceAny(V, CS)
+
+  rule userInstanceOf(userObjectVal(C:Id, ClassId:Int, _:Int), D:Id, ExpectedClassId:Int) =>
+    ClassId ==Int ExpectedClassId andBool Id2String(C) ==String Id2String(D)
+  rule userInstanceOf(_:Val, _:Id, _:Int) => false [owise]
 
   rule builtinSubclass(C:Id, I:Id) => true
     requires Id2String(C) ==String Id2String(I)
@@ -6621,6 +6644,18 @@ module PYTHON
   rule valEq(_:Float, Ellipsis) => false
   rule valEq(Ellipsis, _:String) => false
   rule valEq(_:String, Ellipsis) => false
+  rule valEq(classVal(C1:Id, I1:Int), classVal(C2:Id, I2:Int)) =>
+    I1 ==Int I2 andBool Id2String(C1) ==String Id2String(C2)
+  rule valEq(classVal(_:Id, _:Int), V:Val) => false
+    requires notBool isClassVal(V)
+  rule valEq(V:Val, classVal(_:Id, _:Int)) => false
+    requires notBool isClassVal(V)
+  rule valEq(userObjectVal(C1:Id, ClassId1:Int, I1:Int), userObjectVal(C2:Id, ClassId2:Int, I2:Int)) =>
+    I1 ==Int I2 andBool ClassId1 ==Int ClassId2 andBool Id2String(C1) ==String Id2String(C2)
+  rule valEq(userObjectVal(_:Id, _:Int, _:Int), V:Val) => false
+    requires notBool isUserObjectVal(V)
+  rule valEq(V:Val, userObjectVal(_:Id, _:Int, _:Int)) => false
+    requires notBool isUserObjectVal(V)
 
   rule exceptionMatches(#exception(E:Id), F:Id) => exceptionTypeMatchesString(Id2String(E), Id2String(F))
   rule exceptionMatches(#exceptionInstance(E:Id, _Args:ArgVals), F:Id) => exceptionTypeMatchesString(Id2String(E), Id2String(F))
@@ -6823,6 +6858,12 @@ module PYTHON
   rule exceptionTypeMatchesString("ZeroDivisionError", "BaseException") => true
   rule exceptionTypeMatchesString(_E:String, _F:String) => false [owise]
 
+  rule valIs(classVal(C1:Id, I1:Int), classVal(C2:Id, I2:Int)) =>
+    I1 ==Int I2 andBool Id2String(C1) ==String Id2String(C2)
+  rule valIs(userObjectVal(C1:Id, ClassId1:Int, I1:Int), userObjectVal(C2:Id, ClassId2:Int, I2:Int)) =>
+    I1 ==Int I2 andBool ClassId1 ==Int ClassId2 andBool Id2String(C1) ==String Id2String(C2)
+  rule valIs(classVal(_:Id, _:Int), userObjectVal(_:Id, _:Int, _:Int)) => false
+  rule valIs(userObjectVal(_:Id, _:Int, _:Int), classVal(_:Id, _:Int)) => false
   rule valIs(V1:Val, V2:Val) => valEq(V1, V2)
     requires singletonIdentity(V1) andBool singletonIdentity(V2)
   rule valIs(V1:Val, V2:Val) => false
@@ -14781,6 +14822,7 @@ module PYTHON
       <env> .Map </env>
       <iterators> .Map </iterators>
       <nextIterator> 0 </nextIterator>
+      <nextObject> 0 </nextObject>
       <activeException> noException </activeException>
       <result> .K </result>
     </python>
@@ -16453,6 +16495,9 @@ module PYTHON
            exceptionSignal(#exception(#token("TypeError", "Id")))
        ... </k>
     requires notBool callableVal(F)
+  rule <k> _A:Val ~> callApply(classVal(_:Id, _:Int)) =>
+           exceptionSignal(#exception(#token("TypeError", "Id")))
+       ... </k>
   rule <k> A:Val ~> callApply(closure(X:Id, Body:Exp)) => Body ~> restoreEnv(Rho) ... </k>
        <env> Rho => Rho [ X <- A ] </env>
   rule <k> A:Val ~> callApply(closureArgs(IDS:IdItems, Body:Exp)) =>
@@ -16908,6 +16953,14 @@ module PYTHON
            exceptionSignal(#exception(#token("TypeError", "Id")))
        ... </k>
     requires notBool callableVal(F)
+  rule <k> argsVal(#noArgVals) ~> callApplyArgs(classVal(C:Id, ClassId:Int)) =>
+           userObjectVal(C, ClassId, I)
+       ... </k>
+       <nextObject> I => I +Int 1 </nextObject>
+  rule <k> argsVal(VS:ArgVals) ~> callApplyArgs(classVal(_:Id, _:Int)) =>
+           exceptionSignal(#exception(#token("TypeError", "Id")))
+       ... </k>
+    requires argValsLen(VS) >Int 0
   rule <k> argsVal(VS:ArgVals) ~> callApplyArgs(closure(X:Id, Body:Exp)) =>
            Body ~> restoreEnv(Rho)
        ... </k>
@@ -17924,6 +17977,9 @@ module PYTHON
   rule <k> kwArgsVal(_:KwArgVals) ~> callApplyKwArgs(generatorFunctionVal(_:IdItems, _:YieldExps)) =>
            exceptionSignal(#exception(#token("TypeError", "Id")))
        ... </k>
+  rule <k> kwArgsVal(_:KwArgVals) ~> callApplyKwArgs(classVal(_:Id, _:Int)) =>
+           exceptionSignal(#exception(#token("TypeError", "Id")))
+       ... </k>
 
   rule <k> callMixedArgsExp(F:Exp, Args:ArgExps, KWS:KwArgExps) => F ~> callMixedArgs(Args, KWS) ... </k>
   rule <k> F:Val ~> callMixedArgs(Args:ArgExps, KWS:KwArgExps) =>
@@ -17937,6 +17993,9 @@ module PYTHON
        ... </k>
     requires notBool callableVal(F)
   rule <k> kwArgsVal(_:KwArgVals) ~> callApplyMixedArgs(generatorFunctionVal(_:IdItems, _:YieldExps), _:ArgVals) =>
+           exceptionSignal(#exception(#token("TypeError", "Id")))
+       ... </k>
+  rule <k> kwArgsVal(_:KwArgVals) ~> callApplyMixedArgs(classVal(_:Id, _:Int), _:ArgVals) =>
            exceptionSignal(#exception(#token("TypeError", "Id")))
        ... </k>
   rule <k> kwArgsVal(KWS:KwArgVals) ~> callApplyMixedArgs(closure(X:Id, Body:Exp), VS:ArgVals) =>
@@ -22817,6 +22876,7 @@ module PYTHON
   rule #callable(V:Val) => boolValue(callableVal(V))
   rule #isinstance(V:Val, C:Id) => boolValue(matchBuiltinClass(V, C))
     requires isinstanceClassSupported(C)
+  rule #isinstanceDynamic(V:Val, classVal(C:Id, ClassId:Int)) => boolValue(userInstanceOf(V, C, ClassId))
   rule #isinstanceAny(V:Val, CS:IdItems) => boolValue(isinstanceAny(V, CS))
     requires isinstanceClassesSupported(CS)
   rule #issubclass(C:Id, I:Id) => boolValue(builtinSubclass(C, I))
@@ -22857,6 +22917,8 @@ module PYTHON
     requires notBool dictLookupKeySupported(V)
   rule <k> #isinstance(_V:Val, C:Id) => exceptionSignal(#exception(#token("TypeError", "Id"))) ... </k>
     requires notBool isinstanceClassSupported(C)
+  rule <k> #isinstanceDynamic(_V:Val, C:Val) => exceptionSignal(#exception(#token("TypeError", "Id"))) ... </k>
+    requires notBool isClassVal(C)
   rule <k> #isinstanceAny(_V:Val, CS:IdItems) => exceptionSignal(#exception(#token("TypeError", "Id"))) ... </k>
     requires notBool isinstanceClassesSupported(CS)
   rule <k> #issubclass(C:Id, I:Id) => exceptionSignal(#exception(#token("TypeError", "Id"))) ... </k>
@@ -28764,6 +28826,10 @@ module PYTHON
        <result> _ => .K </result>
   rule <k> generatorFunctionDefStmt(F:Id, IDS:IdItems, Yields:YieldExps) => stmtNoResult ... </k>
        <env> Rho => Rho [ F <- generatorFunctionVal(IDS, Yields) ] </env>
+       <result> _ => .K </result>
+  rule <k> classDefStmt(C:Id) => stmtNoResult ... </k>
+       <env> Rho => Rho [ C <- classVal(C, I) ] </env>
+       <nextObject> I => I +Int 1 </nextObject>
        <result> _ => .K </result>
   rule <k> functionDefVarArgsStmt(F:Id, IDS:IdItems, Var:Id, Body:Block) => stmtNoResult ... </k>
        <env> Rho => Rho [ F <- functionValVarArgs(IDS, Var, Body) ] </env>

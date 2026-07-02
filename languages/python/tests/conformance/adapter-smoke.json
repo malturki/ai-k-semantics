@@ -1733,6 +1733,174 @@
       "coverage": ["getattr-builtin", "hasattr-builtin", "dynamic-attribute-name", "attribute-name-type-error", "default-argument-evaluation", "missing-attribute", "ordinary-python-source-adapter"]
     },
     {
+      "id": "adapter-fstrings-basic",
+      "source": "../adapter/adapter-fstrings-basic.py",
+      "reference": "Python Language Reference 2.5.7 f-strings and 6.16 Evaluation order; Python Standard Library Built-in Exceptions ZeroDivisionError",
+      "expected_result": "True ~> .K",
+      "coverage": ["f-string", "formatted-value", "debug-evaluation", "assignment-expression", "function-call", "exception-propagation", "ordinary-python-source-adapter"]
+    },
+    {
+      "id": "adapter-fstrings-conversions",
+      "source": "../adapter/adapter-fstrings-conversions.py",
+      "reference": "Python Language Reference 2.5.7 f-strings; Python Standard Library Built-in Functions str, repr, and ascii",
+      "expected_result": "True ~> .K",
+      "coverage": ["f-string", "formatted-value-conversion", "str-conversion", "repr-conversion", "ascii-conversion", "debug-evaluation", "assignment-expression", "ordinary-python-source-adapter"]
+    },
+    {
+      "id": "adapter-fstrings-empty-format",
+      "source": "../adapter/adapter-fstrings-empty-format.py",
+      "reference": "Python Language Reference 2.5.7 f-strings and format specifiers; Python Standard Library Built-in Functions str, repr, and ascii",
+      "expected_result": "True ~> .K",
+      "coverage": ["f-string", "empty-format-spec", "formatted-value-conversion", "str-conversion", "repr-conversion", "ascii-conversion", "assignment-expression", "ordinary-python-source-adapter"]
+    },
+    {
+      "id": "adapter-fstrings-current-string-conversion-values",
+      "source": "../adapter/adapter-fstrings-current-string-conversion-values.py",
+      "reference": "Python Language Reference 2.5.7 f-strings; Python Standard Library Built-in Functions str, repr, and ascii; Built-in Types list, tuple, dict, set, range, slice, bytes, and float",
+      "expected_result": "True ~> .K",
+      "coverage": ["f-string", "current-string-conversion-profile", "container-repr", "bytes-repr", "range-repr", "slice-repr", "float-special-repr", "ordinary-python-source-adapter"]
+    },
+    {
+      "id": "adapter-string-conversion-builtins",
+      "source": "../adapter/adapter-string-conversion-builtins.py",
+      "reference": "Python Standard Library Built-in Functions str, repr, and ascii; Built-in Constants None, True, False, and Ellipsis",
+      "expected_result": "True ~> .K",
+      "coverage": ["str-builtin", "repr-builtin", "ascii-builtin", "builtin-constant-string-conversion", "assignment-expression", "ordinary-python-source-adapter"]
+    },
+    {
+      "id": "adapter-string-repr-ascii-escaping",
+      "source": "../adapter/adapter-string-repr-ascii-escaping.py",
+      "reference": "Python Standard Library Built-in Functions repr and ascii; Built-in Type str string representation and escaping behavior",
+      "expected_result": "True ~> .K",
+      "coverage": ["repr-builtin", "ascii-builtin", "string-escaping-profile", "quote-selection-profile", "control-character-escapes", "container-repr", "f-string-conversion", "ordinary-python-source-adapter"]
+    },
+    {
+      "id": "adapter-chr-builtin",
+      "source": "../adapter/adapter-chr-builtin.py",
+      "reference": "Python Standard Library Built-in Functions chr, repr, and ascii; Built-in Exceptions ValueError and TypeError",
+      "expected_result": "True ~> .K",
+      "coverage": ["chr-builtin", "unicode-code-point-profile", "bool-as-int", "repr-builtin", "ascii-builtin", "value-error", "type-error", "ordinary-python-source-adapter"]
+    },
+    {
+      "id": "adapter-container-string-conversion-builtins",
+      "source": "../adapter/adapter-container-string-conversion-builtins.py",
+      "reference": "Python Standard Library Built-in Functions str, repr, and ascii; Built-in Types list, tuple, dict, and set",
+      "expected_result": "True ~> .K",
+      "coverage": ["str-builtin", "repr-builtin", "ascii-builtin", "container-repr", "list-repr", "tuple-repr", "dict-repr", "set-repr", "ordinary-python-source-adapter"]
+    },
+    {
+      "id": "adapter-range-slice-string-conversion-builtins",
+      "source": "../adapter/adapter-range-slice-string-conversion-builtins.py",
+      "reference": "Python Standard Library Built-in Functions str, repr, and ascii; Built-in Types range and slice",
+      "expected_result": "True ~> .K",
+      "coverage": ["str-builtin", "repr-builtin", "ascii-builtin", "range-repr", "slice-repr", "container-repr", "ordinary-python-source-adapter"]
+    },
+    {
+      "id": "adapter-bytes-string-conversion-builtins",
+      "source": "../adapter/adapter-bytes-string-conversion-builtins.py",
+      "reference": "Python Standard Library Built-in Functions str, repr, and ascii; Built-in Type bytes representation and escape behavior",
+      "expected_result": "True ~> .K",
+      "coverage": ["str-builtin", "repr-builtin", "ascii-builtin", "bytes-repr", "bytes-escape-profile", "container-repr", "f-string-conversion", "ordinary-python-source-adapter"]
+    },
+    {
+      "id": "adapter-float-special-string-conversion-builtins",
+      "source": "../adapter/adapter-float-special-string-conversion-builtins.py",
+      "reference": "Python Standard Library Built-in Functions float, str, repr, and ascii; Built-in Type float special values",
+      "expected_result": "True ~> .K",
+      "coverage": ["float-constructor", "str-builtin", "repr-builtin", "ascii-builtin", "float-special-values", "container-repr", "f-string-conversion", "ordinary-python-source-adapter"]
+    },
+    {
+      "id": "adapter-matrix-multiply-errors",
+      "source": "../adapter/adapter-matrix-multiply-errors.py",
+      "reference": "Python Language Reference 6.7 Binary arithmetic operations and 7.2.1 Augmented assignment statements; matrix multiplication operator",
+      "expected_result": "True ~> .K",
+      "coverage": ["matrix-multiply-operator", "augmented-assignment", "subscript-augmented-assignment", "type-error", "assignment-preservation-on-error", "ordinary-python-source-adapter"]
+    },
+    {
+      "id": "adapter-sum-non-int",
+      "source": "../adapter/adapter-sum-non-int.py",
+      "reference": "Python Standard Library Built-in Functions sum; Built-in Types list and tuple concatenation; numeric tower current profile",
+      "expected_result": "True ~> .K",
+      "coverage": ["sum-builtin", "non-int-sum", "float-sum", "complex-sum", "sequence-sum-with-start", "empty-iterable-start", "type-error", "ordinary-python-source-adapter"]
+    },
+    {
+      "id": "adapter-min-max-float",
+      "source": "../adapter/adapter-min-max-float.py",
+      "reference": "Python Standard Library Built-in Functions min and max; Built-in numeric comparison profile",
+      "expected_result": "True ~> .K",
+      "coverage": ["min-builtin", "max-builtin", "float-ordering", "numeric-comparison", "min-max-default-keywords", "min-max-key-keyword", "key-none-profile", "ordinary-python-source-adapter"]
+    },
+    {
+      "id": "adapter-min-max-args-float",
+      "source": "../adapter/adapter-min-max-args-float.py",
+      "reference": "Python Standard Library Built-in Functions min and max; multi-argument form and numeric comparison profile",
+      "expected_result": "True ~> .K",
+      "coverage": ["min-builtin", "max-builtin", "multi-argument-form", "float-ordering", "numeric-comparison", "key-none-profile", "ordinary-python-source-adapter"]
+    },
+    {
+      "id": "adapter-min-max-defaults",
+      "source": "../adapter/adapter-min-max-defaults.py",
+      "reference": "Python Standard Library Built-in Functions min and max; default keyword behavior and empty iterable diagnostics",
+      "expected_result": "True ~> .K",
+      "coverage": ["min-builtin", "max-builtin", "min-max-default-keywords", "empty-iterable-default", "value-error", "type-error", "concrete-iterable-profile", "ordinary-python-source-adapter"]
+    },
+    {
+      "id": "adapter-min-max-key",
+      "source": "../adapter/adapter-min-max-key.py",
+      "reference": "Python Standard Library Built-in Functions min and max; key keyword behavior and first-encountered tie profile",
+      "expected_result": "True ~> .K",
+      "coverage": ["min-builtin", "max-builtin", "min-max-key-keyword", "callable-application-profile", "key-none-profile", "first-encountered-tie-profile", "value-error", "ordinary-python-source-adapter"]
+    },
+    {
+      "id": "adapter-min-max-key-default",
+      "source": "../adapter/adapter-min-max-key-default.py",
+      "reference": "Python Standard Library Built-in Functions min and max; key and default keyword evaluation order",
+      "expected_result": "True ~> .K",
+      "coverage": ["min-builtin", "max-builtin", "min-max-key-keyword", "min-max-default-keywords", "keyword-argument-evaluation-order", "key-none-profile", "type-error", "ordinary-python-source-adapter"]
+    },
+    {
+      "id": "adapter-min-max-key-float",
+      "source": "../adapter/adapter-min-max-key-float.py",
+      "reference": "Python Standard Library Built-in Functions min and max; key callable result ordering and stable tie behavior",
+      "expected_result": "True ~> .K",
+      "coverage": ["min-builtin", "max-builtin", "min-max-key-keyword", "float-ordering", "callable-application-profile", "first-encountered-tie-profile", "ordinary-python-source-adapter"]
+    },
+    {
+      "id": "adapter-min-max-string",
+      "source": "../adapter/adapter-min-max-string.py",
+      "reference": "Python Standard Library Built-in Functions min and max; Built-in Type str iterable and ordering behavior",
+      "expected_result": "True ~> .K",
+      "coverage": ["min-builtin", "max-builtin", "string-iteration-profile", "string-ordering", "min-max-default-keywords", "key-none-profile", "value-error", "ordinary-python-source-adapter"]
+    },
+    {
+      "id": "adapter-match-class-keywords",
+      "source": "../adapter/adapter-match-class-keywords.py",
+      "reference": "Python Language Reference 8.6 The match statement, Class Patterns; PEP 634 Structural Pattern Matching; built-in range, slice, int, and complex attributes",
+      "expected_result": "True ~> .K",
+      "coverage": ["match-statement", "class-pattern", "keyword-class-pattern", "builtin-class-pattern", "attribute-pattern", "capture-pattern", "guard-binding-visibility", "failed-pattern-binding-rollback", "ordinary-python-source-adapter"]
+    },
+    {
+      "id": "adapter-match-class-int-ratio-attrs",
+      "source": "../adapter/adapter-match-class-int-ratio-attrs.py",
+      "reference": "Python Language Reference 8.6 The match statement, Class Patterns; PEP 634 Structural Pattern Matching; built-in int and bool numerator/denominator attributes",
+      "expected_result": "True ~> .K",
+      "coverage": ["match-statement", "class-pattern", "keyword-class-pattern", "builtin-class-pattern", "int-ratio-attributes", "bool-is-int-profile", "guard-binding-visibility", "ordinary-python-source-adapter"]
+    },
+    {
+      "id": "adapter-dict-constructor-duplicate-keywords",
+      "source": "../adapter/adapter-dict-constructor-duplicate-keywords.py",
+      "reference": "Python Standard Library Built-in Types dict; Python Language Reference 6.3.4 Calls keyword argument unpacking and duplicate keyword diagnostics",
+      "expected_result": "True ~> .K",
+      "coverage": ["dict-constructor", "keyword-argument-unpacking", "duplicate-keyword-diagnostics", "keyword-override-profile", "value-error-propagation", "type-error", "ordinary-python-source-adapter"]
+    },
+    {
+      "id": "adapter-assert-false",
+      "source": "../adapter/adapter-assert-false.py",
+      "reference": "Python Language Reference 7.3 The assert statement; Built-in Exceptions AssertionError",
+      "expected_result": "True ~> .K",
+      "coverage": ["assert-statement", "assertion-error", "assert-message-evaluation", "exception-handler-matching", "truth-value-testing", "ordinary-python-source-adapter"]
+    },
+    {
       "id": "adapter-list-normal",
       "source": "../adapter/adapter-list-normal.py",
       "reference": "Python Language Reference 6.2.4 Displays for lists, sets and dictionaries; 6.3.2 Subscriptions",

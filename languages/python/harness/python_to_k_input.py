@@ -1957,13 +1957,13 @@ def emit_simple_class_def(
         base_name = bases[0].id
     if getattr(node, "type_params", []):
         raise unsupported(node, "class type parameters are not supported yet")
-    members: list[tuple[str, str, str, str]] = []
+    members: list[tuple[str, str, str, str, str]] = []
     for stmt in body:
         match stmt:
             case ast.Pass():
                 continue
             case ast.Assign(targets=[ast.Name(id=attr, ctx=ast.Store())], value=value, type_comment=None):
-                members.append(("attr", emit_id(attr), emit_exp(value), ""))
+                members.append(("attr", emit_id(attr), emit_exp(value), "", ""))
             case ast.Assign(type_comment=type_comment) if type_comment is not None:
                 raise unsupported(stmt, "class-body type comments are not supported yet")
             case ast.FunctionDef(
@@ -1984,7 +1984,7 @@ def emit_simple_class_def(
                     method_type_comment,
                 )
                 if member[0] in {"propertygetter", "propertysetter", "propertydeleter"}:
-                    previous_kind = next((kind for kind, attr_name, _payload, _body in reversed(members) if attr_name == member[1]), None)
+                    previous_kind = next((kind for kind, attr_name, _payload, _defaults, _body in reversed(members) if attr_name == member[1]), None)
                     if previous_kind not in {"property", "propertygetter", "propertysetter", "propertydeleter"}:
                         raise unsupported(stmt, "property getters, setters, and deleters currently require a prior @property for the same class-body name")
                 members.append(member)
@@ -2013,7 +2013,7 @@ def emit_simple_class_method(
     decorators: list[ast.expr],
     returns: ast.expr | None,
     type_comment: str | None,
-) -> tuple[str, str, str, str]:
+) -> tuple[str, str, str, str, str]:
     # Python 3.14 annotations are lazy metadata. The current method values do
     # not expose metadata/introspection, so annotations are erased in this subset.
     _ = returns
@@ -2057,38 +2057,47 @@ def emit_simple_class_method(
         raise unsupported(node, "method type parameters are not supported yet")
     if (
         args.posonlyargs
-        or args.defaults
         or args.vararg is not None
         or args.kwonlyargs
         or any(default is not None for default in args.kw_defaults)
         or args.kwarg is not None
     ):
-        raise unsupported(node, "class methods currently support only ordinary positional parameters without defaults")
+        raise unsupported(node, "class methods currently support only ordinary positional parameters with optional suffix defaults")
     names = [arg.arg for arg in args.args]
     if not names:
         raise unsupported(node, "class methods currently require at least an explicit self parameter")
+    if args.defaults and method_kind in {"property", "propertygetter", "propertysetter", "propertydeleter"}:
+        raise unsupported(node, "property accessors currently do not support default parameter values")
     if method_kind in {"property", "propertygetter"} and len(names) != 1:
         raise unsupported(node, "properties currently support only a getter with an explicit self parameter")
     if method_kind == "propertysetter" and len(names) != 2:
         raise unsupported(node, "property setters currently support only an explicit self parameter and one value parameter")
     if method_kind == "propertydeleter" and len(names) != 1:
         raise unsupported(node, "property deleters currently support only an explicit self parameter")
-    return (method_kind, emit_id(name), emit_id_items(names), emit_block(body))
+    if args.defaults:
+        return (f"{method_kind}defaults", emit_id(name), emit_id_items(names), emit_arg_exps(args.defaults), emit_block(body))
+    return (method_kind, emit_id(name), emit_id_items(names), "", emit_block(body))
 
 
-def emit_class_attr_exps(members: list[tuple[str, str, str, str]]) -> str:
+def emit_class_attr_exps(members: list[tuple[str, str, str, str, str]]) -> str:
     if not members:
         return "#noClassAttrs"
-    kind, name, payload, body = members[0]
+    kind, name, payload, defaults, body = members[0]
     rest = emit_class_attr_exps(members[1:])
     if kind == "attr":
         return f"#classAttr({name}, {payload}, {rest})"
     if kind == "method":
         return f"#classMethod({name}, {payload}, {body}, {rest})"
+    if kind == "methoddefaults":
+        return f"#classMethodDefaults({name}, {payload}, {defaults}, {body}, {rest})"
     if kind == "staticmethod":
         return f"#classStaticMethod({name}, {payload}, {body}, {rest})"
+    if kind == "staticmethoddefaults":
+        return f"#classStaticMethodDefaults({name}, {payload}, {defaults}, {body}, {rest})"
     if kind == "classmethod":
         return f"#classClassMethod({name}, {payload}, {body}, {rest})"
+    if kind == "classmethoddefaults":
+        return f"#classClassMethodDefaults({name}, {payload}, {defaults}, {body}, {rest})"
     if kind == "property":
         return f"#classProperty({name}, {payload}, {body}, {rest})"
     if kind == "propertygetter":

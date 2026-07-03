@@ -2059,22 +2059,27 @@ def emit_simple_class_method(
         args.posonlyargs
         or args.kwonlyargs
         or any(default is not None for default in args.kw_defaults)
-        or args.kwarg is not None
     ):
-        raise unsupported(node, "class methods currently support only ordinary positional parameters, optional suffix defaults, and plain *args")
+        raise unsupported(node, "class methods currently support only ordinary positional parameters, optional suffix defaults, plain *args, and **kwargs")
+    if args.vararg is not None and args.kwarg is not None:
+        raise unsupported(node, "class methods with both *args and **kwargs are not supported yet")
     if args.vararg is not None and args.defaults:
         raise unsupported(node, "class methods with *args and positional defaults are not supported yet")
     names = [arg.arg for arg in args.args]
     if not names and method_kind != "staticmethod":
         raise unsupported(node, "class methods currently require at least an explicit self parameter")
-    if (args.defaults or args.vararg is not None) and method_kind in {"property", "propertygetter", "propertysetter", "propertydeleter"}:
-        raise unsupported(node, "property accessors currently do not support default parameter values or *args")
+    if (args.defaults or args.vararg is not None or args.kwarg is not None) and method_kind in {"property", "propertygetter", "propertysetter", "propertydeleter"}:
+        raise unsupported(node, "property accessors currently do not support default parameter values, *args, or **kwargs")
     if method_kind in {"property", "propertygetter"} and len(names) != 1:
         raise unsupported(node, "properties currently support only a getter with an explicit self parameter")
     if method_kind == "propertysetter" and len(names) != 2:
         raise unsupported(node, "property setters currently support only an explicit self parameter and one value parameter")
     if method_kind == "propertydeleter" and len(names) != 1:
         raise unsupported(node, "property deleters currently support only an explicit self parameter")
+    if args.kwarg is not None:
+        if args.defaults:
+            return (f"{method_kind}kwargsdefaults", emit_id(name), emit_id_items(names), f"{emit_arg_exps(args.defaults)}, {emit_id(args.kwarg.arg)}", emit_block(body))
+        return (f"{method_kind}kwargs", emit_id(name), emit_id_items(names), emit_id(args.kwarg.arg), emit_block(body))
     if args.vararg is not None:
         return (f"{method_kind}varargs", emit_id(name), emit_id_items(names), emit_id(args.vararg.arg), emit_block(body))
     if args.defaults:
@@ -2095,18 +2100,30 @@ def emit_class_attr_exps(members: list[tuple[str, str, str, str, str]]) -> str:
         return f"#classMethodDefaults({name}, {payload}, {defaults}, {body}, {rest})"
     if kind == "methodvarargs":
         return f"#classMethodVarArgs({name}, {payload}, {defaults}, {body}, {rest})"
+    if kind == "methodkwargs":
+        return f"#classMethodKwArgs({name}, {payload}, {defaults}, {body}, {rest})"
+    if kind == "methodkwargsdefaults":
+        return f"#classMethodKwArgsDefaults({name}, {payload}, {defaults}, {body}, {rest})"
     if kind == "staticmethod":
         return f"#classStaticMethod({name}, {payload}, {body}, {rest})"
     if kind == "staticmethoddefaults":
         return f"#classStaticMethodDefaults({name}, {payload}, {defaults}, {body}, {rest})"
     if kind == "staticmethodvarargs":
         return f"#classStaticMethodVarArgs({name}, {payload}, {defaults}, {body}, {rest})"
+    if kind == "staticmethodkwargs":
+        return f"#classStaticMethodKwArgs({name}, {payload}, {defaults}, {body}, {rest})"
+    if kind == "staticmethodkwargsdefaults":
+        return f"#classStaticMethodKwArgsDefaults({name}, {payload}, {defaults}, {body}, {rest})"
     if kind == "classmethod":
         return f"#classClassMethod({name}, {payload}, {body}, {rest})"
     if kind == "classmethoddefaults":
         return f"#classClassMethodDefaults({name}, {payload}, {defaults}, {body}, {rest})"
     if kind == "classmethodvarargs":
         return f"#classClassMethodVarArgs({name}, {payload}, {defaults}, {body}, {rest})"
+    if kind == "classmethodkwargs":
+        return f"#classClassMethodKwArgs({name}, {payload}, {defaults}, {body}, {rest})"
+    if kind == "classmethodkwargsdefaults":
+        return f"#classClassMethodKwArgsDefaults({name}, {payload}, {defaults}, {body}, {rest})"
     if kind == "property":
         return f"#classProperty({name}, {payload}, {body}, {rest})"
     if kind == "propertygetter":

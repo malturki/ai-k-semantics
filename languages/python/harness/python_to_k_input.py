@@ -2014,8 +2014,16 @@ def emit_simple_class_method(
     # Python 3.14 annotations are lazy metadata. The current method values do
     # not expose metadata/introspection, so annotations are erased in this subset.
     _ = returns
+    method_kind = "method"
     if decorators:
-        raise unsupported(node, "method decorators are not supported yet")
+        if len(decorators) != 1 or not isinstance(decorators[0], ast.Name):
+            raise unsupported(node, "only @staticmethod and @classmethod are supported in the current method profile")
+        if decorators[0].id == "staticmethod":
+            method_kind = "staticmethod"
+        elif decorators[0].id == "classmethod":
+            method_kind = "classmethod"
+        else:
+            raise unsupported(node, "only @staticmethod and @classmethod are supported in the current method profile")
     if type_comment is not None:
         raise unsupported(node, "method type comments are not supported yet")
     if getattr(node, "type_params", []):
@@ -2032,7 +2040,7 @@ def emit_simple_class_method(
     names = [arg.arg for arg in args.args]
     if not names:
         raise unsupported(node, "class methods currently require at least an explicit self parameter")
-    return ("method", emit_id(name), emit_id_items(names), emit_block(body))
+    return (method_kind, emit_id(name), emit_id_items(names), emit_block(body))
 
 
 def emit_class_attr_exps(members: list[tuple[str, str, str, str]]) -> str:
@@ -2044,6 +2052,10 @@ def emit_class_attr_exps(members: list[tuple[str, str, str, str]]) -> str:
         return f"#classAttr({name}, {payload}, {rest})"
     if kind == "method":
         return f"#classMethod({name}, {payload}, {body}, {rest})"
+    if kind == "staticmethod":
+        return f"#classStaticMethod({name}, {payload}, {body}, {rest})"
+    if kind == "classmethod":
+        return f"#classClassMethod({name}, {payload}, {body}, {rest})"
     raise AssertionError(f"unknown class member kind: {kind}")
 
 

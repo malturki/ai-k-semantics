@@ -67,6 +67,8 @@ module PYTHON-SYNTAX
   syntax ClassAttrExps ::= "#noClassAttrs" [symbol(noClassAttrExps)]
                          | "#classAttr" "(" Id "," Exp "," ClassAttrExps ")" [symbol(classAttrExpsCons)]
                          | "#classMethod" "(" Id "," IdItems "," Block "," ClassAttrExps ")" [symbol(classMethodExpsCons)]
+                         | "#classStaticMethod" "(" Id "," IdItems "," Block "," ClassAttrExps ")" [symbol(classStaticMethodExpsCons)]
+                         | "#classClassMethod" "(" Id "," IdItems "," Block "," ClassAttrExps ")" [symbol(classClassMethodExpsCons)]
 
   syntax DictExps ::= "#noDictItems" [symbol(noDictExps)]
                     | "#dictItem" "(" Exp "," Exp ")" [symbol(dictExpItem)]
@@ -703,6 +705,8 @@ module PYTHON
                | classVal(Id, Int, ClassAttrs) [symbol(classVal)]
                | userObjectVal(Id, Int, Int, ClassAttrs) [symbol(userObjectVal)]
                | boundMethodVal(Val, Val) [symbol(boundMethodVal)]
+               | staticMethodVal(Val) [symbol(staticMethodVal)]
+               | classMethodVal(Val) [symbol(classMethodVal)]
                | "#exceptionInstance" "(" Id "," ArgVals ")" [symbol(exceptionInstanceVal)]
                | buildFunctionDefault(FunctionDefaultBuilder, ArgVals) [function, symbol(buildFunctionDefault)]
                | buildFunctionTwoDefaults(FunctionTwoDefaultBuilder, ArgVals, ArgVals) [function, symbol(buildFunctionTwoDefaults)]
@@ -1511,6 +1515,7 @@ module PYTHON
                 | isClassVal(Val) [function, symbol(isClassVal)]
                 | isUserObjectVal(Val) [function, symbol(isUserObjectVal)]
                 | isBoundMethodVal(Val) [function, symbol(isBoundMethodVal)]
+                | isStaticOrClassMethodVal(Val) [function, symbol(isStaticOrClassMethodVal)]
                 | isIntLike(Val) [function, symbol(isIntLike)]
                 | isFloatVal(Val) [function, symbol(isFloatVal)]
                 | isFloatLike(Val) [function, symbol(isFloatLike)]
@@ -2556,6 +2561,7 @@ module PYTHON
                | matchClassAttrVal(Val, Id) [function, symbol(matchClassAttrVal)]
                | classAttrGet(ClassAttrs, Id) [function, symbol(classAttrGet)]
                | classAttrStringGet(ClassAttrs, String) [function, symbol(classAttrStringGet)]
+               | classAttrAccess(Val, Val) [function, symbol(classAttrAccess)]
                | matchStarMiddle(Val, MatchPatterns, MatchPatterns) [function, symbol(matchStarMiddle)]
                | matchMappingRestVal(Val, MatchMapPatterns) [function, symbol(matchMappingRestVal)]
   syntax Val ::= listSlice(ValItems, Int, Int) [function, symbol(listSlice)]
@@ -2970,6 +2976,10 @@ module PYTHON
 
   rule isBoundMethodVal(boundMethodVal(_:Val, _:Val)) => true
   rule isBoundMethodVal(_:Val) => false [owise]
+
+  rule isStaticOrClassMethodVal(staticMethodVal(_:Val)) => true
+  rule isStaticOrClassMethodVal(classMethodVal(_:Val)) => true
+  rule isStaticOrClassMethodVal(_:Val) => false [owise]
 
   rule contextManagerSupported(#memoryviewVal(_:Val)) => true
   rule contextManagerSupported(_:Val) => false [owise]
@@ -6254,6 +6264,11 @@ module PYTHON
     requires Id2String(A) =/=String B
   rule classAttrStringGet(classBase(_:Int, Rest:ClassAttrs), B:String) => classAttrStringGet(Rest, B)
 
+  rule classAttrAccess(_Owner:Val, staticMethodVal(F:Val)) => F
+  rule classAttrAccess(Owner:Val, classMethodVal(F:Val)) => boundMethodVal(Owner, F)
+  rule classAttrAccess(_Owner:Val, V:Val) => V
+    requires notBool isStaticOrClassMethodVal(V)
+
   rule classHasMatchAttr(classVal(_:Id, _:Int, Attrs:ClassAttrs), A:Id) => true
     requires classAttrsHas(Attrs, A)
   rule classHasMatchAttr(userObjectVal(_:Id, _:Int, _:Int, Attrs:ClassAttrs), A:Id) => true
@@ -6311,9 +6326,11 @@ module PYTHON
   rule bindableUserMethodVal(functionValArgs(_:IdItems, _:Block)) => true
   rule bindableUserMethodVal(_:Val) => false [owise]
 
-  rule matchClassAttrVal(classVal(_:Id, _:Int, Attrs:ClassAttrs), Attr:Id) => classAttrGet(Attrs, Attr)
+  rule matchClassAttrVal(classVal(C:Id, ClassId:Int, Attrs:ClassAttrs), Attr:Id) =>
+    classAttrAccess(classVal(C, ClassId, Attrs), classAttrGet(Attrs, Attr))
     requires classAttrsHas(Attrs, Attr)
-  rule matchClassAttrVal(userObjectVal(_:Id, _:Int, _:Int, Attrs:ClassAttrs), Attr:Id) => classAttrGet(Attrs, Attr)
+  rule matchClassAttrVal(userObjectVal(C:Id, ClassId:Int, _:Int, Attrs:ClassAttrs), Attr:Id) =>
+    classAttrAccess(classVal(C, ClassId, Attrs), classAttrGet(Attrs, Attr))
     requires classAttrsHas(Attrs, Attr)
   rule matchClassAttrVal(rangeVal(Start:Int, _:Int), Attr:Id) => Start
     requires Id2String(Attr) ==String "start"
@@ -6350,9 +6367,11 @@ module PYTHON
   rule matchClassAttrVal(V:Val, Attr:Id) => 1
     requires isIntLike(V) andBool Id2String(Attr) ==String "denominator"
 
-  rule matchClassAttrStringVal(classVal(_:Id, _:Int, Attrs:ClassAttrs), Attr:String) => classAttrStringGet(Attrs, Attr)
+  rule matchClassAttrStringVal(classVal(C:Id, ClassId:Int, Attrs:ClassAttrs), Attr:String) =>
+    classAttrAccess(classVal(C, ClassId, Attrs), classAttrStringGet(Attrs, Attr))
     requires classAttrsHasString(Attrs, Attr)
-  rule matchClassAttrStringVal(userObjectVal(_:Id, _:Int, _:Int, Attrs:ClassAttrs), Attr:String) => classAttrStringGet(Attrs, Attr)
+  rule matchClassAttrStringVal(userObjectVal(C:Id, ClassId:Int, _:Int, Attrs:ClassAttrs), Attr:String) =>
+    classAttrAccess(classVal(C, ClassId, Attrs), classAttrStringGet(Attrs, Attr))
     requires classAttrsHasString(Attrs, Attr)
   rule matchClassAttrStringVal(rangeVal(Start:Int, _:Int), Attr:String) => Start
     requires Attr ==String "start"
@@ -15871,7 +15890,8 @@ module PYTHON
     rangeSliceStep(Start, Stop, RangeStep, pySliceLowerNeg(Lower, pyRangeLen(Start, Stop, RangeStep)), pySliceUpperNeg(Upper, pyRangeLen(Start, Stop, RangeStep)), intValue(Step))
     requires RangeStep =/=Int 0 andBool isIntLike(Step) andBool intValue(Step) <Int 0
 
-  rule attrExp(classVal(_:Id, _:Int, Attrs:ClassAttrs), Attr:Id) => classAttrGet(Attrs, Attr)
+  rule attrExp(classVal(C:Id, ClassId:Int, Attrs:ClassAttrs), Attr:Id) =>
+    classAttrAccess(classVal(C, ClassId, Attrs), classAttrGet(Attrs, Attr))
     requires classAttrsHas(Attrs, Attr)
   rule <k> attrExp(userObjectVal(_:Id, _:Int, ObjectId:Int, _:ClassAttrs), Attr:Id) => classAttrGet(ObjAttrs, Attr) ... </k>
        <objectAttrs> ... ObjectId |-> ObjAttrs:ClassAttrs ... </objectAttrs>
@@ -15883,7 +15903,9 @@ module PYTHON
     requires notBool classAttrsHas(ObjAttrs, Attr)
       andBool classAttrsHas(Attrs, Attr)
       andBool bindableUserMethodVal(classAttrGet(Attrs, Attr))
-  rule <k> attrExp(userObjectVal(_:Id, _:Int, ObjectId:Int, Attrs:ClassAttrs), Attr:Id) => classAttrGet(Attrs, Attr) ... </k>
+  rule <k> attrExp(userObjectVal(C:Id, ClassId:Int, ObjectId:Int, Attrs:ClassAttrs), Attr:Id) =>
+           classAttrAccess(classVal(C, ClassId, Attrs), classAttrGet(Attrs, Attr))
+       ... </k>
        <objectAttrs> ... ObjectId |-> ObjAttrs:ClassAttrs ... </objectAttrs>
     requires notBool classAttrsHas(ObjAttrs, Attr)
       andBool classAttrsHas(Attrs, Attr)
@@ -15941,7 +15963,9 @@ module PYTHON
     requires notBool classAttrsHas(ObjAttrs, Attr)
       andBool classAttrsHas(Attrs, Attr)
       andBool bindableUserMethodVal(classAttrGet(Attrs, Attr))
-  rule <k> #getattr(userObjectVal(_:Id, _:Int, ObjectId:Int, Attrs:ClassAttrs), Attr:Id) => classAttrGet(Attrs, Attr) ... </k>
+  rule <k> #getattr(userObjectVal(C:Id, ClassId:Int, ObjectId:Int, Attrs:ClassAttrs), Attr:Id) =>
+           classAttrAccess(classVal(C, ClassId, Attrs), classAttrGet(Attrs, Attr))
+       ... </k>
        <objectAttrs> ... ObjectId |-> ObjAttrs:ClassAttrs ... </objectAttrs>
     requires notBool classAttrsHas(ObjAttrs, Attr)
       andBool classAttrsHas(Attrs, Attr)
@@ -15965,8 +15989,8 @@ module PYTHON
     requires notBool classAttrsHas(ObjAttrs, Attr)
       andBool classAttrsHas(Attrs, Attr)
       andBool bindableUserMethodVal(classAttrGet(Attrs, Attr))
-  rule <k> _Default:Val ~> getattrDefaultApply(userObjectVal(_:Id, _:Int, ObjectId:Int, Attrs:ClassAttrs), Attr:Id)
-        => classAttrGet(Attrs, Attr) ... </k>
+  rule <k> _Default:Val ~> getattrDefaultApply(userObjectVal(C:Id, ClassId:Int, ObjectId:Int, Attrs:ClassAttrs), Attr:Id)
+        => classAttrAccess(classVal(C, ClassId, Attrs), classAttrGet(Attrs, Attr)) ... </k>
        <objectAttrs> ... ObjectId |-> ObjAttrs:ClassAttrs ... </objectAttrs>
     requires notBool classAttrsHas(ObjAttrs, Attr)
       andBool classAttrsHas(Attrs, Attr)
@@ -16011,8 +16035,8 @@ module PYTHON
     requires notBool classAttrsHasString(ObjAttrs, Attr)
       andBool classAttrsHasString(Attrs, Attr)
       andBool bindableUserMethodVal(classAttrStringGet(Attrs, Attr))
-  rule <k> Attr:String ~> getattrDynApply(userObjectVal(_:Id, _:Int, ObjectId:Int, Attrs:ClassAttrs))
-        => classAttrStringGet(Attrs, Attr) ... </k>
+  rule <k> Attr:String ~> getattrDynApply(userObjectVal(C:Id, ClassId:Int, ObjectId:Int, Attrs:ClassAttrs))
+        => classAttrAccess(classVal(C, ClassId, Attrs), classAttrStringGet(Attrs, Attr)) ... </k>
        <objectAttrs> ... ObjectId |-> ObjAttrs:ClassAttrs ... </objectAttrs>
     requires notBool classAttrsHasString(ObjAttrs, Attr)
       andBool classAttrsHasString(Attrs, Attr)
@@ -16061,8 +16085,8 @@ module PYTHON
     requires notBool classAttrsHasString(ObjAttrs, Attr)
       andBool classAttrsHasString(Attrs, Attr)
       andBool bindableUserMethodVal(classAttrStringGet(Attrs, Attr))
-  rule <k> _Default:Val ~> getattrDefaultDynApply(userObjectVal(_:Id, _:Int, ObjectId:Int, Attrs:ClassAttrs), Attr:String)
-        => classAttrStringGet(Attrs, Attr) ... </k>
+  rule <k> _Default:Val ~> getattrDefaultDynApply(userObjectVal(C:Id, ClassId:Int, ObjectId:Int, Attrs:ClassAttrs), Attr:String)
+        => classAttrAccess(classVal(C, ClassId, Attrs), classAttrStringGet(Attrs, Attr)) ... </k>
        <objectAttrs> ... ObjectId |-> ObjAttrs:ClassAttrs ... </objectAttrs>
     requires notBool classAttrsHasString(ObjAttrs, Attr)
       andBool classAttrsHasString(Attrs, Attr)
@@ -25218,6 +25242,9 @@ module PYTHON
     requires Id2String(Method) ==String "decode"
       andBool (isBytesVal(B) orBool isBytearrayVal(B))
       andBool notBool bytesDecodeValid(B, "utf-8")
+  rule <k> #methodCall0(X:Id, Method:Id) => #call(#attr(X, Method), #noArgs) ... </k>
+       <env> ... X |-> V:Val ... </env>
+    requires isClassVal(V) orBool isUserObjectVal(V)
   rule <k> #methodCall0(X:Id, _Method:Id) =>
            exceptionSignal(#exception(#token("NameError", "Id")))
        ... </k>
@@ -26811,6 +26838,11 @@ module PYTHON
       andBool (isBytesVal(B) orBool isBytearrayVal(B))
       andBool bytesTranslateTableSupported(Table)
       andBool bytesTranslateTableLengthOk(Table)
+  rule <k> #methodCall(X:Id, Method:Id, Arg:Val) =>
+           #call(#attr(X, Method), #arg(Arg))
+       ... </k>
+       <env> ... X |-> V:Val ... </env>
+    requires isClassVal(V) orBool isUserObjectVal(V)
   rule <k> #methodCall(X:Id, _Method:Id, _Arg:Val) =>
            exceptionSignal(#exception(#token("NameError", "Id")))
        ... </k>
@@ -27588,6 +27620,11 @@ module PYTHON
       andBool bytearraySearchWindowLen(bytesVal(VS), Start, End) >Int 0
       andBool bytesRFind(bytearraySearchNeedleItems(Needle),
         sliceValItems(VS, bytearraySearchStart(bytesVal(VS), Start), bytearraySearchEnd(bytesVal(VS), End)), 0, -1) <Int 0
+  rule <k> #methodCall3(X:Id, Method:Id, Arg1:Val, Arg2:Val, Arg3:Val) =>
+           #call(#attr(X, Method), #args(Arg1, #args(Arg2, #arg(Arg3))))
+       ... </k>
+       <env> ... X |-> V:Val ... </env>
+    requires isClassVal(V) orBool isUserObjectVal(V)
   rule <k> #methodCall3(X:Id, _Method:Id, _Needle:Val, _Start:Val, _End:Val) =>
            exceptionSignal(#exception(#token("NameError", "Id")))
        ... </k>
@@ -28215,6 +28252,11 @@ module PYTHON
       andBool (setMutatingExactlyOneIterable(Method)
         orBool setMutatingElementMethod(Method)
         orBool setMutatingZeroArgMethod(Method))
+  rule <k> #methodCall2(X:Id, Method:Id, Arg1:Val, Arg2:Val) =>
+           #call(#attr(X, Method), #args(Arg1, #arg(Arg2)))
+       ... </k>
+       <env> ... X |-> V:Val ... </env>
+    requires isClassVal(V) orBool isUserObjectVal(V)
   rule <k> #methodCall2(X:Id, _Method:Id, _I:Val, _V:Val) =>
            exceptionSignal(#exception(#token("NameError", "Id")))
        ... </k>
@@ -29208,6 +29250,14 @@ module PYTHON
            collectClassAttrs(C, Rest, classAttrSet(Attrs, M, functionValArgs(IDS, Body)), Rho)
        ... </k>
        <env> ClassRho => ClassRho [ M <- functionValArgs(IDS, Body) ] </env>
+  rule <k> collectClassAttrs(C:Id, #classStaticMethod(M:Id, IDS:IdItems, Body:Block, Rest:ClassAttrExps), Attrs:ClassAttrs, Rho:Map) =>
+           collectClassAttrs(C, Rest, classAttrSet(Attrs, M, staticMethodVal(functionValArgs(IDS, Body))), Rho)
+       ... </k>
+       <env> ClassRho => ClassRho [ M <- staticMethodVal(functionValArgs(IDS, Body)) ] </env>
+  rule <k> collectClassAttrs(C:Id, #classClassMethod(M:Id, IDS:IdItems, Body:Block, Rest:ClassAttrExps), Attrs:ClassAttrs, Rho:Map) =>
+           collectClassAttrs(C, Rest, classAttrSet(Attrs, M, classMethodVal(functionValArgs(IDS, Body))), Rho)
+       ... </k>
+       <env> ClassRho => ClassRho [ M <- classMethodVal(functionValArgs(IDS, Body)) ] </env>
   rule <k> classVal(_Base:Id, BaseId:Int, BaseAttrs:ClassAttrs) ~> classBaseApply(C:Id, Attrs:ClassAttrExps, Rho:Map) =>
            collectClassAttrsBase(C, BaseId, BaseAttrs, Attrs, #noRuntimeClassAttrs, Rho)
        ... </k>
@@ -29228,6 +29278,14 @@ module PYTHON
            collectClassAttrsBase(C, BaseId, BaseAttrs, Rest, classAttrSet(Attrs, M, functionValArgs(IDS, Body)), Rho)
        ... </k>
        <env> ClassRho => ClassRho [ M <- functionValArgs(IDS, Body) ] </env>
+  rule <k> collectClassAttrsBase(C:Id, BaseId:Int, BaseAttrs:ClassAttrs, #classStaticMethod(M:Id, IDS:IdItems, Body:Block, Rest:ClassAttrExps), Attrs:ClassAttrs, Rho:Map) =>
+           collectClassAttrsBase(C, BaseId, BaseAttrs, Rest, classAttrSet(Attrs, M, staticMethodVal(functionValArgs(IDS, Body))), Rho)
+       ... </k>
+       <env> ClassRho => ClassRho [ M <- staticMethodVal(functionValArgs(IDS, Body)) ] </env>
+  rule <k> collectClassAttrsBase(C:Id, BaseId:Int, BaseAttrs:ClassAttrs, #classClassMethod(M:Id, IDS:IdItems, Body:Block, Rest:ClassAttrExps), Attrs:ClassAttrs, Rho:Map) =>
+           collectClassAttrsBase(C, BaseId, BaseAttrs, Rest, classAttrSet(Attrs, M, classMethodVal(functionValArgs(IDS, Body))), Rho)
+       ... </k>
+       <env> ClassRho => ClassRho [ M <- classMethodVal(functionValArgs(IDS, Body)) ] </env>
   rule <k> argsVal(Decorators:ArgVals) ~> bindDecoratedClass(C:Id, Attrs:ClassAttrExps) =>
            collectDecoratedClassAttrs(C, Decorators, Attrs, #noRuntimeClassAttrs, Rho)
        ... </k>
@@ -29248,6 +29306,14 @@ module PYTHON
            collectDecoratedClassAttrs(C, Decorators, Rest, classAttrSet(Attrs, M, functionValArgs(IDS, Body)), Rho)
        ... </k>
        <env> ClassRho => ClassRho [ M <- functionValArgs(IDS, Body) ] </env>
+  rule <k> collectDecoratedClassAttrs(C:Id, Decorators:ArgVals, #classStaticMethod(M:Id, IDS:IdItems, Body:Block, Rest:ClassAttrExps), Attrs:ClassAttrs, Rho:Map) =>
+           collectDecoratedClassAttrs(C, Decorators, Rest, classAttrSet(Attrs, M, staticMethodVal(functionValArgs(IDS, Body))), Rho)
+       ... </k>
+       <env> ClassRho => ClassRho [ M <- staticMethodVal(functionValArgs(IDS, Body)) ] </env>
+  rule <k> collectDecoratedClassAttrs(C:Id, Decorators:ArgVals, #classClassMethod(M:Id, IDS:IdItems, Body:Block, Rest:ClassAttrExps), Attrs:ClassAttrs, Rho:Map) =>
+           collectDecoratedClassAttrs(C, Decorators, Rest, classAttrSet(Attrs, M, classMethodVal(functionValArgs(IDS, Body))), Rho)
+       ... </k>
+       <env> ClassRho => ClassRho [ M <- classMethodVal(functionValArgs(IDS, Body)) ] </env>
   rule <k> argsVal(Decorators:ArgVals) ~> bindDecoratedBaseClass(C:Id, Base:Id, Attrs:ClassAttrExps) =>
            Base ~> classDecoratedBaseApply(C, Decorators, Attrs, Rho)
        ... </k>
@@ -29273,6 +29339,14 @@ module PYTHON
            collectDecoratedClassAttrsBase(C, Decorators, BaseId, BaseAttrs, Rest, classAttrSet(Attrs, M, functionValArgs(IDS, Body)), Rho)
        ... </k>
        <env> ClassRho => ClassRho [ M <- functionValArgs(IDS, Body) ] </env>
+  rule <k> collectDecoratedClassAttrsBase(C:Id, Decorators:ArgVals, BaseId:Int, BaseAttrs:ClassAttrs, #classStaticMethod(M:Id, IDS:IdItems, Body:Block, Rest:ClassAttrExps), Attrs:ClassAttrs, Rho:Map) =>
+           collectDecoratedClassAttrsBase(C, Decorators, BaseId, BaseAttrs, Rest, classAttrSet(Attrs, M, staticMethodVal(functionValArgs(IDS, Body))), Rho)
+       ... </k>
+       <env> ClassRho => ClassRho [ M <- staticMethodVal(functionValArgs(IDS, Body)) ] </env>
+  rule <k> collectDecoratedClassAttrsBase(C:Id, Decorators:ArgVals, BaseId:Int, BaseAttrs:ClassAttrs, #classClassMethod(M:Id, IDS:IdItems, Body:Block, Rest:ClassAttrExps), Attrs:ClassAttrs, Rho:Map) =>
+           collectDecoratedClassAttrsBase(C, Decorators, BaseId, BaseAttrs, Rest, classAttrSet(Attrs, M, classMethodVal(functionValArgs(IDS, Body))), Rho)
+       ... </k>
+       <env> ClassRho => ClassRho [ M <- classMethodVal(functionValArgs(IDS, Body)) ] </env>
   rule <k> functionDefVarArgsStmt(F:Id, IDS:IdItems, Var:Id, Body:Block) => stmtNoResult ... </k>
        <env> Rho => Rho [ F <- functionValVarArgs(IDS, Var, Body) ] </env>
        <result> _ => .K </result>

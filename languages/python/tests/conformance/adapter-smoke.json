@@ -1740,6 +1740,13 @@
       "coverage": ["class-definition", "class-decorator-profile", "decorator-expression-evaluation", "decorator-application-order", "decorator-replacement-result", "single-base-user-class-profile", "ordinary-python-source-adapter"]
     },
     {
+      "id": "adapter-class-method-decorators",
+      "source": "../adapter/adapter-class-method-decorators.py",
+      "reference": "Python 3.14.6 Language Reference 8.8 Class definitions; Python Standard Library Built-in Functions staticmethod, classmethod; Python Data Model descriptor invocation",
+      "expected_result": "True ~> .K",
+      "coverage": ["class-definition", "staticmethod-profile", "classmethod-profile", "method-decorator-profile", "class-attribute-lookup", "instance-class-attribute-fallback", "inherited-methods", "dynamic-isinstance", "getattr-builtin", "callable-builtin", "ordinary-python-source-adapter"]
+    },
+    {
       "id": "adapter-issubclass-builtin",
       "source": "../adapter/adapter-issubclass-builtin.py",
       "reference": "Python Standard Library Built-in Functions issubclass; Python data model standard type hierarchy bool subclass of int",

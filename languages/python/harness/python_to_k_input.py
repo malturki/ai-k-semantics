@@ -1944,8 +1944,6 @@ def emit_simple_class_def(
     body: list[ast.stmt],
     decorators: list[ast.expr],
 ) -> str:
-    if decorators:
-        raise unsupported(node, "class decorators are not supported yet")
     if keywords:
         raise unsupported(node, "class metaclass keywords are not supported yet")
     if len(bases) > 1:
@@ -1992,6 +1990,11 @@ def emit_simple_class_def(
                     stmt,
                     "only pass, simple name assignments, and simple method definitions are supported in the current class body profile",
                 )
+    if decorators:
+        decorator_exps = emit_arg_exps(decorators)
+        if base_name is not None:
+            return f"#classBaseDecorated({emit_id(name)}, {emit_id(base_name)}, {decorator_exps}, {emit_class_attr_exps(members)})"
+        return f"#classDecorated({emit_id(name)}, {decorator_exps}, {emit_class_attr_exps(members)})"
     if base_name is not None:
         return f"#classBase({emit_id(name)}, {emit_id(base_name)}, {emit_class_attr_exps(members)})"
     if not members:

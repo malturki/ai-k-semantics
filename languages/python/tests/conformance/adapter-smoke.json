@@ -1733,6 +1733,13 @@
       "coverage": ["class-definition", "single-base-user-class-profile", "inherited-class-attributes", "inherited-methods", "method-overriding", "inherited-init-profile", "dynamic-isinstance", "dynamic-issubclass", "getattr-builtin", "hasattr-builtin", "ordinary-python-source-adapter"]
     },
     {
+      "id": "adapter-class-decorators",
+      "source": "../adapter/adapter-class-decorators.py",
+      "reference": "Python 3.14.6 Language Reference 8.8 Class definitions; Python 3.14.6 Language Reference 8.9 Function definitions decorator evaluation order",
+      "expected_result": "True ~> .K",
+      "coverage": ["class-definition", "class-decorator-profile", "decorator-expression-evaluation", "decorator-application-order", "decorator-replacement-result", "single-base-user-class-profile", "ordinary-python-source-adapter"]
+    },
+    {
       "id": "adapter-issubclass-builtin",
       "source": "../adapter/adapter-issubclass-builtin.py",
       "reference": "Python Standard Library Built-in Functions issubclass; Python data model standard type hierarchy bool subclass of int",

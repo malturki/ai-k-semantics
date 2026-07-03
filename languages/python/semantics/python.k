@@ -317,6 +317,8 @@ module PYTHON-SYNTAX
                 | "#class" "(" Id ")" [symbol(classDefStmt)]
                 | "#classAttrs" "(" Id "," ClassAttrExps ")" [symbol(classDefAttrsStmt)]
                 | "#classBase" "(" Id "," Id "," ClassAttrExps ")" [symbol(classDefBaseStmt)]
+                | "#classDecorated" "(" Id "," ArgExps "," ClassAttrExps ")" [symbol(classDefDecoratedStmt)]
+                | "#classBaseDecorated" "(" Id "," Id "," ArgExps "," ClassAttrExps ")" [symbol(classDefBaseDecoratedStmt)]
                 | "#if" "(" Exp "," Block "," Block ")" [symbol(ifStmt)]
                 | "#while" "(" Exp "," Block ")" [symbol(whileStmt)]
                 | "#whileElse" "(" Exp "," Block "," Block ")" [symbol(whileElseStmt)]
@@ -769,6 +771,13 @@ module PYTHON
                  | classBaseApply(Id, ClassAttrExps, Map) [symbol(classBaseApply)]
                  | collectClassAttrsBase(Id, Int, ClassAttrs, ClassAttrExps, ClassAttrs, Map) [symbol(collectClassAttrsBase)]
                  | classAttrBaseBind(Id, Int, ClassAttrs, Id, ClassAttrExps, ClassAttrs, Map) [symbol(classAttrBaseBind)]
+                 | bindDecoratedClass(Id, ClassAttrExps) [symbol(bindDecoratedClass)]
+                 | collectDecoratedClassAttrs(Id, ArgVals, ClassAttrExps, ClassAttrs, Map) [symbol(collectDecoratedClassAttrs)]
+                 | decoratedClassAttrBind(Id, ArgVals, Id, ClassAttrExps, ClassAttrs, Map) [symbol(decoratedClassAttrBind)]
+                 | bindDecoratedBaseClass(Id, Id, ClassAttrExps) [symbol(bindDecoratedBaseClass)]
+                 | classDecoratedBaseApply(Id, ArgVals, ClassAttrExps, Map) [symbol(classDecoratedBaseApply)]
+                 | collectDecoratedClassAttrsBase(Id, ArgVals, Int, ClassAttrs, ClassAttrExps, ClassAttrs, Map) [symbol(collectDecoratedClassAttrsBase)]
+                 | decoratedClassAttrBaseBind(Id, ArgVals, Int, ClassAttrs, Id, ClassAttrExps, ClassAttrs, Map) [symbol(decoratedClassAttrBaseBind)]
                  | assignAttrObject(Exp, Id) [symbol(assignAttrObject)]
                  | assignAttrApply(Val, Id) [symbol(assignAttrApply)]
                  | initObjectDone(Val) [symbol(initObjectDone)]
@@ -29178,6 +29187,12 @@ module PYTHON
            Base ~> classBaseApply(C, Attrs, Rho)
        ... </k>
        <env> Rho </env>
+  rule <k> classDefDecoratedStmt(C:Id, Decorators:ArgExps, Attrs:ClassAttrExps) =>
+           evalArgs(Decorators, #noArgVals) ~> bindDecoratedClass(C, Attrs)
+       ... </k>
+  rule <k> classDefBaseDecoratedStmt(C:Id, Base:Id, Decorators:ArgExps, Attrs:ClassAttrExps) =>
+           evalArgs(Decorators, #noArgVals) ~> bindDecoratedBaseClass(C, Base, Attrs)
+       ... </k>
   rule <k> collectClassAttrs(C:Id, #noClassAttrs, Attrs:ClassAttrs, Rho:Map) => stmtNoResult ... </k>
        <env> _ => Rho [ C <- classVal(C, I, Attrs) ] </env>
        <nextObject> I => I +Int 1 </nextObject>
@@ -29211,6 +29226,51 @@ module PYTHON
        <env> ClassRho => ClassRho [ A <- V ] </env>
   rule <k> collectClassAttrsBase(C:Id, BaseId:Int, BaseAttrs:ClassAttrs, #classMethod(M:Id, IDS:IdItems, Body:Block, Rest:ClassAttrExps), Attrs:ClassAttrs, Rho:Map) =>
            collectClassAttrsBase(C, BaseId, BaseAttrs, Rest, classAttrSet(Attrs, M, functionValArgs(IDS, Body)), Rho)
+       ... </k>
+       <env> ClassRho => ClassRho [ M <- functionValArgs(IDS, Body) ] </env>
+  rule <k> argsVal(Decorators:ArgVals) ~> bindDecoratedClass(C:Id, Attrs:ClassAttrExps) =>
+           collectDecoratedClassAttrs(C, Decorators, Attrs, #noRuntimeClassAttrs, Rho)
+       ... </k>
+       <env> Rho </env>
+  rule <k> collectDecoratedClassAttrs(C:Id, Decorators:ArgVals, #noClassAttrs, Attrs:ClassAttrs, Rho:Map) =>
+           classVal(C, I, Attrs) ~> applyDecorators(C, reverseArgVals(Decorators))
+       ... </k>
+       <env> _ => Rho </env>
+       <nextObject> I => I +Int 1 </nextObject>
+  rule <k> collectDecoratedClassAttrs(C:Id, Decorators:ArgVals, #classAttr(A:Id, E:Exp, Rest:ClassAttrExps), Attrs:ClassAttrs, Rho:Map) =>
+           E ~> decoratedClassAttrBind(C, Decorators, A, Rest, Attrs, Rho)
+       ... </k>
+  rule <k> V:Val ~> decoratedClassAttrBind(C:Id, Decorators:ArgVals, A:Id, Rest:ClassAttrExps, Attrs:ClassAttrs, Rho:Map) =>
+           collectDecoratedClassAttrs(C, Decorators, Rest, classAttrSet(Attrs, A, V), Rho)
+       ... </k>
+       <env> ClassRho => ClassRho [ A <- V ] </env>
+  rule <k> collectDecoratedClassAttrs(C:Id, Decorators:ArgVals, #classMethod(M:Id, IDS:IdItems, Body:Block, Rest:ClassAttrExps), Attrs:ClassAttrs, Rho:Map) =>
+           collectDecoratedClassAttrs(C, Decorators, Rest, classAttrSet(Attrs, M, functionValArgs(IDS, Body)), Rho)
+       ... </k>
+       <env> ClassRho => ClassRho [ M <- functionValArgs(IDS, Body) ] </env>
+  rule <k> argsVal(Decorators:ArgVals) ~> bindDecoratedBaseClass(C:Id, Base:Id, Attrs:ClassAttrExps) =>
+           Base ~> classDecoratedBaseApply(C, Decorators, Attrs, Rho)
+       ... </k>
+       <env> Rho </env>
+  rule <k> classVal(_Base:Id, BaseId:Int, BaseAttrs:ClassAttrs) ~> classDecoratedBaseApply(C:Id, Decorators:ArgVals, Attrs:ClassAttrExps, Rho:Map) =>
+           collectDecoratedClassAttrsBase(C, Decorators, BaseId, BaseAttrs, Attrs, #noRuntimeClassAttrs, Rho)
+       ... </k>
+  rule <k> V:Val ~> classDecoratedBaseApply(_:Id, _:ArgVals, _:ClassAttrExps, _:Map) => exceptionSignal(#exception(#token("TypeError", "Id"))) ... </k>
+    requires notBool isClassVal(V)
+  rule <k> collectDecoratedClassAttrsBase(C:Id, Decorators:ArgVals, BaseId:Int, BaseAttrs:ClassAttrs, #noClassAttrs, Attrs:ClassAttrs, Rho:Map) =>
+           classVal(C, I, classAttrsInherit(Attrs, BaseId, BaseAttrs)) ~> applyDecorators(C, reverseArgVals(Decorators))
+       ... </k>
+       <env> _ => Rho </env>
+       <nextObject> I => I +Int 1 </nextObject>
+  rule <k> collectDecoratedClassAttrsBase(C:Id, Decorators:ArgVals, BaseId:Int, BaseAttrs:ClassAttrs, #classAttr(A:Id, E:Exp, Rest:ClassAttrExps), Attrs:ClassAttrs, Rho:Map) =>
+           E ~> decoratedClassAttrBaseBind(C, Decorators, BaseId, BaseAttrs, A, Rest, Attrs, Rho)
+       ... </k>
+  rule <k> V:Val ~> decoratedClassAttrBaseBind(C:Id, Decorators:ArgVals, BaseId:Int, BaseAttrs:ClassAttrs, A:Id, Rest:ClassAttrExps, Attrs:ClassAttrs, Rho:Map) =>
+           collectDecoratedClassAttrsBase(C, Decorators, BaseId, BaseAttrs, Rest, classAttrSet(Attrs, A, V), Rho)
+       ... </k>
+       <env> ClassRho => ClassRho [ A <- V ] </env>
+  rule <k> collectDecoratedClassAttrsBase(C:Id, Decorators:ArgVals, BaseId:Int, BaseAttrs:ClassAttrs, #classMethod(M:Id, IDS:IdItems, Body:Block, Rest:ClassAttrExps), Attrs:ClassAttrs, Rho:Map) =>
+           collectDecoratedClassAttrsBase(C, Decorators, BaseId, BaseAttrs, Rest, classAttrSet(Attrs, M, functionValArgs(IDS, Body)), Rho)
        ... </k>
        <env> ClassRho => ClassRho [ M <- functionValArgs(IDS, Body) ] </env>
   rule <k> functionDefVarArgsStmt(F:Id, IDS:IdItems, Var:Id, Body:Block) => stmtNoResult ... </k>
@@ -32710,6 +32770,18 @@ module PYTHON
   rule <k> exceptionSignal(V:Val) ~> collectClassAttrsBase(_:Id, _:Int, _:ClassAttrs, _:ClassAttrExps, _:ClassAttrs, Rho:Map) => exceptionSignal(V) ... </k>
        <env> _ => Rho </env>
   rule <k> exceptionSignal(V:Val) ~> classAttrBaseBind(_:Id, _:Int, _:ClassAttrs, _:Id, _:ClassAttrExps, _:ClassAttrs, Rho:Map) => exceptionSignal(V) ... </k>
+       <env> _ => Rho </env>
+  rule <k> exceptionSignal(V:Val) ~> bindDecoratedClass(_:Id, _:ClassAttrExps) => exceptionSignal(V) ... </k>
+  rule <k> exceptionSignal(V:Val) ~> collectDecoratedClassAttrs(_:Id, _:ArgVals, _:ClassAttrExps, _:ClassAttrs, Rho:Map) => exceptionSignal(V) ... </k>
+       <env> _ => Rho </env>
+  rule <k> exceptionSignal(V:Val) ~> decoratedClassAttrBind(_:Id, _:ArgVals, _:Id, _:ClassAttrExps, _:ClassAttrs, Rho:Map) => exceptionSignal(V) ... </k>
+       <env> _ => Rho </env>
+  rule <k> exceptionSignal(V:Val) ~> bindDecoratedBaseClass(_:Id, _:Id, _:ClassAttrExps) => exceptionSignal(V) ... </k>
+  rule <k> exceptionSignal(V:Val) ~> classDecoratedBaseApply(_:Id, _:ArgVals, _:ClassAttrExps, Rho:Map) => exceptionSignal(V) ... </k>
+       <env> _ => Rho </env>
+  rule <k> exceptionSignal(V:Val) ~> collectDecoratedClassAttrsBase(_:Id, _:ArgVals, _:Int, _:ClassAttrs, _:ClassAttrExps, _:ClassAttrs, Rho:Map) => exceptionSignal(V) ... </k>
+       <env> _ => Rho </env>
+  rule <k> exceptionSignal(V:Val) ~> decoratedClassAttrBaseBind(_:Id, _:ArgVals, _:Int, _:ClassAttrs, _:Id, _:ClassAttrExps, _:ClassAttrs, Rho:Map) => exceptionSignal(V) ... </k>
        <env> _ => Rho </env>
   rule <k> exceptionSignal(V:Val) ~> assignAttrObject(_:Exp, _:Id) => exceptionSignal(V) ... </k>
   rule <k> exceptionSignal(V:Val) ~> assignAttrApply(_:Val, _:Id) => exceptionSignal(V) ... </k>

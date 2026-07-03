@@ -66,6 +66,7 @@ module PYTHON-SYNTAX
 
   syntax ClassAttrExps ::= "#noClassAttrs" [symbol(noClassAttrExps)]
                          | "#classAttr" "(" Id "," Exp "," ClassAttrExps ")" [symbol(classAttrExpsCons)]
+                         | "#classMethod" "(" Id "," IdItems "," Block "," ClassAttrExps ")" [symbol(classMethodExpsCons)]
 
   syntax DictExps ::= "#noDictItems" [symbol(noDictExps)]
                     | "#dictItem" "(" Exp "," Exp ")" [symbol(dictExpItem)]
@@ -246,6 +247,7 @@ module PYTHON-SYNTAX
                 | "#delSliceStep" "(" Id "," Exp "," Exp "," Exp ")" [symbol(delSliceStepStmt)]
                 | Id "=" Exp [symbol(assignStmt), strict(2)]
                 | "#assignName" "(" Id "," Exp ")" [symbol(assignNameStmt), strict(2)]
+                | "#assignAttr" "(" Exp "," Id "," Exp ")" [symbol(assignAttrStmt)]
                 | Id "+=" Exp [symbol(augAddStmt)]
                 | Id "-=" Exp [symbol(augSubStmt)]
                 | Id "*=" Exp [symbol(augMulStmt)]
@@ -693,6 +695,7 @@ module PYTHON
                | generatorFunctionVal(IdItems, YieldExps) [symbol(generatorFunctionVal)]
                | classVal(Id, Int, ClassAttrs) [symbol(classVal)]
                | userObjectVal(Id, Int, Int, ClassAttrs) [symbol(userObjectVal)]
+               | boundMethodVal(Val, Val) [symbol(boundMethodVal)]
                | "#exceptionInstance" "(" Id "," ArgVals ")" [symbol(exceptionInstanceVal)]
                | buildFunctionDefault(FunctionDefaultBuilder, ArgVals) [function, symbol(buildFunctionDefault)]
                | buildFunctionTwoDefaults(FunctionTwoDefaultBuilder, ArgVals, ArgVals) [function, symbol(buildFunctionTwoDefaults)]
@@ -758,6 +761,9 @@ module PYTHON
                  | hasattrDynApply(Val) [symbol(hasattrDynApply)]
                  | collectClassAttrs(Id, ClassAttrExps, ClassAttrs, Map) [symbol(collectClassAttrs)]
                  | classAttrBind(Id, Id, ClassAttrExps, ClassAttrs, Map) [symbol(classAttrBind)]
+                 | assignAttrObject(Exp, Id) [symbol(assignAttrObject)]
+                 | assignAttrApply(Val, Id) [symbol(assignAttrApply)]
+                 | initObjectDone(Val) [symbol(initObjectDone)]
                  | formatDefault() [symbol(formatDefault)]
                  | formatSpec(Exp) [symbol(formatSpec)]
                  | formatApply(Val) [symbol(formatApply)]
@@ -1487,6 +1493,7 @@ module PYTHON
                 | callableVal(Val) [function, symbol(callableVal)]
                 | isClassVal(Val) [function, symbol(isClassVal)]
                 | isUserObjectVal(Val) [function, symbol(isUserObjectVal)]
+                | isBoundMethodVal(Val) [function, symbol(isBoundMethodVal)]
                 | isIntLike(Val) [function, symbol(isIntLike)]
                 | isFloatVal(Val) [function, symbol(isFloatVal)]
                 | isFloatLike(Val) [function, symbol(isFloatLike)]
@@ -1512,6 +1519,7 @@ module PYTHON
                 | getattrStringSupported(String) [function, symbol(getattrStringSupported)]
                 | classHasAttrString(Val, String) [function, symbol(classHasAttrString)]
                 | classAttrsHasString(ClassAttrs, String) [function, symbol(classAttrsHasString)]
+                | bindableUserMethodVal(Val) [function, symbol(bindableUserMethodVal)]
                 | contextManagerSupported(Val) [function, symbol(contextManagerSupported)]
                 | contextManagerSuppressesException(Val, Val) [function, symbol(contextManagerSuppressesException)]
                 | matchSimplePattern(Val, MatchPattern) [function, symbol(matchSimplePattern)]
@@ -2800,6 +2808,7 @@ module PYTHON
   rule truthy(generatorFunctionVal(_:IdItems, _:YieldExps)) => true
   rule truthy(classVal(_:Id, _:Int, _:ClassAttrs)) => true
   rule truthy(userObjectVal(_:Id, _:Int, _:Int, _:ClassAttrs)) => true
+  rule truthy(boundMethodVal(_:Val, _:Val)) => true
   rule truthy(rangeVal(Start:Int, Stop:Int)) => Start <Int Stop
   rule truthy(rangeVal(Start:Int, Stop:Int, Step:Int)) => pyRangeLen(Start, Stop, Step) >Int 0
     requires Step =/=Int 0
@@ -2931,6 +2940,7 @@ module PYTHON
   rule callableVal(functionValPosKwDefaultsKwArgs(_:IdItems, _:ArgVals, _:IdItems, _:ArgVals, _:Id, _:Block)) => true
   rule callableVal(generatorFunctionVal(_:IdItems, _:YieldExps)) => true
   rule callableVal(classVal(_:Id, _:Int, _:ClassAttrs)) => true
+  rule callableVal(boundMethodVal(_:Val, _:Val)) => true
   rule callableVal(_:Val) => false [owise]
 
   rule isClassVal(classVal(_:Id, _:Int, _:ClassAttrs)) => true
@@ -2938,6 +2948,9 @@ module PYTHON
 
   rule isUserObjectVal(userObjectVal(_:Id, _:Int, _:Int, _:ClassAttrs)) => true
   rule isUserObjectVal(_:Val) => false [owise]
+
+  rule isBoundMethodVal(boundMethodVal(_:Val, _:Val)) => true
+  rule isBoundMethodVal(_:Val) => false [owise]
 
   rule contextManagerSupported(#memoryviewVal(_:Val)) => true
   rule contextManagerSupported(_:Val) => false [owise]
@@ -4621,6 +4634,7 @@ module PYTHON
   rule isIntLike(generatorFunctionVal(_:IdItems, _:YieldExps)) => false
   rule isIntLike(classVal(_:Id, _:Int, _:ClassAttrs)) => false
   rule isIntLike(userObjectVal(_:Id, _:Int, _:Int, _:ClassAttrs)) => false
+  rule isIntLike(boundMethodVal(_:Val, _:Val)) => false
   rule isIntLike(iteratorRef(_:Int)) => false
   rule isIntLike(rangeVal(_:Int, _:Int)) => false
   rule isIntLike(rangeVal(_:Int, _:Int, _:Int)) => false
@@ -5646,6 +5660,7 @@ module PYTHON
   rule singletonIdentity(generatorFunctionVal(_:IdItems, _:YieldExps)) => false
   rule singletonIdentity(classVal(_:Id, _:Int, _:ClassAttrs)) => false
   rule singletonIdentity(userObjectVal(_:Id, _:Int, _:Int, _:ClassAttrs)) => false
+  rule singletonIdentity(boundMethodVal(_:Val, _:Val)) => false
   rule singletonIdentity(rangeVal(_:Int, _:Int)) => false
   rule singletonIdentity(rangeVal(_:Int, _:Int, _:Int)) => false
   rule singletonIdentity(sliceVal(_:Val, _:Val, _:Val)) => false
@@ -6246,6 +6261,9 @@ module PYTHON
         orBool A ==String "denominator")
   rule classHasAttrString(_:Val, _:String) => false [owise]
 
+  rule bindableUserMethodVal(functionValArgs(_:IdItems, _:Block)) => true
+  rule bindableUserMethodVal(_:Val) => false [owise]
+
   rule matchClassAttrVal(classVal(_:Id, _:Int, Attrs:ClassAttrs), Attr:Id) => classAttrGet(Attrs, Attr)
     requires classAttrsHas(Attrs, Attr)
   rule matchClassAttrVal(userObjectVal(_:Id, _:Int, _:Int, Attrs:ClassAttrs), Attr:Id) => classAttrGet(Attrs, Attr)
@@ -6719,6 +6737,11 @@ module PYTHON
     requires notBool isUserObjectVal(V)
   rule valEq(V:Val, userObjectVal(_:Id, _:Int, _:Int, _:ClassAttrs)) => false
     requires notBool isUserObjectVal(V)
+  rule valEq(boundMethodVal(Self1:Val, F:Val), boundMethodVal(Self2:Val, F:Val)) => valIs(Self1, Self2)
+  rule valEq(boundMethodVal(_:Val, _:Val), V:Val) => false
+    requires notBool isBoundMethodVal(V)
+  rule valEq(V:Val, boundMethodVal(_:Val, _:Val)) => false
+    requires notBool isBoundMethodVal(V)
 
   rule exceptionMatches(#exception(E:Id), F:Id) => exceptionTypeMatchesString(Id2String(E), Id2String(F))
   rule exceptionMatches(#exceptionInstance(E:Id, _Args:ArgVals), F:Id) => exceptionTypeMatchesString(Id2String(E), Id2String(F))
@@ -14884,6 +14907,7 @@ module PYTHON
       <k> $PGM:Stmts </k>
       <env> .Map </env>
       <iterators> .Map </iterators>
+      <objectAttrs> .Map </objectAttrs>
       <nextIterator> 0 </nextIterator>
       <nextObject> 0 </nextObject>
       <activeException> noException </activeException>
@@ -15802,10 +15826,29 @@ module PYTHON
 
   rule attrExp(classVal(_:Id, _:Int, Attrs:ClassAttrs), Attr:Id) => classAttrGet(Attrs, Attr)
     requires classAttrsHas(Attrs, Attr)
-  rule attrExp(userObjectVal(_:Id, _:Int, _:Int, Attrs:ClassAttrs), Attr:Id) => classAttrGet(Attrs, Attr)
-    requires classAttrsHas(Attrs, Attr)
+  rule <k> attrExp(userObjectVal(_:Id, _:Int, ObjectId:Int, _:ClassAttrs), Attr:Id) => classAttrGet(ObjAttrs, Attr) ... </k>
+       <objectAttrs> ... ObjectId |-> ObjAttrs:ClassAttrs ... </objectAttrs>
+    requires classAttrsHas(ObjAttrs, Attr)
+  rule <k> attrExp(userObjectVal(C:Id, ClassId:Int, ObjectId:Int, Attrs:ClassAttrs), Attr:Id) =>
+           boundMethodVal(userObjectVal(C, ClassId, ObjectId, Attrs), classAttrGet(Attrs, Attr))
+       ... </k>
+       <objectAttrs> ... ObjectId |-> ObjAttrs:ClassAttrs ... </objectAttrs>
+    requires notBool classAttrsHas(ObjAttrs, Attr)
+      andBool classAttrsHas(Attrs, Attr)
+      andBool bindableUserMethodVal(classAttrGet(Attrs, Attr))
+  rule <k> attrExp(userObjectVal(_:Id, _:Int, ObjectId:Int, Attrs:ClassAttrs), Attr:Id) => classAttrGet(Attrs, Attr) ... </k>
+       <objectAttrs> ... ObjectId |-> ObjAttrs:ClassAttrs ... </objectAttrs>
+    requires notBool classAttrsHas(ObjAttrs, Attr)
+      andBool classAttrsHas(Attrs, Attr)
+      andBool notBool bindableUserMethodVal(classAttrGet(Attrs, Attr))
+  rule <k> attrExp(userObjectVal(_:Id, _:Int, ObjectId:Int, Attrs:ClassAttrs), Attr:Id) =>
+           exceptionSignal(#exception(#token("AttributeError", "Id")))
+       ... </k>
+       <objectAttrs> ... ObjectId |-> ObjAttrs:ClassAttrs ... </objectAttrs>
+    requires notBool classAttrsHas(ObjAttrs, Attr)
+      andBool notBool classAttrsHas(Attrs, Attr)
   rule <k> attrExp(V:Val, Attr:Id) => exceptionSignal(#exception(#token("AttributeError", "Id"))) ... </k>
-    requires (isClassVal(V) orBool isUserObjectVal(V)) andBool notBool classHasMatchAttr(V, Attr)
+    requires isClassVal(V) andBool notBool classHasMatchAttr(V, Attr)
   rule attrExp(rangeVal(Start:Int, _:Int), Attr:Id) => Start
     requires Id2String(Attr) ==String "start"
   rule attrExp(rangeVal(_:Int, Stop:Int), Attr:Id) => Stop
@@ -15841,41 +15884,111 @@ module PYTHON
   rule attrExp(V:Val, Attr:Id) => 1
     requires isIntLike(V) andBool Id2String(Attr) ==String "denominator"
 
+  rule <k> #getattr(userObjectVal(_:Id, _:Int, ObjectId:Int, _:ClassAttrs), Attr:Id) => classAttrGet(ObjAttrs, Attr) ... </k>
+       <objectAttrs> ... ObjectId |-> ObjAttrs:ClassAttrs ... </objectAttrs>
+    requires classAttrsHas(ObjAttrs, Attr)
+  rule <k> #getattr(userObjectVal(C:Id, ClassId:Int, ObjectId:Int, Attrs:ClassAttrs), Attr:Id) =>
+           boundMethodVal(userObjectVal(C, ClassId, ObjectId, Attrs), classAttrGet(Attrs, Attr))
+       ... </k>
+       <objectAttrs> ... ObjectId |-> ObjAttrs:ClassAttrs ... </objectAttrs>
+    requires notBool classAttrsHas(ObjAttrs, Attr)
+      andBool classAttrsHas(Attrs, Attr)
+      andBool bindableUserMethodVal(classAttrGet(Attrs, Attr))
+  rule <k> #getattr(userObjectVal(_:Id, _:Int, ObjectId:Int, Attrs:ClassAttrs), Attr:Id) => classAttrGet(Attrs, Attr) ... </k>
+       <objectAttrs> ... ObjectId |-> ObjAttrs:ClassAttrs ... </objectAttrs>
+    requires notBool classAttrsHas(ObjAttrs, Attr)
+      andBool classAttrsHas(Attrs, Attr)
+      andBool notBool bindableUserMethodVal(classAttrGet(Attrs, Attr))
   rule #getattr(V:Val, Attr:Id) => matchClassAttrVal(V, Attr)
-    requires classHasMatchAttr(V, Attr)
+    requires classHasMatchAttr(V, Attr) andBool notBool isUserObjectVal(V)
   rule <k> #getattrDefault(Obj:Exp, Attr:Id, Default:Exp)
         => Obj ~> getattrDefaultObject(Attr, Default) ... </k>
   rule <k> V:Val ~> getattrDefaultObject(Attr:Id, Default:Exp)
         => Default ~> getattrDefaultApply(V, Attr) ... </k>
   rule <k> _Default:Val ~> getattrDefaultApply(V:Val, Attr:Id)
         => matchClassAttrVal(V, Attr) ... </k>
-    requires classHasMatchAttr(V, Attr)
+    requires classHasMatchAttr(V, Attr) andBool notBool isUserObjectVal(V)
+  rule <k> _Default:Val ~> getattrDefaultApply(userObjectVal(_:Id, _:Int, ObjectId:Int, _:ClassAttrs), Attr:Id)
+        => classAttrGet(ObjAttrs, Attr) ... </k>
+       <objectAttrs> ... ObjectId |-> ObjAttrs:ClassAttrs ... </objectAttrs>
+    requires classAttrsHas(ObjAttrs, Attr)
+  rule <k> _Default:Val ~> getattrDefaultApply(userObjectVal(C:Id, ClassId:Int, ObjectId:Int, Attrs:ClassAttrs), Attr:Id)
+        => boundMethodVal(userObjectVal(C, ClassId, ObjectId, Attrs), classAttrGet(Attrs, Attr)) ... </k>
+       <objectAttrs> ... ObjectId |-> ObjAttrs:ClassAttrs ... </objectAttrs>
+    requires notBool classAttrsHas(ObjAttrs, Attr)
+      andBool classAttrsHas(Attrs, Attr)
+      andBool bindableUserMethodVal(classAttrGet(Attrs, Attr))
+  rule <k> _Default:Val ~> getattrDefaultApply(userObjectVal(_:Id, _:Int, ObjectId:Int, Attrs:ClassAttrs), Attr:Id)
+        => classAttrGet(Attrs, Attr) ... </k>
+       <objectAttrs> ... ObjectId |-> ObjAttrs:ClassAttrs ... </objectAttrs>
+    requires notBool classAttrsHas(ObjAttrs, Attr)
+      andBool classAttrsHas(Attrs, Attr)
+      andBool notBool bindableUserMethodVal(classAttrGet(Attrs, Attr))
+  rule <k> Default:Val ~> getattrDefaultApply(userObjectVal(_:Id, _:Int, ObjectId:Int, Attrs:ClassAttrs), Attr:Id)
+        => Default ... </k>
+       <objectAttrs> ... ObjectId |-> ObjAttrs:ClassAttrs ... </objectAttrs>
+    requires notBool classAttrsHas(ObjAttrs, Attr)
+      andBool notBool classAttrsHas(Attrs, Attr)
   rule <k> Default:Val ~> getattrDefaultApply(V:Val, Attr:Id)
         => Default ... </k>
-    requires notBool classHasMatchAttr(V, Attr)
+    requires notBool classHasMatchAttr(V, Attr) andBool notBool isUserObjectVal(V)
   rule <k> #getattr(V:Val, Attr:Id) => exceptionSignal(#exception(#token("AttributeError", "Id"))) ... </k>
-    requires notBool classHasMatchAttr(V, Attr)
+    requires notBool classHasMatchAttr(V, Attr) andBool notBool isUserObjectVal(V)
+  rule <k> #getattr(userObjectVal(_:Id, _:Int, ObjectId:Int, Attrs:ClassAttrs), Attr:Id) =>
+           exceptionSignal(#exception(#token("AttributeError", "Id")))
+       ... </k>
+       <objectAttrs> ... ObjectId |-> ObjAttrs:ClassAttrs ... </objectAttrs>
+    requires notBool classAttrsHas(ObjAttrs, Attr)
+      andBool notBool classAttrsHas(Attrs, Attr)
   rule <k> #hasattr(Obj:Exp, Attr:Id) => Obj ~> hasattrObject(Attr) ... </k>
+  rule <k> userObjectVal(_:Id, _:Int, ObjectId:Int, Attrs:ClassAttrs) ~> hasattrObject(Attr:Id)
+        => boolValue(classAttrsHas(ObjAttrs, Attr) orBool classAttrsHas(Attrs, Attr)) ... </k>
+       <objectAttrs> ... ObjectId |-> ObjAttrs:ClassAttrs ... </objectAttrs>
   rule <k> V:Val ~> hasattrObject(Attr:Id)
         => boolValue(classHasMatchAttr(V, Attr)) ... </k>
+    requires notBool isUserObjectVal(V)
   rule <k> #getattrDyn(Obj:Exp, Attr:Exp)
         => Obj ~> getattrDynName(Attr) ... </k>
   rule <k> V:Val ~> getattrDynName(Attr:Exp)
         => Attr ~> getattrDynApply(V) ... </k>
   rule <k> Attr:String ~> getattrDynApply(V:Val)
         => matchClassAttrStringVal(V, Attr) ... </k>
-    requires classHasAttrString(V, Attr)
+    requires classHasAttrString(V, Attr) andBool notBool isUserObjectVal(V)
+  rule <k> Attr:String ~> getattrDynApply(userObjectVal(_:Id, _:Int, ObjectId:Int, _:ClassAttrs))
+        => classAttrStringGet(ObjAttrs, Attr) ... </k>
+       <objectAttrs> ... ObjectId |-> ObjAttrs:ClassAttrs ... </objectAttrs>
+    requires classAttrsHasString(ObjAttrs, Attr)
+  rule <k> Attr:String ~> getattrDynApply(userObjectVal(C:Id, ClassId:Int, ObjectId:Int, Attrs:ClassAttrs))
+        => boundMethodVal(userObjectVal(C, ClassId, ObjectId, Attrs), classAttrStringGet(Attrs, Attr)) ... </k>
+       <objectAttrs> ... ObjectId |-> ObjAttrs:ClassAttrs ... </objectAttrs>
+    requires notBool classAttrsHasString(ObjAttrs, Attr)
+      andBool classAttrsHasString(Attrs, Attr)
+      andBool bindableUserMethodVal(classAttrStringGet(Attrs, Attr))
+  rule <k> Attr:String ~> getattrDynApply(userObjectVal(_:Id, _:Int, ObjectId:Int, Attrs:ClassAttrs))
+        => classAttrStringGet(Attrs, Attr) ... </k>
+       <objectAttrs> ... ObjectId |-> ObjAttrs:ClassAttrs ... </objectAttrs>
+    requires notBool classAttrsHasString(ObjAttrs, Attr)
+      andBool classAttrsHasString(Attrs, Attr)
+      andBool notBool bindableUserMethodVal(classAttrStringGet(Attrs, Attr))
   rule <k> Attr:String ~> getattrDynApply(V:Val)
         => exceptionSignal(#exception(#token("AttributeError", "Id"))) ... </k>
-    requires (isClassVal(V) orBool isUserObjectVal(V))
+    requires isClassVal(V)
       andBool notBool classHasAttrString(V, Attr)
       andBool notBool getattrStringSupported(Attr)
+  rule <k> Attr:String ~> getattrDynApply(userObjectVal(_:Id, _:Int, ObjectId:Int, Attrs:ClassAttrs))
+        => exceptionSignal(#exception(#token("AttributeError", "Id"))) ... </k>
+       <objectAttrs> ... ObjectId |-> ObjAttrs:ClassAttrs ... </objectAttrs>
+    requires notBool classAttrsHasString(ObjAttrs, Attr)
+      andBool notBool classAttrsHasString(Attrs, Attr)
   rule <k> Attr:String ~> getattrDynApply(V:Val)
         => exceptionSignal(#exception(#token("AttributeError", "Id"))) ... </k>
-    requires getattrStringSupported(Attr) andBool notBool classHasAttrString(V, Attr)
-  rule <k> Attr:String ~> getattrDynApply(_V:Val)
+    requires getattrStringSupported(Attr)
+      andBool notBool classHasAttrString(V, Attr)
+      andBool notBool isUserObjectVal(V)
+  rule <k> Attr:String ~> getattrDynApply(V:Val)
         => exceptionSignal(#exception(#token("NotImplementedError", "Id"))) ... </k>
     requires notBool getattrStringSupported(Attr)
+      andBool notBool (isClassVal(V) orBool isUserObjectVal(V))
   rule <k> Attr:Val ~> getattrDynApply(_V:Val)
         => exceptionSignal(#exception(#token("TypeError", "Id"))) ... </k>
     requires notBool isStringVal(Attr)
@@ -15890,32 +16003,66 @@ module PYTHON
     requires notBool isStringVal(Attr)
   rule <k> _Default:Val ~> getattrDefaultDynApply(V:Val, Attr:String)
         => matchClassAttrStringVal(V, Attr) ... </k>
-    requires classHasAttrString(V, Attr)
+    requires classHasAttrString(V, Attr) andBool notBool isUserObjectVal(V)
+  rule <k> _Default:Val ~> getattrDefaultDynApply(userObjectVal(_:Id, _:Int, ObjectId:Int, _:ClassAttrs), Attr:String)
+        => classAttrStringGet(ObjAttrs, Attr) ... </k>
+       <objectAttrs> ... ObjectId |-> ObjAttrs:ClassAttrs ... </objectAttrs>
+    requires classAttrsHasString(ObjAttrs, Attr)
+  rule <k> _Default:Val ~> getattrDefaultDynApply(userObjectVal(C:Id, ClassId:Int, ObjectId:Int, Attrs:ClassAttrs), Attr:String)
+        => boundMethodVal(userObjectVal(C, ClassId, ObjectId, Attrs), classAttrStringGet(Attrs, Attr)) ... </k>
+       <objectAttrs> ... ObjectId |-> ObjAttrs:ClassAttrs ... </objectAttrs>
+    requires notBool classAttrsHasString(ObjAttrs, Attr)
+      andBool classAttrsHasString(Attrs, Attr)
+      andBool bindableUserMethodVal(classAttrStringGet(Attrs, Attr))
+  rule <k> _Default:Val ~> getattrDefaultDynApply(userObjectVal(_:Id, _:Int, ObjectId:Int, Attrs:ClassAttrs), Attr:String)
+        => classAttrStringGet(Attrs, Attr) ... </k>
+       <objectAttrs> ... ObjectId |-> ObjAttrs:ClassAttrs ... </objectAttrs>
+    requires notBool classAttrsHasString(ObjAttrs, Attr)
+      andBool classAttrsHasString(Attrs, Attr)
+      andBool notBool bindableUserMethodVal(classAttrStringGet(Attrs, Attr))
+  rule <k> Default:Val ~> getattrDefaultDynApply(userObjectVal(_:Id, _:Int, ObjectId:Int, Attrs:ClassAttrs), Attr:String)
+        => Default ... </k>
+       <objectAttrs> ... ObjectId |-> ObjAttrs:ClassAttrs ... </objectAttrs>
+    requires notBool classAttrsHasString(ObjAttrs, Attr)
+      andBool notBool classAttrsHasString(Attrs, Attr)
   rule <k> Default:Val ~> getattrDefaultDynApply(V:Val, Attr:String)
         => Default ... </k>
-    requires (isClassVal(V) orBool isUserObjectVal(V))
+    requires isClassVal(V)
       andBool notBool classHasAttrString(V, Attr)
       andBool notBool getattrStringSupported(Attr)
   rule <k> Default:Val ~> getattrDefaultDynApply(V:Val, Attr:String)
         => Default ... </k>
-    requires getattrStringSupported(Attr) andBool notBool classHasAttrString(V, Attr)
-  rule <k> _Default:Val ~> getattrDefaultDynApply(_V:Val, Attr:String)
+    requires getattrStringSupported(Attr)
+      andBool notBool classHasAttrString(V, Attr)
+      andBool notBool isUserObjectVal(V)
+  rule <k> _Default:Val ~> getattrDefaultDynApply(V:Val, Attr:String)
         => exceptionSignal(#exception(#token("NotImplementedError", "Id"))) ... </k>
     requires notBool getattrStringSupported(Attr)
+      andBool notBool (isClassVal(V) orBool isUserObjectVal(V))
   rule <k> #hasattrDyn(Obj:Exp, Attr:Exp)
         => Obj ~> hasattrDynName(Attr) ... </k>
   rule <k> V:Val ~> hasattrDynName(Attr:Exp)
         => Attr ~> hasattrDynApply(V) ... </k>
   rule <k> Attr:String ~> hasattrDynApply(V:Val)
         => boolValue(classHasAttrString(V, Attr)) ... </k>
+    requires getattrStringSupported(Attr) andBool notBool isUserObjectVal(V)
+  rule <k> Attr:String ~> hasattrDynApply(userObjectVal(_:Id, _:Int, ObjectId:Int, Attrs:ClassAttrs))
+        => boolValue(classAttrsHasString(ObjAttrs, Attr) orBool classAttrsHasString(Attrs, Attr)) ... </k>
+       <objectAttrs> ... ObjectId |-> ObjAttrs:ClassAttrs ... </objectAttrs>
     requires getattrStringSupported(Attr)
+  rule <k> Attr:String ~> hasattrDynApply(userObjectVal(_:Id, _:Int, ObjectId:Int, Attrs:ClassAttrs))
+        => boolValue(classAttrsHasString(ObjAttrs, Attr) orBool classAttrsHasString(Attrs, Attr)) ... </k>
+       <objectAttrs> ... ObjectId |-> ObjAttrs:ClassAttrs ... </objectAttrs>
+    requires notBool getattrStringSupported(Attr)
   rule <k> Attr:String ~> hasattrDynApply(V:Val)
         => boolValue(classHasAttrString(V, Attr)) ... </k>
     requires (isClassVal(V) orBool isUserObjectVal(V))
       andBool notBool getattrStringSupported(Attr)
-  rule <k> Attr:String ~> hasattrDynApply(_V:Val)
+      andBool notBool isUserObjectVal(V)
+  rule <k> Attr:String ~> hasattrDynApply(V:Val)
         => exceptionSignal(#exception(#token("NotImplementedError", "Id"))) ... </k>
     requires notBool getattrStringSupported(Attr)
+      andBool notBool (isClassVal(V) orBool isUserObjectVal(V))
   rule <k> Attr:Val ~> hasattrDynApply(_V:Val)
         => exceptionSignal(#exception(#token("TypeError", "Id"))) ... </k>
     requires notBool isStringVal(Attr)
@@ -16578,8 +16725,20 @@ module PYTHON
            exceptionSignal(#exception(#token("TypeError", "Id")))
        ... </k>
     requires notBool callableVal(F)
-  rule <k> _A:Val ~> callApply(classVal(_:Id, _:Int, _:ClassAttrs)) =>
+  rule <k> A:Val ~> callApply(classVal(C:Id, ClassId:Int, Attrs:ClassAttrs)) =>
+           argsVal(argValsCons(A, #noArgVals))
+           ~> callApplyArgs(boundMethodVal(userObjectVal(C, ClassId, I, Attrs), classAttrGet(Attrs, #token("kDunderInitName", "Id"))))
+           ~> initObjectDone(userObjectVal(C, ClassId, I, Attrs))
+       ... </k>
+       <objectAttrs> ObjectAttrs => ObjectAttrs [ I <- #noRuntimeClassAttrs ] </objectAttrs>
+       <nextObject> I => I +Int 1 </nextObject>
+    requires classAttrsHas(Attrs, #token("kDunderInitName", "Id"))
+  rule <k> _A:Val ~> callApply(classVal(_:Id, _:Int, Attrs:ClassAttrs)) =>
            exceptionSignal(#exception(#token("TypeError", "Id")))
+       ... </k>
+    requires notBool classAttrsHas(Attrs, #token("kDunderInitName", "Id"))
+  rule <k> A:Val ~> callApply(boundMethodVal(Self:Val, F:Val)) =>
+           argsVal(argValsCons(Self, argValsCons(A, #noArgVals))) ~> callApplyArgs(F)
        ... </k>
   rule <k> A:Val ~> callApply(closure(X:Id, Body:Exp)) => Body ~> restoreEnv(Rho) ... </k>
        <env> Rho => Rho [ X <- A ] </env>
@@ -17036,14 +17195,27 @@ module PYTHON
            exceptionSignal(#exception(#token("TypeError", "Id")))
        ... </k>
     requires notBool callableVal(F)
+  rule <k> argsVal(VS:ArgVals) ~> callApplyArgs(boundMethodVal(Self:Val, F:Val)) =>
+           argsVal(argValsCons(Self, VS)) ~> callApplyArgs(F)
+       ... </k>
+  rule <k> argsVal(VS:ArgVals) ~> callApplyArgs(classVal(C:Id, ClassId:Int, Attrs:ClassAttrs)) =>
+           argsVal(VS)
+           ~> callApplyArgs(boundMethodVal(userObjectVal(C, ClassId, I, Attrs), classAttrGet(Attrs, #token("kDunderInitName", "Id"))))
+           ~> initObjectDone(userObjectVal(C, ClassId, I, Attrs))
+       ... </k>
+       <objectAttrs> ObjectAttrs => ObjectAttrs [ I <- #noRuntimeClassAttrs ] </objectAttrs>
+       <nextObject> I => I +Int 1 </nextObject>
+    requires classAttrsHas(Attrs, #token("kDunderInitName", "Id"))
   rule <k> argsVal(#noArgVals) ~> callApplyArgs(classVal(C:Id, ClassId:Int, Attrs:ClassAttrs)) =>
            userObjectVal(C, ClassId, I, Attrs)
        ... </k>
+       <objectAttrs> ObjectAttrs => ObjectAttrs [ I <- #noRuntimeClassAttrs ] </objectAttrs>
        <nextObject> I => I +Int 1 </nextObject>
-  rule <k> argsVal(VS:ArgVals) ~> callApplyArgs(classVal(_:Id, _:Int, _:ClassAttrs)) =>
+    requires notBool classAttrsHas(Attrs, #token("kDunderInitName", "Id"))
+  rule <k> argsVal(VS:ArgVals) ~> callApplyArgs(classVal(_:Id, _:Int, Attrs:ClassAttrs)) =>
            exceptionSignal(#exception(#token("TypeError", "Id")))
        ... </k>
-    requires argValsLen(VS) >Int 0
+    requires argValsLen(VS) >Int 0 andBool notBool classAttrsHas(Attrs, #token("kDunderInitName", "Id"))
   rule <k> argsVal(VS:ArgVals) ~> callApplyArgs(closure(X:Id, Body:Exp)) =>
            Body ~> restoreEnv(Rho)
        ... </k>
@@ -17502,6 +17674,21 @@ module PYTHON
            exceptionSignal(#exception(#token("TypeError", "Id")))
        ... </k>
     requires notBool callableVal(F)
+  rule <k> kwArgsVal(KWS:KwArgVals) ~> callApplyKwArgs(boundMethodVal(Self:Val, F:Val)) =>
+           kwArgsVal(KWS) ~> callApplyMixedArgs(F, argValsCons(Self, #noArgVals))
+       ... </k>
+  rule <k> kwArgsVal(KWS:KwArgVals) ~> callApplyKwArgs(classVal(C:Id, ClassId:Int, Attrs:ClassAttrs)) =>
+           kwArgsVal(KWS)
+           ~> callApplyKwArgs(boundMethodVal(userObjectVal(C, ClassId, I, Attrs), classAttrGet(Attrs, #token("kDunderInitName", "Id"))))
+           ~> initObjectDone(userObjectVal(C, ClassId, I, Attrs))
+       ... </k>
+       <objectAttrs> ObjectAttrs => ObjectAttrs [ I <- #noRuntimeClassAttrs ] </objectAttrs>
+       <nextObject> I => I +Int 1 </nextObject>
+    requires classAttrsHas(Attrs, #token("kDunderInitName", "Id"))
+  rule <k> kwArgsVal(_:KwArgVals) ~> callApplyKwArgs(classVal(_:Id, _:Int, Attrs:ClassAttrs)) =>
+           exceptionSignal(#exception(#token("TypeError", "Id")))
+       ... </k>
+    requires notBool classAttrsHas(Attrs, #token("kDunderInitName", "Id"))
   rule <k> kwArgsVal(KWS:KwArgVals) ~> callApplyKwArgs(closure(X:Id, Body:Exp)) =>
            Body ~> restoreEnv(Rho)
        ... </k>
@@ -18078,9 +18265,21 @@ module PYTHON
   rule <k> kwArgsVal(_:KwArgVals) ~> callApplyMixedArgs(generatorFunctionVal(_:IdItems, _:YieldExps), _:ArgVals) =>
            exceptionSignal(#exception(#token("TypeError", "Id")))
        ... </k>
-  rule <k> kwArgsVal(_:KwArgVals) ~> callApplyMixedArgs(classVal(_:Id, _:Int, _:ClassAttrs), _:ArgVals) =>
+  rule <k> kwArgsVal(KWS:KwArgVals) ~> callApplyMixedArgs(boundMethodVal(Self:Val, F:Val), VS:ArgVals) =>
+           kwArgsVal(KWS) ~> callApplyMixedArgs(F, argValsCons(Self, VS))
+       ... </k>
+  rule <k> kwArgsVal(KWS:KwArgVals) ~> callApplyMixedArgs(classVal(C:Id, ClassId:Int, Attrs:ClassAttrs), VS:ArgVals) =>
+           kwArgsVal(KWS)
+           ~> callApplyMixedArgs(boundMethodVal(userObjectVal(C, ClassId, I, Attrs), classAttrGet(Attrs, #token("kDunderInitName", "Id"))), VS)
+           ~> initObjectDone(userObjectVal(C, ClassId, I, Attrs))
+       ... </k>
+       <objectAttrs> ObjectAttrs => ObjectAttrs [ I <- #noRuntimeClassAttrs ] </objectAttrs>
+       <nextObject> I => I +Int 1 </nextObject>
+    requires classAttrsHas(Attrs, #token("kDunderInitName", "Id"))
+  rule <k> kwArgsVal(_:KwArgVals) ~> callApplyMixedArgs(classVal(_:Id, _:Int, Attrs:ClassAttrs), _:ArgVals) =>
            exceptionSignal(#exception(#token("TypeError", "Id")))
        ... </k>
+    requires notBool classAttrsHas(Attrs, #token("kDunderInitName", "Id"))
   rule <k> kwArgsVal(KWS:KwArgVals) ~> callApplyMixedArgs(closure(X:Id, Body:Exp), VS:ArgVals) =>
            Body ~> restoreEnv(Rho)
        ... </k>
@@ -28203,6 +28402,22 @@ module PYTHON
        <env> Rho => Rho [ X <- V ] </env>
        <result> _ => .K </result>
 
+  rule <k> assignAttrStmt(Obj:Exp, Attr:Id, Value:Exp) =>
+           Value ~> assignAttrObject(Obj, Attr)
+       ... </k>
+  rule <k> V:Val ~> assignAttrObject(Obj:Exp, Attr:Id) =>
+           Obj ~> assignAttrApply(V, Attr)
+       ... </k>
+  rule <k> userObjectVal(_:Id, _:Int, ObjectId:Int, _:ClassAttrs) ~> assignAttrApply(V:Val, Attr:Id) =>
+           stmtNoResult
+       ... </k>
+       <objectAttrs> ... ObjectId |-> (ObjAttrs:ClassAttrs => classAttrSet(ObjAttrs, Attr, V)) ... </objectAttrs>
+       <result> _ => .K </result>
+  rule <k> V:Val ~> assignAttrApply(_:Val, _:Id) =>
+           exceptionSignal(#exception(#token("AttributeError", "Id")))
+       ... </k>
+    requires notBool isUserObjectVal(V)
+
   rule <k> subscriptAssignStmt(X:Id, I:Exp, E:Exp) =>
            E ~> subscriptAssignIndex(X, I)
        ... </k>
@@ -28929,6 +29144,10 @@ module PYTHON
            collectClassAttrs(C, Rest, classAttrSet(Attrs, A, V), Rho)
        ... </k>
        <env> ClassRho => ClassRho [ A <- V ] </env>
+  rule <k> collectClassAttrs(C:Id, #classMethod(M:Id, IDS:IdItems, Body:Block, Rest:ClassAttrExps), Attrs:ClassAttrs, Rho:Map) =>
+           collectClassAttrs(C, Rest, classAttrSet(Attrs, M, functionValArgs(IDS, Body)), Rho)
+       ... </k>
+       <env> ClassRho => ClassRho [ M <- functionValArgs(IDS, Body) ] </env>
   rule <k> functionDefVarArgsStmt(F:Id, IDS:IdItems, Var:Id, Body:Block) => stmtNoResult ... </k>
        <env> Rho => Rho [ F <- functionValVarArgs(IDS, Var, Body) ] </env>
        <result> _ => .K </result>
@@ -32421,6 +32640,9 @@ module PYTHON
        <env> _ => Rho </env>
   rule <k> exceptionSignal(V:Val) ~> classAttrBind(_:Id, _:Id, _:ClassAttrExps, _:ClassAttrs, Rho:Map) => exceptionSignal(V) ... </k>
        <env> _ => Rho </env>
+  rule <k> exceptionSignal(V:Val) ~> assignAttrObject(_:Exp, _:Id) => exceptionSignal(V) ... </k>
+  rule <k> exceptionSignal(V:Val) ~> assignAttrApply(_:Val, _:Id) => exceptionSignal(V) ... </k>
+  rule <k> exceptionSignal(V:Val) ~> initObjectDone(_:Val) => exceptionSignal(V) ... </k>
   rule <k> exceptionSignal(V:Val) ~> formatDefault() => exceptionSignal(V) ... </k>
   rule <k> exceptionSignal(V:Val) ~> formatSpec(_:Exp) => exceptionSignal(V) ... </k>
   rule <k> exceptionSignal(V:Val) ~> formatApply(_:Val) => exceptionSignal(V) ... </k>
@@ -32801,6 +33023,11 @@ module PYTHON
   rule <k> returnSignal(V:Val) ~> functionDone(Rho:Map) => V ~> restoreEnv(Rho) ... </k>
   rule <k> exceptionSignal(V:Val) ~> functionDone(Rho:Map) => exceptionSignal(V) ~> restoreEnv(Rho) ... </k>
   rule <k> functionDone(Rho:Map) => None ~> restoreEnv(Rho) ... </k>
+  rule <k> None ~> initObjectDone(Obj:Val) => Obj ... </k>
+  rule <k> V:Val ~> initObjectDone(_Obj:Val) =>
+           exceptionSignal(#exception(#token("TypeError", "Id")))
+       ... </k>
+    requires notBool valEq(V, None)
 
   rule <k> delNameStmt(X:Id) => stmtNoResult ... </k>
        <env> Rho => Rho [ X <- undef ] </env>

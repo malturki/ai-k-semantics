@@ -22,6 +22,7 @@ class UnsupportedPythonSubset(ValueError):
 
 
 ELLIPSIS_NAME_ID = "kEllipsisName"
+DUNDER_INIT_NAME_ID = "kDunderInitName"
 JSON_SURROGATE_PAIR_RE = re.compile(r"\\u(d[89ab][0-9a-f]{2})\\u(d[cdef][0-9a-f]{2})")
 SUPPORTED_ZERO_ARG_CLASS_PATTERNS = {
     "bytearray",
@@ -626,6 +627,8 @@ def format_spec_supported(spec: str) -> bool:
 def emit_id(name: str) -> str:
     if name == "Ellipsis":
         return ELLIPSIS_NAME_ID
+    if name == "__init__":
+        return DUNDER_INIT_NAME_ID
     return name
 
 
@@ -1940,30 +1943,87 @@ def emit_simple_class_def(
         raise unsupported(node, "class bases and metaclass keywords are not supported yet")
     if getattr(node, "type_params", []):
         raise unsupported(node, "class type parameters are not supported yet")
-    attrs: list[tuple[str, ast.expr]] = []
+    members: list[tuple[str, str, str, str]] = []
     for stmt in body:
         match stmt:
             case ast.Pass():
                 continue
             case ast.Assign(targets=[ast.Name(id=attr, ctx=ast.Store())], value=value, type_comment=None):
-                attrs.append((attr, value))
+                members.append(("attr", emit_id(attr), emit_exp(value), ""))
             case ast.Assign(type_comment=type_comment) if type_comment is not None:
                 raise unsupported(stmt, "class-body type comments are not supported yet")
+            case ast.FunctionDef(
+                name=method_name,
+                args=args,
+                body=method_body,
+                decorator_list=method_decorators,
+                returns=method_returns,
+                type_comment=method_type_comment,
+            ):
+                members.append(
+                    emit_simple_class_method(
+                        stmt,
+                        method_name,
+                        args,
+                        method_body,
+                        method_decorators,
+                        method_returns,
+                        method_type_comment,
+                    )
+                )
             case _:
                 raise unsupported(
                     stmt,
-                    "only pass and simple name assignments are supported in the current class body profile",
+                    "only pass, simple name assignments, and simple method definitions are supported in the current class body profile",
                 )
-    if not attrs:
+    if not members:
         return f"#class({emit_id(name)})"
-    return f"#classAttrs({emit_id(name)}, {emit_class_attr_exps(attrs)})"
+    return f"#classAttrs({emit_id(name)}, {emit_class_attr_exps(members)})"
 
 
-def emit_class_attr_exps(attrs: list[tuple[str, ast.expr]]) -> str:
-    if not attrs:
+def emit_simple_class_method(
+    node: ast.AST,
+    name: str,
+    args: ast.arguments,
+    body: list[ast.stmt],
+    decorators: list[ast.expr],
+    returns: ast.expr | None,
+    type_comment: str | None,
+) -> tuple[str, str, str, str]:
+    # Python 3.14 annotations are lazy metadata. The current method values do
+    # not expose metadata/introspection, so annotations are erased in this subset.
+    _ = returns
+    if decorators:
+        raise unsupported(node, "method decorators are not supported yet")
+    if type_comment is not None:
+        raise unsupported(node, "method type comments are not supported yet")
+    if getattr(node, "type_params", []):
+        raise unsupported(node, "method type parameters are not supported yet")
+    if (
+        args.posonlyargs
+        or args.defaults
+        or args.vararg is not None
+        or args.kwonlyargs
+        or any(default is not None for default in args.kw_defaults)
+        or args.kwarg is not None
+    ):
+        raise unsupported(node, "class methods currently support only ordinary positional parameters without defaults")
+    names = [arg.arg for arg in args.args]
+    if not names:
+        raise unsupported(node, "class methods currently require at least an explicit self parameter")
+    return ("method", emit_id(name), emit_id_items(names), emit_block(body))
+
+
+def emit_class_attr_exps(members: list[tuple[str, str, str, str]]) -> str:
+    if not members:
         return "#noClassAttrs"
-    name, value = attrs[0]
-    return f"#classAttr({emit_id(name)}, {emit_exp(value)}, {emit_class_attr_exps(attrs[1:])})"
+    kind, name, payload, body = members[0]
+    rest = emit_class_attr_exps(members[1:])
+    if kind == "attr":
+        return f"#classAttr({name}, {payload}, {rest})"
+    if kind == "method":
+        return f"#classMethod({name}, {payload}, {body}, {rest})"
+    raise AssertionError(f"unknown class member kind: {kind}")
 
 
 def emit_list_comprehension(
@@ -2864,6 +2924,8 @@ def emit_assign(node: ast.AST, targets: list[ast.expr], value: ast.expr) -> str:
             if target.id == "Ellipsis":
                 return f"#assignName({ELLIPSIS_NAME_ID}, {emit_exp(value)})"
             return f"{emit_id(target.id)} = {emit_exp(value)}"
+        if isinstance(target, ast.Attribute) and isinstance(target.ctx, ast.Store):
+            return f"#assignAttr({emit_exp(target.value)}, {emit_id(target.attr)}, {emit_exp(value)})"
         if (
             isinstance(target, ast.Subscript)
             and isinstance(target.value, ast.Name)
@@ -2903,7 +2965,7 @@ def emit_assign(node: ast.AST, targets: list[ast.expr], value: ast.expr) -> str:
             )
         if isinstance(target, ast.Tuple | ast.List):
             return emit_sequence_assign(target, value)
-        raise unsupported(target, "only simple-name, simple-name subscript/slice, two-level simple-name subscript, and flat/starred sequence assignment targets are supported")
+        raise unsupported(target, "only simple-name, simple attribute, simple-name subscript/slice, two-level simple-name subscript, and flat/starred sequence assignment targets are supported")
 
     names: list[str] = []
     for target in targets:

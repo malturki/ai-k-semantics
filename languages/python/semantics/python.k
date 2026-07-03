@@ -316,6 +316,7 @@ module PYTHON-SYNTAX
                 | "#genDef" "(" Id "," IdItems "," YieldExps ")" [symbol(generatorFunctionDefStmt)]
                 | "#class" "(" Id ")" [symbol(classDefStmt)]
                 | "#classAttrs" "(" Id "," ClassAttrExps ")" [symbol(classDefAttrsStmt)]
+                | "#classBase" "(" Id "," Id "," ClassAttrExps ")" [symbol(classDefBaseStmt)]
                 | "#if" "(" Exp "," Block "," Block ")" [symbol(ifStmt)]
                 | "#while" "(" Exp "," Block ")" [symbol(whileStmt)]
                 | "#whileElse" "(" Exp "," Block "," Block ")" [symbol(whileElseStmt)]
@@ -465,6 +466,7 @@ module PYTHON-SYNTAX
                | "#isinstanceDynamic" "(" Exp "," Exp ")" [symbol(isinstanceDynamicExp), seqstrict]
                | "#isinstanceAny" "(" Exp "," IdItems ")" [symbol(isinstanceAnyExp), strict(1)]
                | "#issubclass" "(" Id "," Id ")" [symbol(issubclassExp)]
+               | "#issubclassDynamic" "(" Exp "," Exp ")" [symbol(issubclassDynamicExp), seqstrict]
                | "#issubclassAny" "(" Id "," IdItems ")" [symbol(issubclassAnyExp)]
                | "#all" "(" Exp ")" [symbol(allExp), strict]
                | "#any" "(" Exp ")" [symbol(anyExp), strict]
@@ -616,7 +618,10 @@ module PYTHON
 
   syntax ClassAttrs ::= "#noRuntimeClassAttrs" [symbol(noRuntimeClassAttrs)]
                       | classAttr(Id, Val, ClassAttrs) [symbol(runtimeClassAttr)]
+                      | classBase(Int, ClassAttrs) [symbol(runtimeClassBase)]
                       | classAttrSet(ClassAttrs, Id, Val) [function, symbol(classAttrSet)]
+                      | classAttrsAppend(ClassAttrs, ClassAttrs) [function, symbol(classAttrsAppend)]
+                      | classAttrsInherit(ClassAttrs, Int, ClassAttrs) [function, symbol(classAttrsInherit)]
 
   syntax Val ::= closure(Id, Exp) [symbol(closure)]
                | closureArgs(IdItems, Exp) [symbol(closureArgs)]
@@ -761,6 +766,9 @@ module PYTHON
                  | hasattrDynApply(Val) [symbol(hasattrDynApply)]
                  | collectClassAttrs(Id, ClassAttrExps, ClassAttrs, Map) [symbol(collectClassAttrs)]
                  | classAttrBind(Id, Id, ClassAttrExps, ClassAttrs, Map) [symbol(classAttrBind)]
+                 | classBaseApply(Id, ClassAttrExps, Map) [symbol(classBaseApply)]
+                 | collectClassAttrsBase(Id, Int, ClassAttrs, ClassAttrExps, ClassAttrs, Map) [symbol(collectClassAttrsBase)]
+                 | classAttrBaseBind(Id, Int, ClassAttrs, Id, ClassAttrExps, ClassAttrs, Map) [symbol(classAttrBaseBind)]
                  | assignAttrObject(Exp, Id) [symbol(assignAttrObject)]
                  | assignAttrApply(Val, Id) [symbol(assignAttrApply)]
                  | initObjectDone(Val) [symbol(initObjectDone)]
@@ -1508,6 +1516,7 @@ module PYTHON
                 | isinstanceClassesSupported(IdItems) [function, symbol(isinstanceClassesSupported)]
                 | isinstanceAny(Val, IdItems) [function, symbol(isinstanceAny)]
                 | userInstanceOf(Val, Id, Int) [function, symbol(userInstanceOf)]
+                | userSubclassOf(Val, Id, Int) [function, symbol(userSubclassOf)]
                 | builtinSubclass(Id, Id) [function, symbol(builtinSubclass)]
                 | builtinSubclassAny(Id, IdItems) [function, symbol(builtinSubclassAny)]
                 | matchBuiltinClassArg(Val, Id, MatchPattern) [function, symbol(matchBuiltinClassArg)]
@@ -1516,6 +1525,7 @@ module PYTHON
                 | matchClassAttrs(Val, MatchAttrPatterns) [function, symbol(matchClassAttrs)]
                 | classHasMatchAttr(Val, Id) [function, symbol(classHasMatchAttr)]
                 | classAttrsHas(ClassAttrs, Id) [function, symbol(classAttrsHas)]
+                | classAttrsHasBaseId(ClassAttrs, Int) [function, symbol(classAttrsHasBaseId)]
                 | getattrStringSupported(String) [function, symbol(getattrStringSupported)]
                 | classHasAttrString(Val, String) [function, symbol(classHasAttrString)]
                 | classAttrsHasString(ClassAttrs, String) [function, symbol(classAttrsHasString)]
@@ -6142,9 +6152,15 @@ module PYTHON
   rule isinstanceAny(V:Val, idItemsCons(C:Id, CS:IdItems)) =>
     matchBuiltinClass(V, C) orBool isinstanceAny(V, CS)
 
-  rule userInstanceOf(userObjectVal(C:Id, ClassId:Int, _:Int, _:ClassAttrs), D:Id, ExpectedClassId:Int) =>
-    ClassId ==Int ExpectedClassId andBool Id2String(C) ==String Id2String(D)
+  rule userInstanceOf(userObjectVal(C:Id, ClassId:Int, _:Int, Attrs:ClassAttrs), D:Id, ExpectedClassId:Int) =>
+    (ClassId ==Int ExpectedClassId andBool Id2String(C) ==String Id2String(D))
+      orBool classAttrsHasBaseId(Attrs, ExpectedClassId)
   rule userInstanceOf(_:Val, _:Id, _:Int) => false [owise]
+
+  rule userSubclassOf(classVal(C:Id, ClassId:Int, Attrs:ClassAttrs), D:Id, ExpectedClassId:Int) =>
+    (ClassId ==Int ExpectedClassId andBool Id2String(C) ==String Id2String(D))
+      orBool classAttrsHasBaseId(Attrs, ExpectedClassId)
+  rule userSubclassOf(_:Val, _:Id, _:Int) => false [owise]
 
   rule builtinSubclass(C:Id, I:Id) => true
     requires Id2String(C) ==String Id2String(I)
@@ -6184,28 +6200,50 @@ module PYTHON
   rule classAttrSet(classAttr(A:Id, Old:Val, Rest:ClassAttrs), B:Id, V:Val) =>
     classAttr(A, Old, classAttrSet(Rest, B, V))
     requires Id2String(A) =/=String Id2String(B)
+  rule classAttrSet(classBase(BaseId:Int, Rest:ClassAttrs), B:Id, V:Val) =>
+    classBase(BaseId, classAttrSet(Rest, B, V))
+
+  rule classAttrsAppend(#noRuntimeClassAttrs, Rest:ClassAttrs) => Rest
+  rule classAttrsAppend(classAttr(A:Id, V:Val, Attrs:ClassAttrs), Rest:ClassAttrs) =>
+    classAttr(A, V, classAttrsAppend(Attrs, Rest))
+  rule classAttrsAppend(classBase(BaseId:Int, Attrs:ClassAttrs), Rest:ClassAttrs) =>
+    classBase(BaseId, classAttrsAppend(Attrs, Rest))
+
+  rule classAttrsInherit(Attrs:ClassAttrs, BaseId:Int, BaseAttrs:ClassAttrs) =>
+    classBase(BaseId, classAttrsAppend(Attrs, BaseAttrs))
 
   rule classAttrsHas(#noRuntimeClassAttrs, _:Id) => false
   rule classAttrsHas(classAttr(A:Id, _:Val, _Rest:ClassAttrs), B:Id) => true
     requires Id2String(A) ==String Id2String(B)
   rule classAttrsHas(classAttr(A:Id, _:Val, Rest:ClassAttrs), B:Id) => classAttrsHas(Rest, B)
     requires Id2String(A) =/=String Id2String(B)
+  rule classAttrsHas(classBase(_:Int, Rest:ClassAttrs), B:Id) => classAttrsHas(Rest, B)
+
+  rule classAttrsHasBaseId(#noRuntimeClassAttrs, _:Int) => false
+  rule classAttrsHasBaseId(classAttr(_:Id, _:Val, Rest:ClassAttrs), BaseId:Int) => classAttrsHasBaseId(Rest, BaseId)
+  rule classAttrsHasBaseId(classBase(BaseId:Int, _Rest:ClassAttrs), ExpectedBaseId:Int) => true
+    requires BaseId ==Int ExpectedBaseId
+  rule classAttrsHasBaseId(classBase(BaseId:Int, Rest:ClassAttrs), ExpectedBaseId:Int) => classAttrsHasBaseId(Rest, ExpectedBaseId)
+    requires BaseId =/=Int ExpectedBaseId
 
   rule classAttrsHasString(#noRuntimeClassAttrs, _:String) => false
   rule classAttrsHasString(classAttr(A:Id, _:Val, _Rest:ClassAttrs), B:String) => true
     requires Id2String(A) ==String B
   rule classAttrsHasString(classAttr(A:Id, _:Val, Rest:ClassAttrs), B:String) => classAttrsHasString(Rest, B)
     requires Id2String(A) =/=String B
+  rule classAttrsHasString(classBase(_:Int, Rest:ClassAttrs), B:String) => classAttrsHasString(Rest, B)
 
   rule classAttrGet(classAttr(A:Id, V:Val, _Rest:ClassAttrs), B:Id) => V
     requires Id2String(A) ==String Id2String(B)
   rule classAttrGet(classAttr(A:Id, _V:Val, Rest:ClassAttrs), B:Id) => classAttrGet(Rest, B)
     requires Id2String(A) =/=String Id2String(B)
+  rule classAttrGet(classBase(_:Int, Rest:ClassAttrs), B:Id) => classAttrGet(Rest, B)
 
   rule classAttrStringGet(classAttr(A:Id, V:Val, _Rest:ClassAttrs), B:String) => V
     requires Id2String(A) ==String B
   rule classAttrStringGet(classAttr(A:Id, _V:Val, Rest:ClassAttrs), B:String) => classAttrStringGet(Rest, B)
     requires Id2String(A) =/=String B
+  rule classAttrStringGet(classBase(_:Int, Rest:ClassAttrs), B:String) => classAttrStringGet(Rest, B)
 
   rule classHasMatchAttr(classVal(_:Id, _:Int, Attrs:ClassAttrs), A:Id) => true
     requires classAttrsHas(Attrs, A)
@@ -23163,6 +23201,7 @@ module PYTHON
     requires isinstanceClassesSupported(CS)
   rule #issubclass(C:Id, I:Id) => boolValue(builtinSubclass(C, I))
     requires isinstanceClassSupported(C) andBool isinstanceClassSupported(I)
+  rule #issubclassDynamic(V:Val, classVal(C:Id, ClassId:Int, _:ClassAttrs)) => boolValue(userSubclassOf(V, C, ClassId))
   rule #issubclassAny(C:Id, IS:IdItems) => boolValue(builtinSubclassAny(C, IS))
     requires isinstanceClassSupported(C) andBool isinstanceClassesSupported(IS)
   rule <k> #strCtor(V:Val) => exceptionSignal(#exception(#token("TypeError", "Id"))) ... </k>
@@ -23205,6 +23244,8 @@ module PYTHON
     requires notBool isinstanceClassesSupported(CS)
   rule <k> #issubclass(C:Id, I:Id) => exceptionSignal(#exception(#token("TypeError", "Id"))) ... </k>
     requires notBool (isinstanceClassSupported(C) andBool isinstanceClassSupported(I))
+  rule <k> #issubclassDynamic(C:Val, I:Val) => exceptionSignal(#exception(#token("TypeError", "Id"))) ... </k>
+    requires notBool (isClassVal(C) andBool isClassVal(I))
   rule <k> #issubclassAny(C:Id, IS:IdItems) => exceptionSignal(#exception(#token("TypeError", "Id"))) ... </k>
     requires notBool (isinstanceClassSupported(C) andBool isinstanceClassesSupported(IS))
   rule #all([]) => True
@@ -29133,6 +29174,10 @@ module PYTHON
            collectClassAttrs(C, Attrs, #noRuntimeClassAttrs, Rho)
        ... </k>
        <env> Rho </env>
+  rule <k> classDefBaseStmt(C:Id, Base:Id, Attrs:ClassAttrExps) =>
+           Base ~> classBaseApply(C, Attrs, Rho)
+       ... </k>
+       <env> Rho </env>
   rule <k> collectClassAttrs(C:Id, #noClassAttrs, Attrs:ClassAttrs, Rho:Map) => stmtNoResult ... </k>
        <env> _ => Rho [ C <- classVal(C, I, Attrs) ] </env>
        <nextObject> I => I +Int 1 </nextObject>
@@ -29146,6 +29191,26 @@ module PYTHON
        <env> ClassRho => ClassRho [ A <- V ] </env>
   rule <k> collectClassAttrs(C:Id, #classMethod(M:Id, IDS:IdItems, Body:Block, Rest:ClassAttrExps), Attrs:ClassAttrs, Rho:Map) =>
            collectClassAttrs(C, Rest, classAttrSet(Attrs, M, functionValArgs(IDS, Body)), Rho)
+       ... </k>
+       <env> ClassRho => ClassRho [ M <- functionValArgs(IDS, Body) ] </env>
+  rule <k> classVal(_Base:Id, BaseId:Int, BaseAttrs:ClassAttrs) ~> classBaseApply(C:Id, Attrs:ClassAttrExps, Rho:Map) =>
+           collectClassAttrsBase(C, BaseId, BaseAttrs, Attrs, #noRuntimeClassAttrs, Rho)
+       ... </k>
+  rule <k> V:Val ~> classBaseApply(_:Id, _:ClassAttrExps, _:Map) => exceptionSignal(#exception(#token("TypeError", "Id"))) ... </k>
+    requires notBool isClassVal(V)
+  rule <k> collectClassAttrsBase(C:Id, BaseId:Int, BaseAttrs:ClassAttrs, #noClassAttrs, Attrs:ClassAttrs, Rho:Map) => stmtNoResult ... </k>
+       <env> _ => Rho [ C <- classVal(C, I, classAttrsInherit(Attrs, BaseId, BaseAttrs)) ] </env>
+       <nextObject> I => I +Int 1 </nextObject>
+       <result> _ => .K </result>
+  rule <k> collectClassAttrsBase(C:Id, BaseId:Int, BaseAttrs:ClassAttrs, #classAttr(A:Id, E:Exp, Rest:ClassAttrExps), Attrs:ClassAttrs, Rho:Map) =>
+           E ~> classAttrBaseBind(C, BaseId, BaseAttrs, A, Rest, Attrs, Rho)
+       ... </k>
+  rule <k> V:Val ~> classAttrBaseBind(C:Id, BaseId:Int, BaseAttrs:ClassAttrs, A:Id, Rest:ClassAttrExps, Attrs:ClassAttrs, Rho:Map) =>
+           collectClassAttrsBase(C, BaseId, BaseAttrs, Rest, classAttrSet(Attrs, A, V), Rho)
+       ... </k>
+       <env> ClassRho => ClassRho [ A <- V ] </env>
+  rule <k> collectClassAttrsBase(C:Id, BaseId:Int, BaseAttrs:ClassAttrs, #classMethod(M:Id, IDS:IdItems, Body:Block, Rest:ClassAttrExps), Attrs:ClassAttrs, Rho:Map) =>
+           collectClassAttrsBase(C, BaseId, BaseAttrs, Rest, classAttrSet(Attrs, M, functionValArgs(IDS, Body)), Rho)
        ... </k>
        <env> ClassRho => ClassRho [ M <- functionValArgs(IDS, Body) ] </env>
   rule <k> functionDefVarArgsStmt(F:Id, IDS:IdItems, Var:Id, Body:Block) => stmtNoResult ... </k>
@@ -32639,6 +32704,12 @@ module PYTHON
   rule <k> exceptionSignal(V:Val) ~> collectClassAttrs(_:Id, _:ClassAttrExps, _:ClassAttrs, Rho:Map) => exceptionSignal(V) ... </k>
        <env> _ => Rho </env>
   rule <k> exceptionSignal(V:Val) ~> classAttrBind(_:Id, _:Id, _:ClassAttrExps, _:ClassAttrs, Rho:Map) => exceptionSignal(V) ... </k>
+       <env> _ => Rho </env>
+  rule <k> exceptionSignal(V:Val) ~> classBaseApply(_:Id, _:ClassAttrExps, Rho:Map) => exceptionSignal(V) ... </k>
+       <env> _ => Rho </env>
+  rule <k> exceptionSignal(V:Val) ~> collectClassAttrsBase(_:Id, _:Int, _:ClassAttrs, _:ClassAttrExps, _:ClassAttrs, Rho:Map) => exceptionSignal(V) ... </k>
+       <env> _ => Rho </env>
+  rule <k> exceptionSignal(V:Val) ~> classAttrBaseBind(_:Id, _:Int, _:ClassAttrs, _:Id, _:ClassAttrExps, _:ClassAttrs, Rho:Map) => exceptionSignal(V) ... </k>
        <env> _ => Rho </env>
   rule <k> exceptionSignal(V:Val) ~> assignAttrObject(_:Exp, _:Id) => exceptionSignal(V) ... </k>
   rule <k> exceptionSignal(V:Val) ~> assignAttrApply(_:Val, _:Id) => exceptionSignal(V) ... </k>

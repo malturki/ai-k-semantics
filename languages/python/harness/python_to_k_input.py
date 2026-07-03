@@ -1054,6 +1054,13 @@ def emit_exp(exp: ast.expr) -> str:
                 return f"#isinstanceAny({emit_exp(obj)}, {emitted_classinfo})"
             return f"#isinstance({emit_exp(obj)}, {emitted_classinfo})"
         case ast.Call(func=ast.Name(id="issubclass"), args=[cls, classinfo], keywords=[]):
+            if (
+                isinstance(cls, ast.Name)
+                and isinstance(classinfo, ast.Name)
+                and cls.id not in SUPPORTED_BUILTIN_CLASS_NAMES
+                and classinfo.id not in SUPPORTED_BUILTIN_CLASS_NAMES
+            ):
+                return f"#issubclassDynamic({emit_exp(cls)}, {emit_exp(classinfo)})"
             emitted_class = emit_builtin_class_name(exp, cls, "issubclass first argument")
             emitted_classinfo, is_tuple = emit_builtin_classinfo(exp, classinfo)
             if is_tuple:
@@ -1939,8 +1946,17 @@ def emit_simple_class_def(
 ) -> str:
     if decorators:
         raise unsupported(node, "class decorators are not supported yet")
-    if bases or keywords:
-        raise unsupported(node, "class bases and metaclass keywords are not supported yet")
+    if keywords:
+        raise unsupported(node, "class metaclass keywords are not supported yet")
+    if len(bases) > 1:
+        raise unsupported(node, "multiple class bases are not supported yet")
+    base_name: str | None = None
+    if bases:
+        if not isinstance(bases[0], ast.Name):
+            raise unsupported(node, "only simple name class bases are supported in the current class profile")
+        if bases[0].id in SUPPORTED_BUILTIN_CLASS_NAMES:
+            raise unsupported(node, "builtin class bases are not supported yet")
+        base_name = bases[0].id
     if getattr(node, "type_params", []):
         raise unsupported(node, "class type parameters are not supported yet")
     members: list[tuple[str, str, str, str]] = []
@@ -1976,6 +1992,8 @@ def emit_simple_class_def(
                     stmt,
                     "only pass, simple name assignments, and simple method definitions are supported in the current class body profile",
                 )
+    if base_name is not None:
+        return f"#classBase({emit_id(name)}, {emit_id(base_name)}, {emit_class_attr_exps(members)})"
     if not members:
         return f"#class({emit_id(name)})"
     return f"#classAttrs({emit_id(name)}, {emit_class_attr_exps(members)})"

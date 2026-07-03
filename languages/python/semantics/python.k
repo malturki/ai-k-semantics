@@ -71,6 +71,7 @@ module PYTHON-SYNTAX
                          | "#classClassMethod" "(" Id "," IdItems "," Block "," ClassAttrExps ")" [symbol(classClassMethodExpsCons)]
                          | "#classProperty" "(" Id "," IdItems "," Block "," ClassAttrExps ")" [symbol(classPropertyExpsCons)]
                          | "#classPropertySetter" "(" Id "," IdItems "," Block "," ClassAttrExps ")" [symbol(classPropertySetterExpsCons)]
+                         | "#classPropertyDeleter" "(" Id "," IdItems "," Block "," ClassAttrExps ")" [symbol(classPropertyDeleterExpsCons)]
 
   syntax DictExps ::= "#noDictItems" [symbol(noDictExps)]
                     | "#dictItem" "(" Exp "," Exp ")" [symbol(dictExpItem)]
@@ -249,6 +250,7 @@ module PYTHON-SYNTAX
                 | "#delSubscript2" "(" Id "," Exp "," Exp ")" [symbol(delSubscriptNestedStmt)]
                 | "#delSlice" "(" Id "," Exp "," Exp ")" [symbol(delSliceStmt)]
                 | "#delSliceStep" "(" Id "," Exp "," Exp "," Exp ")" [symbol(delSliceStepStmt)]
+                | "#delAttr" "(" Exp "," Id ")" [symbol(delAttrStmt)]
                 | Id "=" Exp [symbol(assignStmt), strict(2)]
                 | "#assignName" "(" Id "," Exp ")" [symbol(assignNameStmt), strict(2)]
                 | "#assignAttr" "(" Exp "," Id "," Exp ")" [symbol(assignAttrStmt)]
@@ -626,6 +628,7 @@ module PYTHON
                       | classAttr(Id, Val, ClassAttrs) [symbol(runtimeClassAttr)]
                       | classBase(Int, ClassAttrs) [symbol(runtimeClassBase)]
                       | classAttrSet(ClassAttrs, Id, Val) [function, symbol(classAttrSet)]
+                      | classAttrDel(ClassAttrs, Id) [function, symbol(classAttrDel)]
                       | classAttrsAppend(ClassAttrs, ClassAttrs) [function, symbol(classAttrsAppend)]
                       | classAttrsInherit(ClassAttrs, Int, ClassAttrs) [function, symbol(classAttrsInherit)]
 
@@ -711,6 +714,8 @@ module PYTHON
                | classMethodVal(Val) [symbol(classMethodVal)]
                | propertyVal(Val) [symbol(propertyVal)]
                | propertyVal(Val, Val) [symbol(propertyValSetter)]
+               | propertyValDel(Val, Val) [symbol(propertyValDeleter)]
+               | propertyVal(Val, Val, Val) [symbol(propertyValSetterDeleter)]
                | "#exceptionInstance" "(" Id "," ArgVals ")" [symbol(exceptionInstanceVal)]
                | buildFunctionDefault(FunctionDefaultBuilder, ArgVals) [function, symbol(buildFunctionDefault)]
                | buildFunctionTwoDefaults(FunctionTwoDefaultBuilder, ArgVals, ArgVals) [function, symbol(buildFunctionTwoDefaults)]
@@ -789,6 +794,8 @@ module PYTHON
                  | assignAttrObject(Exp, Id) [symbol(assignAttrObject)]
                  | assignAttrApply(Val, Id) [symbol(assignAttrApply)]
                  | propertySetterDone() [symbol(propertySetterDone)]
+                 | delAttrApply(Id) [symbol(delAttrApply)]
+                 | propertyDeleterDone() [symbol(propertyDeleterDone)]
                  | initObjectDone(Val) [symbol(initObjectDone)]
                  | formatDefault() [symbol(formatDefault)]
                  | formatSpec(Exp) [symbol(formatSpec)]
@@ -1523,6 +1530,7 @@ module PYTHON
                 | isStaticOrClassMethodVal(Val) [function, symbol(isStaticOrClassMethodVal)]
                 | isPropertyVal(Val) [function, symbol(isPropertyVal)]
                 | propertyHasSetter(Val) [function, symbol(propertyHasSetter)]
+                | propertyHasDeleter(Val) [function, symbol(propertyHasDeleter)]
                 | isIntLike(Val) [function, symbol(isIntLike)]
                 | isFloatVal(Val) [function, symbol(isFloatVal)]
                 | isFloatLike(Val) [function, symbol(isFloatLike)]
@@ -2571,7 +2579,9 @@ module PYTHON
                | classAttrAccess(Val, Val) [function, symbol(classAttrAccess)]
                | propertyGet(Val) [function, symbol(propertyGet)]
                | propertySet(Val) [function, symbol(propertySet)]
+               | propertyDel(Val) [function, symbol(propertyDel)]
                | propertyWithSetter(Val, Val) [function, symbol(propertyWithSetter)]
+               | propertyWithDeleter(Val, Val) [function, symbol(propertyWithDeleter)]
                | matchStarMiddle(Val, MatchPatterns, MatchPatterns) [function, symbol(matchStarMiddle)]
                | matchMappingRestVal(Val, MatchMapPatterns) [function, symbol(matchMappingRestVal)]
   syntax Val ::= listSlice(ValItems, Int, Int) [function, symbol(listSlice)]
@@ -2846,6 +2856,8 @@ module PYTHON
   rule truthy(boundMethodVal(_:Val, _:Val)) => true
   rule truthy(propertyVal(_:Val)) => true
   rule truthy(propertyVal(_:Val, _:Val)) => true
+  rule truthy(propertyValDel(_:Val, _:Val)) => true
+  rule truthy(propertyVal(_:Val, _:Val, _:Val)) => true
   rule truthy(rangeVal(Start:Int, Stop:Int)) => Start <Int Stop
   rule truthy(rangeVal(Start:Int, Stop:Int, Step:Int)) => pyRangeLen(Start, Stop, Step) >Int 0
     requires Step =/=Int 0
@@ -2995,11 +3007,21 @@ module PYTHON
 
   rule isPropertyVal(propertyVal(_:Val)) => true
   rule isPropertyVal(propertyVal(_:Val, _:Val)) => true
+  rule isPropertyVal(propertyValDel(_:Val, _:Val)) => true
+  rule isPropertyVal(propertyVal(_:Val, _:Val, _:Val)) => true
   rule isPropertyVal(_:Val) => false [owise]
 
+  rule propertyHasSetter(propertyVal(_:Val, _:Val, _:Val)) => true
   rule propertyHasSetter(propertyVal(_:Val, _:Val)) => true
+  rule propertyHasSetter(propertyValDel(_:Val, _:Val)) => false
   rule propertyHasSetter(propertyVal(_:Val)) => false
   rule propertyHasSetter(_:Val) => false [owise]
+
+  rule propertyHasDeleter(propertyVal(_:Val, _:Val, _:Val)) => true
+  rule propertyHasDeleter(propertyValDel(_:Val, _:Val)) => true
+  rule propertyHasDeleter(propertyVal(_:Val, _:Val)) => false
+  rule propertyHasDeleter(propertyVal(_:Val)) => false
+  rule propertyHasDeleter(_:Val) => false [owise]
 
   rule contextManagerSupported(#memoryviewVal(_:Val)) => true
   rule contextManagerSupported(_:Val) => false [owise]
@@ -4686,6 +4708,8 @@ module PYTHON
   rule isIntLike(boundMethodVal(_:Val, _:Val)) => false
   rule isIntLike(propertyVal(_:Val)) => false
   rule isIntLike(propertyVal(_:Val, _:Val)) => false
+  rule isIntLike(propertyValDel(_:Val, _:Val)) => false
+  rule isIntLike(propertyVal(_:Val, _:Val, _:Val)) => false
   rule isIntLike(iteratorRef(_:Int)) => false
   rule isIntLike(rangeVal(_:Int, _:Int)) => false
   rule isIntLike(rangeVal(_:Int, _:Int, _:Int)) => false
@@ -5714,6 +5738,8 @@ module PYTHON
   rule singletonIdentity(boundMethodVal(_:Val, _:Val)) => false
   rule singletonIdentity(propertyVal(_:Val)) => false
   rule singletonIdentity(propertyVal(_:Val, _:Val)) => false
+  rule singletonIdentity(propertyValDel(_:Val, _:Val)) => false
+  rule singletonIdentity(propertyVal(_:Val, _:Val, _:Val)) => false
   rule singletonIdentity(rangeVal(_:Int, _:Int)) => false
   rule singletonIdentity(rangeVal(_:Int, _:Int, _:Int)) => false
   rule singletonIdentity(sliceVal(_:Val, _:Val, _:Val)) => false
@@ -6246,6 +6272,15 @@ module PYTHON
   rule classAttrSet(classBase(BaseId:Int, Rest:ClassAttrs), B:Id, V:Val) =>
     classBase(BaseId, classAttrSet(Rest, B, V))
 
+  rule classAttrDel(#noRuntimeClassAttrs, _:Id) => #noRuntimeClassAttrs
+  rule classAttrDel(classAttr(A:Id, _V:Val, Rest:ClassAttrs), B:Id) => Rest
+    requires Id2String(A) ==String Id2String(B)
+  rule classAttrDel(classAttr(A:Id, V:Val, Rest:ClassAttrs), B:Id) =>
+    classAttr(A, V, classAttrDel(Rest, B))
+    requires Id2String(A) =/=String Id2String(B)
+  rule classAttrDel(classBase(BaseId:Int, Rest:ClassAttrs), B:Id) =>
+    classBase(BaseId, classAttrDel(Rest, B))
+
   rule classAttrsAppend(#noRuntimeClassAttrs, Rest:ClassAttrs) => Rest
   rule classAttrsAppend(classAttr(A:Id, V:Val, Attrs:ClassAttrs), Rest:ClassAttrs) =>
     classAttr(A, V, classAttrsAppend(Attrs, Rest))
@@ -6295,9 +6330,20 @@ module PYTHON
 
   rule propertyGet(propertyVal(F:Val)) => F
   rule propertyGet(propertyVal(F:Val, _S:Val)) => F
+  rule propertyGet(propertyValDel(F:Val, _D:Val)) => F
+  rule propertyGet(propertyVal(F:Val, _S:Val, _D:Val)) => F
   rule propertySet(propertyVal(_F:Val, S:Val)) => S
+  rule propertySet(propertyVal(_F:Val, S:Val, _D:Val)) => S
+  rule propertyDel(propertyValDel(_F:Val, D:Val)) => D
+  rule propertyDel(propertyVal(_F:Val, _S:Val, D:Val)) => D
   rule propertyWithSetter(propertyVal(F:Val), S:Val) => propertyVal(F, S)
   rule propertyWithSetter(propertyVal(F:Val, _OldS:Val), S:Val) => propertyVal(F, S)
+  rule propertyWithSetter(propertyValDel(F:Val, D:Val), S:Val) => propertyVal(F, S, D)
+  rule propertyWithSetter(propertyVal(F:Val, _OldS:Val, D:Val), S:Val) => propertyVal(F, S, D)
+  rule propertyWithDeleter(propertyVal(F:Val), D:Val) => propertyValDel(F, D)
+  rule propertyWithDeleter(propertyVal(F:Val, S:Val), D:Val) => propertyVal(F, S, D)
+  rule propertyWithDeleter(propertyValDel(F:Val, _OldD:Val), D:Val) => propertyValDel(F, D)
+  rule propertyWithDeleter(propertyVal(F:Val, S:Val, _OldD:Val), D:Val) => propertyVal(F, S, D)
 
   rule classHasMatchAttr(classVal(_:Id, _:Int, Attrs:ClassAttrs), A:Id) => true
     requires classAttrsHas(Attrs, A)
@@ -28600,6 +28646,57 @@ module PYTHON
        ... </k>
     requires notBool isUserObjectVal(V)
 
+  rule <k> delAttrStmt(Obj:Exp, Attr:Id) =>
+           Obj ~> delAttrApply(Attr)
+       ... </k>
+  rule <k> userObjectVal(C:Id, ClassId:Int, ObjectId:Int, Attrs:ClassAttrs) ~> delAttrApply(Attr:Id) =>
+           #call(boundMethodVal(userObjectVal(C, ClassId, ObjectId, Attrs), propertyDel(classAttrGet(Attrs, Attr))), #noArgs)
+           ~> propertyDeleterDone()
+       ... </k>
+    requires classAttrsHas(Attrs, Attr)
+      andBool isPropertyVal(classAttrGet(Attrs, Attr))
+      andBool propertyHasDeleter(classAttrGet(Attrs, Attr))
+  rule <k> userObjectVal(_:Id, _:Int, _:Int, Attrs:ClassAttrs) ~> delAttrApply(Attr:Id) =>
+           exceptionSignal(#exception(#token("AttributeError", "Id")))
+       ... </k>
+    requires classAttrsHas(Attrs, Attr)
+      andBool isPropertyVal(classAttrGet(Attrs, Attr))
+      andBool notBool propertyHasDeleter(classAttrGet(Attrs, Attr))
+  rule <k> _V:Val ~> propertyDeleterDone() => stmtNoResult ... </k>
+       <result> _ => .K </result>
+  rule <k> userObjectVal(_:Id, _:Int, ObjectId:Int, Attrs:ClassAttrs) ~> delAttrApply(Attr:Id) =>
+           stmtNoResult
+       ... </k>
+       <objectAttrs> ... ObjectId |-> (ObjAttrs:ClassAttrs => classAttrDel(ObjAttrs, Attr)) ... </objectAttrs>
+       <result> _ => .K </result>
+    requires notBool classAttrsHas(Attrs, Attr)
+      andBool classAttrsHas(ObjAttrs, Attr)
+  rule <k> userObjectVal(_:Id, _:Int, ObjectId:Int, Attrs:ClassAttrs) ~> delAttrApply(Attr:Id) =>
+           stmtNoResult
+       ... </k>
+       <objectAttrs> ... ObjectId |-> (ObjAttrs:ClassAttrs => classAttrDel(ObjAttrs, Attr)) ... </objectAttrs>
+       <result> _ => .K </result>
+    requires classAttrsHas(Attrs, Attr)
+      andBool notBool isPropertyVal(classAttrGet(Attrs, Attr))
+      andBool classAttrsHas(ObjAttrs, Attr)
+  rule <k> userObjectVal(_:Id, _:Int, ObjectId:Int, Attrs:ClassAttrs) ~> delAttrApply(Attr:Id) =>
+           exceptionSignal(#exception(#token("AttributeError", "Id")))
+       ... </k>
+       <objectAttrs> ... ObjectId |-> ObjAttrs:ClassAttrs ... </objectAttrs>
+    requires notBool classAttrsHas(Attrs, Attr)
+      andBool notBool classAttrsHas(ObjAttrs, Attr)
+  rule <k> userObjectVal(_:Id, _:Int, ObjectId:Int, Attrs:ClassAttrs) ~> delAttrApply(Attr:Id) =>
+           exceptionSignal(#exception(#token("AttributeError", "Id")))
+       ... </k>
+       <objectAttrs> ... ObjectId |-> ObjAttrs:ClassAttrs ... </objectAttrs>
+    requires classAttrsHas(Attrs, Attr)
+      andBool notBool isPropertyVal(classAttrGet(Attrs, Attr))
+      andBool notBool classAttrsHas(ObjAttrs, Attr)
+  rule <k> V:Val ~> delAttrApply(_:Id) =>
+           exceptionSignal(#exception(#token("AttributeError", "Id")))
+       ... </k>
+    requires notBool isUserObjectVal(V)
+
   rule <k> subscriptAssignStmt(X:Id, I:Exp, E:Exp) =>
            E ~> subscriptAssignIndex(X, I)
        ... </k>
@@ -29358,6 +29455,12 @@ module PYTHON
        <env> ClassRho => ClassRho [ M <- propertyWithSetter(classAttrGet(Attrs, M), functionValArgs(IDS, Body)) ] </env>
     requires classAttrsHas(Attrs, M)
       andBool isPropertyVal(classAttrGet(Attrs, M))
+  rule <k> collectClassAttrs(C:Id, #classPropertyDeleter(M:Id, IDS:IdItems, Body:Block, Rest:ClassAttrExps), Attrs:ClassAttrs, Rho:Map) =>
+           collectClassAttrs(C, Rest, classAttrSet(Attrs, M, propertyWithDeleter(classAttrGet(Attrs, M), functionValArgs(IDS, Body))), Rho)
+       ... </k>
+       <env> ClassRho => ClassRho [ M <- propertyWithDeleter(classAttrGet(Attrs, M), functionValArgs(IDS, Body)) ] </env>
+    requires classAttrsHas(Attrs, M)
+      andBool isPropertyVal(classAttrGet(Attrs, M))
   rule <k> classVal(_Base:Id, BaseId:Int, BaseAttrs:ClassAttrs) ~> classBaseApply(C:Id, Attrs:ClassAttrExps, Rho:Map) =>
            collectClassAttrsBase(C, BaseId, BaseAttrs, Attrs, #noRuntimeClassAttrs, Rho)
        ... </k>
@@ -29396,6 +29499,12 @@ module PYTHON
        <env> ClassRho => ClassRho [ M <- propertyWithSetter(classAttrGet(Attrs, M), functionValArgs(IDS, Body)) ] </env>
     requires classAttrsHas(Attrs, M)
       andBool isPropertyVal(classAttrGet(Attrs, M))
+  rule <k> collectClassAttrsBase(C:Id, BaseId:Int, BaseAttrs:ClassAttrs, #classPropertyDeleter(M:Id, IDS:IdItems, Body:Block, Rest:ClassAttrExps), Attrs:ClassAttrs, Rho:Map) =>
+           collectClassAttrsBase(C, BaseId, BaseAttrs, Rest, classAttrSet(Attrs, M, propertyWithDeleter(classAttrGet(Attrs, M), functionValArgs(IDS, Body))), Rho)
+       ... </k>
+       <env> ClassRho => ClassRho [ M <- propertyWithDeleter(classAttrGet(Attrs, M), functionValArgs(IDS, Body)) ] </env>
+    requires classAttrsHas(Attrs, M)
+      andBool isPropertyVal(classAttrGet(Attrs, M))
   rule <k> argsVal(Decorators:ArgVals) ~> bindDecoratedClass(C:Id, Attrs:ClassAttrExps) =>
            collectDecoratedClassAttrs(C, Decorators, Attrs, #noRuntimeClassAttrs, Rho)
        ... </k>
@@ -29432,6 +29541,12 @@ module PYTHON
            collectDecoratedClassAttrs(C, Decorators, Rest, classAttrSet(Attrs, M, propertyWithSetter(classAttrGet(Attrs, M), functionValArgs(IDS, Body))), Rho)
        ... </k>
        <env> ClassRho => ClassRho [ M <- propertyWithSetter(classAttrGet(Attrs, M), functionValArgs(IDS, Body)) ] </env>
+    requires classAttrsHas(Attrs, M)
+      andBool isPropertyVal(classAttrGet(Attrs, M))
+  rule <k> collectDecoratedClassAttrs(C:Id, Decorators:ArgVals, #classPropertyDeleter(M:Id, IDS:IdItems, Body:Block, Rest:ClassAttrExps), Attrs:ClassAttrs, Rho:Map) =>
+           collectDecoratedClassAttrs(C, Decorators, Rest, classAttrSet(Attrs, M, propertyWithDeleter(classAttrGet(Attrs, M), functionValArgs(IDS, Body))), Rho)
+       ... </k>
+       <env> ClassRho => ClassRho [ M <- propertyWithDeleter(classAttrGet(Attrs, M), functionValArgs(IDS, Body)) ] </env>
     requires classAttrsHas(Attrs, M)
       andBool isPropertyVal(classAttrGet(Attrs, M))
   rule <k> argsVal(Decorators:ArgVals) ~> bindDecoratedBaseClass(C:Id, Base:Id, Attrs:ClassAttrExps) =>
@@ -29475,6 +29590,12 @@ module PYTHON
            collectDecoratedClassAttrsBase(C, Decorators, BaseId, BaseAttrs, Rest, classAttrSet(Attrs, M, propertyWithSetter(classAttrGet(Attrs, M), functionValArgs(IDS, Body))), Rho)
        ... </k>
        <env> ClassRho => ClassRho [ M <- propertyWithSetter(classAttrGet(Attrs, M), functionValArgs(IDS, Body)) ] </env>
+    requires classAttrsHas(Attrs, M)
+      andBool isPropertyVal(classAttrGet(Attrs, M))
+  rule <k> collectDecoratedClassAttrsBase(C:Id, Decorators:ArgVals, BaseId:Int, BaseAttrs:ClassAttrs, #classPropertyDeleter(M:Id, IDS:IdItems, Body:Block, Rest:ClassAttrExps), Attrs:ClassAttrs, Rho:Map) =>
+           collectDecoratedClassAttrsBase(C, Decorators, BaseId, BaseAttrs, Rest, classAttrSet(Attrs, M, propertyWithDeleter(classAttrGet(Attrs, M), functionValArgs(IDS, Body))), Rho)
+       ... </k>
+       <env> ClassRho => ClassRho [ M <- propertyWithDeleter(classAttrGet(Attrs, M), functionValArgs(IDS, Body)) ] </env>
     requires classAttrsHas(Attrs, M)
       andBool isPropertyVal(classAttrGet(Attrs, M))
   rule <k> functionDefVarArgsStmt(F:Id, IDS:IdItems, Var:Id, Body:Block) => stmtNoResult ... </k>
@@ -32990,6 +33111,8 @@ module PYTHON
   rule <k> exceptionSignal(V:Val) ~> assignAttrObject(_:Exp, _:Id) => exceptionSignal(V) ... </k>
   rule <k> exceptionSignal(V:Val) ~> assignAttrApply(_:Val, _:Id) => exceptionSignal(V) ... </k>
   rule <k> exceptionSignal(V:Val) ~> propertySetterDone() => exceptionSignal(V) ... </k>
+  rule <k> exceptionSignal(V:Val) ~> delAttrApply(_:Id) => exceptionSignal(V) ... </k>
+  rule <k> exceptionSignal(V:Val) ~> propertyDeleterDone() => exceptionSignal(V) ... </k>
   rule <k> exceptionSignal(V:Val) ~> initObjectDone(_:Val) => exceptionSignal(V) ... </k>
   rule <k> exceptionSignal(V:Val) ~> formatDefault() => exceptionSignal(V) ... </k>
   rule <k> exceptionSignal(V:Val) ~> formatSpec(_:Exp) => exceptionSignal(V) ... </k>

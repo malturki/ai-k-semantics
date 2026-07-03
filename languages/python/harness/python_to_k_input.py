@@ -1983,10 +1983,10 @@ def emit_simple_class_def(
                     method_returns,
                     method_type_comment,
                 )
-                if member[0] == "propertysetter":
+                if member[0] in {"propertysetter", "propertydeleter"}:
                     previous_kind = next((kind for kind, attr_name, _payload, _body in reversed(members) if attr_name == member[1]), None)
-                    if previous_kind not in {"property", "propertysetter"}:
-                        raise unsupported(stmt, "property setters currently require a prior @property for the same class-body name")
+                    if previous_kind not in {"property", "propertysetter", "propertydeleter"}:
+                        raise unsupported(stmt, "property setters and deleters currently require a prior @property for the same class-body name")
                 members.append(member)
             case _:
                 raise unsupported(
@@ -2020,7 +2020,7 @@ def emit_simple_class_method(
     method_kind = "method"
     if decorators:
         if len(decorators) != 1:
-            raise unsupported(node, "only @staticmethod, @classmethod, @property, and simple @name.setter are supported in the current method profile")
+            raise unsupported(node, "only @staticmethod, @classmethod, @property, simple @name.setter, and simple @name.deleter are supported in the current method profile")
         decorator = decorators[0]
         if isinstance(decorator, ast.Name) and decorator.id == "staticmethod":
             method_kind = "staticmethod"
@@ -2035,8 +2035,15 @@ def emit_simple_class_method(
             and decorator.value.id == name
         ):
             method_kind = "propertysetter"
+        elif (
+            isinstance(decorator, ast.Attribute)
+            and decorator.attr == "deleter"
+            and isinstance(decorator.value, ast.Name)
+            and decorator.value.id == name
+        ):
+            method_kind = "propertydeleter"
         else:
-            raise unsupported(node, "only @staticmethod, @classmethod, @property, and simple @name.setter are supported in the current method profile")
+            raise unsupported(node, "only @staticmethod, @classmethod, @property, simple @name.setter, and simple @name.deleter are supported in the current method profile")
     if type_comment is not None:
         raise unsupported(node, "method type comments are not supported yet")
     if getattr(node, "type_params", []):
@@ -2057,6 +2064,8 @@ def emit_simple_class_method(
         raise unsupported(node, "properties currently support only a getter with an explicit self parameter")
     if method_kind == "propertysetter" and len(names) != 2:
         raise unsupported(node, "property setters currently support only an explicit self parameter and one value parameter")
+    if method_kind == "propertydeleter" and len(names) != 1:
+        raise unsupported(node, "property deleters currently support only an explicit self parameter")
     return (method_kind, emit_id(name), emit_id_items(names), emit_block(body))
 
 
@@ -2077,6 +2086,8 @@ def emit_class_attr_exps(members: list[tuple[str, str, str, str]]) -> str:
         return f"#classProperty({name}, {payload}, {body}, {rest})"
     if kind == "propertysetter":
         return f"#classPropertySetter({name}, {payload}, {body}, {rest})"
+    if kind == "propertydeleter":
+        return f"#classPropertyDeleter({name}, {payload}, {body}, {rest})"
     raise AssertionError(f"unknown class member kind: {kind}")
 
 
@@ -3042,6 +3053,8 @@ def emit_ann_assign(node: ast.AST, target: ast.expr, value: ast.expr | None) -> 
 def emit_delete(node: ast.AST, targets: list[ast.expr]) -> str:
     if len(targets) == 1:
         target = targets[0]
+        if isinstance(target, ast.Attribute) and isinstance(target.ctx, ast.Del):
+            return f"#delAttr({emit_exp(target.value)}, {emit_id(target.attr)})"
         if (
             isinstance(target, ast.Subscript)
             and isinstance(target.value, ast.Name)
@@ -3078,7 +3091,7 @@ def emit_delete(node: ast.AST, targets: list[ast.expr]) -> str:
     names: list[str] = []
     for target in targets:
         if not isinstance(target, ast.Name):
-            raise unsupported(target, "only simple-name, single simple-name subscript/slice, and two-level simple-name subscript delete targets are supported")
+            raise unsupported(target, "only simple-name, attribute, single simple-name subscript/slice, and two-level simple-name subscript delete targets are supported")
         names.append(target.id)
     if len(names) < 1:
         raise unsupported(node, "delete statement needs at least one target")

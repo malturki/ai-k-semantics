@@ -1733,6 +1733,13 @@
       "coverage": ["class-definition", "class-body-method-definition-profile", "method-defaults-profile", "definition-time-default-evaluation", "constructor-init-profile", "bound-method-profile", "staticmethod-profile", "classmethod-profile", "inherited-methods", "exception-handling", "ordinary-python-source-adapter"]
     },
     {
+      "id": "adapter-class-method-varargs",
+      "source": "../adapter/adapter-class-method-varargs.py",
+      "reference": "Python 3.14.6 Language Reference 8.8 Class definitions; 8.7 Function definitions parameter lists; Python Standard Library Built-in Functions staticmethod, classmethod",
+      "expected_result": "True ~> .K",
+      "coverage": ["class-definition", "class-body-method-definition-profile", "method-varargs-profile", "constructor-init-profile", "bound-method-profile", "direct-class-function-call", "staticmethod-profile", "classmethod-profile", "inherited-methods", "dynamic-getattr", "exception-handling", "ordinary-python-source-adapter"]
+    },
+    {
       "id": "adapter-class-inheritance-basic",
       "source": "../adapter/adapter-class-inheritance-basic.py",
       "reference": "Python 3.14.6 Language Reference 8.8 Class definitions; 3.2 Objects, values and types; 6.3.1 Attribute references; Built-in Functions isinstance, issubclass, getattr, hasattr, callable",

@@ -1768,6 +1768,13 @@
       "coverage": ["del-statement", "attribute-deletion", "class-definition", "property-profile", "property-deleter-profile", "descriptor-get-profile", "descriptor-delete-profile", "attribute-assignment", "inherited-attributes", "exception-handling", "ordinary-python-source-adapter"]
     },
     {
+      "id": "adapter-class-property-getter-chain",
+      "source": "../adapter/adapter-class-property-getter-chain.py",
+      "reference": "Python 3.14.6 Language Reference 8.8 Class definitions; Python Standard Library Built-in Functions property getter/setter/deleter; Python Data Model descriptor invocation",
+      "expected_result": "True ~> .K",
+      "coverage": ["class-definition", "property-profile", "property-getter-profile", "property-setter-profile", "property-deleter-profile", "descriptor-get-profile", "descriptor-set-profile", "descriptor-delete-profile", "attribute-assignment", "attribute-deletion", "inherited-attributes", "exception-handling", "ordinary-python-source-adapter"]
+    },
+    {
       "id": "adapter-issubclass-builtin",
       "source": "../adapter/adapter-issubclass-builtin.py",
       "reference": "Python Standard Library Built-in Functions issubclass; Python data model standard type hierarchy bool subclass of int",

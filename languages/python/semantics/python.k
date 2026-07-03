@@ -70,6 +70,7 @@ module PYTHON-SYNTAX
                          | "#classStaticMethod" "(" Id "," IdItems "," Block "," ClassAttrExps ")" [symbol(classStaticMethodExpsCons)]
                          | "#classClassMethod" "(" Id "," IdItems "," Block "," ClassAttrExps ")" [symbol(classClassMethodExpsCons)]
                          | "#classProperty" "(" Id "," IdItems "," Block "," ClassAttrExps ")" [symbol(classPropertyExpsCons)]
+                         | "#classPropertyGetter" "(" Id "," IdItems "," Block "," ClassAttrExps ")" [symbol(classPropertyGetterExpsCons)]
                          | "#classPropertySetter" "(" Id "," IdItems "," Block "," ClassAttrExps ")" [symbol(classPropertySetterExpsCons)]
                          | "#classPropertyDeleter" "(" Id "," IdItems "," Block "," ClassAttrExps ")" [symbol(classPropertyDeleterExpsCons)]
 
@@ -2580,6 +2581,7 @@ module PYTHON
                | propertyGet(Val) [function, symbol(propertyGet)]
                | propertySet(Val) [function, symbol(propertySet)]
                | propertyDel(Val) [function, symbol(propertyDel)]
+               | propertyWithGetter(Val, Val) [function, symbol(propertyWithGetter)]
                | propertyWithSetter(Val, Val) [function, symbol(propertyWithSetter)]
                | propertyWithDeleter(Val, Val) [function, symbol(propertyWithDeleter)]
                | matchStarMiddle(Val, MatchPatterns, MatchPatterns) [function, symbol(matchStarMiddle)]
@@ -6336,6 +6338,10 @@ module PYTHON
   rule propertySet(propertyVal(_F:Val, S:Val, _D:Val)) => S
   rule propertyDel(propertyValDel(_F:Val, D:Val)) => D
   rule propertyDel(propertyVal(_F:Val, _S:Val, D:Val)) => D
+  rule propertyWithGetter(propertyVal(_OldF:Val), F:Val) => propertyVal(F)
+  rule propertyWithGetter(propertyVal(_OldF:Val, S:Val), F:Val) => propertyVal(F, S)
+  rule propertyWithGetter(propertyValDel(_OldF:Val, D:Val), F:Val) => propertyValDel(F, D)
+  rule propertyWithGetter(propertyVal(_OldF:Val, S:Val, D:Val), F:Val) => propertyVal(F, S, D)
   rule propertyWithSetter(propertyVal(F:Val), S:Val) => propertyVal(F, S)
   rule propertyWithSetter(propertyVal(F:Val, _OldS:Val), S:Val) => propertyVal(F, S)
   rule propertyWithSetter(propertyValDel(F:Val, D:Val), S:Val) => propertyVal(F, S, D)
@@ -29449,6 +29455,12 @@ module PYTHON
            collectClassAttrs(C, Rest, classAttrSet(Attrs, M, propertyVal(functionValArgs(IDS, Body))), Rho)
        ... </k>
        <env> ClassRho => ClassRho [ M <- propertyVal(functionValArgs(IDS, Body)) ] </env>
+  rule <k> collectClassAttrs(C:Id, #classPropertyGetter(M:Id, IDS:IdItems, Body:Block, Rest:ClassAttrExps), Attrs:ClassAttrs, Rho:Map) =>
+           collectClassAttrs(C, Rest, classAttrSet(Attrs, M, propertyWithGetter(classAttrGet(Attrs, M), functionValArgs(IDS, Body))), Rho)
+       ... </k>
+       <env> ClassRho => ClassRho [ M <- propertyWithGetter(classAttrGet(Attrs, M), functionValArgs(IDS, Body)) ] </env>
+    requires classAttrsHas(Attrs, M)
+      andBool isPropertyVal(classAttrGet(Attrs, M))
   rule <k> collectClassAttrs(C:Id, #classPropertySetter(M:Id, IDS:IdItems, Body:Block, Rest:ClassAttrExps), Attrs:ClassAttrs, Rho:Map) =>
            collectClassAttrs(C, Rest, classAttrSet(Attrs, M, propertyWithSetter(classAttrGet(Attrs, M), functionValArgs(IDS, Body))), Rho)
        ... </k>
@@ -29493,6 +29505,12 @@ module PYTHON
            collectClassAttrsBase(C, BaseId, BaseAttrs, Rest, classAttrSet(Attrs, M, propertyVal(functionValArgs(IDS, Body))), Rho)
        ... </k>
        <env> ClassRho => ClassRho [ M <- propertyVal(functionValArgs(IDS, Body)) ] </env>
+  rule <k> collectClassAttrsBase(C:Id, BaseId:Int, BaseAttrs:ClassAttrs, #classPropertyGetter(M:Id, IDS:IdItems, Body:Block, Rest:ClassAttrExps), Attrs:ClassAttrs, Rho:Map) =>
+           collectClassAttrsBase(C, BaseId, BaseAttrs, Rest, classAttrSet(Attrs, M, propertyWithGetter(classAttrGet(Attrs, M), functionValArgs(IDS, Body))), Rho)
+       ... </k>
+       <env> ClassRho => ClassRho [ M <- propertyWithGetter(classAttrGet(Attrs, M), functionValArgs(IDS, Body)) ] </env>
+    requires classAttrsHas(Attrs, M)
+      andBool isPropertyVal(classAttrGet(Attrs, M))
   rule <k> collectClassAttrsBase(C:Id, BaseId:Int, BaseAttrs:ClassAttrs, #classPropertySetter(M:Id, IDS:IdItems, Body:Block, Rest:ClassAttrExps), Attrs:ClassAttrs, Rho:Map) =>
            collectClassAttrsBase(C, BaseId, BaseAttrs, Rest, classAttrSet(Attrs, M, propertyWithSetter(classAttrGet(Attrs, M), functionValArgs(IDS, Body))), Rho)
        ... </k>
@@ -29537,6 +29555,12 @@ module PYTHON
            collectDecoratedClassAttrs(C, Decorators, Rest, classAttrSet(Attrs, M, propertyVal(functionValArgs(IDS, Body))), Rho)
        ... </k>
        <env> ClassRho => ClassRho [ M <- propertyVal(functionValArgs(IDS, Body)) ] </env>
+  rule <k> collectDecoratedClassAttrs(C:Id, Decorators:ArgVals, #classPropertyGetter(M:Id, IDS:IdItems, Body:Block, Rest:ClassAttrExps), Attrs:ClassAttrs, Rho:Map) =>
+           collectDecoratedClassAttrs(C, Decorators, Rest, classAttrSet(Attrs, M, propertyWithGetter(classAttrGet(Attrs, M), functionValArgs(IDS, Body))), Rho)
+       ... </k>
+       <env> ClassRho => ClassRho [ M <- propertyWithGetter(classAttrGet(Attrs, M), functionValArgs(IDS, Body)) ] </env>
+    requires classAttrsHas(Attrs, M)
+      andBool isPropertyVal(classAttrGet(Attrs, M))
   rule <k> collectDecoratedClassAttrs(C:Id, Decorators:ArgVals, #classPropertySetter(M:Id, IDS:IdItems, Body:Block, Rest:ClassAttrExps), Attrs:ClassAttrs, Rho:Map) =>
            collectDecoratedClassAttrs(C, Decorators, Rest, classAttrSet(Attrs, M, propertyWithSetter(classAttrGet(Attrs, M), functionValArgs(IDS, Body))), Rho)
        ... </k>
@@ -29586,6 +29610,12 @@ module PYTHON
            collectDecoratedClassAttrsBase(C, Decorators, BaseId, BaseAttrs, Rest, classAttrSet(Attrs, M, propertyVal(functionValArgs(IDS, Body))), Rho)
        ... </k>
        <env> ClassRho => ClassRho [ M <- propertyVal(functionValArgs(IDS, Body)) ] </env>
+  rule <k> collectDecoratedClassAttrsBase(C:Id, Decorators:ArgVals, BaseId:Int, BaseAttrs:ClassAttrs, #classPropertyGetter(M:Id, IDS:IdItems, Body:Block, Rest:ClassAttrExps), Attrs:ClassAttrs, Rho:Map) =>
+           collectDecoratedClassAttrsBase(C, Decorators, BaseId, BaseAttrs, Rest, classAttrSet(Attrs, M, propertyWithGetter(classAttrGet(Attrs, M), functionValArgs(IDS, Body))), Rho)
+       ... </k>
+       <env> ClassRho => ClassRho [ M <- propertyWithGetter(classAttrGet(Attrs, M), functionValArgs(IDS, Body)) ] </env>
+    requires classAttrsHas(Attrs, M)
+      andBool isPropertyVal(classAttrGet(Attrs, M))
   rule <k> collectDecoratedClassAttrsBase(C:Id, Decorators:ArgVals, BaseId:Int, BaseAttrs:ClassAttrs, #classPropertySetter(M:Id, IDS:IdItems, Body:Block, Rest:ClassAttrExps), Attrs:ClassAttrs, Rho:Map) =>
            collectDecoratedClassAttrsBase(C, Decorators, BaseId, BaseAttrs, Rest, classAttrSet(Attrs, M, propertyWithSetter(classAttrGet(Attrs, M), functionValArgs(IDS, Body))), Rho)
        ... </k>

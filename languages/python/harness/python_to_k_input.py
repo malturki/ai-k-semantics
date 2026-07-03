@@ -1983,10 +1983,10 @@ def emit_simple_class_def(
                     method_returns,
                     method_type_comment,
                 )
-                if member[0] in {"propertysetter", "propertydeleter"}:
+                if member[0] in {"propertygetter", "propertysetter", "propertydeleter"}:
                     previous_kind = next((kind for kind, attr_name, _payload, _body in reversed(members) if attr_name == member[1]), None)
-                    if previous_kind not in {"property", "propertysetter", "propertydeleter"}:
-                        raise unsupported(stmt, "property setters and deleters currently require a prior @property for the same class-body name")
+                    if previous_kind not in {"property", "propertygetter", "propertysetter", "propertydeleter"}:
+                        raise unsupported(stmt, "property getters, setters, and deleters currently require a prior @property for the same class-body name")
                 members.append(member)
             case _:
                 raise unsupported(
@@ -2020,7 +2020,7 @@ def emit_simple_class_method(
     method_kind = "method"
     if decorators:
         if len(decorators) != 1:
-            raise unsupported(node, "only @staticmethod, @classmethod, @property, simple @name.setter, and simple @name.deleter are supported in the current method profile")
+            raise unsupported(node, "only @staticmethod, @classmethod, @property, simple @name.getter, simple @name.setter, and simple @name.deleter are supported in the current method profile")
         decorator = decorators[0]
         if isinstance(decorator, ast.Name) and decorator.id == "staticmethod":
             method_kind = "staticmethod"
@@ -2028,6 +2028,13 @@ def emit_simple_class_method(
             method_kind = "classmethod"
         elif isinstance(decorator, ast.Name) and decorator.id == "property":
             method_kind = "property"
+        elif (
+            isinstance(decorator, ast.Attribute)
+            and decorator.attr == "getter"
+            and isinstance(decorator.value, ast.Name)
+            and decorator.value.id == name
+        ):
+            method_kind = "propertygetter"
         elif (
             isinstance(decorator, ast.Attribute)
             and decorator.attr == "setter"
@@ -2043,7 +2050,7 @@ def emit_simple_class_method(
         ):
             method_kind = "propertydeleter"
         else:
-            raise unsupported(node, "only @staticmethod, @classmethod, @property, simple @name.setter, and simple @name.deleter are supported in the current method profile")
+            raise unsupported(node, "only @staticmethod, @classmethod, @property, simple @name.getter, simple @name.setter, and simple @name.deleter are supported in the current method profile")
     if type_comment is not None:
         raise unsupported(node, "method type comments are not supported yet")
     if getattr(node, "type_params", []):
@@ -2060,7 +2067,7 @@ def emit_simple_class_method(
     names = [arg.arg for arg in args.args]
     if not names:
         raise unsupported(node, "class methods currently require at least an explicit self parameter")
-    if method_kind == "property" and len(names) != 1:
+    if method_kind in {"property", "propertygetter"} and len(names) != 1:
         raise unsupported(node, "properties currently support only a getter with an explicit self parameter")
     if method_kind == "propertysetter" and len(names) != 2:
         raise unsupported(node, "property setters currently support only an explicit self parameter and one value parameter")
@@ -2084,6 +2091,8 @@ def emit_class_attr_exps(members: list[tuple[str, str, str, str]]) -> str:
         return f"#classClassMethod({name}, {payload}, {body}, {rest})"
     if kind == "property":
         return f"#classProperty({name}, {payload}, {body}, {rest})"
+    if kind == "propertygetter":
+        return f"#classPropertyGetter({name}, {payload}, {body}, {rest})"
     if kind == "propertysetter":
         return f"#classPropertySetter({name}, {payload}, {body}, {rest})"
     if kind == "propertydeleter":

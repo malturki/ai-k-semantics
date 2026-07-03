@@ -1754,6 +1754,13 @@
       "coverage": ["class-definition", "property-profile", "descriptor-get-profile", "class-attribute-lookup", "instance-class-attribute-fallback", "inherited-attributes", "getattr-builtin", "callable-builtin", "truth-value-testing", "ordinary-python-source-adapter"]
     },
     {
+      "id": "adapter-class-property-setter",
+      "source": "../adapter/adapter-class-property-setter.py",
+      "reference": "Python 3.14.6 Language Reference 8.8 Class definitions; Python Standard Library Built-in Functions property; Python Data Model descriptor invocation",
+      "expected_result": "True ~> .K",
+      "coverage": ["class-definition", "property-profile", "property-setter-profile", "descriptor-get-profile", "descriptor-set-profile", "attribute-assignment", "inherited-attributes", "getattr-builtin", "exception-handling", "callable-builtin", "truth-value-testing", "ordinary-python-source-adapter"]
+    },
+    {
       "id": "adapter-issubclass-builtin",
       "source": "../adapter/adapter-issubclass-builtin.py",
       "reference": "Python Standard Library Built-in Functions issubclass; Python data model standard type hierarchy bool subclass of int",

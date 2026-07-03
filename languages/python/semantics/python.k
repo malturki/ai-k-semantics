@@ -70,6 +70,7 @@ module PYTHON-SYNTAX
                          | "#classStaticMethod" "(" Id "," IdItems "," Block "," ClassAttrExps ")" [symbol(classStaticMethodExpsCons)]
                          | "#classClassMethod" "(" Id "," IdItems "," Block "," ClassAttrExps ")" [symbol(classClassMethodExpsCons)]
                          | "#classProperty" "(" Id "," IdItems "," Block "," ClassAttrExps ")" [symbol(classPropertyExpsCons)]
+                         | "#classPropertySetter" "(" Id "," IdItems "," Block "," ClassAttrExps ")" [symbol(classPropertySetterExpsCons)]
 
   syntax DictExps ::= "#noDictItems" [symbol(noDictExps)]
                     | "#dictItem" "(" Exp "," Exp ")" [symbol(dictExpItem)]
@@ -709,6 +710,7 @@ module PYTHON
                | staticMethodVal(Val) [symbol(staticMethodVal)]
                | classMethodVal(Val) [symbol(classMethodVal)]
                | propertyVal(Val) [symbol(propertyVal)]
+               | propertyVal(Val, Val) [symbol(propertyValSetter)]
                | "#exceptionInstance" "(" Id "," ArgVals ")" [symbol(exceptionInstanceVal)]
                | buildFunctionDefault(FunctionDefaultBuilder, ArgVals) [function, symbol(buildFunctionDefault)]
                | buildFunctionTwoDefaults(FunctionTwoDefaultBuilder, ArgVals, ArgVals) [function, symbol(buildFunctionTwoDefaults)]
@@ -786,6 +788,7 @@ module PYTHON
                  | decoratedClassAttrBaseBind(Id, ArgVals, Int, ClassAttrs, Id, ClassAttrExps, ClassAttrs, Map) [symbol(decoratedClassAttrBaseBind)]
                  | assignAttrObject(Exp, Id) [symbol(assignAttrObject)]
                  | assignAttrApply(Val, Id) [symbol(assignAttrApply)]
+                 | propertySetterDone() [symbol(propertySetterDone)]
                  | initObjectDone(Val) [symbol(initObjectDone)]
                  | formatDefault() [symbol(formatDefault)]
                  | formatSpec(Exp) [symbol(formatSpec)]
@@ -1519,6 +1522,7 @@ module PYTHON
                 | isBoundMethodVal(Val) [function, symbol(isBoundMethodVal)]
                 | isStaticOrClassMethodVal(Val) [function, symbol(isStaticOrClassMethodVal)]
                 | isPropertyVal(Val) [function, symbol(isPropertyVal)]
+                | propertyHasSetter(Val) [function, symbol(propertyHasSetter)]
                 | isIntLike(Val) [function, symbol(isIntLike)]
                 | isFloatVal(Val) [function, symbol(isFloatVal)]
                 | isFloatLike(Val) [function, symbol(isFloatLike)]
@@ -2566,6 +2570,8 @@ module PYTHON
                | classAttrStringGet(ClassAttrs, String) [function, symbol(classAttrStringGet)]
                | classAttrAccess(Val, Val) [function, symbol(classAttrAccess)]
                | propertyGet(Val) [function, symbol(propertyGet)]
+               | propertySet(Val) [function, symbol(propertySet)]
+               | propertyWithSetter(Val, Val) [function, symbol(propertyWithSetter)]
                | matchStarMiddle(Val, MatchPatterns, MatchPatterns) [function, symbol(matchStarMiddle)]
                | matchMappingRestVal(Val, MatchMapPatterns) [function, symbol(matchMappingRestVal)]
   syntax Val ::= listSlice(ValItems, Int, Int) [function, symbol(listSlice)]
@@ -2839,6 +2845,7 @@ module PYTHON
   rule truthy(userObjectVal(_:Id, _:Int, _:Int, _:ClassAttrs)) => true
   rule truthy(boundMethodVal(_:Val, _:Val)) => true
   rule truthy(propertyVal(_:Val)) => true
+  rule truthy(propertyVal(_:Val, _:Val)) => true
   rule truthy(rangeVal(Start:Int, Stop:Int)) => Start <Int Stop
   rule truthy(rangeVal(Start:Int, Stop:Int, Step:Int)) => pyRangeLen(Start, Stop, Step) >Int 0
     requires Step =/=Int 0
@@ -2987,7 +2994,12 @@ module PYTHON
   rule isStaticOrClassMethodVal(_:Val) => false [owise]
 
   rule isPropertyVal(propertyVal(_:Val)) => true
+  rule isPropertyVal(propertyVal(_:Val, _:Val)) => true
   rule isPropertyVal(_:Val) => false [owise]
+
+  rule propertyHasSetter(propertyVal(_:Val, _:Val)) => true
+  rule propertyHasSetter(propertyVal(_:Val)) => false
+  rule propertyHasSetter(_:Val) => false [owise]
 
   rule contextManagerSupported(#memoryviewVal(_:Val)) => true
   rule contextManagerSupported(_:Val) => false [owise]
@@ -4673,6 +4685,7 @@ module PYTHON
   rule isIntLike(userObjectVal(_:Id, _:Int, _:Int, _:ClassAttrs)) => false
   rule isIntLike(boundMethodVal(_:Val, _:Val)) => false
   rule isIntLike(propertyVal(_:Val)) => false
+  rule isIntLike(propertyVal(_:Val, _:Val)) => false
   rule isIntLike(iteratorRef(_:Int)) => false
   rule isIntLike(rangeVal(_:Int, _:Int)) => false
   rule isIntLike(rangeVal(_:Int, _:Int, _:Int)) => false
@@ -5700,6 +5713,7 @@ module PYTHON
   rule singletonIdentity(userObjectVal(_:Id, _:Int, _:Int, _:ClassAttrs)) => false
   rule singletonIdentity(boundMethodVal(_:Val, _:Val)) => false
   rule singletonIdentity(propertyVal(_:Val)) => false
+  rule singletonIdentity(propertyVal(_:Val, _:Val)) => false
   rule singletonIdentity(rangeVal(_:Int, _:Int)) => false
   rule singletonIdentity(rangeVal(_:Int, _:Int, _:Int)) => false
   rule singletonIdentity(sliceVal(_:Val, _:Val, _:Val)) => false
@@ -6280,6 +6294,10 @@ module PYTHON
     requires notBool isStaticOrClassMethodVal(V)
 
   rule propertyGet(propertyVal(F:Val)) => F
+  rule propertyGet(propertyVal(F:Val, _S:Val)) => F
+  rule propertySet(propertyVal(_F:Val, S:Val)) => S
+  rule propertyWithSetter(propertyVal(F:Val), S:Val) => propertyVal(F, S)
+  rule propertyWithSetter(propertyVal(F:Val, _OldS:Val), S:Val) => propertyVal(F, S)
 
   rule classHasMatchAttr(classVal(_:Id, _:Int, Attrs:ClassAttrs), A:Id) => true
     requires classAttrsHas(Attrs, A)
@@ -28549,11 +28567,34 @@ module PYTHON
   rule <k> V:Val ~> assignAttrObject(Obj:Exp, Attr:Id) =>
            Obj ~> assignAttrApply(V, Attr)
        ... </k>
-  rule <k> userObjectVal(_:Id, _:Int, ObjectId:Int, _:ClassAttrs) ~> assignAttrApply(V:Val, Attr:Id) =>
+  rule <k> userObjectVal(C:Id, ClassId:Int, ObjectId:Int, Attrs:ClassAttrs) ~> assignAttrApply(V:Val, Attr:Id) =>
+           #call(boundMethodVal(userObjectVal(C, ClassId, ObjectId, Attrs), propertySet(classAttrGet(Attrs, Attr))), #arg(V))
+           ~> propertySetterDone()
+       ... </k>
+    requires classAttrsHas(Attrs, Attr)
+      andBool isPropertyVal(classAttrGet(Attrs, Attr))
+      andBool propertyHasSetter(classAttrGet(Attrs, Attr))
+  rule <k> userObjectVal(_:Id, _:Int, _:Int, Attrs:ClassAttrs) ~> assignAttrApply(_V:Val, Attr:Id) =>
+           exceptionSignal(#exception(#token("AttributeError", "Id")))
+       ... </k>
+    requires classAttrsHas(Attrs, Attr)
+      andBool isPropertyVal(classAttrGet(Attrs, Attr))
+      andBool notBool propertyHasSetter(classAttrGet(Attrs, Attr))
+  rule <k> _V:Val ~> propertySetterDone() => stmtNoResult ... </k>
+       <result> _ => .K </result>
+  rule <k> userObjectVal(_:Id, _:Int, ObjectId:Int, Attrs:ClassAttrs) ~> assignAttrApply(V:Val, Attr:Id) =>
            stmtNoResult
        ... </k>
        <objectAttrs> ... ObjectId |-> (ObjAttrs:ClassAttrs => classAttrSet(ObjAttrs, Attr, V)) ... </objectAttrs>
        <result> _ => .K </result>
+    requires notBool classAttrsHas(Attrs, Attr)
+  rule <k> userObjectVal(_:Id, _:Int, ObjectId:Int, Attrs:ClassAttrs) ~> assignAttrApply(V:Val, Attr:Id) =>
+           stmtNoResult
+       ... </k>
+       <objectAttrs> ... ObjectId |-> (ObjAttrs:ClassAttrs => classAttrSet(ObjAttrs, Attr, V)) ... </objectAttrs>
+       <result> _ => .K </result>
+    requires classAttrsHas(Attrs, Attr)
+      andBool notBool isPropertyVal(classAttrGet(Attrs, Attr))
   rule <k> V:Val ~> assignAttrApply(_:Val, _:Id) =>
            exceptionSignal(#exception(#token("AttributeError", "Id")))
        ... </k>
@@ -29311,6 +29352,12 @@ module PYTHON
            collectClassAttrs(C, Rest, classAttrSet(Attrs, M, propertyVal(functionValArgs(IDS, Body))), Rho)
        ... </k>
        <env> ClassRho => ClassRho [ M <- propertyVal(functionValArgs(IDS, Body)) ] </env>
+  rule <k> collectClassAttrs(C:Id, #classPropertySetter(M:Id, IDS:IdItems, Body:Block, Rest:ClassAttrExps), Attrs:ClassAttrs, Rho:Map) =>
+           collectClassAttrs(C, Rest, classAttrSet(Attrs, M, propertyWithSetter(classAttrGet(Attrs, M), functionValArgs(IDS, Body))), Rho)
+       ... </k>
+       <env> ClassRho => ClassRho [ M <- propertyWithSetter(classAttrGet(Attrs, M), functionValArgs(IDS, Body)) ] </env>
+    requires classAttrsHas(Attrs, M)
+      andBool isPropertyVal(classAttrGet(Attrs, M))
   rule <k> classVal(_Base:Id, BaseId:Int, BaseAttrs:ClassAttrs) ~> classBaseApply(C:Id, Attrs:ClassAttrExps, Rho:Map) =>
            collectClassAttrsBase(C, BaseId, BaseAttrs, Attrs, #noRuntimeClassAttrs, Rho)
        ... </k>
@@ -29343,6 +29390,12 @@ module PYTHON
            collectClassAttrsBase(C, BaseId, BaseAttrs, Rest, classAttrSet(Attrs, M, propertyVal(functionValArgs(IDS, Body))), Rho)
        ... </k>
        <env> ClassRho => ClassRho [ M <- propertyVal(functionValArgs(IDS, Body)) ] </env>
+  rule <k> collectClassAttrsBase(C:Id, BaseId:Int, BaseAttrs:ClassAttrs, #classPropertySetter(M:Id, IDS:IdItems, Body:Block, Rest:ClassAttrExps), Attrs:ClassAttrs, Rho:Map) =>
+           collectClassAttrsBase(C, BaseId, BaseAttrs, Rest, classAttrSet(Attrs, M, propertyWithSetter(classAttrGet(Attrs, M), functionValArgs(IDS, Body))), Rho)
+       ... </k>
+       <env> ClassRho => ClassRho [ M <- propertyWithSetter(classAttrGet(Attrs, M), functionValArgs(IDS, Body)) ] </env>
+    requires classAttrsHas(Attrs, M)
+      andBool isPropertyVal(classAttrGet(Attrs, M))
   rule <k> argsVal(Decorators:ArgVals) ~> bindDecoratedClass(C:Id, Attrs:ClassAttrExps) =>
            collectDecoratedClassAttrs(C, Decorators, Attrs, #noRuntimeClassAttrs, Rho)
        ... </k>
@@ -29375,6 +29428,12 @@ module PYTHON
            collectDecoratedClassAttrs(C, Decorators, Rest, classAttrSet(Attrs, M, propertyVal(functionValArgs(IDS, Body))), Rho)
        ... </k>
        <env> ClassRho => ClassRho [ M <- propertyVal(functionValArgs(IDS, Body)) ] </env>
+  rule <k> collectDecoratedClassAttrs(C:Id, Decorators:ArgVals, #classPropertySetter(M:Id, IDS:IdItems, Body:Block, Rest:ClassAttrExps), Attrs:ClassAttrs, Rho:Map) =>
+           collectDecoratedClassAttrs(C, Decorators, Rest, classAttrSet(Attrs, M, propertyWithSetter(classAttrGet(Attrs, M), functionValArgs(IDS, Body))), Rho)
+       ... </k>
+       <env> ClassRho => ClassRho [ M <- propertyWithSetter(classAttrGet(Attrs, M), functionValArgs(IDS, Body)) ] </env>
+    requires classAttrsHas(Attrs, M)
+      andBool isPropertyVal(classAttrGet(Attrs, M))
   rule <k> argsVal(Decorators:ArgVals) ~> bindDecoratedBaseClass(C:Id, Base:Id, Attrs:ClassAttrExps) =>
            Base ~> classDecoratedBaseApply(C, Decorators, Attrs, Rho)
        ... </k>
@@ -29412,6 +29471,12 @@ module PYTHON
            collectDecoratedClassAttrsBase(C, Decorators, BaseId, BaseAttrs, Rest, classAttrSet(Attrs, M, propertyVal(functionValArgs(IDS, Body))), Rho)
        ... </k>
        <env> ClassRho => ClassRho [ M <- propertyVal(functionValArgs(IDS, Body)) ] </env>
+  rule <k> collectDecoratedClassAttrsBase(C:Id, Decorators:ArgVals, BaseId:Int, BaseAttrs:ClassAttrs, #classPropertySetter(M:Id, IDS:IdItems, Body:Block, Rest:ClassAttrExps), Attrs:ClassAttrs, Rho:Map) =>
+           collectDecoratedClassAttrsBase(C, Decorators, BaseId, BaseAttrs, Rest, classAttrSet(Attrs, M, propertyWithSetter(classAttrGet(Attrs, M), functionValArgs(IDS, Body))), Rho)
+       ... </k>
+       <env> ClassRho => ClassRho [ M <- propertyWithSetter(classAttrGet(Attrs, M), functionValArgs(IDS, Body)) ] </env>
+    requires classAttrsHas(Attrs, M)
+      andBool isPropertyVal(classAttrGet(Attrs, M))
   rule <k> functionDefVarArgsStmt(F:Id, IDS:IdItems, Var:Id, Body:Block) => stmtNoResult ... </k>
        <env> Rho => Rho [ F <- functionValVarArgs(IDS, Var, Body) ] </env>
        <result> _ => .K </result>
@@ -32924,6 +32989,7 @@ module PYTHON
        <env> _ => Rho </env>
   rule <k> exceptionSignal(V:Val) ~> assignAttrObject(_:Exp, _:Id) => exceptionSignal(V) ... </k>
   rule <k> exceptionSignal(V:Val) ~> assignAttrApply(_:Val, _:Id) => exceptionSignal(V) ... </k>
+  rule <k> exceptionSignal(V:Val) ~> propertySetterDone() => exceptionSignal(V) ... </k>
   rule <k> exceptionSignal(V:Val) ~> initObjectDone(_:Val) => exceptionSignal(V) ... </k>
   rule <k> exceptionSignal(V:Val) ~> formatDefault() => exceptionSignal(V) ... </k>
   rule <k> exceptionSignal(V:Val) ~> formatSpec(_:Exp) => exceptionSignal(V) ... </k>

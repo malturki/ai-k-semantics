@@ -1974,17 +1974,20 @@ def emit_simple_class_def(
                 returns=method_returns,
                 type_comment=method_type_comment,
             ):
-                members.append(
-                    emit_simple_class_method(
-                        stmt,
-                        method_name,
-                        args,
-                        method_body,
-                        method_decorators,
-                        method_returns,
-                        method_type_comment,
-                    )
+                member = emit_simple_class_method(
+                    stmt,
+                    method_name,
+                    args,
+                    method_body,
+                    method_decorators,
+                    method_returns,
+                    method_type_comment,
                 )
+                if member[0] == "propertysetter":
+                    previous_kind = next((kind for kind, attr_name, _payload, _body in reversed(members) if attr_name == member[1]), None)
+                    if previous_kind not in {"property", "propertysetter"}:
+                        raise unsupported(stmt, "property setters currently require a prior @property for the same class-body name")
+                members.append(member)
             case _:
                 raise unsupported(
                     stmt,
@@ -2016,16 +2019,24 @@ def emit_simple_class_method(
     _ = returns
     method_kind = "method"
     if decorators:
-        if len(decorators) != 1 or not isinstance(decorators[0], ast.Name):
-            raise unsupported(node, "only @staticmethod, @classmethod, and @property are supported in the current method profile")
-        if decorators[0].id == "staticmethod":
+        if len(decorators) != 1:
+            raise unsupported(node, "only @staticmethod, @classmethod, @property, and simple @name.setter are supported in the current method profile")
+        decorator = decorators[0]
+        if isinstance(decorator, ast.Name) and decorator.id == "staticmethod":
             method_kind = "staticmethod"
-        elif decorators[0].id == "classmethod":
+        elif isinstance(decorator, ast.Name) and decorator.id == "classmethod":
             method_kind = "classmethod"
-        elif decorators[0].id == "property":
+        elif isinstance(decorator, ast.Name) and decorator.id == "property":
             method_kind = "property"
+        elif (
+            isinstance(decorator, ast.Attribute)
+            and decorator.attr == "setter"
+            and isinstance(decorator.value, ast.Name)
+            and decorator.value.id == name
+        ):
+            method_kind = "propertysetter"
         else:
-            raise unsupported(node, "only @staticmethod, @classmethod, and @property are supported in the current method profile")
+            raise unsupported(node, "only @staticmethod, @classmethod, @property, and simple @name.setter are supported in the current method profile")
     if type_comment is not None:
         raise unsupported(node, "method type comments are not supported yet")
     if getattr(node, "type_params", []):
@@ -2044,6 +2055,8 @@ def emit_simple_class_method(
         raise unsupported(node, "class methods currently require at least an explicit self parameter")
     if method_kind == "property" and len(names) != 1:
         raise unsupported(node, "properties currently support only a getter with an explicit self parameter")
+    if method_kind == "propertysetter" and len(names) != 2:
+        raise unsupported(node, "property setters currently support only an explicit self parameter and one value parameter")
     return (method_kind, emit_id(name), emit_id_items(names), emit_block(body))
 
 
@@ -2062,6 +2075,8 @@ def emit_class_attr_exps(members: list[tuple[str, str, str, str]]) -> str:
         return f"#classClassMethod({name}, {payload}, {body}, {rest})"
     if kind == "property":
         return f"#classProperty({name}, {payload}, {body}, {rest})"
+    if kind == "propertysetter":
+        return f"#classPropertySetter({name}, {payload}, {body}, {rest})"
     raise AssertionError(f"unknown class member kind: {kind}")
 
 

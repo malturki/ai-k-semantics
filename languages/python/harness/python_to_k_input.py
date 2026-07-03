@@ -2017,13 +2017,15 @@ def emit_simple_class_method(
     method_kind = "method"
     if decorators:
         if len(decorators) != 1 or not isinstance(decorators[0], ast.Name):
-            raise unsupported(node, "only @staticmethod and @classmethod are supported in the current method profile")
+            raise unsupported(node, "only @staticmethod, @classmethod, and @property are supported in the current method profile")
         if decorators[0].id == "staticmethod":
             method_kind = "staticmethod"
         elif decorators[0].id == "classmethod":
             method_kind = "classmethod"
+        elif decorators[0].id == "property":
+            method_kind = "property"
         else:
-            raise unsupported(node, "only @staticmethod and @classmethod are supported in the current method profile")
+            raise unsupported(node, "only @staticmethod, @classmethod, and @property are supported in the current method profile")
     if type_comment is not None:
         raise unsupported(node, "method type comments are not supported yet")
     if getattr(node, "type_params", []):
@@ -2040,6 +2042,8 @@ def emit_simple_class_method(
     names = [arg.arg for arg in args.args]
     if not names:
         raise unsupported(node, "class methods currently require at least an explicit self parameter")
+    if method_kind == "property" and len(names) != 1:
+        raise unsupported(node, "properties currently support only a getter with an explicit self parameter")
     return (method_kind, emit_id(name), emit_id_items(names), emit_block(body))
 
 
@@ -2056,6 +2060,8 @@ def emit_class_attr_exps(members: list[tuple[str, str, str, str]]) -> str:
         return f"#classStaticMethod({name}, {payload}, {body}, {rest})"
     if kind == "classmethod":
         return f"#classClassMethod({name}, {payload}, {body}, {rest})"
+    if kind == "property":
+        return f"#classProperty({name}, {payload}, {body}, {rest})"
     raise AssertionError(f"unknown class member kind: {kind}")
 
 

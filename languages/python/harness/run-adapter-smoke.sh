@@ -124,6 +124,7 @@ run_case "adapter-class-methods-instance-attrs" "$ROOT/tests/adapter/adapter-cla
 run_case "adapter-class-inheritance-basic" "$ROOT/tests/adapter/adapter-class-inheritance-basic.py" "True ~> .K"
 run_case "adapter-class-decorators" "$ROOT/tests/adapter/adapter-class-decorators.py" "True ~> .K"
 run_case "adapter-class-method-decorators" "$ROOT/tests/adapter/adapter-class-method-decorators.py" "True ~> .K"
+run_case "adapter-class-property-basic" "$ROOT/tests/adapter/adapter-class-property-basic.py" "True ~> .K"
 run_case "adapter-issubclass-builtin" "$ROOT/tests/adapter/adapter-issubclass-builtin.py" "True ~> .K"
 run_case "adapter-getattr-builtin" "$ROOT/tests/adapter/adapter-getattr-builtin.py" "True ~> .K"
 run_case "adapter-hasattr-builtin" "$ROOT/tests/adapter/adapter-hasattr-builtin.py" "True ~> .K"

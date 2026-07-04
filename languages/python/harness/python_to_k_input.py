@@ -2075,10 +2075,30 @@ def emit_simple_class_method(
     if method_kind == "propertydeleter" and len(names) != 1:
         raise unsupported(node, "property deleters currently support only an explicit self parameter")
     if args.kwonlyargs:
-        if args.vararg is not None or args.kwarg is not None:
-            raise unsupported(node, "class methods currently support keyword-only parameters only without *args or **kwargs")
+        if args.kwarg is not None:
+            raise unsupported(node, "class methods currently support keyword-only parameters only without **kwargs")
+        if args.vararg is not None and args.posonlyargs:
+            raise unsupported(node, "class methods currently support positional-only plus keyword-only parameters only without *args or **kwargs")
         kw_names = [arg.arg for arg in args.kwonlyargs]
         kw_defaults = emit_kw_defaults(args.kw_defaults)
+        if args.vararg is not None:
+            if args.defaults or kw_defaults is not None:
+                pos_defaults = emit_arg_exps(args.defaults) if args.defaults else "#noArgs"
+                kw_defaults_exp = kw_defaults if kw_defaults is not None else "#noArgs"
+                return (
+                    f"{method_kind}varargskwdefaults",
+                    emit_id(name),
+                    emit_id_items(names),
+                    f"{pos_defaults}, {emit_id(args.vararg.arg)}, {emit_id_items(kw_names)}, {kw_defaults_exp}",
+                    emit_block(body),
+                )
+            return (
+                f"{method_kind}varargskwonly",
+                emit_id(name),
+                emit_id_items(names),
+                f"{emit_id(args.vararg.arg)}, {emit_id_items(kw_names)}",
+                emit_block(body),
+            )
         if args.posonlyargs:
             payload = f"{emit_id_items(pos_names)}, {emit_id_items(names)}"
             if args.defaults or kw_defaults is not None:
@@ -2143,6 +2163,10 @@ def emit_class_attr_exps(members: list[tuple[str, str, str, str, str]]) -> str:
         return f"#classMethodVarArgs({name}, {payload}, {defaults}, {body}, {rest})"
     if kind == "methodvarargsdefaults":
         return f"#classMethodVarArgsDefaults({name}, {payload}, {defaults}, {body}, {rest})"
+    if kind == "methodvarargskwonly":
+        return f"#classMethodVarArgsKwOnly({name}, {payload}, {defaults}, {body}, {rest})"
+    if kind == "methodvarargskwdefaults":
+        return f"#classMethodVarArgsKwDefaults({name}, {payload}, {defaults}, {body}, {rest})"
     if kind == "methodvarkwargs":
         return f"#classMethodVarKwArgs({name}, {payload}, {defaults}, {body}, {rest})"
     if kind == "methodvarkwargsdefaults":
@@ -2171,6 +2195,10 @@ def emit_class_attr_exps(members: list[tuple[str, str, str, str, str]]) -> str:
         return f"#classStaticMethodVarArgs({name}, {payload}, {defaults}, {body}, {rest})"
     if kind == "staticmethodvarargsdefaults":
         return f"#classStaticMethodVarArgsDefaults({name}, {payload}, {defaults}, {body}, {rest})"
+    if kind == "staticmethodvarargskwonly":
+        return f"#classStaticMethodVarArgsKwOnly({name}, {payload}, {defaults}, {body}, {rest})"
+    if kind == "staticmethodvarargskwdefaults":
+        return f"#classStaticMethodVarArgsKwDefaults({name}, {payload}, {defaults}, {body}, {rest})"
     if kind == "staticmethodvarkwargs":
         return f"#classStaticMethodVarKwArgs({name}, {payload}, {defaults}, {body}, {rest})"
     if kind == "staticmethodvarkwargsdefaults":
@@ -2199,6 +2227,10 @@ def emit_class_attr_exps(members: list[tuple[str, str, str, str, str]]) -> str:
         return f"#classClassMethodVarArgs({name}, {payload}, {defaults}, {body}, {rest})"
     if kind == "classmethodvarargsdefaults":
         return f"#classClassMethodVarArgsDefaults({name}, {payload}, {defaults}, {body}, {rest})"
+    if kind == "classmethodvarargskwonly":
+        return f"#classClassMethodVarArgsKwOnly({name}, {payload}, {defaults}, {body}, {rest})"
+    if kind == "classmethodvarargskwdefaults":
+        return f"#classClassMethodVarArgsKwDefaults({name}, {payload}, {defaults}, {body}, {rest})"
     if kind == "classmethodvarkwargs":
         return f"#classClassMethodVarKwArgs({name}, {payload}, {defaults}, {body}, {rest})"
     if kind == "classmethodvarkwargsdefaults":

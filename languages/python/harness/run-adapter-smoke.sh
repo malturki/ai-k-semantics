@@ -126,6 +126,7 @@ run_case "adapter-class-method-varargs" "$ROOT/tests/adapter/adapter-class-metho
 run_case "adapter-class-method-varargs-defaults" "$ROOT/tests/adapter/adapter-class-method-varargs-defaults.py" "True ~> .K"
 run_case "adapter-class-method-varargs-kwargs" "$ROOT/tests/adapter/adapter-class-method-varargs-kwargs.py" "True ~> .K"
 run_case "adapter-class-method-kwargs" "$ROOT/tests/adapter/adapter-class-method-kwargs.py" "True ~> .K"
+run_case "adapter-class-method-pos-only" "$ROOT/tests/adapter/adapter-class-method-pos-only.py" "True ~> .K"
 run_case "adapter-class-inheritance-basic" "$ROOT/tests/adapter/adapter-class-inheritance-basic.py" "True ~> .K"
 run_case "adapter-class-decorators" "$ROOT/tests/adapter/adapter-class-decorators.py" "True ~> .K"
 run_case "adapter-class-method-decorators" "$ROOT/tests/adapter/adapter-class-method-decorators.py" "True ~> .K"

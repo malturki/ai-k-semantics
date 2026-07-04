@@ -2075,12 +2075,23 @@ def emit_simple_class_method(
     if method_kind == "propertydeleter" and len(names) != 1:
         raise unsupported(node, "property deleters currently support only an explicit self parameter")
     if args.kwonlyargs:
-        if args.posonlyargs:
-            raise unsupported(node, "class methods currently support keyword-only parameters only without positional-only parameters")
         if args.vararg is not None or args.kwarg is not None:
             raise unsupported(node, "class methods currently support keyword-only parameters only without *args or **kwargs")
         kw_names = [arg.arg for arg in args.kwonlyargs]
         kw_defaults = emit_kw_defaults(args.kw_defaults)
+        if args.posonlyargs:
+            payload = f"{emit_id_items(pos_names)}, {emit_id_items(names)}"
+            if args.defaults or kw_defaults is not None:
+                pos_defaults = emit_arg_exps(args.defaults) if args.defaults else "#noArgs"
+                kw_defaults_exp = kw_defaults if kw_defaults is not None else "#noArgs"
+                return (
+                    f"{method_kind}posonlykwdefaults",
+                    emit_id(name),
+                    payload,
+                    f"{pos_defaults}, {emit_id_items(kw_names)}, {kw_defaults_exp}",
+                    emit_block(body),
+                )
+            return (f"{method_kind}posonlykwonly", emit_id(name), payload, emit_id_items(kw_names), emit_block(body))
         if args.defaults or kw_defaults is not None:
             pos_defaults = emit_arg_exps(args.defaults) if args.defaults else "#noArgs"
             kw_defaults_exp = kw_defaults if kw_defaults is not None else "#noArgs"
@@ -2148,6 +2159,10 @@ def emit_class_attr_exps(members: list[tuple[str, str, str, str, str]]) -> str:
         return f"#classMethodPosOnly({name}, {payload}, {body}, {rest})"
     if kind == "methodposonlydefaults":
         return f"#classMethodPosOnlyDefaults({name}, {payload}, {defaults}, {body}, {rest})"
+    if kind == "methodposonlykwonly":
+        return f"#classMethodPosOnlyKwOnly({name}, {payload}, {defaults}, {body}, {rest})"
+    if kind == "methodposonlykwdefaults":
+        return f"#classMethodPosOnlyKwOnlyDefaults({name}, {payload}, {defaults}, {body}, {rest})"
     if kind == "staticmethod":
         return f"#classStaticMethod({name}, {payload}, {body}, {rest})"
     if kind == "staticmethoddefaults":
@@ -2172,6 +2187,10 @@ def emit_class_attr_exps(members: list[tuple[str, str, str, str, str]]) -> str:
         return f"#classStaticMethodPosOnly({name}, {payload}, {body}, {rest})"
     if kind == "staticmethodposonlydefaults":
         return f"#classStaticMethodPosOnlyDefaults({name}, {payload}, {defaults}, {body}, {rest})"
+    if kind == "staticmethodposonlykwonly":
+        return f"#classStaticMethodPosOnlyKwOnly({name}, {payload}, {defaults}, {body}, {rest})"
+    if kind == "staticmethodposonlykwdefaults":
+        return f"#classStaticMethodPosOnlyKwOnlyDefaults({name}, {payload}, {defaults}, {body}, {rest})"
     if kind == "classmethod":
         return f"#classClassMethod({name}, {payload}, {body}, {rest})"
     if kind == "classmethoddefaults":
@@ -2196,6 +2215,10 @@ def emit_class_attr_exps(members: list[tuple[str, str, str, str, str]]) -> str:
         return f"#classClassMethodPosOnly({name}, {payload}, {body}, {rest})"
     if kind == "classmethodposonlydefaults":
         return f"#classClassMethodPosOnlyDefaults({name}, {payload}, {defaults}, {body}, {rest})"
+    if kind == "classmethodposonlykwonly":
+        return f"#classClassMethodPosOnlyKwOnly({name}, {payload}, {defaults}, {body}, {rest})"
+    if kind == "classmethodposonlykwdefaults":
+        return f"#classClassMethodPosOnlyKwOnlyDefaults({name}, {payload}, {defaults}, {body}, {rest})"
     if kind == "property":
         return f"#classProperty({name}, {payload}, {body}, {rest})"
     if kind == "propertygetter":

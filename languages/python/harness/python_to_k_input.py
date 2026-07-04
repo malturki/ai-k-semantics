@@ -2063,8 +2063,6 @@ def emit_simple_class_method(
         raise unsupported(node, "class methods currently support only ordinary positional parameters, optional suffix defaults, plain *args, and **kwargs")
     if args.vararg is not None and args.kwarg is not None:
         raise unsupported(node, "class methods with both *args and **kwargs are not supported yet")
-    if args.vararg is not None and args.defaults:
-        raise unsupported(node, "class methods with *args and positional defaults are not supported yet")
     names = [arg.arg for arg in args.args]
     if not names and method_kind != "staticmethod":
         raise unsupported(node, "class methods currently require at least an explicit self parameter")
@@ -2081,6 +2079,8 @@ def emit_simple_class_method(
             return (f"{method_kind}kwargsdefaults", emit_id(name), emit_id_items(names), f"{emit_arg_exps(args.defaults)}, {emit_id(args.kwarg.arg)}", emit_block(body))
         return (f"{method_kind}kwargs", emit_id(name), emit_id_items(names), emit_id(args.kwarg.arg), emit_block(body))
     if args.vararg is not None:
+        if args.defaults:
+            return (f"{method_kind}varargsdefaults", emit_id(name), emit_id_items(names), f"{emit_arg_exps(args.defaults)}, {emit_id(args.vararg.arg)}", emit_block(body))
         return (f"{method_kind}varargs", emit_id(name), emit_id_items(names), emit_id(args.vararg.arg), emit_block(body))
     if args.defaults:
         return (f"{method_kind}defaults", emit_id(name), emit_id_items(names), emit_arg_exps(args.defaults), emit_block(body))
@@ -2100,6 +2100,8 @@ def emit_class_attr_exps(members: list[tuple[str, str, str, str, str]]) -> str:
         return f"#classMethodDefaults({name}, {payload}, {defaults}, {body}, {rest})"
     if kind == "methodvarargs":
         return f"#classMethodVarArgs({name}, {payload}, {defaults}, {body}, {rest})"
+    if kind == "methodvarargsdefaults":
+        return f"#classMethodVarArgsDefaults({name}, {payload}, {defaults}, {body}, {rest})"
     if kind == "methodkwargs":
         return f"#classMethodKwArgs({name}, {payload}, {defaults}, {body}, {rest})"
     if kind == "methodkwargsdefaults":
@@ -2110,6 +2112,8 @@ def emit_class_attr_exps(members: list[tuple[str, str, str, str, str]]) -> str:
         return f"#classStaticMethodDefaults({name}, {payload}, {defaults}, {body}, {rest})"
     if kind == "staticmethodvarargs":
         return f"#classStaticMethodVarArgs({name}, {payload}, {defaults}, {body}, {rest})"
+    if kind == "staticmethodvarargsdefaults":
+        return f"#classStaticMethodVarArgsDefaults({name}, {payload}, {defaults}, {body}, {rest})"
     if kind == "staticmethodkwargs":
         return f"#classStaticMethodKwArgs({name}, {payload}, {defaults}, {body}, {rest})"
     if kind == "staticmethodkwargsdefaults":
@@ -2120,6 +2124,8 @@ def emit_class_attr_exps(members: list[tuple[str, str, str, str, str]]) -> str:
         return f"#classClassMethodDefaults({name}, {payload}, {defaults}, {body}, {rest})"
     if kind == "classmethodvarargs":
         return f"#classClassMethodVarArgs({name}, {payload}, {defaults}, {body}, {rest})"
+    if kind == "classmethodvarargsdefaults":
+        return f"#classClassMethodVarArgsDefaults({name}, {payload}, {defaults}, {body}, {rest})"
     if kind == "classmethodkwargs":
         return f"#classClassMethodKwArgs({name}, {payload}, {defaults}, {body}, {rest})"
     if kind == "classmethodkwargsdefaults":

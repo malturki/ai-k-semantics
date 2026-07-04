@@ -69,16 +69,19 @@ module PYTHON-SYNTAX
                          | "#classMethod" "(" Id "," IdItems "," Block "," ClassAttrExps ")" [symbol(classMethodExpsCons)]
                          | "#classMethodDefaults" "(" Id "," IdItems "," ArgExps "," Block "," ClassAttrExps ")" [symbol(classMethodDefaultsExpsCons)]
                          | "#classMethodVarArgs" "(" Id "," IdItems "," Id "," Block "," ClassAttrExps ")" [symbol(classMethodVarArgsExpsCons)]
+                         | "#classMethodVarArgsDefaults" "(" Id "," IdItems "," ArgExps "," Id "," Block "," ClassAttrExps ")" [symbol(classMethodVarArgsDefaultsExpsCons)]
                          | "#classMethodKwArgs" "(" Id "," IdItems "," Id "," Block "," ClassAttrExps ")" [symbol(classMethodKwArgsExpsCons)]
                          | "#classMethodKwArgsDefaults" "(" Id "," IdItems "," ArgExps "," Id "," Block "," ClassAttrExps ")" [symbol(classMethodKwArgsDefaultsExpsCons)]
                          | "#classStaticMethod" "(" Id "," IdItems "," Block "," ClassAttrExps ")" [symbol(classStaticMethodExpsCons)]
                          | "#classStaticMethodDefaults" "(" Id "," IdItems "," ArgExps "," Block "," ClassAttrExps ")" [symbol(classStaticMethodDefaultsExpsCons)]
                          | "#classStaticMethodVarArgs" "(" Id "," IdItems "," Id "," Block "," ClassAttrExps ")" [symbol(classStaticMethodVarArgsExpsCons)]
+                         | "#classStaticMethodVarArgsDefaults" "(" Id "," IdItems "," ArgExps "," Id "," Block "," ClassAttrExps ")" [symbol(classStaticMethodVarArgsDefaultsExpsCons)]
                          | "#classStaticMethodKwArgs" "(" Id "," IdItems "," Id "," Block "," ClassAttrExps ")" [symbol(classStaticMethodKwArgsExpsCons)]
                          | "#classStaticMethodKwArgsDefaults" "(" Id "," IdItems "," ArgExps "," Id "," Block "," ClassAttrExps ")" [symbol(classStaticMethodKwArgsDefaultsExpsCons)]
                          | "#classClassMethod" "(" Id "," IdItems "," Block "," ClassAttrExps ")" [symbol(classClassMethodExpsCons)]
                          | "#classClassMethodDefaults" "(" Id "," IdItems "," ArgExps "," Block "," ClassAttrExps ")" [symbol(classClassMethodDefaultsExpsCons)]
                          | "#classClassMethodVarArgs" "(" Id "," IdItems "," Id "," Block "," ClassAttrExps ")" [symbol(classClassMethodVarArgsExpsCons)]
+                         | "#classClassMethodVarArgsDefaults" "(" Id "," IdItems "," ArgExps "," Id "," Block "," ClassAttrExps ")" [symbol(classClassMethodVarArgsDefaultsExpsCons)]
                          | "#classClassMethodKwArgs" "(" Id "," IdItems "," Id "," Block "," ClassAttrExps ")" [symbol(classClassMethodKwArgsExpsCons)]
                          | "#classClassMethodKwArgsDefaults" "(" Id "," IdItems "," ArgExps "," Id "," Block "," ClassAttrExps ")" [symbol(classClassMethodKwArgsDefaultsExpsCons)]
                          | "#classProperty" "(" Id "," IdItems "," Block "," ClassAttrExps ")" [symbol(classPropertyExpsCons)]
@@ -799,22 +802,26 @@ module PYTHON
                  | collectClassAttrs(Id, ClassAttrExps, ClassAttrs, Map) [symbol(collectClassAttrs)]
                  | classAttrBind(Id, Id, ClassAttrExps, ClassAttrs, Map) [symbol(classAttrBind)]
                  | classMethodDefaultBind(ClassMethodFlavor, Id, Id, IdItems, Block, ClassAttrExps, ClassAttrs, Map) [symbol(classMethodDefaultBind)]
+                 | classMethodVarDefaultBind(ClassMethodFlavor, Id, Id, IdItems, Id, Block, ClassAttrExps, ClassAttrs, Map) [symbol(classMethodVarDefaultBind)]
                  | classMethodKwDefaultBind(ClassMethodFlavor, Id, Id, IdItems, Id, Block, ClassAttrExps, ClassAttrs, Map) [symbol(classMethodKwDefaultBind)]
                  | classBaseApply(Id, ClassAttrExps, Map) [symbol(classBaseApply)]
                  | collectClassAttrsBase(Id, Int, ClassAttrs, ClassAttrExps, ClassAttrs, Map) [symbol(collectClassAttrsBase)]
                  | classAttrBaseBind(Id, Int, ClassAttrs, Id, ClassAttrExps, ClassAttrs, Map) [symbol(classAttrBaseBind)]
                  | classMethodDefaultBaseBind(ClassMethodFlavor, Id, Int, ClassAttrs, Id, IdItems, Block, ClassAttrExps, ClassAttrs, Map) [symbol(classMethodDefaultBaseBind)]
+                 | classMethodVarDefaultBaseBind(ClassMethodFlavor, Id, Int, ClassAttrs, Id, IdItems, Id, Block, ClassAttrExps, ClassAttrs, Map) [symbol(classMethodVarDefaultBaseBind)]
                  | classMethodKwDefaultBaseBind(ClassMethodFlavor, Id, Int, ClassAttrs, Id, IdItems, Id, Block, ClassAttrExps, ClassAttrs, Map) [symbol(classMethodKwDefaultBaseBind)]
                  | bindDecoratedClass(Id, ClassAttrExps) [symbol(bindDecoratedClass)]
                  | collectDecoratedClassAttrs(Id, ArgVals, ClassAttrExps, ClassAttrs, Map) [symbol(collectDecoratedClassAttrs)]
                  | decoratedClassAttrBind(Id, ArgVals, Id, ClassAttrExps, ClassAttrs, Map) [symbol(decoratedClassAttrBind)]
                  | decoratedClassMethodDefaultBind(ClassMethodFlavor, Id, ArgVals, Id, IdItems, Block, ClassAttrExps, ClassAttrs, Map) [symbol(decoratedClassMethodDefaultBind)]
+                 | decoratedClassMethodVarDefaultBind(ClassMethodFlavor, Id, ArgVals, Id, IdItems, Id, Block, ClassAttrExps, ClassAttrs, Map) [symbol(decoratedClassMethodVarDefaultBind)]
                  | decoratedClassMethodKwDefaultBind(ClassMethodFlavor, Id, ArgVals, Id, IdItems, Id, Block, ClassAttrExps, ClassAttrs, Map) [symbol(decoratedClassMethodKwDefaultBind)]
                  | bindDecoratedBaseClass(Id, Id, ClassAttrExps) [symbol(bindDecoratedBaseClass)]
                  | classDecoratedBaseApply(Id, ArgVals, ClassAttrExps, Map) [symbol(classDecoratedBaseApply)]
                  | collectDecoratedClassAttrsBase(Id, ArgVals, Int, ClassAttrs, ClassAttrExps, ClassAttrs, Map) [symbol(collectDecoratedClassAttrsBase)]
                  | decoratedClassAttrBaseBind(Id, ArgVals, Int, ClassAttrs, Id, ClassAttrExps, ClassAttrs, Map) [symbol(decoratedClassAttrBaseBind)]
                  | decoratedClassMethodDefaultBaseBind(ClassMethodFlavor, Id, ArgVals, Int, ClassAttrs, Id, IdItems, Block, ClassAttrExps, ClassAttrs, Map) [symbol(decoratedClassMethodDefaultBaseBind)]
+                 | decoratedClassMethodVarDefaultBaseBind(ClassMethodFlavor, Id, ArgVals, Int, ClassAttrs, Id, IdItems, Id, Block, ClassAttrExps, ClassAttrs, Map) [symbol(decoratedClassMethodVarDefaultBaseBind)]
                  | decoratedClassMethodKwDefaultBaseBind(ClassMethodFlavor, Id, ArgVals, Int, ClassAttrs, Id, IdItems, Id, Block, ClassAttrExps, ClassAttrs, Map) [symbol(decoratedClassMethodKwDefaultBaseBind)]
                  | assignAttrObject(Exp, Id) [symbol(assignAttrObject)]
                  | assignAttrApply(Val, Id) [symbol(assignAttrApply)]
@@ -6432,6 +6439,7 @@ module PYTHON
   rule bindableUserMethodVal(functionValArgs(_:IdItems, _:Block)) => true
   rule bindableUserMethodVal(functionValDefaults(_:IdItems, _:ArgVals, _:Block)) => true
   rule bindableUserMethodVal(functionValVarArgs(_:IdItems, _:Id, _:Block)) => true
+  rule bindableUserMethodVal(functionValVarArgsDefaults(_:IdItems, _:ArgVals, _:Id, _:Block)) => true
   rule bindableUserMethodVal(functionValKwArgs(_:IdItems, _:Id, _:Block)) => true
   rule bindableUserMethodVal(functionValKwArgsDefaults(_:IdItems, _:ArgVals, _:Id, _:Block)) => true
   rule bindableUserMethodVal(_:Val) => false [owise]
@@ -17163,6 +17171,10 @@ module PYTHON
        ... </k>
        <env> Rho => bindVarArgs(Rho, IDS, Var, completeVarArgsDefaultArgs(IDS, argValsCons(A, #noArgVals), Defaults)) </env>
     requires varArgsDefaultsCallArityOk(IDS, argValsCons(A, #noArgVals), Defaults)
+  rule <k> A:Val ~> callApply(functionValVarArgsDefaults(IDS:IdItems, Defaults:ArgVals, _Var:Id, _Body:Block)) =>
+           exceptionSignal(#exception(#token("TypeError", "Id")))
+       ... </k>
+    requires notBool varArgsDefaultsCallArityOk(IDS, argValsCons(A, #noArgVals), Defaults)
   rule <k> A:Val ~> callApply(functionValVarArgsKwDefaults(IDS:IdItems, Defaults:ArgVals, Var:Id, KwOnly:IdItems, KwDefaults:ArgVals, block(SS:Stmts))) =>
            SS ~> functionDone(Rho)
        ... </k>
@@ -17668,6 +17680,10 @@ module PYTHON
        ... </k>
        <env> Rho => bindVarArgs(Rho, IDS, Var, completeVarArgsDefaultArgs(IDS, VS, Defaults)) </env>
     requires varArgsDefaultsCallArityOk(IDS, VS, Defaults)
+  rule <k> argsVal(VS:ArgVals) ~> callApplyArgs(functionValVarArgsDefaults(IDS:IdItems, Defaults:ArgVals, _Var:Id, _Body:Block)) =>
+           exceptionSignal(#exception(#token("TypeError", "Id")))
+       ... </k>
+    requires notBool varArgsDefaultsCallArityOk(IDS, VS, Defaults)
   rule <k> argsVal(VS:ArgVals) ~> callApplyArgs(functionValVarArgsKwDefaults(IDS:IdItems, Defaults:ArgVals, Var:Id, KwOnly:IdItems, KwDefaults:ArgVals, block(SS:Stmts))) =>
            SS ~> functionDone(Rho)
        ... </k>
@@ -18154,6 +18170,10 @@ module PYTHON
        ... </k>
        <env> Rho => bindVarArgs(Rho, IDS, Var, buildKwDefaultArgs(IDS, KWS, Defaults)) </env>
     requires keywordOnlyCallArityOk(IDS, KWS, Defaults)
+  rule <k> kwArgsVal(KWS:KwArgVals) ~> callApplyKwArgs(functionValVarArgsDefaults(IDS:IdItems, Defaults:ArgVals, _Var:Id, _Body:Block)) =>
+           exceptionSignal(#exception(#token("TypeError", "Id")))
+       ... </k>
+    requires notBool keywordOnlyCallArityOk(IDS, KWS, Defaults)
   rule <k> kwArgsVal(KWS:KwArgVals) ~> callApplyKwArgs(closureVarArgsKwOnly(IDS:IdItems, Var:Id, KwOnly:IdItems, Body:Exp)) =>
            Body ~> restoreEnv(Rho)
        ... </k>
@@ -18750,6 +18770,10 @@ module PYTHON
        ... </k>
        <env> Rho => bindVarArgs(Rho, IDS, Var, buildVarArgsMixedDefaultArgs(IDS, VS, KWS, Defaults)) </env>
     requires varArgsMixedDefaultsCallArityOk(IDS, VS, KWS, Defaults)
+  rule <k> kwArgsVal(KWS:KwArgVals) ~> callApplyMixedArgs(functionValVarArgsDefaults(IDS:IdItems, Defaults:ArgVals, _Var:Id, _Body:Block), VS:ArgVals) =>
+           exceptionSignal(#exception(#token("TypeError", "Id")))
+       ... </k>
+    requires notBool varArgsMixedDefaultsCallArityOk(IDS, VS, KWS, Defaults)
   rule <k> kwArgsVal(KWS:KwArgVals) ~> callApplyMixedArgs(functionValVarArgsKwOnly(IDS:IdItems, Var:Id, KwOnly:IdItems, block(SS:Stmts)), VS:ArgVals) =>
            SS ~> functionDone(Rho)
        ... </k>
@@ -29549,14 +29573,35 @@ module PYTHON
            collectClassAttrs(C, Rest, classAttrSet(Attrs, M, functionValVarArgs(IDS, Var, Body)), Rho)
        ... </k>
        <env> ClassRho => ClassRho [ M <- functionValVarArgs(IDS, Var, Body) ] </env>
+  rule <k> collectClassAttrs(C:Id, #classMethodVarArgsDefaults(M:Id, IDS:IdItems, Defaults:ArgExps, Var:Id, Body:Block, Rest:ClassAttrExps), Attrs:ClassAttrs, Rho:Map) =>
+           evalArgs(Defaults, #noArgVals) ~> classMethodVarDefaultBind(#classPlainMethod, C, M, IDS, Var, Body, Rest, Attrs, Rho)
+       ... </k>
   rule <k> collectClassAttrs(C:Id, #classStaticMethodVarArgs(M:Id, IDS:IdItems, Var:Id, Body:Block, Rest:ClassAttrExps), Attrs:ClassAttrs, Rho:Map) =>
            collectClassAttrs(C, Rest, classAttrSet(Attrs, M, staticMethodVal(functionValVarArgs(IDS, Var, Body))), Rho)
        ... </k>
        <env> ClassRho => ClassRho [ M <- staticMethodVal(functionValVarArgs(IDS, Var, Body)) ] </env>
+  rule <k> collectClassAttrs(C:Id, #classStaticMethodVarArgsDefaults(M:Id, IDS:IdItems, Defaults:ArgExps, Var:Id, Body:Block, Rest:ClassAttrExps), Attrs:ClassAttrs, Rho:Map) =>
+           evalArgs(Defaults, #noArgVals) ~> classMethodVarDefaultBind(#classStaticMethodFlavor, C, M, IDS, Var, Body, Rest, Attrs, Rho)
+       ... </k>
   rule <k> collectClassAttrs(C:Id, #classClassMethodVarArgs(M:Id, IDS:IdItems, Var:Id, Body:Block, Rest:ClassAttrExps), Attrs:ClassAttrs, Rho:Map) =>
            collectClassAttrs(C, Rest, classAttrSet(Attrs, M, classMethodVal(functionValVarArgs(IDS, Var, Body))), Rho)
        ... </k>
        <env> ClassRho => ClassRho [ M <- classMethodVal(functionValVarArgs(IDS, Var, Body)) ] </env>
+  rule <k> collectClassAttrs(C:Id, #classClassMethodVarArgsDefaults(M:Id, IDS:IdItems, Defaults:ArgExps, Var:Id, Body:Block, Rest:ClassAttrExps), Attrs:ClassAttrs, Rho:Map) =>
+           evalArgs(Defaults, #noArgVals) ~> classMethodVarDefaultBind(#classClassMethodFlavor, C, M, IDS, Var, Body, Rest, Attrs, Rho)
+       ... </k>
+  rule <k> argsVal(Defaults:ArgVals) ~> classMethodVarDefaultBind(#classPlainMethod, C:Id, M:Id, IDS:IdItems, Var:Id, Body:Block, Rest:ClassAttrExps, Attrs:ClassAttrs, Rho:Map) =>
+           collectClassAttrs(C, Rest, classAttrSet(Attrs, M, functionValVarArgsDefaults(IDS, Defaults, Var, Body)), Rho)
+       ... </k>
+       <env> ClassRho => ClassRho [ M <- functionValVarArgsDefaults(IDS, Defaults, Var, Body) ] </env>
+  rule <k> argsVal(Defaults:ArgVals) ~> classMethodVarDefaultBind(#classStaticMethodFlavor, C:Id, M:Id, IDS:IdItems, Var:Id, Body:Block, Rest:ClassAttrExps, Attrs:ClassAttrs, Rho:Map) =>
+           collectClassAttrs(C, Rest, classAttrSet(Attrs, M, staticMethodVal(functionValVarArgsDefaults(IDS, Defaults, Var, Body))), Rho)
+       ... </k>
+       <env> ClassRho => ClassRho [ M <- staticMethodVal(functionValVarArgsDefaults(IDS, Defaults, Var, Body)) ] </env>
+  rule <k> argsVal(Defaults:ArgVals) ~> classMethodVarDefaultBind(#classClassMethodFlavor, C:Id, M:Id, IDS:IdItems, Var:Id, Body:Block, Rest:ClassAttrExps, Attrs:ClassAttrs, Rho:Map) =>
+           collectClassAttrs(C, Rest, classAttrSet(Attrs, M, classMethodVal(functionValVarArgsDefaults(IDS, Defaults, Var, Body))), Rho)
+       ... </k>
+       <env> ClassRho => ClassRho [ M <- classMethodVal(functionValVarArgsDefaults(IDS, Defaults, Var, Body)) ] </env>
   rule <k> collectClassAttrs(C:Id, #classMethodKwArgs(M:Id, IDS:IdItems, Kw:Id, Body:Block, Rest:ClassAttrExps), Attrs:ClassAttrs, Rho:Map) =>
            collectClassAttrs(C, Rest, classAttrSet(Attrs, M, functionValKwArgs(IDS, Kw, Body)), Rho)
        ... </k>
@@ -29665,14 +29710,35 @@ module PYTHON
            collectClassAttrsBase(C, BaseId, BaseAttrs, Rest, classAttrSet(Attrs, M, functionValVarArgs(IDS, Var, Body)), Rho)
        ... </k>
        <env> ClassRho => ClassRho [ M <- functionValVarArgs(IDS, Var, Body) ] </env>
+  rule <k> collectClassAttrsBase(C:Id, BaseId:Int, BaseAttrs:ClassAttrs, #classMethodVarArgsDefaults(M:Id, IDS:IdItems, Defaults:ArgExps, Var:Id, Body:Block, Rest:ClassAttrExps), Attrs:ClassAttrs, Rho:Map) =>
+           evalArgs(Defaults, #noArgVals) ~> classMethodVarDefaultBaseBind(#classPlainMethod, C, BaseId, BaseAttrs, M, IDS, Var, Body, Rest, Attrs, Rho)
+       ... </k>
   rule <k> collectClassAttrsBase(C:Id, BaseId:Int, BaseAttrs:ClassAttrs, #classStaticMethodVarArgs(M:Id, IDS:IdItems, Var:Id, Body:Block, Rest:ClassAttrExps), Attrs:ClassAttrs, Rho:Map) =>
            collectClassAttrsBase(C, BaseId, BaseAttrs, Rest, classAttrSet(Attrs, M, staticMethodVal(functionValVarArgs(IDS, Var, Body))), Rho)
        ... </k>
        <env> ClassRho => ClassRho [ M <- staticMethodVal(functionValVarArgs(IDS, Var, Body)) ] </env>
+  rule <k> collectClassAttrsBase(C:Id, BaseId:Int, BaseAttrs:ClassAttrs, #classStaticMethodVarArgsDefaults(M:Id, IDS:IdItems, Defaults:ArgExps, Var:Id, Body:Block, Rest:ClassAttrExps), Attrs:ClassAttrs, Rho:Map) =>
+           evalArgs(Defaults, #noArgVals) ~> classMethodVarDefaultBaseBind(#classStaticMethodFlavor, C, BaseId, BaseAttrs, M, IDS, Var, Body, Rest, Attrs, Rho)
+       ... </k>
   rule <k> collectClassAttrsBase(C:Id, BaseId:Int, BaseAttrs:ClassAttrs, #classClassMethodVarArgs(M:Id, IDS:IdItems, Var:Id, Body:Block, Rest:ClassAttrExps), Attrs:ClassAttrs, Rho:Map) =>
            collectClassAttrsBase(C, BaseId, BaseAttrs, Rest, classAttrSet(Attrs, M, classMethodVal(functionValVarArgs(IDS, Var, Body))), Rho)
        ... </k>
        <env> ClassRho => ClassRho [ M <- classMethodVal(functionValVarArgs(IDS, Var, Body)) ] </env>
+  rule <k> collectClassAttrsBase(C:Id, BaseId:Int, BaseAttrs:ClassAttrs, #classClassMethodVarArgsDefaults(M:Id, IDS:IdItems, Defaults:ArgExps, Var:Id, Body:Block, Rest:ClassAttrExps), Attrs:ClassAttrs, Rho:Map) =>
+           evalArgs(Defaults, #noArgVals) ~> classMethodVarDefaultBaseBind(#classClassMethodFlavor, C, BaseId, BaseAttrs, M, IDS, Var, Body, Rest, Attrs, Rho)
+       ... </k>
+  rule <k> argsVal(Defaults:ArgVals) ~> classMethodVarDefaultBaseBind(#classPlainMethod, C:Id, BaseId:Int, BaseAttrs:ClassAttrs, M:Id, IDS:IdItems, Var:Id, Body:Block, Rest:ClassAttrExps, Attrs:ClassAttrs, Rho:Map) =>
+           collectClassAttrsBase(C, BaseId, BaseAttrs, Rest, classAttrSet(Attrs, M, functionValVarArgsDefaults(IDS, Defaults, Var, Body)), Rho)
+       ... </k>
+       <env> ClassRho => ClassRho [ M <- functionValVarArgsDefaults(IDS, Defaults, Var, Body) ] </env>
+  rule <k> argsVal(Defaults:ArgVals) ~> classMethodVarDefaultBaseBind(#classStaticMethodFlavor, C:Id, BaseId:Int, BaseAttrs:ClassAttrs, M:Id, IDS:IdItems, Var:Id, Body:Block, Rest:ClassAttrExps, Attrs:ClassAttrs, Rho:Map) =>
+           collectClassAttrsBase(C, BaseId, BaseAttrs, Rest, classAttrSet(Attrs, M, staticMethodVal(functionValVarArgsDefaults(IDS, Defaults, Var, Body))), Rho)
+       ... </k>
+       <env> ClassRho => ClassRho [ M <- staticMethodVal(functionValVarArgsDefaults(IDS, Defaults, Var, Body)) ] </env>
+  rule <k> argsVal(Defaults:ArgVals) ~> classMethodVarDefaultBaseBind(#classClassMethodFlavor, C:Id, BaseId:Int, BaseAttrs:ClassAttrs, M:Id, IDS:IdItems, Var:Id, Body:Block, Rest:ClassAttrExps, Attrs:ClassAttrs, Rho:Map) =>
+           collectClassAttrsBase(C, BaseId, BaseAttrs, Rest, classAttrSet(Attrs, M, classMethodVal(functionValVarArgsDefaults(IDS, Defaults, Var, Body))), Rho)
+       ... </k>
+       <env> ClassRho => ClassRho [ M <- classMethodVal(functionValVarArgsDefaults(IDS, Defaults, Var, Body)) ] </env>
   rule <k> collectClassAttrsBase(C:Id, BaseId:Int, BaseAttrs:ClassAttrs, #classMethodKwArgs(M:Id, IDS:IdItems, Kw:Id, Body:Block, Rest:ClassAttrExps), Attrs:ClassAttrs, Rho:Map) =>
            collectClassAttrsBase(C, BaseId, BaseAttrs, Rest, classAttrSet(Attrs, M, functionValKwArgs(IDS, Kw, Body)), Rho)
        ... </k>
@@ -29781,14 +29847,35 @@ module PYTHON
            collectDecoratedClassAttrs(C, Decorators, Rest, classAttrSet(Attrs, M, functionValVarArgs(IDS, Var, Body)), Rho)
        ... </k>
        <env> ClassRho => ClassRho [ M <- functionValVarArgs(IDS, Var, Body) ] </env>
+  rule <k> collectDecoratedClassAttrs(C:Id, Decorators:ArgVals, #classMethodVarArgsDefaults(M:Id, IDS:IdItems, Defaults:ArgExps, Var:Id, Body:Block, Rest:ClassAttrExps), Attrs:ClassAttrs, Rho:Map) =>
+           evalArgs(Defaults, #noArgVals) ~> decoratedClassMethodVarDefaultBind(#classPlainMethod, C, Decorators, M, IDS, Var, Body, Rest, Attrs, Rho)
+       ... </k>
   rule <k> collectDecoratedClassAttrs(C:Id, Decorators:ArgVals, #classStaticMethodVarArgs(M:Id, IDS:IdItems, Var:Id, Body:Block, Rest:ClassAttrExps), Attrs:ClassAttrs, Rho:Map) =>
            collectDecoratedClassAttrs(C, Decorators, Rest, classAttrSet(Attrs, M, staticMethodVal(functionValVarArgs(IDS, Var, Body))), Rho)
        ... </k>
        <env> ClassRho => ClassRho [ M <- staticMethodVal(functionValVarArgs(IDS, Var, Body)) ] </env>
+  rule <k> collectDecoratedClassAttrs(C:Id, Decorators:ArgVals, #classStaticMethodVarArgsDefaults(M:Id, IDS:IdItems, Defaults:ArgExps, Var:Id, Body:Block, Rest:ClassAttrExps), Attrs:ClassAttrs, Rho:Map) =>
+           evalArgs(Defaults, #noArgVals) ~> decoratedClassMethodVarDefaultBind(#classStaticMethodFlavor, C, Decorators, M, IDS, Var, Body, Rest, Attrs, Rho)
+       ... </k>
   rule <k> collectDecoratedClassAttrs(C:Id, Decorators:ArgVals, #classClassMethodVarArgs(M:Id, IDS:IdItems, Var:Id, Body:Block, Rest:ClassAttrExps), Attrs:ClassAttrs, Rho:Map) =>
            collectDecoratedClassAttrs(C, Decorators, Rest, classAttrSet(Attrs, M, classMethodVal(functionValVarArgs(IDS, Var, Body))), Rho)
        ... </k>
        <env> ClassRho => ClassRho [ M <- classMethodVal(functionValVarArgs(IDS, Var, Body)) ] </env>
+  rule <k> collectDecoratedClassAttrs(C:Id, Decorators:ArgVals, #classClassMethodVarArgsDefaults(M:Id, IDS:IdItems, Defaults:ArgExps, Var:Id, Body:Block, Rest:ClassAttrExps), Attrs:ClassAttrs, Rho:Map) =>
+           evalArgs(Defaults, #noArgVals) ~> decoratedClassMethodVarDefaultBind(#classClassMethodFlavor, C, Decorators, M, IDS, Var, Body, Rest, Attrs, Rho)
+       ... </k>
+  rule <k> argsVal(Defaults:ArgVals) ~> decoratedClassMethodVarDefaultBind(#classPlainMethod, C:Id, Decorators:ArgVals, M:Id, IDS:IdItems, Var:Id, Body:Block, Rest:ClassAttrExps, Attrs:ClassAttrs, Rho:Map) =>
+           collectDecoratedClassAttrs(C, Decorators, Rest, classAttrSet(Attrs, M, functionValVarArgsDefaults(IDS, Defaults, Var, Body)), Rho)
+       ... </k>
+       <env> ClassRho => ClassRho [ M <- functionValVarArgsDefaults(IDS, Defaults, Var, Body) ] </env>
+  rule <k> argsVal(Defaults:ArgVals) ~> decoratedClassMethodVarDefaultBind(#classStaticMethodFlavor, C:Id, Decorators:ArgVals, M:Id, IDS:IdItems, Var:Id, Body:Block, Rest:ClassAttrExps, Attrs:ClassAttrs, Rho:Map) =>
+           collectDecoratedClassAttrs(C, Decorators, Rest, classAttrSet(Attrs, M, staticMethodVal(functionValVarArgsDefaults(IDS, Defaults, Var, Body))), Rho)
+       ... </k>
+       <env> ClassRho => ClassRho [ M <- staticMethodVal(functionValVarArgsDefaults(IDS, Defaults, Var, Body)) ] </env>
+  rule <k> argsVal(Defaults:ArgVals) ~> decoratedClassMethodVarDefaultBind(#classClassMethodFlavor, C:Id, Decorators:ArgVals, M:Id, IDS:IdItems, Var:Id, Body:Block, Rest:ClassAttrExps, Attrs:ClassAttrs, Rho:Map) =>
+           collectDecoratedClassAttrs(C, Decorators, Rest, classAttrSet(Attrs, M, classMethodVal(functionValVarArgsDefaults(IDS, Defaults, Var, Body))), Rho)
+       ... </k>
+       <env> ClassRho => ClassRho [ M <- classMethodVal(functionValVarArgsDefaults(IDS, Defaults, Var, Body)) ] </env>
   rule <k> collectDecoratedClassAttrs(C:Id, Decorators:ArgVals, #classMethodKwArgs(M:Id, IDS:IdItems, Kw:Id, Body:Block, Rest:ClassAttrExps), Attrs:ClassAttrs, Rho:Map) =>
            collectDecoratedClassAttrs(C, Decorators, Rest, classAttrSet(Attrs, M, functionValKwArgs(IDS, Kw, Body)), Rho)
        ... </k>
@@ -29902,14 +29989,35 @@ module PYTHON
            collectDecoratedClassAttrsBase(C, Decorators, BaseId, BaseAttrs, Rest, classAttrSet(Attrs, M, functionValVarArgs(IDS, Var, Body)), Rho)
        ... </k>
        <env> ClassRho => ClassRho [ M <- functionValVarArgs(IDS, Var, Body) ] </env>
+  rule <k> collectDecoratedClassAttrsBase(C:Id, Decorators:ArgVals, BaseId:Int, BaseAttrs:ClassAttrs, #classMethodVarArgsDefaults(M:Id, IDS:IdItems, Defaults:ArgExps, Var:Id, Body:Block, Rest:ClassAttrExps), Attrs:ClassAttrs, Rho:Map) =>
+           evalArgs(Defaults, #noArgVals) ~> decoratedClassMethodVarDefaultBaseBind(#classPlainMethod, C, Decorators, BaseId, BaseAttrs, M, IDS, Var, Body, Rest, Attrs, Rho)
+       ... </k>
   rule <k> collectDecoratedClassAttrsBase(C:Id, Decorators:ArgVals, BaseId:Int, BaseAttrs:ClassAttrs, #classStaticMethodVarArgs(M:Id, IDS:IdItems, Var:Id, Body:Block, Rest:ClassAttrExps), Attrs:ClassAttrs, Rho:Map) =>
            collectDecoratedClassAttrsBase(C, Decorators, BaseId, BaseAttrs, Rest, classAttrSet(Attrs, M, staticMethodVal(functionValVarArgs(IDS, Var, Body))), Rho)
        ... </k>
        <env> ClassRho => ClassRho [ M <- staticMethodVal(functionValVarArgs(IDS, Var, Body)) ] </env>
+  rule <k> collectDecoratedClassAttrsBase(C:Id, Decorators:ArgVals, BaseId:Int, BaseAttrs:ClassAttrs, #classStaticMethodVarArgsDefaults(M:Id, IDS:IdItems, Defaults:ArgExps, Var:Id, Body:Block, Rest:ClassAttrExps), Attrs:ClassAttrs, Rho:Map) =>
+           evalArgs(Defaults, #noArgVals) ~> decoratedClassMethodVarDefaultBaseBind(#classStaticMethodFlavor, C, Decorators, BaseId, BaseAttrs, M, IDS, Var, Body, Rest, Attrs, Rho)
+       ... </k>
   rule <k> collectDecoratedClassAttrsBase(C:Id, Decorators:ArgVals, BaseId:Int, BaseAttrs:ClassAttrs, #classClassMethodVarArgs(M:Id, IDS:IdItems, Var:Id, Body:Block, Rest:ClassAttrExps), Attrs:ClassAttrs, Rho:Map) =>
            collectDecoratedClassAttrsBase(C, Decorators, BaseId, BaseAttrs, Rest, classAttrSet(Attrs, M, classMethodVal(functionValVarArgs(IDS, Var, Body))), Rho)
        ... </k>
        <env> ClassRho => ClassRho [ M <- classMethodVal(functionValVarArgs(IDS, Var, Body)) ] </env>
+  rule <k> collectDecoratedClassAttrsBase(C:Id, Decorators:ArgVals, BaseId:Int, BaseAttrs:ClassAttrs, #classClassMethodVarArgsDefaults(M:Id, IDS:IdItems, Defaults:ArgExps, Var:Id, Body:Block, Rest:ClassAttrExps), Attrs:ClassAttrs, Rho:Map) =>
+           evalArgs(Defaults, #noArgVals) ~> decoratedClassMethodVarDefaultBaseBind(#classClassMethodFlavor, C, Decorators, BaseId, BaseAttrs, M, IDS, Var, Body, Rest, Attrs, Rho)
+       ... </k>
+  rule <k> argsVal(Defaults:ArgVals) ~> decoratedClassMethodVarDefaultBaseBind(#classPlainMethod, C:Id, Decorators:ArgVals, BaseId:Int, BaseAttrs:ClassAttrs, M:Id, IDS:IdItems, Var:Id, Body:Block, Rest:ClassAttrExps, Attrs:ClassAttrs, Rho:Map) =>
+           collectDecoratedClassAttrsBase(C, Decorators, BaseId, BaseAttrs, Rest, classAttrSet(Attrs, M, functionValVarArgsDefaults(IDS, Defaults, Var, Body)), Rho)
+       ... </k>
+       <env> ClassRho => ClassRho [ M <- functionValVarArgsDefaults(IDS, Defaults, Var, Body) ] </env>
+  rule <k> argsVal(Defaults:ArgVals) ~> decoratedClassMethodVarDefaultBaseBind(#classStaticMethodFlavor, C:Id, Decorators:ArgVals, BaseId:Int, BaseAttrs:ClassAttrs, M:Id, IDS:IdItems, Var:Id, Body:Block, Rest:ClassAttrExps, Attrs:ClassAttrs, Rho:Map) =>
+           collectDecoratedClassAttrsBase(C, Decorators, BaseId, BaseAttrs, Rest, classAttrSet(Attrs, M, staticMethodVal(functionValVarArgsDefaults(IDS, Defaults, Var, Body))), Rho)
+       ... </k>
+       <env> ClassRho => ClassRho [ M <- staticMethodVal(functionValVarArgsDefaults(IDS, Defaults, Var, Body)) ] </env>
+  rule <k> argsVal(Defaults:ArgVals) ~> decoratedClassMethodVarDefaultBaseBind(#classClassMethodFlavor, C:Id, Decorators:ArgVals, BaseId:Int, BaseAttrs:ClassAttrs, M:Id, IDS:IdItems, Var:Id, Body:Block, Rest:ClassAttrExps, Attrs:ClassAttrs, Rho:Map) =>
+           collectDecoratedClassAttrsBase(C, Decorators, BaseId, BaseAttrs, Rest, classAttrSet(Attrs, M, classMethodVal(functionValVarArgsDefaults(IDS, Defaults, Var, Body))), Rho)
+       ... </k>
+       <env> ClassRho => ClassRho [ M <- classMethodVal(functionValVarArgsDefaults(IDS, Defaults, Var, Body)) ] </env>
   rule <k> collectDecoratedClassAttrsBase(C:Id, Decorators:ArgVals, BaseId:Int, BaseAttrs:ClassAttrs, #classMethodKwArgs(M:Id, IDS:IdItems, Kw:Id, Body:Block, Rest:ClassAttrExps), Attrs:ClassAttrs, Rho:Map) =>
            collectDecoratedClassAttrsBase(C, Decorators, BaseId, BaseAttrs, Rest, classAttrSet(Attrs, M, functionValKwArgs(IDS, Kw, Body)), Rho)
        ... </k>
@@ -33459,6 +33567,8 @@ module PYTHON
        <env> _ => Rho </env>
   rule <k> exceptionSignal(V:Val) ~> classMethodDefaultBind(_:ClassMethodFlavor, _:Id, _:Id, _:IdItems, _:Block, _:ClassAttrExps, _:ClassAttrs, Rho:Map) => exceptionSignal(V) ... </k>
        <env> _ => Rho </env>
+  rule <k> exceptionSignal(V:Val) ~> classMethodVarDefaultBind(_:ClassMethodFlavor, _:Id, _:Id, _:IdItems, _:Id, _:Block, _:ClassAttrExps, _:ClassAttrs, Rho:Map) => exceptionSignal(V) ... </k>
+       <env> _ => Rho </env>
   rule <k> exceptionSignal(V:Val) ~> classMethodKwDefaultBind(_:ClassMethodFlavor, _:Id, _:Id, _:IdItems, _:Id, _:Block, _:ClassAttrExps, _:ClassAttrs, Rho:Map) => exceptionSignal(V) ... </k>
        <env> _ => Rho </env>
   rule <k> exceptionSignal(V:Val) ~> classBaseApply(_:Id, _:ClassAttrExps, Rho:Map) => exceptionSignal(V) ... </k>
@@ -33469,6 +33579,8 @@ module PYTHON
        <env> _ => Rho </env>
   rule <k> exceptionSignal(V:Val) ~> classMethodDefaultBaseBind(_:ClassMethodFlavor, _:Id, _:Int, _:ClassAttrs, _:Id, _:IdItems, _:Block, _:ClassAttrExps, _:ClassAttrs, Rho:Map) => exceptionSignal(V) ... </k>
        <env> _ => Rho </env>
+  rule <k> exceptionSignal(V:Val) ~> classMethodVarDefaultBaseBind(_:ClassMethodFlavor, _:Id, _:Int, _:ClassAttrs, _:Id, _:IdItems, _:Id, _:Block, _:ClassAttrExps, _:ClassAttrs, Rho:Map) => exceptionSignal(V) ... </k>
+       <env> _ => Rho </env>
   rule <k> exceptionSignal(V:Val) ~> classMethodKwDefaultBaseBind(_:ClassMethodFlavor, _:Id, _:Int, _:ClassAttrs, _:Id, _:IdItems, _:Id, _:Block, _:ClassAttrExps, _:ClassAttrs, Rho:Map) => exceptionSignal(V) ... </k>
        <env> _ => Rho </env>
   rule <k> exceptionSignal(V:Val) ~> bindDecoratedClass(_:Id, _:ClassAttrExps) => exceptionSignal(V) ... </k>
@@ -33477,6 +33589,8 @@ module PYTHON
   rule <k> exceptionSignal(V:Val) ~> decoratedClassAttrBind(_:Id, _:ArgVals, _:Id, _:ClassAttrExps, _:ClassAttrs, Rho:Map) => exceptionSignal(V) ... </k>
        <env> _ => Rho </env>
   rule <k> exceptionSignal(V:Val) ~> decoratedClassMethodDefaultBind(_:ClassMethodFlavor, _:Id, _:ArgVals, _:Id, _:IdItems, _:Block, _:ClassAttrExps, _:ClassAttrs, Rho:Map) => exceptionSignal(V) ... </k>
+       <env> _ => Rho </env>
+  rule <k> exceptionSignal(V:Val) ~> decoratedClassMethodVarDefaultBind(_:ClassMethodFlavor, _:Id, _:ArgVals, _:Id, _:IdItems, _:Id, _:Block, _:ClassAttrExps, _:ClassAttrs, Rho:Map) => exceptionSignal(V) ... </k>
        <env> _ => Rho </env>
   rule <k> exceptionSignal(V:Val) ~> decoratedClassMethodKwDefaultBind(_:ClassMethodFlavor, _:Id, _:ArgVals, _:Id, _:IdItems, _:Id, _:Block, _:ClassAttrExps, _:ClassAttrs, Rho:Map) => exceptionSignal(V) ... </k>
        <env> _ => Rho </env>
@@ -33488,6 +33602,8 @@ module PYTHON
   rule <k> exceptionSignal(V:Val) ~> decoratedClassAttrBaseBind(_:Id, _:ArgVals, _:Int, _:ClassAttrs, _:Id, _:ClassAttrExps, _:ClassAttrs, Rho:Map) => exceptionSignal(V) ... </k>
        <env> _ => Rho </env>
   rule <k> exceptionSignal(V:Val) ~> decoratedClassMethodDefaultBaseBind(_:ClassMethodFlavor, _:Id, _:ArgVals, _:Int, _:ClassAttrs, _:Id, _:IdItems, _:Block, _:ClassAttrExps, _:ClassAttrs, Rho:Map) => exceptionSignal(V) ... </k>
+       <env> _ => Rho </env>
+  rule <k> exceptionSignal(V:Val) ~> decoratedClassMethodVarDefaultBaseBind(_:ClassMethodFlavor, _:Id, _:ArgVals, _:Int, _:ClassAttrs, _:Id, _:IdItems, _:Id, _:Block, _:ClassAttrExps, _:ClassAttrs, Rho:Map) => exceptionSignal(V) ... </k>
        <env> _ => Rho </env>
   rule <k> exceptionSignal(V:Val) ~> decoratedClassMethodKwDefaultBaseBind(_:ClassMethodFlavor, _:Id, _:ArgVals, _:Int, _:ClassAttrs, _:Id, _:IdItems, _:Id, _:Block, _:ClassAttrExps, _:ClassAttrs, Rho:Map) => exceptionSignal(V) ... </k>
        <env> _ => Rho </env>

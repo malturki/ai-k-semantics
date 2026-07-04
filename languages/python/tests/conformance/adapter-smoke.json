@@ -1754,6 +1754,13 @@
       "coverage": ["class-definition", "class-body-method-definition-profile", "method-varargs-profile", "method-keyword-only-profile", "method-defaults-profile", "definition-time-default-evaluation", "constructor-init-profile", "bound-method-profile", "direct-class-function-call", "staticmethod-profile", "classmethod-profile", "inherited-methods", "dynamic-getattr", "class-decorators", "exception-handling", "ordinary-python-source-adapter"]
     },
     {
+      "id": "adapter-class-method-varargs-kw-only-kwargs",
+      "source": "../adapter/adapter-class-method-varargs-kw-only-kwargs.py",
+      "reference": "Python 3.14.6 Language Reference 8.8 Class definitions; 8.7 Function definitions default parameter values, parameter lists, varargs parameters, keyword-only parameters, and kwargs parameters; Python Standard Library Built-in Functions staticmethod, classmethod",
+      "expected_result": "True ~> .K",
+      "coverage": ["class-definition", "class-body-method-definition-profile", "method-varargs-profile", "method-keyword-only-profile", "method-kwargs-profile", "method-defaults-profile", "definition-time-default-evaluation", "constructor-init-profile", "bound-method-profile", "direct-class-function-call", "staticmethod-profile", "classmethod-profile", "inherited-methods", "dynamic-getattr", "class-decorator-profile", "single-base-user-class-profile", "exception-handling", "ordinary-python-source-adapter"]
+    },
+    {
       "id": "adapter-class-method-varargs-kwargs",
       "source": "../adapter/adapter-class-method-varargs-kwargs.py",
       "reference": "Python 3.14.6 Language Reference 8.8 Class definitions; 8.7 Function definitions default parameter values and parameter lists; Python Standard Library Built-in Functions staticmethod, classmethod",

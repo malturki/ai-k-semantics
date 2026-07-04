@@ -125,6 +125,7 @@ run_case "adapter-class-method-defaults" "$ROOT/tests/adapter/adapter-class-meth
 run_case "adapter-class-method-varargs" "$ROOT/tests/adapter/adapter-class-method-varargs.py" "True ~> .K"
 run_case "adapter-class-method-varargs-defaults" "$ROOT/tests/adapter/adapter-class-method-varargs-defaults.py" "True ~> .K"
 run_case "adapter-class-method-varargs-kw-only" "$ROOT/tests/adapter/adapter-class-method-varargs-kw-only.py" "True ~> .K"
+run_case "adapter-class-method-varargs-kw-only-kwargs" "$ROOT/tests/adapter/adapter-class-method-varargs-kw-only-kwargs.py" "True ~> .K"
 run_case "adapter-class-method-varargs-kwargs" "$ROOT/tests/adapter/adapter-class-method-varargs-kwargs.py" "True ~> .K"
 run_case "adapter-class-method-kwargs" "$ROOT/tests/adapter/adapter-class-method-kwargs.py" "True ~> .K"
 run_case "adapter-class-method-pos-only" "$ROOT/tests/adapter/adapter-class-method-pos-only.py" "True ~> .K"

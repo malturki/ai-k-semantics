@@ -132,6 +132,7 @@ run_case "adapter-class-method-pos-only" "$ROOT/tests/adapter/adapter-class-meth
 run_case "adapter-class-method-kw-only" "$ROOT/tests/adapter/adapter-class-method-kw-only.py" "True ~> .K"
 run_case "adapter-class-method-kw-only-kwargs" "$ROOT/tests/adapter/adapter-class-method-kw-only-kwargs.py" "True ~> .K"
 run_case "adapter-class-method-pos-only-kw-only" "$ROOT/tests/adapter/adapter-class-method-pos-only-kw-only.py" "True ~> .K"
+run_case "adapter-class-method-pos-only-varargs-kwargs" "$ROOT/tests/adapter/adapter-class-method-pos-only-varargs-kwargs.py" "True ~> .K"
 run_case "adapter-class-inheritance-basic" "$ROOT/tests/adapter/adapter-class-inheritance-basic.py" "True ~> .K"
 run_case "adapter-class-decorators" "$ROOT/tests/adapter/adapter-class-decorators.py" "True ~> .K"
 run_case "adapter-class-method-decorators" "$ROOT/tests/adapter/adapter-class-method-decorators.py" "True ~> .K"

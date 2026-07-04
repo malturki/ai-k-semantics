@@ -2076,10 +2076,45 @@ def emit_simple_class_method(
         raise unsupported(node, "property deleters currently support only an explicit self parameter")
     if args.kwonlyargs:
         if args.kwarg is not None:
-            if args.posonlyargs:
-                raise unsupported(node, "class methods currently support keyword-only **kwargs methods only without positional-only parameters")
             kw_names = [arg.arg for arg in args.kwonlyargs]
             kw_defaults = emit_kw_defaults(args.kw_defaults)
+            if args.posonlyargs:
+                payload = f"{emit_id_items(pos_names)}, {emit_id_items(names)}"
+                if args.vararg is not None:
+                    if args.defaults or kw_defaults is not None:
+                        pos_defaults = emit_arg_exps(args.defaults) if args.defaults else "#noArgs"
+                        kw_defaults_exp = kw_defaults if kw_defaults is not None else "#noArgs"
+                        return (
+                            f"{method_kind}posonlyvarargskwdefaultskwargs",
+                            emit_id(name),
+                            payload,
+                            f"{pos_defaults}, {emit_id(args.vararg.arg)}, {emit_id_items(kw_names)}, {kw_defaults_exp}, {emit_id(args.kwarg.arg)}",
+                            emit_block(body),
+                        )
+                    return (
+                        f"{method_kind}posonlyvarargskwonlykwargs",
+                        emit_id(name),
+                        payload,
+                        f"{emit_id(args.vararg.arg)}, {emit_id_items(kw_names)}, {emit_id(args.kwarg.arg)}",
+                        emit_block(body),
+                    )
+                if args.defaults or kw_defaults is not None:
+                    pos_defaults = emit_arg_exps(args.defaults) if args.defaults else "#noArgs"
+                    kw_defaults_exp = kw_defaults if kw_defaults is not None else "#noArgs"
+                    return (
+                        f"{method_kind}posonlykwdefaultskwargs",
+                        emit_id(name),
+                        payload,
+                        f"{pos_defaults}, {emit_id_items(kw_names)}, {kw_defaults_exp}, {emit_id(args.kwarg.arg)}",
+                        emit_block(body),
+                    )
+                return (
+                    f"{method_kind}posonlykwonlykwargs",
+                    emit_id(name),
+                    payload,
+                    f"{emit_id_items(kw_names)}, {emit_id(args.kwarg.arg)}",
+                    emit_block(body),
+                )
             if args.vararg is not None:
                 if args.defaults or kw_defaults is not None:
                     pos_defaults = emit_arg_exps(args.defaults) if args.defaults else "#noArgs"
@@ -2115,10 +2150,27 @@ def emit_simple_class_method(
                 f"{emit_id_items(kw_names)}, {emit_id(args.kwarg.arg)}",
                 emit_block(body),
             )
-        if args.vararg is not None and args.posonlyargs:
-            raise unsupported(node, "class methods currently support positional-only plus keyword-only parameters only without *args or **kwargs")
         kw_names = [arg.arg for arg in args.kwonlyargs]
         kw_defaults = emit_kw_defaults(args.kw_defaults)
+        if args.posonlyargs and args.vararg is not None:
+            payload = f"{emit_id_items(pos_names)}, {emit_id_items(names)}"
+            if args.defaults or kw_defaults is not None:
+                pos_defaults = emit_arg_exps(args.defaults) if args.defaults else "#noArgs"
+                kw_defaults_exp = kw_defaults if kw_defaults is not None else "#noArgs"
+                return (
+                    f"{method_kind}posonlyvarargskwdefaults",
+                    emit_id(name),
+                    payload,
+                    f"{pos_defaults}, {emit_id(args.vararg.arg)}, {emit_id_items(kw_names)}, {kw_defaults_exp}",
+                    emit_block(body),
+                )
+            return (
+                f"{method_kind}posonlyvarargskwonly",
+                emit_id(name),
+                payload,
+                f"{emit_id(args.vararg.arg)}, {emit_id_items(kw_names)}",
+                emit_block(body),
+            )
         if args.vararg is not None:
             if args.defaults or kw_defaults is not None:
                 pos_defaults = emit_arg_exps(args.defaults) if args.defaults else "#noArgs"
@@ -2162,9 +2214,20 @@ def emit_simple_class_method(
             )
         return (f"{method_kind}kwonly", emit_id(name), emit_id_items(names), emit_id_items(kw_names), emit_block(body))
     if args.posonlyargs:
-        if args.vararg is not None or args.kwarg is not None:
-            raise unsupported(node, "class methods currently support positional-only parameters only without *args or **kwargs")
         payload = f"{emit_id_items(pos_names)}, {emit_id_items(names)}"
+        if args.kwarg is not None:
+            if args.vararg is not None:
+                extra = f"{emit_id(args.vararg.arg)}, {emit_id(args.kwarg.arg)}"
+                if args.defaults:
+                    return (f"{method_kind}posonlyvarkwargsdefaults", emit_id(name), payload, f"{emit_arg_exps(args.defaults)}, {extra}", emit_block(body))
+                return (f"{method_kind}posonlyvarkwargs", emit_id(name), payload, extra, emit_block(body))
+            if args.defaults:
+                return (f"{method_kind}posonlykwargsdefaults", emit_id(name), payload, f"{emit_arg_exps(args.defaults)}, {emit_id(args.kwarg.arg)}", emit_block(body))
+            return (f"{method_kind}posonlykwargs", emit_id(name), payload, emit_id(args.kwarg.arg), emit_block(body))
+        if args.vararg is not None:
+            if args.defaults:
+                return (f"{method_kind}posonlyvarargsdefaults", emit_id(name), payload, f"{emit_arg_exps(args.defaults)}, {emit_id(args.vararg.arg)}", emit_block(body))
+            return (f"{method_kind}posonlyvarargs", emit_id(name), payload, emit_id(args.vararg.arg), emit_block(body))
         if args.defaults:
             return (f"{method_kind}posonlydefaults", emit_id(name), payload, emit_arg_exps(args.defaults), emit_block(body))
         return (f"{method_kind}posonly", emit_id(name), payload, "", emit_block(body))
@@ -2193,6 +2256,46 @@ def emit_class_attr_exps(members: list[tuple[str, str, str, str, str]]) -> str:
     rest = emit_class_attr_exps(members[1:])
     if kind == "attr":
         return f"#classAttr({name}, {payload}, {rest})"
+    pos_only_extended_method_ctors = {
+        "methodposonlyvarargs": "#classMethodPosOnlyVarArgs",
+        "methodposonlyvarargsdefaults": "#classMethodPosOnlyVarArgsDefaults",
+        "methodposonlykwargs": "#classMethodPosOnlyKwArgs",
+        "methodposonlykwargsdefaults": "#classMethodPosOnlyKwArgsDefaults",
+        "methodposonlyvarkwargs": "#classMethodPosOnlyVarKwArgs",
+        "methodposonlyvarkwargsdefaults": "#classMethodPosOnlyVarKwArgsDefaults",
+        "methodposonlyvarargskwonly": "#classMethodPosOnlyVarArgsKwOnly",
+        "methodposonlyvarargskwdefaults": "#classMethodPosOnlyVarArgsKwDefaults",
+        "methodposonlyvarargskwonlykwargs": "#classMethodPosOnlyVarArgsKwOnlyKwArgs",
+        "methodposonlyvarargskwdefaultskwargs": "#classMethodPosOnlyVarArgsKwDefaultsKwArgs",
+        "methodposonlykwonlykwargs": "#classMethodPosOnlyKwOnlyKwArgs",
+        "methodposonlykwdefaultskwargs": "#classMethodPosOnlyKwDefaultsKwArgs",
+        "staticmethodposonlyvarargs": "#classStaticMethodPosOnlyVarArgs",
+        "staticmethodposonlyvarargsdefaults": "#classStaticMethodPosOnlyVarArgsDefaults",
+        "staticmethodposonlykwargs": "#classStaticMethodPosOnlyKwArgs",
+        "staticmethodposonlykwargsdefaults": "#classStaticMethodPosOnlyKwArgsDefaults",
+        "staticmethodposonlyvarkwargs": "#classStaticMethodPosOnlyVarKwArgs",
+        "staticmethodposonlyvarkwargsdefaults": "#classStaticMethodPosOnlyVarKwArgsDefaults",
+        "staticmethodposonlyvarargskwonly": "#classStaticMethodPosOnlyVarArgsKwOnly",
+        "staticmethodposonlyvarargskwdefaults": "#classStaticMethodPosOnlyVarArgsKwDefaults",
+        "staticmethodposonlyvarargskwonlykwargs": "#classStaticMethodPosOnlyVarArgsKwOnlyKwArgs",
+        "staticmethodposonlyvarargskwdefaultskwargs": "#classStaticMethodPosOnlyVarArgsKwDefaultsKwArgs",
+        "staticmethodposonlykwonlykwargs": "#classStaticMethodPosOnlyKwOnlyKwArgs",
+        "staticmethodposonlykwdefaultskwargs": "#classStaticMethodPosOnlyKwDefaultsKwArgs",
+        "classmethodposonlyvarargs": "#classClassMethodPosOnlyVarArgs",
+        "classmethodposonlyvarargsdefaults": "#classClassMethodPosOnlyVarArgsDefaults",
+        "classmethodposonlykwargs": "#classClassMethodPosOnlyKwArgs",
+        "classmethodposonlykwargsdefaults": "#classClassMethodPosOnlyKwArgsDefaults",
+        "classmethodposonlyvarkwargs": "#classClassMethodPosOnlyVarKwArgs",
+        "classmethodposonlyvarkwargsdefaults": "#classClassMethodPosOnlyVarKwArgsDefaults",
+        "classmethodposonlyvarargskwonly": "#classClassMethodPosOnlyVarArgsKwOnly",
+        "classmethodposonlyvarargskwdefaults": "#classClassMethodPosOnlyVarArgsKwDefaults",
+        "classmethodposonlyvarargskwonlykwargs": "#classClassMethodPosOnlyVarArgsKwOnlyKwArgs",
+        "classmethodposonlyvarargskwdefaultskwargs": "#classClassMethodPosOnlyVarArgsKwDefaultsKwArgs",
+        "classmethodposonlykwonlykwargs": "#classClassMethodPosOnlyKwOnlyKwArgs",
+        "classmethodposonlykwdefaultskwargs": "#classClassMethodPosOnlyKwDefaultsKwArgs",
+    }
+    if kind in pos_only_extended_method_ctors:
+        return f"{pos_only_extended_method_ctors[kind]}({name}, {payload}, {defaults}, {body}, {rest})"
     if kind == "method":
         return f"#classMethod({name}, {payload}, {body}, {rest})"
     if kind == "methoddefaults":

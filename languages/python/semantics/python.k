@@ -905,8 +905,10 @@ module PYTHON
                  | setMutatingAttrCallArgs(Val, Id) [symbol(setMutatingAttrCallArgs)]
                  | getattrDefaultObject(Id, Exp) [symbol(getattrDefaultObject)]
                  | getattrDefaultApply(Val, Id) [symbol(getattrDefaultApply)]
+                 | getattrDefaultFallbackDone(Val) [symbol(getattrDefaultFallbackDone)]
                  | typeAliasValueCache(Int) [symbol(typeAliasValueCache)]
                  | hasattrObject(Id) [symbol(hasattrObject)]
+                 | hasattrGetattrDone() [symbol(hasattrGetattrDone)]
                  | getattrDynName(Exp) [symbol(getattrDynName)]
                  | getattrDynApply(Val) [symbol(getattrDynApply)]
                  | getattrDefaultDynName(Exp, Exp) [symbol(getattrDefaultDynName)]
@@ -16650,12 +16652,20 @@ module PYTHON
       andBool classAttrsHas(Attrs, Attr)
       andBool notBool bindableUserMethodVal(classAttrGet(Attrs, Attr))
       andBool notBool isPropertyVal(classAttrGet(Attrs, Attr))
+  rule <k> attrExp(userObjectVal(C:Id, ClassId:Int, ObjectId:Int, Attrs:ClassAttrs), Attr:Id) =>
+           #call(boundMethodVal(userObjectVal(C, ClassId, ObjectId, Attrs), classAttrStringGet(Attrs, "__getattr__")), #arg(Id2String(Attr)))
+       ... </k>
+       <objectAttrs> ... ObjectId |-> ObjAttrs:ClassAttrs ... </objectAttrs>
+    requires notBool classAttrsHas(ObjAttrs, Attr)
+      andBool notBool classAttrsHas(Attrs, Attr)
+      andBool classAttrsHasString(Attrs, "__getattr__")
   rule <k> attrExp(userObjectVal(_:Id, _:Int, ObjectId:Int, Attrs:ClassAttrs), Attr:Id) =>
            exceptionSignal(#exception(#token("AttributeError", "Id")))
        ... </k>
        <objectAttrs> ... ObjectId |-> ObjAttrs:ClassAttrs ... </objectAttrs>
     requires notBool classAttrsHas(ObjAttrs, Attr)
       andBool notBool classAttrsHas(Attrs, Attr)
+      andBool notBool classAttrsHasString(Attrs, "__getattr__")
   rule <k> attrExp(V:Val, Attr:Id) => exceptionSignal(#exception(#token("AttributeError", "Id"))) ... </k>
     requires isClassVal(V) andBool notBool classHasMatchAttr(V, Attr)
   rule attrExp(rangeVal(Start:Int, _:Int), Attr:Id) => Start
@@ -16812,29 +16822,64 @@ module PYTHON
        <objectAttrs> ... I |-> ObjAttrs:ClassAttrs ... </objectAttrs>
     requires typeAliasLazyAttrId(Attr)
       andBool notBool classAttrsHas(ObjAttrs, #token("kDunderValueName", "Id"))
+  rule <k> Default:Val ~> getattrDefaultApply(userObjectVal(C:Id, ClassId:Int, ObjectId:Int, Attrs:ClassAttrs), Attr:Id)
+        => #call(boundMethodVal(userObjectVal(C, ClassId, ObjectId, Attrs), classAttrStringGet(Attrs, "__getattr__")), #arg(Id2String(Attr)))
+           ~> getattrDefaultFallbackDone(Default) ... </k>
+       <objectAttrs> ... ObjectId |-> ObjAttrs:ClassAttrs ... </objectAttrs>
+    requires notBool classAttrsHas(ObjAttrs, Attr)
+      andBool notBool classAttrsHas(Attrs, Attr)
+      andBool classAttrsHasString(Attrs, "__getattr__")
   rule <k> Default:Val ~> getattrDefaultApply(userObjectVal(_:Id, _:Int, ObjectId:Int, Attrs:ClassAttrs), Attr:Id)
         => Default ... </k>
        <objectAttrs> ... ObjectId |-> ObjAttrs:ClassAttrs ... </objectAttrs>
     requires notBool classAttrsHas(ObjAttrs, Attr)
       andBool notBool classAttrsHas(Attrs, Attr)
+      andBool notBool classAttrsHasString(Attrs, "__getattr__")
+  rule <k> V:Val ~> getattrDefaultFallbackDone(_Default:Val) => V ... </k>
+  rule <k> exceptionSignal(E:Val) ~> getattrDefaultFallbackDone(Default:Val) => Default ... </k>
+    requires exceptionMatches(E, #token("AttributeError", "Id"))
+  rule <k> exceptionSignal(E:Val) ~> getattrDefaultFallbackDone(_Default:Val) => exceptionSignal(E) ... </k>
+    requires notBool exceptionMatches(E, #token("AttributeError", "Id"))
   rule <k> Default:Val ~> getattrDefaultApply(V:Val, Attr:Id)
         => Default ... </k>
     requires notBool classHasMatchAttr(V, Attr) andBool notBool isUserObjectVal(V)
   rule <k> #getattr(V:Val, Attr:Id) => exceptionSignal(#exception(#token("AttributeError", "Id"))) ... </k>
     requires notBool classHasMatchAttr(V, Attr) andBool notBool isUserObjectVal(V)
+  rule <k> #getattr(userObjectVal(C:Id, ClassId:Int, ObjectId:Int, Attrs:ClassAttrs), Attr:Id) =>
+           #call(boundMethodVal(userObjectVal(C, ClassId, ObjectId, Attrs), classAttrStringGet(Attrs, "__getattr__")), #arg(Id2String(Attr)))
+       ... </k>
+       <objectAttrs> ... ObjectId |-> ObjAttrs:ClassAttrs ... </objectAttrs>
+    requires notBool classAttrsHas(ObjAttrs, Attr)
+      andBool notBool classAttrsHas(Attrs, Attr)
+      andBool classAttrsHasString(Attrs, "__getattr__")
   rule <k> #getattr(userObjectVal(_:Id, _:Int, ObjectId:Int, Attrs:ClassAttrs), Attr:Id) =>
            exceptionSignal(#exception(#token("AttributeError", "Id")))
        ... </k>
        <objectAttrs> ... ObjectId |-> ObjAttrs:ClassAttrs ... </objectAttrs>
     requires notBool classAttrsHas(ObjAttrs, Attr)
       andBool notBool classAttrsHas(Attrs, Attr)
+      andBool notBool classAttrsHasString(Attrs, "__getattr__")
   rule <k> #hasattr(Obj:Exp, Attr:Id) => Obj ~> hasattrObject(Attr) ... </k>
   rule <k> userObjectVal(_:Id, _:Int, ObjectId:Int, Attrs:ClassAttrs) ~> hasattrObject(Attr:Id)
         => boolValue(classAttrsHas(ObjAttrs, Attr) orBool classAttrsHas(Attrs, Attr)) ... </k>
        <objectAttrs> ... ObjectId |-> ObjAttrs:ClassAttrs ... </objectAttrs>
+    requires (classAttrsHas(ObjAttrs, Attr) orBool classAttrsHas(Attrs, Attr))
+      orBool notBool classAttrsHasString(Attrs, "__getattr__")
+  rule <k> userObjectVal(C:Id, ClassId:Int, ObjectId:Int, Attrs:ClassAttrs) ~> hasattrObject(Attr:Id)
+        => #call(boundMethodVal(userObjectVal(C, ClassId, ObjectId, Attrs), classAttrStringGet(Attrs, "__getattr__")), #arg(Id2String(Attr)))
+           ~> hasattrGetattrDone() ... </k>
+       <objectAttrs> ... ObjectId |-> ObjAttrs:ClassAttrs ... </objectAttrs>
+    requires notBool classAttrsHas(ObjAttrs, Attr)
+      andBool notBool classAttrsHas(Attrs, Attr)
+      andBool classAttrsHasString(Attrs, "__getattr__")
   rule <k> V:Val ~> hasattrObject(Attr:Id)
         => boolValue(classHasMatchAttr(V, Attr)) ... </k>
     requires notBool isUserObjectVal(V)
+  rule <k> _V:Val ~> hasattrGetattrDone() => True ... </k>
+  rule <k> exceptionSignal(E:Val) ~> hasattrGetattrDone() => False ... </k>
+    requires exceptionMatches(E, #token("AttributeError", "Id"))
+  rule <k> exceptionSignal(E:Val) ~> hasattrGetattrDone() => exceptionSignal(E) ... </k>
+    requires notBool exceptionMatches(E, #token("AttributeError", "Id"))
   rule <k> #getattrDyn(Obj:Exp, Attr:Exp)
         => Obj ~> getattrDynName(Attr) ... </k>
   rule <k> V:Val ~> getattrDynName(Attr:Exp)
@@ -16877,6 +16922,12 @@ module PYTHON
       andBool classAttrsHasString(Attrs, Attr)
       andBool notBool bindableUserMethodVal(classAttrStringGet(Attrs, Attr))
       andBool notBool isPropertyVal(classAttrStringGet(Attrs, Attr))
+  rule <k> Attr:String ~> getattrDynApply(userObjectVal(C:Id, ClassId:Int, ObjectId:Int, Attrs:ClassAttrs))
+        => #call(boundMethodVal(userObjectVal(C, ClassId, ObjectId, Attrs), classAttrStringGet(Attrs, "__getattr__")), #arg(Attr)) ... </k>
+       <objectAttrs> ... ObjectId |-> ObjAttrs:ClassAttrs ... </objectAttrs>
+    requires notBool classAttrsHasString(ObjAttrs, Attr)
+      andBool notBool classAttrsHasString(Attrs, Attr)
+      andBool classAttrsHasString(Attrs, "__getattr__")
   rule <k> Attr:String ~> getattrDynApply(V:Val)
         => exceptionSignal(#exception(#token("AttributeError", "Id"))) ... </k>
     requires isClassVal(V)
@@ -16887,6 +16938,7 @@ module PYTHON
        <objectAttrs> ... ObjectId |-> ObjAttrs:ClassAttrs ... </objectAttrs>
     requires notBool classAttrsHasString(ObjAttrs, Attr)
       andBool notBool classAttrsHasString(Attrs, Attr)
+      andBool notBool classAttrsHasString(Attrs, "__getattr__")
   rule <k> Attr:String ~> getattrDynApply(V:Val)
         => exceptionSignal(#exception(#token("AttributeError", "Id"))) ... </k>
     requires getattrStringSupported(Attr)
@@ -16951,6 +17003,14 @@ module PYTHON
        <objectAttrs> ... ObjectId |-> ObjAttrs:ClassAttrs ... </objectAttrs>
     requires notBool classAttrsHasString(ObjAttrs, Attr)
       andBool notBool classAttrsHasString(Attrs, Attr)
+      andBool notBool classAttrsHasString(Attrs, "__getattr__")
+  rule <k> Default:Val ~> getattrDefaultDynApply(userObjectVal(C:Id, ClassId:Int, ObjectId:Int, Attrs:ClassAttrs), Attr:String)
+        => #call(boundMethodVal(userObjectVal(C, ClassId, ObjectId, Attrs), classAttrStringGet(Attrs, "__getattr__")), #arg(Attr))
+           ~> getattrDefaultFallbackDone(Default) ... </k>
+       <objectAttrs> ... ObjectId |-> ObjAttrs:ClassAttrs ... </objectAttrs>
+    requires notBool classAttrsHasString(ObjAttrs, Attr)
+      andBool notBool classAttrsHasString(Attrs, Attr)
+      andBool classAttrsHasString(Attrs, "__getattr__")
   rule <k> Default:Val ~> getattrDefaultDynApply(V:Val, Attr:String)
         => Default ... </k>
     requires isClassVal(V)
@@ -16976,10 +17036,21 @@ module PYTHON
         => boolValue(classAttrsHasString(ObjAttrs, Attr) orBool classAttrsHasString(Attrs, Attr)) ... </k>
        <objectAttrs> ... ObjectId |-> ObjAttrs:ClassAttrs ... </objectAttrs>
     requires getattrStringSupported(Attr)
+      andBool ((classAttrsHasString(ObjAttrs, Attr) orBool classAttrsHasString(Attrs, Attr))
+        orBool notBool classAttrsHasString(Attrs, "__getattr__"))
   rule <k> Attr:String ~> hasattrDynApply(userObjectVal(_:Id, _:Int, ObjectId:Int, Attrs:ClassAttrs))
         => boolValue(classAttrsHasString(ObjAttrs, Attr) orBool classAttrsHasString(Attrs, Attr)) ... </k>
        <objectAttrs> ... ObjectId |-> ObjAttrs:ClassAttrs ... </objectAttrs>
     requires notBool getattrStringSupported(Attr)
+      andBool ((classAttrsHasString(ObjAttrs, Attr) orBool classAttrsHasString(Attrs, Attr))
+        orBool notBool classAttrsHasString(Attrs, "__getattr__"))
+  rule <k> Attr:String ~> hasattrDynApply(userObjectVal(C:Id, ClassId:Int, ObjectId:Int, Attrs:ClassAttrs))
+        => #call(boundMethodVal(userObjectVal(C, ClassId, ObjectId, Attrs), classAttrStringGet(Attrs, "__getattr__")), #arg(Attr))
+           ~> hasattrGetattrDone() ... </k>
+       <objectAttrs> ... ObjectId |-> ObjAttrs:ClassAttrs ... </objectAttrs>
+    requires notBool classAttrsHasString(ObjAttrs, Attr)
+      andBool notBool classAttrsHasString(Attrs, Attr)
+      andBool classAttrsHasString(Attrs, "__getattr__")
   rule <k> Attr:String ~> hasattrDynApply(V:Val)
         => boolValue(classHasAttrString(V, Attr)) ... </k>
     requires (isClassVal(V) orBool isUserObjectVal(V))

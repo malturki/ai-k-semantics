@@ -35,7 +35,7 @@
         {
           "id": "lexical.physical-logical-lines",
           "title": "Physical lines, logical lines, comments, and line joining",
-          "status": "not-started",
+          "status": "partial",
           "references": [
             {
               "title": "Lexical analysis",
@@ -43,14 +43,14 @@
               "section": "Physical lines and logical lines"
             }
           ],
-          "k_coverage": [],
-          "test_coverage": [],
-          "gaps": ["The executable seed currently requires semicolon-separated simple statements and does not model Python newline handling."]
+          "k_coverage": ["harness/python_to_k_input.py: ordinary Python file input is parsed by CPython ast.parse(..., mode='exec') before supported statements are emitted to K"],
+          "test_coverage": ["tests/adapter/adapter-lexical-lines-indentation.py"],
+          "gaps": ["Need native K tokenizer coverage for physical-line to logical-line processing, comment elision, explicit and implicit line joining, newline/EOF tokenization, and exact SyntaxError diagnostics beyond the adapter-supported subset."]
         },
         {
           "id": "lexical.indentation",
           "title": "Indentation, tabs, formfeeds, INDENT, and DEDENT",
-          "status": "not-started",
+          "status": "partial",
           "references": [
             {
               "title": "Lexical analysis",
@@ -58,9 +58,9 @@
               "section": "Indentation"
             }
           ],
-          "k_coverage": [],
-          "test_coverage": [],
-          "gaps": ["Need explicit block token model and diagnostics for inconsistent tab/space indentation."]
+          "k_coverage": ["harness/python_to_k_input.py: CPython-parsed indented blocks in supported statements are emitted as explicit K statement blocks"],
+          "test_coverage": ["tests/adapter/adapter-lexical-lines-indentation.py"],
+          "gaps": ["Need native K tokenizer/parser model for INDENT/DEDENT generation, tab expansion, formfeed handling, inconsistent dedent diagnostics, TabError, and exact indentation error messages beyond the adapter-supported subset."]
         },
         {
           "id": "lexical.identifiers-keywords",

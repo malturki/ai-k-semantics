@@ -186,6 +186,13 @@
       "coverage": ["interactive-input", "single-input-start-symbol", "ordinary-python-source-adapter"]
     },
     {
+      "id": "adapter-lexical-lines-indentation",
+      "source": "../adapter/adapter-lexical-lines-indentation.py",
+      "reference": "Python Language Reference 2.1 Lexical analysis: physical lines, logical lines, comments, explicit line joining, implicit line joining, indentation",
+      "expected_result": "True ~> .K",
+      "coverage": ["physical-lines", "logical-lines", "comments", "explicit-line-joining", "implicit-line-joining", "indentation", "ordinary-python-source-adapter"]
+    },
+    {
       "id": "adapter-string-repeat",
       "source": "../adapter/adapter-string-repeat.py",
       "reference": "Python Language Reference 6.7 Binary arithmetic operations; Standard Library sequence types",

@@ -207,6 +207,13 @@
       "coverage": ["keyword-module", "keyword-list", "soft-keyword-list", "iskeyword", "issoftkeyword", "import-statement", "from-import-statement", "import-as-binding", "builtin-module-object", "ordinary-python-source-adapter"]
     },
     {
+      "id": "adapter-relative-import-no-package",
+      "source": "../adapter/adapter-relative-import-no-package.py",
+      "reference": "Python Language Reference import statement and import system: Package Relative Imports; CPython 3.14.6 top-level script relative-import ImportError",
+      "expected_result": "True ~> .K",
+      "coverage": ["relative-import-statement", "package-context", "top-level-script-import-error", "ordinary-python-source-adapter"]
+    },
+    {
       "id": "adapter-string-repeat",
       "source": "../adapter/adapter-string-repeat.py",
       "reference": "Python Language Reference 6.7 Binary arithmetic operations; Standard Library sequence types",

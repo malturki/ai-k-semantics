@@ -338,6 +338,8 @@ module PYTHON-SYNTAX
                 | "#importAs" "(" Id "," Id ")" [symbol(importAsStmt)]
                 | "#fromImport" "(" Id "," Id ")" [symbol(fromImportStmt)]
                 | "#fromImportAs" "(" Id "," Id "," Id ")" [symbol(fromImportAsStmt)]
+                | "#fromRelativeImport" "(" Int "," Id "," Id ")" [symbol(fromRelativeImportStmt)]
+                | "#fromRelativeImportAs" "(" Int "," Id "," Id "," Id ")" [symbol(fromRelativeImportAsStmt)]
                 | "assert" Exp [symbol(assertStmt), strict]
                 | "#assertMsg" "(" Exp "," Exp ")" [symbol(assertMsgStmt), strict(1)]
                 | "global" Id [symbol(globalStmt)]
@@ -2445,6 +2447,7 @@ module PYTHON
                | stringCodePointPrefixByteLen(String, Int, Int) [function, symbol(stringCodePointPrefixByteLen)]
                | stringAsciiControlCode(String) [function, symbol(stringAsciiControlCode)]
                | bytesReprQuoteByte(ValItems) [function, symbol(bytesReprQuoteByte)]
+
   syntax IdItems ::= concatIdItems(IdItems, IdItems) [function, symbol(concatIdItems)]
   syntax Float ::= floatValue(Val) [function, symbol(floatValue)]
                  | floatMantissaStringValue(String) [function, symbol(floatMantissaStringValue)]
@@ -15551,6 +15554,10 @@ module PYTHON
     requires builtinModuleSupported(M) andBool notBool builtinModuleHasAttr(M, A)
   rule <k> #fromImportAs(M:Id, A:Id, _Alias:Id) => exceptionSignal(#exception(#token("ImportError", "Id"))) ... </k>
     requires builtinModuleSupported(M) andBool notBool builtinModuleHasAttr(M, A)
+  rule <k> #fromRelativeImport(Level:Int, _Module:Id, _A:Id) => exceptionSignal(#exception(#token("ImportError", "Id"))) ... </k>
+    requires Level >Int 0
+  rule <k> #fromRelativeImportAs(Level:Int, _Module:Id, _A:Id, _Alias:Id) => exceptionSignal(#exception(#token("ImportError", "Id"))) ... </k>
+    requires Level >Int 0
 
   rule <k> fstringExp(Parts:FStringParts) => fStringEval(Parts, "") ... </k>
   rule <k> fStringEval(#fstrEnd, Acc:String) => Acc ... </k>

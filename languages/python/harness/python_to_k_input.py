@@ -28,6 +28,7 @@ DUNDER_DOC_NAME_ID = "kDunderDocName"
 DUNDER_MODULE_NAME_ID = "kDunderModuleName"
 DUNDER_QUALNAME_NAME_ID = "kDunderQualnameName"
 DUNDER_ALL_NAME_ID = "kDunderAllName"
+NO_RELATIVE_MODULE_ID = "kNoRelativeModuleName"
 JSON_SURROGATE_PAIR_RE = re.compile(r"\\u(d[89ab][0-9a-f]{2})\\u(d[cdef][0-9a-f]{2})")
 SUPPORTED_ZERO_ARG_CLASS_PATTERNS = {
     "bytearray",
@@ -826,8 +827,21 @@ def emit_import_stmt(stmt: ast.Import, names: list[ast.alias]) -> str:
 
 
 def emit_import_from_stmt(stmt: ast.ImportFrom, module: str | None, names: list[ast.alias], level: int) -> str:
-    if level != 0 or module is None:
-        raise unsupported(stmt, "relative from-import statements are not supported")
+    if level != 0:
+        if len(names) != 1:
+            raise unsupported(stmt, "only single-name relative from-import statements are supported")
+        alias = names[0]
+        if alias.name == "*":
+            raise unsupported(stmt, "relative from-import star is not supported")
+        if module is not None and "." in module:
+            raise unsupported(stmt, "dotted relative from-import modules are not supported")
+        module_name = NO_RELATIVE_MODULE_ID if module is None else emit_id(module)
+        imported = emit_id(alias.name)
+        if alias.asname is None:
+            return f"#fromRelativeImport({level}, {module_name}, {imported})"
+        return f"#fromRelativeImportAs({level}, {module_name}, {imported}, {emit_id(alias.asname)})"
+    if module is None:
+        raise unsupported(stmt, "absolute from-import statements require a module name")
     if module not in SUPPORTED_IMPORT_MODULES:
         raise unsupported(stmt, "only supported builtin-module from-import statements are accepted")
     if len(names) != 1:

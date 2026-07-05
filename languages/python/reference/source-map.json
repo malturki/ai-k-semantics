@@ -739,7 +739,7 @@
     {
       "id": "top-level-components",
       "title": "Top-level components",
-      "status": "syntax",
+      "status": "partial",
       "references": [
         {
           "title": "Python Language Reference: Top-level components",
@@ -750,7 +750,7 @@
         {
           "id": "top.file-input",
           "title": "Complete Python files",
-          "status": "syntax",
+          "status": "partial",
           "references": [
             {
               "title": "Top-level components",
@@ -758,9 +758,9 @@
               "section": "Complete Python programs"
             }
           ],
-          "k_coverage": ["semantics/python.k: small semicolon-terminated program list", "harness/python_to_k_input.py: ordinary Python file input for the supported AST subset"],
-          "test_coverage": ["tests/examples/smoke-arithmetic.py", "tests/examples/smoke-assignment.py", "tests/adapter/adapter-floor-div.py", "tests/adapter/adapter-list-normal.py", "tests/adapter/adapter-tuple-normal.py", "tests/adapter/adapter-lambda-normal.py"],
-          "gaps": ["Need full file_input grammar, shebang/encoding interaction, newline handling, and EOF behavior beyond the adapter-supported subset."]
+          "k_coverage": ["semantics/python.k: small semicolon-terminated program list", "harness/python_to_k_input.py: ordinary Python file input for the supported AST subset is parsed with ast.parse(..., mode='exec') and emitted as a K statement list"],
+          "test_coverage": ["tests/examples/smoke-arithmetic.py", "tests/examples/smoke-assignment.py", "tests/adapter/adapter-file-input-framing.py", "tests/adapter/adapter-floor-div.py", "tests/adapter/adapter-list-normal.py", "tests/adapter/adapter-tuple-normal.py", "tests/adapter/adapter-lambda-normal.py"],
+          "gaps": ["Need native file_input grammar or verified parser frontend coverage for all complete Python programs, full shebang/encoding detection and invalid-encoding diagnostics, CRLF/newline/EOF tokenization, module execution environment details, __main__/builtins/sys initialization, source-location preservation, and all syntax/semantic constructs beyond the adapter-supported subset."]
         },
         {
           "id": "top.interactive-input",

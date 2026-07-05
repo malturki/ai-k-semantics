@@ -186,6 +186,13 @@
       "coverage": ["interactive-input", "single-input-start-symbol", "ordinary-python-source-adapter"]
     },
     {
+      "id": "adapter-file-input-framing",
+      "source": "../adapter/adapter-file-input-framing.py",
+      "reference": "Python Language Reference Top-level components Complete Python programs and File input; CPython ast.parse mode='exec'",
+      "expected_result": "True ~> .K",
+      "coverage": ["complete-python-program", "file-input", "exec-input-start-symbol", "comments", "blank-lines", "compound-statement", "semicolon-separated-simple-statements", "endmodule-framing", "ordinary-python-source-adapter"]
+    },
+    {
       "id": "adapter-lexical-lines-indentation",
       "source": "../adapter/adapter-lexical-lines-indentation.py",
       "reference": "Python Language Reference 2.1 Lexical analysis: physical lines, logical lines, comments, explicit line joining, implicit line joining, indentation",

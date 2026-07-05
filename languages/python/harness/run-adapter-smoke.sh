@@ -595,6 +595,7 @@ run_case "adapter-try-except-bare" "$ROOT/tests/adapter/adapter-try-except-bare.
 run_case "adapter-try-except-tuple" "$ROOT/tests/adapter/adapter-try-except-tuple.py" "True ~> .K"
 run_case "adapter-exception-hierarchy" "$ROOT/tests/adapter/adapter-exception-hierarchy.py" "True ~> .K"
 run_case "adapter-exception-hierarchy-builtins" "$ROOT/tests/adapter/adapter-exception-hierarchy-builtins.py" "True ~> .K"
+run_case "adapter-exception-hierarchy-more" "$ROOT/tests/adapter/adapter-exception-hierarchy-more.py" "True ~> .K"
 run_case "adapter-range-for" "$ROOT/tests/adapter/adapter-range-for.py" "True ~> .K"
 run_case "adapter-range-start-stop" "$ROOT/tests/adapter/adapter-range-start-stop.py" "True ~> .K"
 run_case "adapter-range-break-continue" "$ROOT/tests/adapter/adapter-range-break-continue.py" "True ~> .K"

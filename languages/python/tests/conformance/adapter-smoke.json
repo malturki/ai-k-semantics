@@ -3798,6 +3798,13 @@
       "coverage": ["try-statement", "built-in-exception-hierarchy", "os-error-family", "import-error-family", "warning-family", "base-exception-non-exception", "cpython-runtime-exception-name", "raise-statement", "exception-handler-matching", "ordinary-python-source-adapter"]
     },
     {
+      "id": "adapter-exception-hierarchy-more",
+      "source": "../adapter/adapter-exception-hierarchy-more.py",
+      "reference": "Python Language Reference 8.4 The try statement; 7.8 The raise statement; Python Standard Library Built-in Exceptions",
+      "expected_result": "True ~> .K",
+      "coverage": ["try-statement", "built-in-exception-hierarchy", "arithmetic-error-family", "runtime-error-family", "stop-iteration-family", "base-exception-non-exception", "syntax-error-family", "warning-family", "raise-statement", "exception-handler-matching", "ordinary-python-source-adapter"]
+    },
+    {
       "id": "adapter-with-memoryview",
       "source": "../adapter/adapter-with-memoryview.py",
       "reference": "Python Language Reference 8.5 The with statement; Python Standard Library Built-in Types memoryview",

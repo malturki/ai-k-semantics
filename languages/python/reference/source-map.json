@@ -241,7 +241,7 @@
           ],
           "k_coverage": ["semantics/python.k: internal #exception(Name) sentinel values and #exceptionInstance(Name, Args) values for constructor-call raises, #exceptionCall(Name, Args) expression syntax that evaluates positional constructor arguments before raising, raise statements over current exception values, bare raise reraising the current <activeException> or RuntimeError when no active exception exists, active-exception installation/restoration around supported handler bodies, #raiseFromNone(EXC) syntax for raise EXC from None in the current no-cause sentinel profile, #raiseFrom(EXC, CAUSE) syntax for raise EXC from CAUSE in the current no-cause-object sentinel profile, exceptionMatches/exceptionIn helpers for named and tuple handler dispatch, exceptionSignal propagation through straight-line statement sequencing and nested mismatching handlers, single #tryExcept named handlers for matching exception values, #tryExceptElse normal-completion else clauses, #tryExceptCases/#tryExceptCasesElse handler lists, first-match handler dispatch, #exceptAs alias binding plus cleanup to undef, #exceptAny catch-all handlers, #exceptTuple/#exceptTupleAs exact-name tuple matching, and tryFinallyException resumption/override for active exceptions", "harness/python_to_k_input.py: CPython AST bare Raise lowers to bare raise; Raise of a named exception lowers to the current internal exception sentinel; Raise of a named exception constructor call lowers to #exceptionCall with positional arguments, with cause=None lowering to raise, cause=Constant(None) lowering to #raiseFromNone, and named or constructor-call cause expressions lowering to #raiseFrom; a Try with one or more named, tuple-named, or bare except handlers and no finalbody lowers to #tryExcept/#tryExceptElse or #tryExceptCases/#tryExceptCasesElse, using #exceptAs for except-as targets, #exceptAny for bare handlers, and #exceptTuple/#exceptTupleAs for named exception tuples; Try without handlers or else lowers to #tryFinally; Try with handlers and finalbody lowers to #tryFinally over the corresponding #tryExcept/#tryExceptElse/#tryExceptCases/#tryExceptCasesElse form"],
           "test_coverage": ["tests/adapter/adapter-raise-from-none.py", "tests/adapter/adapter-raise-from-cause.py", "tests/adapter/adapter-reraise.py", "tests/adapter/adapter-raise-exception-call.py", "tests/adapter/adapter-try-except-basic.py", "tests/adapter/adapter-try-except-no-exception.py", "tests/adapter/adapter-try-except-else.py", "tests/adapter/adapter-try-except-nested-mismatch.py", "tests/adapter/adapter-try-except-multiple.py", "tests/adapter/adapter-try-except-multiple-else.py", "tests/adapter/adapter-try-except-as.py", "tests/adapter/adapter-try-except-bare.py", "tests/adapter/adapter-try-except-tuple.py", "tests/adapter/adapter-try-finally-exception.py", "tests/adapter/adapter-try-except-finally.py", "tests/examples/smoke-except-as-cleanup.py"],
-          "gaps": ["Need real exception objects and hierarchy, traceback shape, propagation through all continuations, matching semantics beyond the sentinel subset, full active-exception/traceback/context behavior, cause/context object attachment beyond construct preservation, groups, finalization, and type-hierarchy matching."]
+          "gaps": ["Need real exception objects beyond the current sentinel values, traceback shape, propagation through all continuations, matching semantics beyond the named built-in hierarchy subset, full active-exception/traceback/context behavior, cause/context object attachment beyond construct preservation, groups, finalization, and full type-hierarchy matching."]
         },
         {
           "id": "execution.annotation-scopes",
@@ -854,16 +854,16 @@
         {
           "id": "stdlib.exceptions",
           "title": "Built-in exceptions",
-          "status": "not-started",
+          "status": "partial",
           "references": [
             {
               "title": "Built-in Exceptions",
               "url": "https://docs.python.org/3/library/exceptions.html"
             }
           ],
-          "k_coverage": [],
-          "test_coverage": [],
-          "gaps": ["Need exception hierarchy, construction, matching, traceback, exception groups, notes, and context/cause."]
+          "k_coverage": ["semantics/python.k: #exception(Name) and #exceptionInstance(Name, Args) sentinel values for raised named exception classes and constructor-call instances", "semantics/python.k: exceptionMatches/exceptionTypeMatchesString covers the current built-in hierarchy subset for BaseException, Exception, BaseExceptionGroup/ExceptionGroup sentinels, GeneratorExit/KeyboardInterrupt/SystemExit, ArithmeticError, LookupError, ImportError, OSError/ConnectionError families, RuntimeError family, SyntaxError/IndentationError/TabError family, UnicodeError family, Warning family, and common direct Exception subclasses"],
+          "test_coverage": ["tests/adapter/adapter-exception-hierarchy.py", "tests/adapter/adapter-exception-hierarchy-builtins.py", "tests/adapter/adapter-exception-hierarchy-more.py", "tests/adapter/adapter-raise-exception-call.py", "tests/adapter/adapter-try-except-tuple.py"],
+          "gaps": ["Need real exception classes/instances with object attributes, args/message normalization, traceback, exception groups with subgroup semantics, notes, context/cause objects, OSError errno-derived subclasses, UnicodeError constructor fields, and complete CPython exception initialization behavior."]
         },
         {
           "id": "stdlib.ast-tokenize-keyword",

@@ -30124,16 +30124,23 @@ module PYTHON
            Obj ~> assignAttrApply(V, Attr)
        ... </k>
   rule <k> userObjectVal(C:Id, ClassId:Int, ObjectId:Int, Attrs:ClassAttrs) ~> assignAttrApply(V:Val, Attr:Id) =>
+           #call(boundMethodVal(userObjectVal(C, ClassId, ObjectId, Attrs), classAttrStringGet(Attrs, "__setattr__")), #args(Id2String(Attr), #arg(V)))
+           ~> propertySetterDone()
+       ... </k>
+    requires classAttrsHasString(Attrs, "__setattr__")
+  rule <k> userObjectVal(C:Id, ClassId:Int, ObjectId:Int, Attrs:ClassAttrs) ~> assignAttrApply(V:Val, Attr:Id) =>
            #call(boundMethodVal(userObjectVal(C, ClassId, ObjectId, Attrs), propertySet(classAttrGet(Attrs, Attr))), #arg(V))
            ~> propertySetterDone()
        ... </k>
     requires classAttrsHas(Attrs, Attr)
+      andBool notBool classAttrsHasString(Attrs, "__setattr__")
       andBool isPropertyVal(classAttrGet(Attrs, Attr))
       andBool propertyHasSetter(classAttrGet(Attrs, Attr))
   rule <k> userObjectVal(_:Id, _:Int, _:Int, Attrs:ClassAttrs) ~> assignAttrApply(_V:Val, Attr:Id) =>
            exceptionSignal(#exception(#token("AttributeError", "Id")))
        ... </k>
     requires classAttrsHas(Attrs, Attr)
+      andBool notBool classAttrsHasString(Attrs, "__setattr__")
       andBool isPropertyVal(classAttrGet(Attrs, Attr))
       andBool notBool propertyHasSetter(classAttrGet(Attrs, Attr))
   rule <k> _V:Val ~> propertySetterDone() => stmtNoResult ... </k>
@@ -30144,12 +30151,14 @@ module PYTHON
        <objectAttrs> ... ObjectId |-> (ObjAttrs:ClassAttrs => classAttrSet(ObjAttrs, Attr, V)) ... </objectAttrs>
        <result> _ => .K </result>
     requires notBool classAttrsHas(Attrs, Attr)
+      andBool notBool classAttrsHasString(Attrs, "__setattr__")
   rule <k> userObjectVal(_:Id, _:Int, ObjectId:Int, Attrs:ClassAttrs) ~> assignAttrApply(V:Val, Attr:Id) =>
            stmtNoResult
        ... </k>
        <objectAttrs> ... ObjectId |-> (ObjAttrs:ClassAttrs => classAttrSet(ObjAttrs, Attr, V)) ... </objectAttrs>
        <result> _ => .K </result>
     requires classAttrsHas(Attrs, Attr)
+      andBool notBool classAttrsHasString(Attrs, "__setattr__")
       andBool notBool isPropertyVal(classAttrGet(Attrs, Attr))
   rule <k> V:Val ~> assignAttrApply(_:Val, _:Id) =>
            exceptionSignal(#exception(#token("AttributeError", "Id")))
@@ -30173,16 +30182,23 @@ module PYTHON
        ... </k>
     requires notBool isStringVal(Attr)
   rule <k> userObjectVal(C:Id, ClassId:Int, ObjectId:Int, Attrs:ClassAttrs) ~> setattrStringApply(Attr:String, V:Val) =>
+           #call(boundMethodVal(userObjectVal(C, ClassId, ObjectId, Attrs), classAttrStringGet(Attrs, "__setattr__")), #args(Attr, #arg(V)))
+           ~> setattrBuiltinDone()
+       ... </k>
+    requires classAttrsHasString(Attrs, "__setattr__")
+  rule <k> userObjectVal(C:Id, ClassId:Int, ObjectId:Int, Attrs:ClassAttrs) ~> setattrStringApply(Attr:String, V:Val) =>
            #call(boundMethodVal(userObjectVal(C, ClassId, ObjectId, Attrs), propertySet(classAttrStringGet(Attrs, Attr))), #arg(V))
            ~> setattrBuiltinDone()
        ... </k>
     requires classAttrsHasString(Attrs, Attr)
+      andBool notBool classAttrsHasString(Attrs, "__setattr__")
       andBool isPropertyVal(classAttrStringGet(Attrs, Attr))
       andBool propertyHasSetter(classAttrStringGet(Attrs, Attr))
   rule <k> userObjectVal(_:Id, _:Int, _:Int, Attrs:ClassAttrs) ~> setattrStringApply(Attr:String, _V:Val) =>
            exceptionSignal(#exception(#token("AttributeError", "Id")))
        ... </k>
     requires classAttrsHasString(Attrs, Attr)
+      andBool notBool classAttrsHasString(Attrs, "__setattr__")
       andBool isPropertyVal(classAttrStringGet(Attrs, Attr))
       andBool notBool propertyHasSetter(classAttrStringGet(Attrs, Attr))
   rule <k> _V:Val ~> setattrBuiltinDone() => None ... </k>
@@ -30191,11 +30207,13 @@ module PYTHON
        ... </k>
        <objectAttrs> ... ObjectId |-> (ObjAttrs:ClassAttrs => classAttrStringSet(ObjAttrs, Attr, V)) ... </objectAttrs>
     requires notBool classAttrsHasString(Attrs, Attr)
+      andBool notBool classAttrsHasString(Attrs, "__setattr__")
   rule <k> userObjectVal(_:Id, _:Int, ObjectId:Int, Attrs:ClassAttrs) ~> setattrStringApply(Attr:String, V:Val) =>
            None
        ... </k>
        <objectAttrs> ... ObjectId |-> (ObjAttrs:ClassAttrs => classAttrStringSet(ObjAttrs, Attr, V)) ... </objectAttrs>
     requires classAttrsHasString(Attrs, Attr)
+      andBool notBool classAttrsHasString(Attrs, "__setattr__")
       andBool notBool isPropertyVal(classAttrStringGet(Attrs, Attr))
   rule <k> V:Val ~> setattrStringApply(_:String, _:Val) =>
            exceptionSignal(#exception(#token("AttributeError", "Id")))

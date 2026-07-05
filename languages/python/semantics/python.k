@@ -475,6 +475,7 @@ module PYTHON-SYNTAX
                | "#getattrDyn" "(" Exp "," Exp ")" [symbol(getattrDynExp)]
                | "#getattrDefaultDyn" "(" Exp "," Exp "," Exp ")" [symbol(getattrDefaultDynExp)]
                | "#hasattrDyn" "(" Exp "," Exp ")" [symbol(hasattrDynExp)]
+               | "#setattr" "(" Exp "," Exp "," Exp ")" [symbol(setattrExp)]
                | "#delattr" "(" Exp "," Exp ")" [symbol(delattrExp)]
                | "#fstring" "(" FStringParts ")" [symbol(fstringExp)]
                | "#list" "(" ArgExps ")" [symbol(listDisplayExp)]
@@ -731,9 +732,11 @@ module PYTHON
 
   syntax ClassAttrs ::= "#noRuntimeClassAttrs" [symbol(noRuntimeClassAttrs)]
                       | classAttr(Id, Val, ClassAttrs) [symbol(runtimeClassAttr)]
+                      | classStringAttr(String, Val, ClassAttrs) [symbol(runtimeClassStringAttr)]
                       | classBase(Int, ClassAttrs) [symbol(runtimeClassBase)]
                       | builtinModuleAttrs(Id) [function, symbol(builtinModuleAttrs)]
                       | classAttrSet(ClassAttrs, Id, Val) [function, symbol(classAttrSet)]
+                      | classAttrStringSet(ClassAttrs, String, Val) [function, symbol(classAttrStringSet)]
                       | classAttrDel(ClassAttrs, Id) [function, symbol(classAttrDel)]
                       | classAttrStringDel(ClassAttrs, String) [function, symbol(classAttrStringDel)]
                       | classAttrsAppend(ClassAttrs, ClassAttrs) [function, symbol(classAttrsAppend)]
@@ -1020,6 +1023,11 @@ module PYTHON
                  | assignAttrObject(Exp, Id) [symbol(assignAttrObject)]
                  | assignAttrApply(Val, Id) [symbol(assignAttrApply)]
                  | propertySetterDone() [symbol(propertySetterDone)]
+                 | setattrName(Exp, Exp) [symbol(setattrName)]
+                 | setattrValue(Val, Exp) [symbol(setattrValue)]
+                 | setattrApply(Val, Val) [symbol(setattrApply)]
+                 | setattrStringApply(String, Val) [symbol(setattrStringApply)]
+                 | setattrBuiltinDone() [symbol(setattrBuiltinDone)]
                  | delAttrApply(Id) [symbol(delAttrApply)]
                  | propertyDeleterDone() [symbol(propertyDeleterDone)]
                  | delattrName(Exp) [symbol(delattrName)]
@@ -6555,8 +6563,30 @@ module PYTHON
   rule classAttrSet(classAttr(A:Id, Old:Val, Rest:ClassAttrs), B:Id, V:Val) =>
     classAttr(A, Old, classAttrSet(Rest, B, V))
     requires Id2String(A) =/=String Id2String(B)
+  rule classAttrSet(classStringAttr(A:String, _Old:Val, Rest:ClassAttrs), B:Id, V:Val) =>
+    classStringAttr(A, V, Rest)
+    requires A ==String Id2String(B)
+  rule classAttrSet(classStringAttr(A:String, Old:Val, Rest:ClassAttrs), B:Id, V:Val) =>
+    classStringAttr(A, Old, classAttrSet(Rest, B, V))
+    requires A =/=String Id2String(B)
   rule classAttrSet(classBase(BaseId:Int, Rest:ClassAttrs), B:Id, V:Val) =>
     classBase(BaseId, classAttrSet(Rest, B, V))
+
+  rule classAttrStringSet(#noRuntimeClassAttrs, A:String, V:Val) => classStringAttr(A, V, #noRuntimeClassAttrs)
+  rule classAttrStringSet(classAttr(A:Id, _Old:Val, Rest:ClassAttrs), B:String, V:Val) =>
+    classAttr(A, V, Rest)
+    requires classAttrIdMatchesString(A, B)
+  rule classAttrStringSet(classAttr(A:Id, Old:Val, Rest:ClassAttrs), B:String, V:Val) =>
+    classAttr(A, Old, classAttrStringSet(Rest, B, V))
+    requires notBool classAttrIdMatchesString(A, B)
+  rule classAttrStringSet(classStringAttr(A:String, _Old:Val, Rest:ClassAttrs), B:String, V:Val) =>
+    classStringAttr(A, V, Rest)
+    requires A ==String B
+  rule classAttrStringSet(classStringAttr(A:String, Old:Val, Rest:ClassAttrs), B:String, V:Val) =>
+    classStringAttr(A, Old, classAttrStringSet(Rest, B, V))
+    requires A =/=String B
+  rule classAttrStringSet(classBase(BaseId:Int, Rest:ClassAttrs), B:String, V:Val) =>
+    classBase(BaseId, classAttrStringSet(Rest, B, V))
 
   rule classAttrDel(#noRuntimeClassAttrs, _:Id) => #noRuntimeClassAttrs
   rule classAttrDel(classAttr(A:Id, _V:Val, Rest:ClassAttrs), B:Id) => Rest
@@ -6564,6 +6594,11 @@ module PYTHON
   rule classAttrDel(classAttr(A:Id, V:Val, Rest:ClassAttrs), B:Id) =>
     classAttr(A, V, classAttrDel(Rest, B))
     requires Id2String(A) =/=String Id2String(B)
+  rule classAttrDel(classStringAttr(A:String, _V:Val, Rest:ClassAttrs), B:Id) => Rest
+    requires A ==String Id2String(B)
+  rule classAttrDel(classStringAttr(A:String, V:Val, Rest:ClassAttrs), B:Id) =>
+    classStringAttr(A, V, classAttrDel(Rest, B))
+    requires A =/=String Id2String(B)
   rule classAttrDel(classBase(BaseId:Int, Rest:ClassAttrs), B:Id) =>
     classBase(BaseId, classAttrDel(Rest, B))
 
@@ -6573,12 +6608,19 @@ module PYTHON
   rule classAttrStringDel(classAttr(A:Id, V:Val, Rest:ClassAttrs), B:String) =>
     classAttr(A, V, classAttrStringDel(Rest, B))
     requires notBool classAttrIdMatchesString(A, B)
+  rule classAttrStringDel(classStringAttr(A:String, _V:Val, Rest:ClassAttrs), B:String) => Rest
+    requires A ==String B
+  rule classAttrStringDel(classStringAttr(A:String, V:Val, Rest:ClassAttrs), B:String) =>
+    classStringAttr(A, V, classAttrStringDel(Rest, B))
+    requires A =/=String B
   rule classAttrStringDel(classBase(BaseId:Int, Rest:ClassAttrs), B:String) =>
     classBase(BaseId, classAttrStringDel(Rest, B))
 
   rule classAttrsAppend(#noRuntimeClassAttrs, Rest:ClassAttrs) => Rest
   rule classAttrsAppend(classAttr(A:Id, V:Val, Attrs:ClassAttrs), Rest:ClassAttrs) =>
     classAttr(A, V, classAttrsAppend(Attrs, Rest))
+  rule classAttrsAppend(classStringAttr(A:String, V:Val, Attrs:ClassAttrs), Rest:ClassAttrs) =>
+    classStringAttr(A, V, classAttrsAppend(Attrs, Rest))
   rule classAttrsAppend(classBase(BaseId:Int, Attrs:ClassAttrs), Rest:ClassAttrs) =>
     classBase(BaseId, classAttrsAppend(Attrs, Rest))
 
@@ -6696,10 +6738,15 @@ module PYTHON
     requires Id2String(A) ==String Id2String(B)
   rule classAttrsHas(classAttr(A:Id, _:Val, Rest:ClassAttrs), B:Id) => classAttrsHas(Rest, B)
     requires Id2String(A) =/=String Id2String(B)
+  rule classAttrsHas(classStringAttr(A:String, _:Val, _Rest:ClassAttrs), B:Id) => true
+    requires A ==String Id2String(B)
+  rule classAttrsHas(classStringAttr(A:String, _:Val, Rest:ClassAttrs), B:Id) => classAttrsHas(Rest, B)
+    requires A =/=String Id2String(B)
   rule classAttrsHas(classBase(_:Int, Rest:ClassAttrs), B:Id) => classAttrsHas(Rest, B)
 
   rule classAttrsHasBaseId(#noRuntimeClassAttrs, _:Int) => false
   rule classAttrsHasBaseId(classAttr(_:Id, _:Val, Rest:ClassAttrs), BaseId:Int) => classAttrsHasBaseId(Rest, BaseId)
+  rule classAttrsHasBaseId(classStringAttr(_:String, _:Val, Rest:ClassAttrs), BaseId:Int) => classAttrsHasBaseId(Rest, BaseId)
   rule classAttrsHasBaseId(classBase(BaseId:Int, _Rest:ClassAttrs), ExpectedBaseId:Int) => true
     requires BaseId ==Int ExpectedBaseId
   rule classAttrsHasBaseId(classBase(BaseId:Int, Rest:ClassAttrs), ExpectedBaseId:Int) => classAttrsHasBaseId(Rest, ExpectedBaseId)
@@ -6710,6 +6757,10 @@ module PYTHON
     requires classAttrIdMatchesString(A, B)
   rule classAttrsHasString(classAttr(A:Id, _:Val, Rest:ClassAttrs), B:String) => classAttrsHasString(Rest, B)
     requires notBool classAttrIdMatchesString(A, B)
+  rule classAttrsHasString(classStringAttr(A:String, _:Val, _Rest:ClassAttrs), B:String) => true
+    requires A ==String B
+  rule classAttrsHasString(classStringAttr(A:String, _:Val, Rest:ClassAttrs), B:String) => classAttrsHasString(Rest, B)
+    requires A =/=String B
   rule classAttrsHasString(classBase(_:Int, Rest:ClassAttrs), B:String) => classAttrsHasString(Rest, B)
 
   rule classAttrIdMatchesString(#token("kDunderInitName", "Id"), B:String) => B ==String "__init__"
@@ -6742,12 +6793,20 @@ module PYTHON
     requires Id2String(A) ==String Id2String(B)
   rule classAttrGet(classAttr(A:Id, _V:Val, Rest:ClassAttrs), B:Id) => classAttrGet(Rest, B)
     requires Id2String(A) =/=String Id2String(B)
+  rule classAttrGet(classStringAttr(A:String, V:Val, _Rest:ClassAttrs), B:Id) => V
+    requires A ==String Id2String(B)
+  rule classAttrGet(classStringAttr(A:String, _V:Val, Rest:ClassAttrs), B:Id) => classAttrGet(Rest, B)
+    requires A =/=String Id2String(B)
   rule classAttrGet(classBase(_:Int, Rest:ClassAttrs), B:Id) => classAttrGet(Rest, B)
 
   rule classAttrStringGet(classAttr(A:Id, V:Val, _Rest:ClassAttrs), B:String) => V
     requires classAttrIdMatchesString(A, B)
   rule classAttrStringGet(classAttr(A:Id, _V:Val, Rest:ClassAttrs), B:String) => classAttrStringGet(Rest, B)
     requires notBool classAttrIdMatchesString(A, B)
+  rule classAttrStringGet(classStringAttr(A:String, V:Val, _Rest:ClassAttrs), B:String) => V
+    requires A ==String B
+  rule classAttrStringGet(classStringAttr(A:String, _V:Val, Rest:ClassAttrs), B:String) => classAttrStringGet(Rest, B)
+    requires A =/=String B
   rule classAttrStringGet(classBase(_:Int, Rest:ClassAttrs), B:String) => classAttrStringGet(Rest, B)
 
   rule classAttrAccess(_Owner:Val, staticMethodVal(F:Val)) => F
@@ -30097,6 +30156,52 @@ module PYTHON
        ... </k>
     requires notBool isUserObjectVal(V)
 
+  rule <k> #setattr(Obj:Exp, Attr:Exp, Value:Exp) =>
+           Obj ~> setattrName(Attr, Value)
+       ... </k>
+  rule <k> Obj:Val ~> setattrName(Attr:Exp, Value:Exp) =>
+           Attr ~> setattrValue(Obj, Value)
+       ... </k>
+  rule <k> Attr:Val ~> setattrValue(Obj:Val, Value:Exp) =>
+           Value ~> setattrApply(Obj, Attr)
+       ... </k>
+  rule <k> Value:Val ~> setattrApply(Obj:Val, Attr:String) =>
+           Obj ~> setattrStringApply(Attr, Value)
+       ... </k>
+  rule <k> _Value:Val ~> setattrApply(_Obj:Val, Attr:Val) =>
+           exceptionSignal(#exception(#token("TypeError", "Id")))
+       ... </k>
+    requires notBool isStringVal(Attr)
+  rule <k> userObjectVal(C:Id, ClassId:Int, ObjectId:Int, Attrs:ClassAttrs) ~> setattrStringApply(Attr:String, V:Val) =>
+           #call(boundMethodVal(userObjectVal(C, ClassId, ObjectId, Attrs), propertySet(classAttrStringGet(Attrs, Attr))), #arg(V))
+           ~> setattrBuiltinDone()
+       ... </k>
+    requires classAttrsHasString(Attrs, Attr)
+      andBool isPropertyVal(classAttrStringGet(Attrs, Attr))
+      andBool propertyHasSetter(classAttrStringGet(Attrs, Attr))
+  rule <k> userObjectVal(_:Id, _:Int, _:Int, Attrs:ClassAttrs) ~> setattrStringApply(Attr:String, _V:Val) =>
+           exceptionSignal(#exception(#token("AttributeError", "Id")))
+       ... </k>
+    requires classAttrsHasString(Attrs, Attr)
+      andBool isPropertyVal(classAttrStringGet(Attrs, Attr))
+      andBool notBool propertyHasSetter(classAttrStringGet(Attrs, Attr))
+  rule <k> _V:Val ~> setattrBuiltinDone() => None ... </k>
+  rule <k> userObjectVal(_:Id, _:Int, ObjectId:Int, Attrs:ClassAttrs) ~> setattrStringApply(Attr:String, V:Val) =>
+           None
+       ... </k>
+       <objectAttrs> ... ObjectId |-> (ObjAttrs:ClassAttrs => classAttrStringSet(ObjAttrs, Attr, V)) ... </objectAttrs>
+    requires notBool classAttrsHasString(Attrs, Attr)
+  rule <k> userObjectVal(_:Id, _:Int, ObjectId:Int, Attrs:ClassAttrs) ~> setattrStringApply(Attr:String, V:Val) =>
+           None
+       ... </k>
+       <objectAttrs> ... ObjectId |-> (ObjAttrs:ClassAttrs => classAttrStringSet(ObjAttrs, Attr, V)) ... </objectAttrs>
+    requires classAttrsHasString(Attrs, Attr)
+      andBool notBool isPropertyVal(classAttrStringGet(Attrs, Attr))
+  rule <k> V:Val ~> setattrStringApply(_:String, _:Val) =>
+           exceptionSignal(#exception(#token("AttributeError", "Id")))
+       ... </k>
+    requires notBool isUserObjectVal(V)
+
   rule <k> delAttrStmt(Obj:Exp, Attr:Id) =>
            Obj ~> delAttrApply(Attr)
        ... </k>
@@ -36666,6 +36771,11 @@ module PYTHON
   rule <k> exceptionSignal(V:Val) ~> assignAttrObject(_:Exp, _:Id) => exceptionSignal(V) ... </k>
   rule <k> exceptionSignal(V:Val) ~> assignAttrApply(_:Val, _:Id) => exceptionSignal(V) ... </k>
   rule <k> exceptionSignal(V:Val) ~> propertySetterDone() => exceptionSignal(V) ... </k>
+  rule <k> exceptionSignal(V:Val) ~> setattrName(_:Exp, _:Exp) => exceptionSignal(V) ... </k>
+  rule <k> exceptionSignal(V:Val) ~> setattrValue(_:Val, _:Exp) => exceptionSignal(V) ... </k>
+  rule <k> exceptionSignal(V:Val) ~> setattrApply(_:Val, _:Val) => exceptionSignal(V) ... </k>
+  rule <k> exceptionSignal(V:Val) ~> setattrStringApply(_:String, _:Val) => exceptionSignal(V) ... </k>
+  rule <k> exceptionSignal(V:Val) ~> setattrBuiltinDone() => exceptionSignal(V) ... </k>
   rule <k> exceptionSignal(V:Val) ~> delAttrApply(_:Id) => exceptionSignal(V) ... </k>
   rule <k> exceptionSignal(V:Val) ~> propertyDeleterDone() => exceptionSignal(V) ... </k>
   rule <k> exceptionSignal(V:Val) ~> delattrName(_:Exp) => exceptionSignal(V) ... </k>

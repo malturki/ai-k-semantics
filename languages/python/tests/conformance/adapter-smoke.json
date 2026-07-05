@@ -1929,6 +1929,13 @@
       "coverage": ["delattr-builtin", "attribute-deletion", "dynamic-attribute-name", "descriptor-delete-profile", "property-deleter-profile", "attribute-error", "type-error", "ordinary-python-source-adapter"]
     },
     {
+      "id": "adapter-setattr-builtin",
+      "source": "../adapter/adapter-setattr-builtin.py",
+      "reference": "Python 3.14.6 Standard Library Built-in Functions setattr; Python Data Model attribute assignment and descriptor invocation",
+      "expected_result": "True ~> .K",
+      "coverage": ["setattr-builtin", "attribute-assignment", "dynamic-attribute-name", "arbitrary-string-attribute-name", "descriptor-set-profile", "property-setter-profile", "attribute-error", "type-error", "ordinary-python-source-adapter"]
+    },
+    {
       "id": "adapter-issubclass-builtin",
       "source": "../adapter/adapter-issubclass-builtin.py",
       "reference": "Python Standard Library Built-in Functions issubclass; Python data model standard type hierarchy bool subclass of int",

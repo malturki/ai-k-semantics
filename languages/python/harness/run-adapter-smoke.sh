@@ -50,6 +50,34 @@ run_case() {
   echo "PASS $name"
 }
 
+run_eval_case() {
+  local name="$1"
+  local source="$2"
+  local expected="$3"
+  local adapted="$WORK/$name.kinput.py"
+  local output="$WORK/$name.adapter.out"
+
+  "$PYTHON_REF" -c 'import pathlib, sys; result = eval(pathlib.Path(sys.argv[1]).read_text(encoding="utf-8")); assert result is True' "$source"
+  "$PYTHON_REF" "$ADAPTER" --mode eval "$source" > "$adapted"
+  krun "$adapted" --definition "$KOMPILED" > "$output"
+
+  if ! grep -q "^[[:space:]]*\\.K$" "$output"; then
+    echo "FAIL $name: final <k> cell is not .K" >&2
+    cat "$output" >&2
+    exit 1
+  fi
+
+  if ! grep -q -- "$expected" "$output"; then
+    echo "FAIL $name: expected result $expected" >&2
+    cat "$output" >&2
+    echo "Adapted input:" >&2
+    cat "$adapted" >&2
+    exit 1
+  fi
+
+  echo "PASS $name"
+}
+
 run_case "adapter-floor-div" "$ROOT/tests/adapter/adapter-floor-div.py" "True ~> .K"
 run_case "adapter-true-div" "$ROOT/tests/adapter/adapter-true-div.py" "True ~> .K"
 run_case "adapter-float-arithmetic" "$ROOT/tests/adapter/adapter-float-arithmetic.py" "True ~> .K"
@@ -74,6 +102,7 @@ run_case "adapter-complex-power" "$ROOT/tests/adapter/adapter-complex-power.py" 
 run_case "adapter-ellipsis" "$ROOT/tests/adapter/adapter-ellipsis.py" "True ~> .K"
 run_case "adapter-ellipsis-name" "$ROOT/tests/adapter/adapter-ellipsis-name.py" "True ~> .K"
 run_case "adapter-debug-constant" "$ROOT/tests/adapter/adapter-debug-constant.py" "True ~> .K"
+run_eval_case "adapter-eval-input" "$ROOT/tests/adapter/adapter-eval-input.pyexpr" "True ~> .K"
 run_case "adapter-string-repeat" "$ROOT/tests/adapter/adapter-string-repeat.py" "True ~> .K"
 run_case "adapter-string-index" "$ROOT/tests/adapter/adapter-string-index.py" "True ~> .K"
 run_case "adapter-string-membership" "$ROOT/tests/adapter/adapter-string-membership.py" "True ~> .K"

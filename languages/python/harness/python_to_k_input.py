@@ -3863,15 +3863,35 @@ def emit_cmp_chain(ops: list[ast.cmpop], comparators: list[ast.expr]) -> str:
     return f"#cmpCons({op}, {comparator}, {emit_cmp_chain(ops[1:], comparators[1:])})"
 
 
+def emit_eval_input(expression: ast.Expression) -> str:
+    return f"{emit_exp(expression.body)};"
+
+
 def main(argv: list[str]) -> int:
-    if len(argv) != 2:
-        print(f"usage: {argv[0]} SOURCE.py", file=sys.stderr)
+    args = argv[1:]
+    mode = "exec"
+    if args and args[0] == "--mode":
+        if len(args) < 2:
+            print(f"usage: {argv[0]} [--mode exec|eval] SOURCE.py", file=sys.stderr)
+            return 2
+        mode = args[1]
+        args = args[2:]
+    elif args and args[0].startswith("--mode="):
+        mode = args[0].split("=", 1)[1]
+        args = args[1:]
+    if len(args) != 1 or mode not in {"exec", "eval"}:
+        print(f"usage: {argv[0]} [--mode exec|eval] SOURCE.py", file=sys.stderr)
         return 2
-    path = Path(argv[1])
+    path = Path(args[0])
     source = path.read_text(encoding="utf-8")
     try:
-        module = ast.parse(source, filename=str(path), mode="exec")
-        print(emit_module(module), end="")
+        parsed = ast.parse(source, filename=str(path), mode=mode)
+        if mode == "exec":
+            assert isinstance(parsed, ast.Module)
+            print(emit_module(parsed), end="")
+        else:
+            assert isinstance(parsed, ast.Expression)
+            print(emit_eval_input(parsed), end="")
     except (SyntaxError, UnsupportedPythonSubset) as err:
         print(f"{path}: {err}", file=sys.stderr)
         return 1

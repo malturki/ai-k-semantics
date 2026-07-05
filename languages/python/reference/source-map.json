@@ -761,7 +761,7 @@
         {
           "id": "top.eval-input",
           "title": "Expression input for eval",
-          "status": "not-started",
+          "status": "partial",
           "references": [
             {
               "title": "Top-level components",
@@ -769,9 +769,9 @@
               "section": "Expression input"
             }
           ],
-          "k_coverage": [],
-          "test_coverage": [],
-          "gaps": ["Need eval-mode parsing and environment binding model."]
+          "k_coverage": ["harness/python_to_k_input.py: --mode eval parses CPython eval input with ast.parse(..., mode='eval') and emits the supported expression as a single K expression statement"],
+          "test_coverage": ["tests/adapter/adapter-eval-input.pyexpr"],
+          "gaps": ["Need direct K frontend eval_input grammar, eval() builtin environment binding model, trailing-newline/EOF details, and diagnostics beyond the adapter-supported expression subset."]
         }
       ]
     },

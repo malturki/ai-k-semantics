@@ -172,6 +172,13 @@
       "coverage": ["debug-constant", "non-optimized-profile", "truth-value-testing", "singleton-identity", "ordinary-python-source-adapter"]
     },
     {
+      "id": "adapter-eval-input",
+      "source": "../adapter/adapter-eval-input.pyexpr",
+      "reference": "Python Language Reference Top-level components Expression input; CPython ast.parse mode='eval'",
+      "expected_result": "True ~> .K",
+      "coverage": ["eval-input", "expression-input-start-symbol", "ordinary-python-source-adapter"]
+    },
+    {
       "id": "adapter-string-repeat",
       "source": "../adapter/adapter-string-repeat.py",
       "reference": "Python Language Reference 6.7 Binary arithmetic operations; Standard Library sequence types",

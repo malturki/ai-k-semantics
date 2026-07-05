@@ -224,9 +224,9 @@
               "section": "Naming and binding"
             }
           ],
-          "k_coverage": ["semantics/python.k: single global environment with name lookup and assignment for Val, plus current NameError sentinel behavior for unbound expression names", "semantics/python.k: internal #namedExpr binds simple-name assignment expressions in the current environment"],
-          "test_coverage": ["tests/examples/smoke-assignment.py", "tests/examples/smoke-comparisons.py", "tests/adapter/adapter-named-expression.py", "tests/adapter/adapter-name-errors.py"],
-          "gaps": ["Need static scope analysis, local/global/nonlocal declarations, class scopes, comprehension binding behavior, closures, and annotation scopes."]
+          "k_coverage": ["semantics/python.k: single global environment with name lookup and assignment for Val, plus current NameError sentinel behavior for unbound expression names", "semantics/python.k: internal #namedExpr binds simple-name assignment expressions in the current environment", "semantics/python.k: functionGlobalVal and restoreGlobalEnv merge declared global names from supported ordinary function calls back into the module environment"],
+          "test_coverage": ["tests/examples/smoke-assignment.py", "tests/examples/smoke-comparisons.py", "tests/adapter/adapter-named-expression.py", "tests/adapter/adapter-name-errors.py", "tests/adapter/adapter-global-function.py"],
+          "gaps": ["Need full static scope analysis, nonlocal declarations, class scopes, comprehension binding behavior, closures, annotation scopes, and global declarations across decorated/generator/varargs/keyword-only/positional-only function profiles."]
         },
         {
           "id": "execution.exceptions",
@@ -565,17 +565,22 @@
         {
           "id": "stmt.global-nonlocal-type",
           "title": "global, nonlocal, and type statements",
-          "status": "not-started",
+          "status": "partial",
           "references": [
+            {
+              "title": "Simple statements",
+              "url": "https://docs.python.org/3/reference/simple_stmts.html",
+              "section": "The global statement"
+            },
             {
               "title": "Simple statements",
               "url": "https://docs.python.org/3/reference/simple_stmts.html",
               "section": "The type statement"
             }
           ],
-          "k_coverage": ["semantics/python.k: module-scope single-name and multi-name global declaration no-op"],
-          "test_coverage": ["tests/examples/smoke-assert-global.py", "tests/adapter/adapter-global-many.py"],
-          "gaps": ["Need global inside function scopes, nonlocal, parser directives, scope analysis, annotation scopes, and lazy type alias objects."]
+          "k_coverage": ["semantics/python.k: module-scope single-name and multi-name global declaration no-op", "semantics/python.k: #functionGlobals/functionGlobalVal records global declarations for ordinary functions and restores declared global bindings into the caller/module environment on normal return, explicit return, and exception propagation"],
+          "test_coverage": ["tests/examples/smoke-assert-global.py", "tests/adapter/adapter-global-many.py", "tests/adapter/adapter-global-function.py"],
+          "gaps": ["Need full parser-directive/static-scope analysis, nonlocal, type statements, annotation scopes, lazy type alias objects, class-block global behavior, delete semantics parity, and global declarations across decorated/generator/varargs/keyword-only/positional-only function profiles."]
         }
       ]
     },

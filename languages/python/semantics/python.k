@@ -378,6 +378,7 @@ module PYTHON-SYNTAX
                 | "#def" "(" Id "," Id "," Block ")" [symbol(functionDefStmt)]
                 | "#defArgs" "(" Id "," IdItems "," Block ")" [symbol(functionDefArgsStmt)]
                 | "#defDefaults" "(" Id "," IdItems "," ArgExps "," Block ")" [symbol(functionDefDefaultsStmt)]
+                | "#functionGlobals" "(" Id "," IdItems "," Stmt ")" [symbol(functionGlobalsStmt)]
                 | "#defVarArgs" "(" Id "," IdItems "," Id "," Block ")" [symbol(functionDefVarArgsStmt)]
                 | "#defVarArgsDefaults" "(" Id "," IdItems "," ArgExps "," Id "," Block ")" [symbol(functionDefVarArgsDefaultsStmt)]
                 | "#defVarArgsKwOnly" "(" Id "," IdItems "," Id "," IdItems "," Block ")" [symbol(functionDefVarArgsKwOnlyStmt)]
@@ -805,9 +806,11 @@ module PYTHON
                | functionValPosKwDefaults(IdItems, ArgVals, IdItems, ArgVals, Block) [symbol(functionValPosKwDefaults)]
                | functionValPosKwOnlyKwArgs(IdItems, IdItems, Id, Block) [symbol(functionValPosKwOnlyKwArgs)]
                | functionValPosKwDefaultsKwArgs(IdItems, ArgVals, IdItems, ArgVals, Id, Block) [symbol(functionValPosKwDefaultsKwArgs)]
+               | functionGlobalVal(IdItems, Val) [symbol(functionGlobalVal)]
                | functionMetaVal(String, String, Val, String, Val) [symbol(functionMetaVal)]
                | functionMeta(Id, Val, Val) [function, symbol(functionMeta)]
                | functionSetDoc(Id, Val, Val) [function, symbol(functionSetDoc)]
+               | functionApplyGlobals(IdItems, Val) [function, symbol(functionApplyGlobals)]
                | generatorFunctionVal(IdItems, YieldExps) [symbol(generatorFunctionVal)]
                | classVal(Id, Int, ClassAttrs) [symbol(classVal)]
                | userObjectVal(Id, Int, Int, ClassAttrs) [symbol(userObjectVal)]
@@ -1653,6 +1656,10 @@ module PYTHON
                  | returnSignal(Val) [symbol(returnSignal)]
                  | exceptionSignal(Val) [symbol(exceptionSignal)]
                  | functionDone(Map) [symbol(functionDone)]
+                 | functionGlobalDone(IdItems, Map) [symbol(functionGlobalDone)]
+                 | restoreGlobalEnv(IdItems, Map) [symbol(restoreGlobalEnv)]
+                 | restoreGlobalEnvSet(Id, Val, Map) [symbol(restoreGlobalEnvSet)]
+                 | functionGlobalsApply(Id, IdItems) [symbol(functionGlobalsApply)]
                  | bindDecoratedFunction(Id, Val) [symbol(bindDecoratedFunction)]
                  | bindDecoratedFunctionDefaults(Id, IdItems, ArgExps, Block) [symbol(bindDecoratedFunctionDefaults)]
                  | bindDecoratedFunctionDefaultVals(Id, ArgVals, IdItems, Block) [symbol(bindDecoratedFunctionDefaultVals)]
@@ -3052,6 +3059,7 @@ module PYTHON
   rule truthy(functionValPosKwDefaults(_:IdItems, _:ArgVals, _:IdItems, _:ArgVals, _:Block)) => true
   rule truthy(functionValPosKwOnlyKwArgs(_:IdItems, _:IdItems, _:Id, _:Block)) => true
   rule truthy(functionValPosKwDefaultsKwArgs(_:IdItems, _:ArgVals, _:IdItems, _:ArgVals, _:Id, _:Block)) => true
+  rule truthy(functionGlobalVal(_:IdItems, _:Val)) => true
   rule truthy(functionMetaVal(_:String, _:String, _:Val, _:String, _:Val)) => true
   rule truthy(generatorFunctionVal(_:IdItems, _:YieldExps)) => true
   rule truthy(classVal(_:Id, _:Int, _:ClassAttrs)) => true
@@ -3190,6 +3198,7 @@ module PYTHON
   rule callableVal(functionValPosKwDefaults(_:IdItems, _:ArgVals, _:IdItems, _:ArgVals, _:Block)) => true
   rule callableVal(functionValPosKwOnlyKwArgs(_:IdItems, _:IdItems, _:Id, _:Block)) => true
   rule callableVal(functionValPosKwDefaultsKwArgs(_:IdItems, _:ArgVals, _:IdItems, _:ArgVals, _:Id, _:Block)) => true
+  rule callableVal(functionGlobalVal(_:IdItems, F:Val)) => callableVal(F)
   rule callableVal(functionMetaVal(_:String, _:String, _:Val, _:String, F:Val)) => callableVal(F)
   rule callableVal(generatorFunctionVal(_:IdItems, _:YieldExps)) => true
   rule callableVal(classVal(_:Id, _:Int, _:ClassAttrs)) => true
@@ -4910,6 +4919,7 @@ module PYTHON
   rule isIntLike(functionValPosKwDefaults(_:IdItems, _:ArgVals, _:IdItems, _:ArgVals, _:Block)) => false
   rule isIntLike(functionValPosKwOnlyKwArgs(_:IdItems, _:IdItems, _:Id, _:Block)) => false
   rule isIntLike(functionValPosKwDefaultsKwArgs(_:IdItems, _:ArgVals, _:IdItems, _:ArgVals, _:Id, _:Block)) => false
+  rule isIntLike(functionGlobalVal(_:IdItems, _:Val)) => false
   rule isIntLike(functionMetaVal(_:String, _:String, _:Val, _:String, _:Val)) => false
   rule isIntLike(generatorFunctionVal(_:IdItems, _:YieldExps)) => false
   rule isIntLike(classVal(_:Id, _:Int, _:ClassAttrs)) => false
@@ -5941,6 +5951,7 @@ module PYTHON
   rule singletonIdentity(functionValPosKwDefaults(_:IdItems, _:ArgVals, _:IdItems, _:ArgVals, _:Block)) => false
   rule singletonIdentity(functionValPosKwOnlyKwArgs(_:IdItems, _:IdItems, _:Id, _:Block)) => false
   rule singletonIdentity(functionValPosKwDefaultsKwArgs(_:IdItems, _:ArgVals, _:IdItems, _:ArgVals, _:Id, _:Block)) => false
+  rule singletonIdentity(functionGlobalVal(_:IdItems, _:Val)) => false
   rule singletonIdentity(functionMetaVal(_:String, _:String, _:Val, _:String, _:Val)) => false
   rule singletonIdentity(generatorFunctionVal(_:IdItems, _:YieldExps)) => false
   rule singletonIdentity(classVal(_:Id, _:Int, _:ClassAttrs)) => false
@@ -6507,6 +6518,10 @@ module PYTHON
     functionMetaVal(Name, Qual, Doc, Module, Fun)
   rule functionSetDoc(F:Id, Doc:Val, Fun:Val) => functionMeta(F, Doc, Fun) [owise]
 
+  rule functionApplyGlobals(IDS:IdItems, functionMetaVal(Name:String, Qual:String, Doc:Val, Module:String, Fun:Val)) =>
+    functionMetaVal(Name, Qual, Doc, Module, functionGlobalVal(IDS, Fun))
+  rule functionApplyGlobals(IDS:IdItems, Fun:Val) => functionGlobalVal(IDS, Fun) [owise]
+
   rule classAttrsHas(#noRuntimeClassAttrs, _:Id) => false
   rule classAttrsHas(classAttr(A:Id, _:Val, _Rest:ClassAttrs), B:Id) => true
     requires Id2String(A) ==String Id2String(B)
@@ -6677,6 +6692,7 @@ module PYTHON
   rule bindableUserMethodVal(functionValPosOnlyKwOnlyDefaults(_:IdItems, _:IdItems, _:ArgVals, _:IdItems, _:ArgVals, _:Block)) => true
   rule bindableUserMethodVal(functionValPosOnlyKwOnlyKwArgs(_:IdItems, _:IdItems, _:IdItems, _:Id, _:Block)) => true
   rule bindableUserMethodVal(functionValPosOnlyKwDefaultsKwArgs(_:IdItems, _:IdItems, _:ArgVals, _:IdItems, _:ArgVals, _:Id, _:Block)) => true
+  rule bindableUserMethodVal(functionGlobalVal(_:IdItems, F:Val)) => bindableUserMethodVal(F)
   rule bindableUserMethodVal(functionMetaVal(_:String, _:String, _:Val, _:String, F:Val)) => bindableUserMethodVal(F)
   rule bindableUserMethodVal(_:Val) => false [owise]
 
@@ -17381,6 +17397,42 @@ module PYTHON
        ... </k>
        <env> Rho => (bindArgs(bindArgs(Rho, Pos, completeDefaultArgs(Pos, argValsCons(A, #noArgVals), PosDefaults)), KwOnly, buildKwDefaultArgs(KwOnly, #noKwArgVals, KwDefaults))) [ Kw <- ({}):Val ] </env>
     requires posKwOnlyArgsDefaultsCallArityOk(Pos, KwOnly, argValsCons(A, #noArgVals), PosDefaults, KwDefaults)
+  rule <k> A:Val ~> callApply(functionGlobalVal(Globals:IdItems, functionVal(X:Id, block(SS:Stmts)))) =>
+           SS ~> functionGlobalDone(Globals, Rho)
+       ... </k>
+       <env> Rho => Rho [ X <- A ] </env>
+  rule <k> A:Val ~> callApply(functionGlobalVal(Globals:IdItems, functionVal(X:Id, {}))) =>
+           None ~> restoreGlobalEnv(Globals, Rho)
+       ... </k>
+       <env> Rho => Rho [ X <- A ] </env>
+  rule <k> A:Val ~> callApply(functionGlobalVal(Globals:IdItems, functionValArgs(IDS:IdItems, block(SS:Stmts)))) =>
+           SS ~> functionGlobalDone(Globals, Rho)
+       ... </k>
+       <env> Rho => bindArgs(Rho, IDS, argValsCons(A, #noArgVals)) </env>
+    requires sameArity(IDS, argValsCons(A, #noArgVals))
+  rule <k> A:Val ~> callApply(functionGlobalVal(Globals:IdItems, functionValArgs(IDS:IdItems, {}))) =>
+           None ~> restoreGlobalEnv(Globals, Rho)
+       ... </k>
+       <env> Rho => bindArgs(Rho, IDS, argValsCons(A, #noArgVals)) </env>
+    requires sameArity(IDS, argValsCons(A, #noArgVals))
+  rule <k> A:Val ~> callApply(functionGlobalVal(_:IdItems, functionValArgs(IDS:IdItems, _Body:Block))) =>
+           exceptionSignal(#exception(#token("TypeError", "Id")))
+       ... </k>
+    requires notBool sameArity(IDS, argValsCons(A, #noArgVals))
+  rule <k> A:Val ~> callApply(functionGlobalVal(Globals:IdItems, functionValDefaults(IDS:IdItems, Defaults:ArgVals, block(SS:Stmts)))) =>
+           SS ~> functionGlobalDone(Globals, Rho)
+       ... </k>
+       <env> Rho => bindArgs(Rho, IDS, completeDefaultArgs(IDS, argValsCons(A, #noArgVals), Defaults)) </env>
+    requires defaultsCallArityOk(IDS, argValsCons(A, #noArgVals), Defaults)
+  rule <k> A:Val ~> callApply(functionGlobalVal(Globals:IdItems, functionValDefaults(IDS:IdItems, Defaults:ArgVals, {}))) =>
+           None ~> restoreGlobalEnv(Globals, Rho)
+       ... </k>
+       <env> Rho => bindArgs(Rho, IDS, completeDefaultArgs(IDS, argValsCons(A, #noArgVals), Defaults)) </env>
+    requires defaultsCallArityOk(IDS, argValsCons(A, #noArgVals), Defaults)
+  rule <k> A:Val ~> callApply(functionGlobalVal(_:IdItems, functionValDefaults(IDS:IdItems, Defaults:ArgVals, _Body:Block))) =>
+           exceptionSignal(#exception(#token("TypeError", "Id")))
+       ... </k>
+    requires notBool defaultsCallArityOk(IDS, argValsCons(A, #noArgVals), Defaults)
   rule <k> A:Val ~> callApply(functionVal(X:Id, block(SS:Stmts))) =>
            SS ~> functionDone(Rho)
        ... </k>
@@ -18001,6 +18053,48 @@ module PYTHON
        ... </k>
        <env> Rho => (bindArgs(bindArgs(Rho, Pos, completeDefaultArgs(Pos, VS, PosDefaults)), KwOnly, buildKwDefaultArgs(KwOnly, #noKwArgVals, KwDefaults))) [ Kw <- ({}):Val ] </env>
     requires posKwOnlyArgsDefaultsCallArityOk(Pos, KwOnly, VS, PosDefaults, KwDefaults)
+  rule <k> argsVal(VS:ArgVals) ~> callApplyArgs(functionGlobalVal(Globals:IdItems, functionVal(X:Id, block(SS:Stmts)))) =>
+           SS ~> functionGlobalDone(Globals, Rho)
+       ... </k>
+       <env> Rho => bindArgs(Rho, idItemsLast(X), VS) </env>
+    requires sameArity(idItemsLast(X), VS)
+  rule <k> argsVal(VS:ArgVals) ~> callApplyArgs(functionGlobalVal(Globals:IdItems, functionVal(X:Id, {}))) =>
+           None ~> restoreGlobalEnv(Globals, Rho)
+       ... </k>
+       <env> Rho => bindArgs(Rho, idItemsLast(X), VS) </env>
+    requires sameArity(idItemsLast(X), VS)
+  rule <k> argsVal(VS:ArgVals) ~> callApplyArgs(functionGlobalVal(_:IdItems, functionVal(X:Id, _Body:Block))) =>
+           exceptionSignal(#exception(#token("TypeError", "Id")))
+       ... </k>
+    requires notBool sameArity(idItemsLast(X), VS)
+  rule <k> argsVal(VS:ArgVals) ~> callApplyArgs(functionGlobalVal(Globals:IdItems, functionValArgs(IDS:IdItems, block(SS:Stmts)))) =>
+           SS ~> functionGlobalDone(Globals, Rho)
+       ... </k>
+       <env> Rho => bindArgs(Rho, IDS, VS) </env>
+    requires sameArity(IDS, VS)
+  rule <k> argsVal(VS:ArgVals) ~> callApplyArgs(functionGlobalVal(Globals:IdItems, functionValArgs(IDS:IdItems, {}))) =>
+           None ~> restoreGlobalEnv(Globals, Rho)
+       ... </k>
+       <env> Rho => bindArgs(Rho, IDS, VS) </env>
+    requires sameArity(IDS, VS)
+  rule <k> argsVal(VS:ArgVals) ~> callApplyArgs(functionGlobalVal(_:IdItems, functionValArgs(IDS:IdItems, _Body:Block))) =>
+           exceptionSignal(#exception(#token("TypeError", "Id")))
+       ... </k>
+    requires notBool sameArity(IDS, VS)
+  rule <k> argsVal(VS:ArgVals) ~> callApplyArgs(functionGlobalVal(Globals:IdItems, functionValDefaults(IDS:IdItems, Defaults:ArgVals, block(SS:Stmts)))) =>
+           SS ~> functionGlobalDone(Globals, Rho)
+       ... </k>
+       <env> Rho => bindArgs(Rho, IDS, completeDefaultArgs(IDS, VS, Defaults)) </env>
+    requires defaultsCallArityOk(IDS, VS, Defaults)
+  rule <k> argsVal(VS:ArgVals) ~> callApplyArgs(functionGlobalVal(Globals:IdItems, functionValDefaults(IDS:IdItems, Defaults:ArgVals, {}))) =>
+           None ~> restoreGlobalEnv(Globals, Rho)
+       ... </k>
+       <env> Rho => bindArgs(Rho, IDS, completeDefaultArgs(IDS, VS, Defaults)) </env>
+    requires defaultsCallArityOk(IDS, VS, Defaults)
+  rule <k> argsVal(VS:ArgVals) ~> callApplyArgs(functionGlobalVal(_:IdItems, functionValDefaults(IDS:IdItems, Defaults:ArgVals, _Body:Block))) =>
+           exceptionSignal(#exception(#token("TypeError", "Id")))
+       ... </k>
+    requires notBool defaultsCallArityOk(IDS, VS, Defaults)
   rule <k> argsVal(VS:ArgVals) ~> callApplyArgs(functionVal(X:Id, block(SS:Stmts))) =>
            SS ~> functionDone(Rho)
        ... </k>
@@ -18617,6 +18711,36 @@ module PYTHON
        ... </k>
        <env> Rho => (bindArgs(bindArgs(Rho, Pos, buildKwDefaultArgs(Pos, KWS, PosDefaults)), KwOnly, buildKwDefaultArgs(KwOnly, KWS, KwDefaults))) [ Kw <- kwExtrasEitherDict(KWS, Pos, KwOnly) ] </env>
     requires posKwOnlyKwArgsKeywordDefaultsCallArityOk(Pos, KwOnly, KWS, PosDefaults, KwDefaults)
+  rule <k> kwArgsVal(KWS:KwArgVals) ~> callApplyKwArgs(functionGlobalVal(Globals:IdItems, functionVal(X:Id, block(SS:Stmts)))) =>
+           SS ~> functionGlobalDone(Globals, Rho)
+       ... </k>
+       <env> Rho => bindArgs(Rho, idItemsLast(X), buildKwDefaultArgs(idItemsLast(X), KWS, #noArgVals)) </env>
+    requires keywordOnlyCallArityOk(idItemsLast(X), KWS, #noArgVals)
+  rule <k> kwArgsVal(KWS:KwArgVals) ~> callApplyKwArgs(functionGlobalVal(Globals:IdItems, functionVal(X:Id, {}))) =>
+           None ~> restoreGlobalEnv(Globals, Rho)
+       ... </k>
+       <env> Rho => bindArgs(Rho, idItemsLast(X), buildKwDefaultArgs(idItemsLast(X), KWS, #noArgVals)) </env>
+    requires keywordOnlyCallArityOk(idItemsLast(X), KWS, #noArgVals)
+  rule <k> kwArgsVal(KWS:KwArgVals) ~> callApplyKwArgs(functionGlobalVal(Globals:IdItems, functionValArgs(IDS:IdItems, block(SS:Stmts)))) =>
+           SS ~> functionGlobalDone(Globals, Rho)
+       ... </k>
+       <env> Rho => bindArgs(Rho, IDS, buildKwDefaultArgs(IDS, KWS, #noArgVals)) </env>
+    requires keywordOnlyCallArityOk(IDS, KWS, #noArgVals)
+  rule <k> kwArgsVal(KWS:KwArgVals) ~> callApplyKwArgs(functionGlobalVal(Globals:IdItems, functionValArgs(IDS:IdItems, {}))) =>
+           None ~> restoreGlobalEnv(Globals, Rho)
+       ... </k>
+       <env> Rho => bindArgs(Rho, IDS, buildKwDefaultArgs(IDS, KWS, #noArgVals)) </env>
+    requires keywordOnlyCallArityOk(IDS, KWS, #noArgVals)
+  rule <k> kwArgsVal(KWS:KwArgVals) ~> callApplyKwArgs(functionGlobalVal(Globals:IdItems, functionValDefaults(IDS:IdItems, Defaults:ArgVals, block(SS:Stmts)))) =>
+           SS ~> functionGlobalDone(Globals, Rho)
+       ... </k>
+       <env> Rho => bindArgs(Rho, IDS, buildKwDefaultArgs(IDS, KWS, Defaults)) </env>
+    requires keywordOnlyCallArityOk(IDS, KWS, Defaults)
+  rule <k> kwArgsVal(KWS:KwArgVals) ~> callApplyKwArgs(functionGlobalVal(Globals:IdItems, functionValDefaults(IDS:IdItems, Defaults:ArgVals, {}))) =>
+           None ~> restoreGlobalEnv(Globals, Rho)
+       ... </k>
+       <env> Rho => bindArgs(Rho, IDS, buildKwDefaultArgs(IDS, KWS, Defaults)) </env>
+    requires keywordOnlyCallArityOk(IDS, KWS, Defaults)
   rule <k> kwArgsVal(KWS:KwArgVals) ~> callApplyKwArgs(functionVal(X:Id, block(SS:Stmts))) =>
            SS ~> functionDone(Rho)
        ... </k>
@@ -19356,6 +19480,36 @@ module PYTHON
        ... </k>
        <env> Rho => (bindArgs(bindArgs(Rho, Pos, buildMixedDefaultArgs(Pos, VS, KWS, PosDefaults)), KwOnly, buildKwDefaultArgs(KwOnly, KWS, KwDefaults))) [ Kw <- kwExtrasEitherDict(KWS, Pos, KwOnly) ] </env>
     requires posKwOnlyKwArgsMixedDefaultsCallArityOk(Pos, KwOnly, VS, KWS, PosDefaults, KwDefaults)
+  rule <k> kwArgsVal(KWS:KwArgVals) ~> callApplyMixedArgs(functionGlobalVal(Globals:IdItems, functionVal(X:Id, block(SS:Stmts))), VS:ArgVals) =>
+           SS ~> functionGlobalDone(Globals, Rho)
+       ... </k>
+       <env> Rho => bindArgs(Rho, idItemsLast(X), buildMixedDefaultArgs(idItemsLast(X), VS, KWS, #noArgVals)) </env>
+    requires mixedCallArityOk(idItemsLast(X), VS, KWS, #noArgVals)
+  rule <k> kwArgsVal(KWS:KwArgVals) ~> callApplyMixedArgs(functionGlobalVal(Globals:IdItems, functionVal(X:Id, {})), VS:ArgVals) =>
+           None ~> restoreGlobalEnv(Globals, Rho)
+       ... </k>
+       <env> Rho => bindArgs(Rho, idItemsLast(X), buildMixedDefaultArgs(idItemsLast(X), VS, KWS, #noArgVals)) </env>
+    requires mixedCallArityOk(idItemsLast(X), VS, KWS, #noArgVals)
+  rule <k> kwArgsVal(KWS:KwArgVals) ~> callApplyMixedArgs(functionGlobalVal(Globals:IdItems, functionValArgs(IDS:IdItems, block(SS:Stmts))), VS:ArgVals) =>
+           SS ~> functionGlobalDone(Globals, Rho)
+       ... </k>
+       <env> Rho => bindArgs(Rho, IDS, buildMixedDefaultArgs(IDS, VS, KWS, #noArgVals)) </env>
+    requires mixedCallArityOk(IDS, VS, KWS, #noArgVals)
+  rule <k> kwArgsVal(KWS:KwArgVals) ~> callApplyMixedArgs(functionGlobalVal(Globals:IdItems, functionValArgs(IDS:IdItems, {})), VS:ArgVals) =>
+           None ~> restoreGlobalEnv(Globals, Rho)
+       ... </k>
+       <env> Rho => bindArgs(Rho, IDS, buildMixedDefaultArgs(IDS, VS, KWS, #noArgVals)) </env>
+    requires mixedCallArityOk(IDS, VS, KWS, #noArgVals)
+  rule <k> kwArgsVal(KWS:KwArgVals) ~> callApplyMixedArgs(functionGlobalVal(Globals:IdItems, functionValDefaults(IDS:IdItems, Defaults:ArgVals, block(SS:Stmts))), VS:ArgVals) =>
+           SS ~> functionGlobalDone(Globals, Rho)
+       ... </k>
+       <env> Rho => bindArgs(Rho, IDS, buildMixedDefaultArgs(IDS, VS, KWS, Defaults)) </env>
+    requires mixedCallArityOk(IDS, VS, KWS, Defaults)
+  rule <k> kwArgsVal(KWS:KwArgVals) ~> callApplyMixedArgs(functionGlobalVal(Globals:IdItems, functionValDefaults(IDS:IdItems, Defaults:ArgVals, {})), VS:ArgVals) =>
+           None ~> restoreGlobalEnv(Globals, Rho)
+       ... </k>
+       <env> Rho => bindArgs(Rho, IDS, buildMixedDefaultArgs(IDS, VS, KWS, Defaults)) </env>
+    requires mixedCallArityOk(IDS, VS, KWS, Defaults)
   rule <k> kwArgsVal(KWS:KwArgVals) ~> callApplyMixedArgs(functionVal(X:Id, block(SS:Stmts)), VS:ArgVals) =>
            SS ~> functionDone(Rho)
        ... </k>
@@ -30253,6 +30407,12 @@ module PYTHON
   rule <k> stmtNoResult ~> functionDocApply(F:Id, Doc:Val) => stmtNoResult ... </k>
        <env> ... F |-> (Fun:Val => functionSetDoc(F, Doc, Fun)) ... </env>
   rule <k> exceptionSignal(V:Val) ~> functionDocApply(_:Id, _:Val) => exceptionSignal(V) ... </k>
+  rule <k> functionGlobalsStmt(F:Id, Globals:IdItems, S:Stmt) =>
+           S ~> functionGlobalsApply(F, Globals)
+       ... </k>
+  rule <k> stmtNoResult ~> functionGlobalsApply(F:Id, Globals:IdItems) => stmtNoResult ... </k>
+       <env> ... F |-> (Fun:Val => functionApplyGlobals(Globals, Fun)) ... </env>
+  rule <k> exceptionSignal(V:Val) ~> functionGlobalsApply(_:Id, _:IdItems) => exceptionSignal(V) ... </k>
   rule <k> classDefStmt(C:Id) => stmtNoResult ... </k>
        <env> Rho => Rho [ C <- classVal(C, I, #noRuntimeClassAttrs) ] </env>
        <nextObject> I => I +Int 1 </nextObject>
@@ -36367,6 +36527,61 @@ module PYTHON
   rule <k> returnSignal(V:Val) ~> functionDone(Rho:Map) => V ~> restoreEnv(Rho) ... </k>
   rule <k> exceptionSignal(V:Val) ~> functionDone(Rho:Map) => exceptionSignal(V) ~> restoreEnv(Rho) ... </k>
   rule <k> functionDone(Rho:Map) => None ~> restoreEnv(Rho) ... </k>
+  rule <k> returnSignal(V:Val) ~> functionGlobalDone(Globals:IdItems, Rho:Map) =>
+           V ~> restoreGlobalEnv(Globals, Rho)
+       ... </k>
+  rule <k> exceptionSignal(V:Val) ~> functionGlobalDone(Globals:IdItems, Rho:Map) =>
+           exceptionSignal(V) ~> restoreGlobalEnv(Globals, Rho)
+       ... </k>
+  rule <k> functionGlobalDone(Globals:IdItems, Rho:Map) =>
+           None ~> restoreGlobalEnv(Globals, Rho)
+       ... </k>
+  rule <k> V:Val ~> restoreGlobalEnv(#noIds, Rho:Map) => V ... </k>
+       <env> _ => Rho </env>
+  rule <k> exceptionSignal(E:Val) ~> restoreGlobalEnv(#noIds, Rho:Map) =>
+           exceptionSignal(E)
+       ... </k>
+       <env> _ => Rho </env>
+  rule <k> V:Val ~> restoreGlobalEnv(idItemsLast(X:Id), Rho:Map) =>
+           V ~> restoreGlobalEnvSet(X, GV, Rho)
+       ... </k>
+       <env> ... X |-> GV:Val ... </env>
+  rule <k> exceptionSignal(E:Val) ~> restoreGlobalEnv(idItemsLast(X:Id), Rho:Map) =>
+           exceptionSignal(E) ~> restoreGlobalEnvSet(X, GV, Rho)
+       ... </k>
+       <env> ... X |-> GV:Val ... </env>
+  rule <k> V:Val ~> restoreGlobalEnvSet(X:Id, GV:Val, Rho:Map) => V ... </k>
+       <env> _ => Rho [ X <- GV ] </env>
+  rule <k> exceptionSignal(E:Val) ~> restoreGlobalEnvSet(X:Id, GV:Val, Rho:Map) =>
+           exceptionSignal(E)
+       ... </k>
+       <env> _ => Rho [ X <- GV ] </env>
+  rule <k> V:Val ~> restoreGlobalEnv(idItemsLast(X:Id), Rho:Map) => V ... </k>
+       <env> Local => Rho </env>
+    requires notBool (X in_keys(Local))
+  rule <k> exceptionSignal(E:Val) ~> restoreGlobalEnv(idItemsLast(X:Id), Rho:Map) =>
+           exceptionSignal(E)
+       ... </k>
+       <env> Local => Rho </env>
+    requires notBool (X in_keys(Local))
+  rule <k> V:Val ~> restoreGlobalEnv(idItemsCons(X:Id, Rest:IdItems), Rho:Map) =>
+           V ~> restoreGlobalEnv(Rest, Rho [ X <- GV ])
+       ... </k>
+       <env> ... X |-> GV:Val ... </env>
+  rule <k> exceptionSignal(E:Val) ~> restoreGlobalEnv(idItemsCons(X:Id, Rest:IdItems), Rho:Map) =>
+           exceptionSignal(E) ~> restoreGlobalEnv(Rest, Rho [ X <- GV ])
+       ... </k>
+       <env> ... X |-> GV:Val ... </env>
+  rule <k> V:Val ~> restoreGlobalEnv(idItemsCons(X:Id, Rest:IdItems), Rho:Map) =>
+           V ~> restoreGlobalEnv(Rest, Rho)
+       ... </k>
+       <env> Local </env>
+    requires notBool (X in_keys(Local))
+  rule <k> exceptionSignal(E:Val) ~> restoreGlobalEnv(idItemsCons(X:Id, Rest:IdItems), Rho:Map) =>
+           exceptionSignal(E) ~> restoreGlobalEnv(Rest, Rho)
+       ... </k>
+       <env> Local </env>
+    requires notBool (X in_keys(Local))
   rule <k> None ~> initObjectDone(Obj:Val) => Obj ... </k>
   rule <k> V:Val ~> initObjectDone(_Obj:Val) =>
            exceptionSignal(#exception(#token("TypeError", "Id")))

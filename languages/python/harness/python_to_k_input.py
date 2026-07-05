@@ -1963,6 +1963,58 @@ def split_body_docstring(body: list[ast.stmt]) -> tuple[str, list[ast.stmt]]:
     return "None", body
 
 
+def collect_current_block_global_names(body: list[ast.stmt]) -> list[str]:
+    names: list[str] = []
+
+    def add(name: str) -> None:
+        if name not in names:
+            names.append(name)
+
+    def visit(node: ast.AST) -> None:
+        if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef)):
+            return
+        if isinstance(node, ast.Global):
+            for item in node.names:
+                add(item)
+            return
+        for child in ast.iter_child_nodes(node):
+            visit(child)
+
+    for stmt in body:
+        visit(stmt)
+    return names
+
+
+def current_block_contains_yield(body: list[ast.stmt]) -> bool:
+    found = False
+
+    def visit(node: ast.AST) -> None:
+        nonlocal found
+        if found:
+            return
+        if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef)):
+            return
+        if isinstance(node, (ast.Yield, ast.YieldFrom)):
+            found = True
+            return
+        for child in ast.iter_child_nodes(node):
+            visit(child)
+
+    for stmt in body:
+        visit(stmt)
+    return found
+
+
+def supported_global_function_signature(args: ast.arguments, decorators: list[ast.expr]) -> bool:
+    return (
+        not decorators
+        and not args.posonlyargs
+        and args.vararg is None
+        and not args.kwonlyargs
+        and args.kwarg is None
+    )
+
+
 def emit_simple_class_def(
     node: ast.AST,
     name: str,
@@ -2939,8 +2991,16 @@ def emit_function_def(
         raise unsupported(node, "function type comments are not supported yet")
     doc_value, body_items = split_body_docstring(body)
     body = body_items
+    global_names = collect_current_block_global_names(body)
+    if global_names:
+        if not supported_global_function_signature(args, decorators):
+            raise unsupported(node, "global declarations are currently supported only for undecorated ordinary positional functions")
+        if current_block_contains_yield(body):
+            raise unsupported(node, "global declarations in generator functions are not supported yet")
 
     def finish(stmt: str) -> str:
+        if global_names:
+            stmt = f"#functionGlobals({emit_id(name)}, {emit_id_items(global_names)}, {stmt})"
         if doc_value == "None":
             return stmt
         return f"#functionDoc({emit_id(name)}, {doc_value}, {stmt})"

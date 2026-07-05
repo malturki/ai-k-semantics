@@ -2895,6 +2895,13 @@
       "coverage": ["global-statement", "multi-name-global", "module-scope-no-op-profile", "ordinary-python-source-adapter"]
     },
     {
+      "id": "adapter-global-function",
+      "source": "../adapter/adapter-global-function.py",
+      "reference": "Python Language Reference 7.12 The global statement; Python Language Reference 4.2 Naming and binding",
+      "expected_result": "True ~> .K",
+      "coverage": ["global-statement", "function-scope-global-declaration", "module-binding-update", "multi-name-global", "keyword-call", "mixed-call", "exception-propagation", "ordinary-python-source-adapter"]
+    },
+    {
       "id": "adapter-while",
       "source": "../adapter/adapter-while.py",
       "reference": "Python Language Reference 8.2 The while statement",

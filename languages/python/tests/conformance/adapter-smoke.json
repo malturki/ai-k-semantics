@@ -179,6 +179,13 @@
       "coverage": ["eval-input", "expression-input-start-symbol", "ordinary-python-source-adapter"]
     },
     {
+      "id": "adapter-interactive-input",
+      "source": "../adapter/adapter-interactive-input.pysingle",
+      "reference": "Python Language Reference Top-level components Interactive input; CPython compile mode='single' and ast.parse mode='single'",
+      "expected_result": "True ~> .K",
+      "coverage": ["interactive-input", "single-input-start-symbol", "ordinary-python-source-adapter"]
+    },
+    {
       "id": "adapter-string-repeat",
       "source": "../adapter/adapter-string-repeat.py",
       "reference": "Python Language Reference 6.7 Binary arithmetic operations; Standard Library sequence types",

@@ -746,7 +746,7 @@
         {
           "id": "top.interactive-input",
           "title": "Interactive input",
-          "status": "not-started",
+          "status": "partial",
           "references": [
             {
               "title": "Top-level components",
@@ -754,9 +754,9 @@
               "section": "Interactive input"
             }
           ],
-          "k_coverage": [],
-          "test_coverage": [],
-          "gaps": ["Need REPL/displayhook profile and incomplete-input diagnostics."]
+          "k_coverage": ["harness/python_to_k_input.py: --mode interactive/--mode single parses CPython single_input with ast.parse(..., mode='single') and emits the supported interactive statement list"],
+          "test_coverage": ["tests/adapter/adapter-interactive-input.pysingle"],
+          "gaps": ["Need native K frontend single_input grammar, REPL/displayhook state and stdout modeling, blank-line termination for compound statements, incomplete-input diagnostics, and broader interactive statement coverage beyond the adapter-supported subset."]
         },
         {
           "id": "top.eval-input",

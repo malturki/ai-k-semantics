@@ -759,6 +759,10 @@ def emit_module(module: ast.Module) -> str:
     return emit_stmt_list(module.body) + "\n"
 
 
+def emit_interactive_input(module: ast.Interactive) -> str:
+    return emit_stmt_list(module.body) + "\n"
+
+
 def emit_stmt_list(stmts: list[ast.stmt]) -> str:
     return "\n".join(f"{emit_stmt(stmt)};" for stmt in stmts)
 
@@ -3872,26 +3876,30 @@ def main(argv: list[str]) -> int:
     mode = "exec"
     if args and args[0] == "--mode":
         if len(args) < 2:
-            print(f"usage: {argv[0]} [--mode exec|eval] SOURCE.py", file=sys.stderr)
+            print(f"usage: {argv[0]} [--mode exec|eval|single|interactive] SOURCE.py", file=sys.stderr)
             return 2
         mode = args[1]
         args = args[2:]
     elif args and args[0].startswith("--mode="):
         mode = args[0].split("=", 1)[1]
         args = args[1:]
-    if len(args) != 1 or mode not in {"exec", "eval"}:
-        print(f"usage: {argv[0]} [--mode exec|eval] SOURCE.py", file=sys.stderr)
+    if len(args) != 1 or mode not in {"exec", "eval", "single", "interactive"}:
+        print(f"usage: {argv[0]} [--mode exec|eval|single|interactive] SOURCE.py", file=sys.stderr)
         return 2
     path = Path(args[0])
     source = path.read_text(encoding="utf-8")
     try:
-        parsed = ast.parse(source, filename=str(path), mode=mode)
+        parse_mode = "single" if mode == "interactive" else mode
+        parsed = ast.parse(source, filename=str(path), mode=parse_mode)
         if mode == "exec":
             assert isinstance(parsed, ast.Module)
             print(emit_module(parsed), end="")
-        else:
+        elif mode == "eval":
             assert isinstance(parsed, ast.Expression)
             print(emit_eval_input(parsed), end="")
+        else:
+            assert isinstance(parsed, ast.Interactive)
+            print(emit_interactive_input(parsed), end="")
     except (SyntaxError, UnsupportedPythonSubset) as err:
         print(f"{path}: {err}", file=sys.stderr)
         return 1

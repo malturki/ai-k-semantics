@@ -1,0 +1,91 @@
+{
+  "profile": {
+    "id": "cpython-diagnostics",
+    "language_version": "Python 3.14.6",
+    "source_tag": "v3.14.6",
+    "reference_sources": [
+      "https://github.com/python/cpython/tree/v3.14.6/Lib/test/test_syntax.py",
+      "https://github.com/python/cpython/tree/v3.14.6/Lib/test/test_traceback.py",
+      "https://github.com/python/cpython/tree/v3.14.6/Lib/test/test_exceptions.py",
+      "https://github.com/python/cpython/tree/v3.14.6/Lib/test/test_compile.py"
+    ]
+  },
+  "normalization_levels": [
+    {
+      "id": "exception-class",
+      "status": "current",
+      "description": "Current executable diagnostics tests compare the raised exception category through internal K sentinels or caught CPython exception classes; exact message text and traceback formatting are outside this level."
+    },
+    {
+      "id": "message-text",
+      "status": "future",
+      "description": "Future CPython-profile comparisons should normalize and compare exception message text, including version-specific TypeError, ValueError, SyntaxError, and UnicodeError payloads."
+    },
+    {
+      "id": "source-location",
+      "status": "future",
+      "description": "Future syntax-diagnostic comparisons should preserve filename, line, column, end-line, and end-column information where CPython exposes it."
+    },
+    {
+      "id": "traceback-shape",
+      "status": "future",
+      "description": "Future traceback comparisons should preserve frame order, function/module names, source snippets, exception chaining display, notes, groups, and CPython traceback rendering boundaries."
+    }
+  ],
+  "adapter_diagnostic_cases": [
+    {
+      "id": "adapter-name-errors",
+      "normalization": "exception-class",
+      "exception_classes": ["NameError"],
+      "notes": "Current K profile checks unbound-name category behavior, not exact NameError message text."
+    },
+    {
+      "id": "adapter-call-arity-errors",
+      "normalization": "exception-class",
+      "exception_classes": ["TypeError"],
+      "notes": "Current K profile checks callable arity category behavior after argument evaluation, not CPython's exact arity message strings."
+    },
+    {
+      "id": "adapter-division-zero-diagnostics",
+      "normalization": "exception-class",
+      "exception_classes": ["ZeroDivisionError"],
+      "notes": "Current K profile checks zero-division category behavior across supported numeric operations."
+    },
+    {
+      "id": "adapter-subscript-type-errors",
+      "normalization": "exception-class",
+      "exception_classes": ["TypeError"],
+      "notes": "Current K profile checks invalid-subscript category behavior; CPython SyntaxWarning text and exact TypeError wording remain future work."
+    },
+    {
+      "id": "adapter-format-type-code-diagnostics",
+      "normalization": "exception-class",
+      "exception_classes": ["ValueError"],
+      "notes": "Current K profile checks format-spec category behavior for unsupported presentation types."
+    },
+    {
+      "id": "adapter-bytes-decode-diagnostics",
+      "normalization": "exception-class",
+      "exception_classes": ["UnicodeDecodeError", "LookupError", "TypeError"],
+      "notes": "Current K profile checks decode diagnostic categories for the supported codec/error-handler subset."
+    },
+    {
+      "id": "adapter-fromhex-diagnostics",
+      "normalization": "exception-class",
+      "exception_classes": ["ValueError", "TypeError"],
+      "notes": "Current K profile checks fromhex diagnostic categories without exact offsets or message strings."
+    },
+    {
+      "id": "adapter-pow-error-diagnostics",
+      "normalization": "exception-class",
+      "exception_classes": ["ZeroDivisionError", "ValueError"],
+      "notes": "Current K profile checks pow/modular-pow diagnostic categories for the supported numeric subset."
+    }
+  ],
+  "known_gaps": [
+    "No exact CPython traceback rendering is modeled.",
+    "No exact SyntaxError filename, source line, offset, end offset, or message text is modeled.",
+    "Most runtime diagnostics are represented as exception-class sentinels, not exception instances with args.",
+    "Warning emission and filtering are not modeled except where CPython reference execution accepts warning-producing tests."
+  ]
+}

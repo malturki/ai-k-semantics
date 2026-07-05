@@ -80,6 +80,45 @@
       "blockers": ["No compiler/diagnostic profile adapter exists yet."]
     },
     {
+      "id": "test_syntax",
+      "source_path": "Lib/test/test_syntax.py",
+      "classification": "diagnostic-only",
+      "review_status": "seed",
+      "translation_status": "needs-extraction",
+      "construct_refs": [
+        "grammar.full-peg",
+        "top.file-input",
+        "profile.cpython-diagnostics"
+      ],
+      "last_reference_result": {
+        "date": "2026-07-05",
+        "command": "./python -m test --single-process --timeout 120 test_syntax test_traceback",
+        "result": "success: test_syntax passed as part of 2-test diagnostic run",
+        "notes": "Run against local CPython 3.14.6 source build with test_traceback; total diagnostic run reported 415 tests run, 1 skipped, all OK."
+      },
+      "notes": ["Primary upstream source for CPython SyntaxError and SyntaxWarning message/location behavior."],
+      "blockers": ["Native parser, source-location preservation, and exact diagnostic comparison profile are not implemented yet."]
+    },
+    {
+      "id": "test_traceback",
+      "source_path": "Lib/test/test_traceback.py",
+      "classification": "diagnostic-only",
+      "review_status": "seed",
+      "translation_status": "needs-extraction",
+      "construct_refs": [
+        "execution.exceptions",
+        "profile.cpython-diagnostics"
+      ],
+      "last_reference_result": {
+        "date": "2026-07-05",
+        "command": "./python -m test --single-process --timeout 120 test_syntax test_traceback",
+        "result": "success: test_traceback passed as part of 2-test diagnostic run",
+        "notes": "Run against local CPython 3.14.6 source build with test_syntax; total diagnostic run reported 415 tests run, 1 skipped, all OK."
+      },
+      "notes": ["Primary upstream source for CPython traceback rendering, exception chaining display, notes, and location formatting."],
+      "blockers": ["K currently models exception categories and propagation, not traceback objects or exact rendering."]
+    },
+    {
       "id": "test_builtin",
       "source_path": "Lib/test/test_builtin.py",
       "classification": "candidate-builtins",

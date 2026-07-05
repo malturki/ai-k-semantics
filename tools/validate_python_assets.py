@@ -13,6 +13,8 @@ from typing import Any
 ROOT = Path(__file__).resolve().parents[1]
 SOURCE_MAP = ROOT / "languages/python/reference/source-map.json"
 TEST_CLASSIFICATION = ROOT / "languages/python/tests/conformance/cpython-classification.json"
+ADAPTER_SMOKE = ROOT / "languages/python/tests/conformance/adapter-smoke.json"
+DIAGNOSTICS_PROFILE = ROOT / "languages/python/tests/conformance/cpython-diagnostics-profile.json"
 
 ID_RE = re.compile(r"^[a-z0-9][a-z0-9._-]*$")
 
@@ -55,6 +57,11 @@ TRANSLATION_STATUSES = {
     "adapter-needed",
     "ready",
     "excluded",
+}
+
+DIAGNOSTIC_NORMALIZATION_STATUSES = {
+    "current",
+    "future",
 }
 
 
@@ -184,12 +191,98 @@ def validate_test_classification(path: Path, construct_ids: set[str]) -> None:
         require_list(test, "blockers", path)
 
 
+def validate_adapter_smoke(path: Path) -> set[str]:
+    data = load_json(path)
+    if data.get("suite") != "python-adapter-smoke":
+        raise ValueError(f"{path}: suite must be 'python-adapter-smoke'")
+    cases = require_list(data, "cases", path)
+    if not cases:
+        raise ValueError(f"{path}: cases cannot be empty")
+
+    seen: set[str] = set()
+    for case in cases:
+        if not isinstance(case, dict):
+            raise ValueError(f"{path}: cases entries must be objects")
+        case_id = validate_id(case.get("id"), "adapter case id", path)
+        if case_id in seen:
+            raise ValueError(f"{path}: duplicate adapter case id '{case_id}'")
+        seen.add(case_id)
+        source = require_str(case, "source", path)
+        source_path = path.parent / source
+        if not source_path.resolve().is_file():
+            raise ValueError(f"{path}: {case_id}.source does not exist: {source}")
+        require_str(case, "reference", path)
+        require_str(case, "expected_result", path)
+        require_list(case, "coverage", path)
+
+    return seen
+
+
+def validate_diagnostics_profile(path: Path, adapter_case_ids: set[str]) -> None:
+    data = load_json(path)
+    profile = require_obj(data, "profile", path)
+    if profile.get("id") != "cpython-diagnostics":
+        raise ValueError(f"{path}: profile.id must be 'cpython-diagnostics'")
+    require_str(profile, "language_version", path)
+    require_str(profile, "source_tag", path)
+    require_list(profile, "reference_sources", path)
+
+    levels = require_list(data, "normalization_levels", path)
+    if not levels:
+        raise ValueError(f"{path}: normalization_levels cannot be empty")
+    level_ids: set[str] = set()
+    current_levels = 0
+    for level in levels:
+        if not isinstance(level, dict):
+            raise ValueError(f"{path}: normalization_levels entries must be objects")
+        level_id = validate_id(level.get("id"), "normalization level id", path)
+        if level_id in level_ids:
+            raise ValueError(f"{path}: duplicate normalization level id '{level_id}'")
+        level_ids.add(level_id)
+        status = require_str(level, "status", path)
+        if status not in DIAGNOSTIC_NORMALIZATION_STATUSES:
+            raise ValueError(f"{path}: normalization level '{level_id}' has invalid status '{status}'")
+        if status == "current":
+            current_levels += 1
+        require_str(level, "description", path)
+    if current_levels == 0:
+        raise ValueError(f"{path}: at least one normalization level must be current")
+
+    cases = require_list(data, "adapter_diagnostic_cases", path)
+    if not cases:
+        raise ValueError(f"{path}: adapter_diagnostic_cases cannot be empty")
+    seen: set[str] = set()
+    for case in cases:
+        if not isinstance(case, dict):
+            raise ValueError(f"{path}: adapter_diagnostic_cases entries must be objects")
+        case_id = validate_id(case.get("id"), "diagnostic adapter case id", path)
+        if case_id in seen:
+            raise ValueError(f"{path}: duplicate diagnostic adapter case id '{case_id}'")
+        if case_id not in adapter_case_ids:
+            raise ValueError(f"{path}: diagnostic adapter case '{case_id}' is not in adapter-smoke.json")
+        seen.add(case_id)
+        normalization = validate_id(case.get("normalization"), f"{case_id}.normalization", path)
+        if normalization not in level_ids:
+            raise ValueError(f"{path}: {case_id} references unknown normalization level '{normalization}'")
+        exception_classes = require_list(case, "exception_classes", path)
+        if not exception_classes:
+            raise ValueError(f"{path}: {case_id}.exception_classes cannot be empty")
+        for exc in exception_classes:
+            if not isinstance(exc, str) or not exc.endswith("Error"):
+                raise ValueError(f"{path}: {case_id}.exception_classes entries must be *Error class names")
+        require_str(case, "notes", path)
+    require_list(data, "known_gaps", path)
+
+
 def main() -> int:
     construct_ids = validate_source_map(SOURCE_MAP)
     validate_test_classification(TEST_CLASSIFICATION, construct_ids)
+    adapter_case_ids = validate_adapter_smoke(ADAPTER_SMOKE)
+    validate_diagnostics_profile(DIAGNOSTICS_PROFILE, adapter_case_ids)
     print(
-        "Validated Python source map and CPython test classification "
-        f"({len(construct_ids)} construct ids)."
+        "Validated Python source map, CPython test classification, adapter smoke manifest, "
+        f"and diagnostics profile ({len(construct_ids)} construct ids, "
+        f"{len(adapter_case_ids)} adapter cases)."
     )
     return 0
 

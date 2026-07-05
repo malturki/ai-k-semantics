@@ -944,16 +944,24 @@
         {
           "id": "profile.cpython-diagnostics",
           "title": "CPython diagnostics and traceback formatting",
-          "status": "not-started",
+          "status": "partial",
           "references": [
             {
               "title": "CPython source",
               "url": "https://github.com/python/cpython/tree/v3.14.6"
+            },
+            {
+              "title": "CPython syntax diagnostics tests",
+              "url": "https://github.com/python/cpython/tree/v3.14.6/Lib/test/test_syntax.py"
+            },
+            {
+              "title": "CPython traceback tests",
+              "url": "https://github.com/python/cpython/tree/v3.14.6/Lib/test/test_traceback.py"
             }
           ],
-          "k_coverage": [],
-          "test_coverage": [],
-          "gaps": ["Need normalization boundaries before comparing exact SyntaxError/TypeError text."]
+          "k_coverage": ["semantics/python.k: current diagnostics profile represents many runtime failures as internal exception-class sentinels or current exception-instance values and propagates them through supported control-flow continuations", "tests/conformance/cpython-diagnostics-profile.json: records the current exception-class normalization level and future message-text, source-location, and traceback-shape comparison levels"],
+          "test_coverage": ["tests/conformance/cpython-diagnostics-profile.json", "tests/conformance/cpython-classification.json: test_compile, test_syntax, test_traceback, and test_exceptions are classified as upstream CPython diagnostic/exception sources", "tests/adapter/adapter-name-errors.py", "tests/adapter/adapter-call-arity-errors.py", "tests/adapter/adapter-division-zero-diagnostics.py", "tests/adapter/adapter-subscript-type-errors.py", "tests/adapter/adapter-format-type-code-diagnostics.py", "tests/adapter/adapter-bytes-decode-diagnostics.py", "tests/adapter/adapter-fromhex-diagnostics.py", "tests/adapter/adapter-pow-error-diagnostics.py"],
+          "gaps": ["Need exact CPython SyntaxError/IndentationError/TabError message text and source-location fields, exact TypeError/ValueError/UnicodeError/etc. message text and exception args, traceback object cells and rendering, exception chaining/cause/context display, notes and exception-group rendering, warning emission/filtering, and normalization tooling for comparing expected CPython text while isolating portable semantics from implementation-profile behavior."]
         },
         {
           "id": "profile.cpython-resource-limits",

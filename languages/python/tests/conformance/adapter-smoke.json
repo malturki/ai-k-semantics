@@ -193,6 +193,13 @@
       "coverage": ["physical-lines", "logical-lines", "comments", "explicit-line-joining", "implicit-line-joining", "indentation", "ordinary-python-source-adapter"]
     },
     {
+      "id": "adapter-import-math",
+      "source": "../adapter/adapter-import-math.py",
+      "reference": "Python Language Reference import statement and import system; Python Standard Library math module",
+      "expected_result": "True ~> .K",
+      "coverage": ["import-statement", "from-import-statement", "import-as-binding", "builtin-module-object", "module-cache-identity", "builtin-module-attribute-lookup", "ordinary-python-source-adapter"]
+    },
+    {
       "id": "adapter-string-repeat",
       "source": "../adapter/adapter-string-repeat.py",
       "reference": "Python Language Reference 6.7 Binary arithmetic operations; Standard Library sequence types",

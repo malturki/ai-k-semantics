@@ -263,7 +263,7 @@
     {
       "id": "import-system",
       "title": "Import system",
-      "status": "not-started",
+      "status": "partial",
       "references": [
         {
           "title": "Python Language Reference: The import system",
@@ -274,7 +274,7 @@
         {
           "id": "imports.modules-cache",
           "title": "Module cache and module objects",
-          "status": "not-started",
+          "status": "partial",
           "references": [
             {
               "title": "The import system",
@@ -282,14 +282,14 @@
               "section": "The module cache"
             }
           ],
-          "k_coverage": [],
-          "test_coverage": [],
-          "gaps": ["Need module table and explicit environment profile for filesystem/package visibility."]
+          "k_coverage": ["semantics/python.k: moduleVal runtime value for the supported builtin math module; repeated supported imports bind structurally identical module values so current identity comparisons agree for the supported module-cache slice"],
+          "test_coverage": ["tests/adapter/adapter-import-math.py"],
+          "gaps": ["Need explicit sys.modules table, initialization state, mutation visibility, module object attributes beyond the current math constants/name subset, filesystem/package visibility, failed-import cache behavior, and user module execution."]
         },
         {
           "id": "imports.find-load-protocol",
           "title": "Finders, loaders, specs, and import protocol",
-          "status": "not-started",
+          "status": "partial",
           "references": [
             {
               "title": "The import system",
@@ -297,9 +297,9 @@
               "section": "Finders and loaders"
             }
           ],
-          "k_coverage": [],
-          "test_coverage": [],
-          "gaps": ["Need separation between portable import semantics and host/CPython importlib profile."]
+          "k_coverage": ["semantics/python.k: builtinModuleSupported/builtinModule/builtinModuleAttr model a fixed builtin-module finder/loader profile for math; unsupported modules raise the current ModuleNotFoundError sentinel and missing supported-module names raise ImportError"],
+          "test_coverage": ["tests/adapter/adapter-import-math.py"],
+          "gaps": ["Need meta path traversal, ModuleSpec, loader create/exec phases, import lock/reentrancy behavior, importlib integration, extension/frozen/source module distinctions, host/filesystem profile boundaries, and exact diagnostics."]
         },
         {
           "id": "imports.packages-relative",
@@ -550,7 +550,7 @@
         {
           "id": "stmt.import",
           "title": "import and from-import statements",
-          "status": "not-started",
+          "status": "partial",
           "references": [
             {
               "title": "Simple statements",
@@ -558,9 +558,9 @@
               "section": "The import statement"
             }
           ],
-          "k_coverage": [],
-          "test_coverage": [],
-          "gaps": ["Need import-system semantics and binding rules."]
+          "k_coverage": ["semantics/python.k: #import, #importAs, #fromImport, and #fromImportAs statements bind supported builtin math module values or supported attributes; harness/python_to_k_input.py: CPython AST Import and ImportFrom adapter support for a single supported builtin math import/from-import alias"],
+          "test_coverage": ["tests/adapter/adapter-import-math.py"],
+          "gaps": ["Need multi-alias imports, dotted imports, star imports, relative imports, package binding rules, import-time execution, sys.modules interactions, user modules, import-level name binding edge cases, and exact ImportError/ModuleNotFoundError diagnostics."]
         },
         {
           "id": "stmt.global-nonlocal-type",

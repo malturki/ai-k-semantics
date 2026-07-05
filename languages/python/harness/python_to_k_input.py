@@ -92,6 +92,17 @@ SUPPORTED_BUILTIN_CLASS_NAMES = {
     "str",
     "tuple",
 }
+SUPPORTED_IMPORT_MODULES = {
+    "math",
+}
+SUPPORTED_FROM_IMPORT_NAMES = {
+    "math": {
+        "__name__",
+        "e",
+        "pi",
+        "tau",
+    },
+}
 SET_MUTATING_METHOD_NAMES = {
     "add",
     "clear",
@@ -788,6 +799,39 @@ def emit_exception_expr(exp: ast.expr) -> str:
     raise unsupported(exp, "only named exception classes and named exception constructor calls are supported")
 
 
+def emit_import_stmt(stmt: ast.Import, names: list[ast.alias]) -> str:
+    if len(names) != 1:
+        raise unsupported(stmt, "only single-module import statements are supported")
+    alias = names[0]
+    if alias.name not in SUPPORTED_IMPORT_MODULES:
+        raise unsupported(stmt, "only supported builtin-module imports are accepted")
+    if "." in alias.name:
+        raise unsupported(stmt, "dotted imports are not supported")
+    module = emit_id(alias.name)
+    if alias.asname is None:
+        return f"#import({module})"
+    return f"#importAs({module}, {emit_id(alias.asname)})"
+
+
+def emit_import_from_stmt(stmt: ast.ImportFrom, module: str | None, names: list[ast.alias], level: int) -> str:
+    if level != 0 or module is None:
+        raise unsupported(stmt, "relative from-import statements are not supported")
+    if module not in SUPPORTED_IMPORT_MODULES:
+        raise unsupported(stmt, "only supported builtin-module from-import statements are accepted")
+    if len(names) != 1:
+        raise unsupported(stmt, "only single-name from-import statements are supported")
+    alias = names[0]
+    if alias.name == "*":
+        raise unsupported(stmt, "from-import star is not supported")
+    if alias.name not in SUPPORTED_FROM_IMPORT_NAMES[module]:
+        raise unsupported(stmt, "from-import name is not supported for this module")
+    module_id = emit_id(module)
+    imported = emit_id(alias.name)
+    if alias.asname is None:
+        return f"#fromImport({module_id}, {imported})"
+    return f"#fromImportAs({module_id}, {imported}, {emit_id(alias.asname)})"
+
+
 def emit_stmt(stmt: ast.stmt) -> str:
     match stmt:
         case ast.Expr(value=value):
@@ -843,6 +887,10 @@ def emit_stmt(stmt: ast.stmt) -> str:
             return f"raise {emit_exception_expr(exc)}"
         case ast.Raise():
             raise unsupported(stmt, "only bare re-raise or raising a named exception class/call, optionally from None or another named class/call, is supported")
+        case ast.Import(names=names):
+            return emit_import_stmt(stmt, names)
+        case ast.ImportFrom(module=module, names=names, level=level):
+            return emit_import_from_stmt(stmt, module, names, level)
         case ast.FunctionDef(
             name=name,
             args=args,

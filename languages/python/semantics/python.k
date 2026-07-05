@@ -334,6 +334,10 @@ module PYTHON-SYNTAX
                 | "pass" [symbol(passStmt)]
                 | "break" [symbol(breakStmt)]
                 | "continue" [symbol(continueStmt)]
+                | "#import" "(" Id ")" [symbol(importStmt)]
+                | "#importAs" "(" Id "," Id ")" [symbol(importAsStmt)]
+                | "#fromImport" "(" Id "," Id ")" [symbol(fromImportStmt)]
+                | "#fromImportAs" "(" Id "," Id "," Id ")" [symbol(fromImportAsStmt)]
                 | "assert" Exp [symbol(assertStmt), strict]
                 | "#assertMsg" "(" Exp "," Exp ")" [symbol(assertMsgStmt), strict(1)]
                 | "global" Id [symbol(globalStmt)]
@@ -723,6 +727,7 @@ module PYTHON
   syntax ClassAttrs ::= "#noRuntimeClassAttrs" [symbol(noRuntimeClassAttrs)]
                       | classAttr(Id, Val, ClassAttrs) [symbol(runtimeClassAttr)]
                       | classBase(Int, ClassAttrs) [symbol(runtimeClassBase)]
+                      | builtinModuleAttrs(Id) [function, symbol(builtinModuleAttrs)]
                       | classAttrSet(ClassAttrs, Id, Val) [function, symbol(classAttrSet)]
                       | classAttrDel(ClassAttrs, Id) [function, symbol(classAttrDel)]
                       | classAttrsAppend(ClassAttrs, ClassAttrs) [function, symbol(classAttrsAppend)]
@@ -812,6 +817,9 @@ module PYTHON
                | functionSetDoc(Id, Val, Val) [function, symbol(functionSetDoc)]
                | functionApplyGlobals(IdItems, Val) [function, symbol(functionApplyGlobals)]
                | generatorFunctionVal(IdItems, YieldExps) [symbol(generatorFunctionVal)]
+               | moduleVal(Id, ClassAttrs) [symbol(moduleVal)]
+               | builtinModule(Id) [function, symbol(builtinModule)]
+               | builtinModuleAttr(Id, Id) [function, symbol(builtinModuleAttr)]
                | classVal(Id, Int, ClassAttrs) [symbol(classVal)]
                | userObjectVal(Id, Int, Int, ClassAttrs) [symbol(userObjectVal)]
                | boundMethodVal(Val, Val) [symbol(boundMethodVal)]
@@ -1745,6 +1753,8 @@ module PYTHON
                 | isBytesVal(Val) [function, symbol(isBytesVal)]
                 | isBytearrayVal(Val) [function, symbol(isBytearrayVal)]
                 | valEq(Val, Val) [function, symbol(valEq)]
+                | builtinModuleSupported(Id) [function, symbol(builtinModuleSupported)]
+                | builtinModuleHasAttr(Id, Id) [function, symbol(builtinModuleHasAttr)]
                 | singletonPatternEq(Val, Val) [function, symbol(singletonPatternEq)]
                 | matchBuiltinClass(Val, Id) [function, symbol(matchBuiltinClass)]
                 | builtinClassWholeArg(Id) [function, symbol(builtinClassWholeArg)]
@@ -3062,6 +3072,7 @@ module PYTHON
   rule truthy(functionGlobalVal(_:IdItems, _:Val)) => true
   rule truthy(functionMetaVal(_:String, _:String, _:Val, _:String, _:Val)) => true
   rule truthy(generatorFunctionVal(_:IdItems, _:YieldExps)) => true
+  rule truthy(moduleVal(_:Id, _:ClassAttrs)) => true
   rule truthy(classVal(_:Id, _:Int, _:ClassAttrs)) => true
   rule truthy(userObjectVal(_:Id, _:Int, _:Int, _:ClassAttrs)) => true
   rule truthy(boundMethodVal(_:Val, _:Val)) => true
@@ -4922,6 +4933,7 @@ module PYTHON
   rule isIntLike(functionGlobalVal(_:IdItems, _:Val)) => false
   rule isIntLike(functionMetaVal(_:String, _:String, _:Val, _:String, _:Val)) => false
   rule isIntLike(generatorFunctionVal(_:IdItems, _:YieldExps)) => false
+  rule isIntLike(moduleVal(_:Id, _:ClassAttrs)) => false
   rule isIntLike(classVal(_:Id, _:Int, _:ClassAttrs)) => false
   rule isIntLike(userObjectVal(_:Id, _:Int, _:Int, _:ClassAttrs)) => false
   rule isIntLike(boundMethodVal(_:Val, _:Val)) => false
@@ -5954,6 +5966,7 @@ module PYTHON
   rule singletonIdentity(functionGlobalVal(_:IdItems, _:Val)) => false
   rule singletonIdentity(functionMetaVal(_:String, _:String, _:Val, _:String, _:Val)) => false
   rule singletonIdentity(generatorFunctionVal(_:IdItems, _:YieldExps)) => false
+  rule singletonIdentity(moduleVal(_:Id, _:ClassAttrs)) => false
   rule singletonIdentity(classVal(_:Id, _:Int, _:ClassAttrs)) => false
   rule singletonIdentity(userObjectVal(_:Id, _:Int, _:Int, _:ClassAttrs)) => false
   rule singletonIdentity(boundMethodVal(_:Val, _:Val)) => false
@@ -6511,6 +6524,27 @@ module PYTHON
   rule classAttrsInherit(Attrs:ClassAttrs, BaseId:Int, BaseAttrs:ClassAttrs) =>
     classBase(BaseId, classAttrsAppend(Attrs, BaseAttrs))
 
+  rule builtinModuleSupported(M:Id) => Id2String(M) ==String "math"
+
+  rule builtinModule(M:Id) => moduleVal(M, builtinModuleAttrs(M))
+    requires builtinModuleSupported(M)
+
+  rule builtinModuleAttrs(M:Id) =>
+    classAttr(#token("kDunderNameName", "Id"), "math",
+    classAttr(#token("e", "Id"), 2.718281828459045,
+    classAttr(#token("pi", "Id"), 3.141592653589793,
+    classAttr(#token("tau", "Id"), 6.283185307179586,
+      #noRuntimeClassAttrs))))
+    requires Id2String(M) ==String "math"
+
+  rule builtinModuleHasAttr(M:Id, A:Id) => classAttrsHas(builtinModuleAttrs(M), A)
+    requires builtinModuleSupported(M)
+  rule builtinModuleHasAttr(M:Id, _A:Id) => false
+    requires notBool builtinModuleSupported(M)
+
+  rule builtinModuleAttr(M:Id, A:Id) => classAttrGet(builtinModuleAttrs(M), A)
+    requires builtinModuleSupported(M) andBool builtinModuleHasAttr(M, A)
+
   rule functionMeta(F:Id, Doc:Val, Fun:Val) =>
     functionMetaVal(Id2String(F), Id2String(F), Doc, "__main__", Fun)
 
@@ -6592,6 +6626,8 @@ module PYTHON
     requires classAttrsHas(Attrs, A)
   rule classHasMatchAttr(userObjectVal(_:Id, _:Int, _:Int, Attrs:ClassAttrs), A:Id) => true
     requires classAttrsHas(Attrs, A)
+  rule classHasMatchAttr(moduleVal(_:Id, Attrs:ClassAttrs), A:Id) => true
+    requires classAttrsHas(Attrs, A)
   rule classHasMatchAttr(rangeVal(_:Int, _:Int), A:Id) => true
     requires Id2String(A) ==String "start" orBool Id2String(A) ==String "stop" orBool Id2String(A) ==String "step"
   rule classHasMatchAttr(rangeVal(_:Int, _:Int, _:Int), A:Id) => true
@@ -6632,6 +6668,8 @@ module PYTHON
   rule classHasAttrString(classVal(_:Id, _:Int, Attrs:ClassAttrs), A:String) => true
     requires classAttrsHasString(Attrs, A)
   rule classHasAttrString(userObjectVal(_:Id, _:Int, _:Int, Attrs:ClassAttrs), A:String) => true
+    requires classAttrsHasString(Attrs, A)
+  rule classHasAttrString(moduleVal(_:Id, Attrs:ClassAttrs), A:String) => true
     requires classAttrsHasString(Attrs, A)
   rule classHasAttrString(rangeVal(_:Int, _:Int), A:String) => true
     requires A ==String "start" orBool A ==String "stop" orBool A ==String "step"
@@ -6702,6 +6740,9 @@ module PYTHON
   rule matchClassAttrVal(userObjectVal(C:Id, ClassId:Int, _:Int, Attrs:ClassAttrs), Attr:Id) =>
     classAttrAccess(classVal(C, ClassId, Attrs), classAttrGet(Attrs, Attr))
     requires classAttrsHas(Attrs, Attr)
+  rule matchClassAttrVal(moduleVal(_:Id, Attrs:ClassAttrs), Attr:Id) =>
+    classAttrGet(Attrs, Attr)
+    requires classAttrsHas(Attrs, Attr)
   rule matchClassAttrVal(rangeVal(Start:Int, _:Int), Attr:Id) => Start
     requires Id2String(Attr) ==String "start"
   rule matchClassAttrVal(rangeVal(_:Int, Stop:Int), Attr:Id) => Stop
@@ -6750,6 +6791,9 @@ module PYTHON
     requires classAttrsHasString(Attrs, Attr)
   rule matchClassAttrStringVal(userObjectVal(C:Id, ClassId:Int, _:Int, Attrs:ClassAttrs), Attr:String) =>
     classAttrAccess(classVal(C, ClassId, Attrs), classAttrStringGet(Attrs, Attr))
+    requires classAttrsHasString(Attrs, Attr)
+  rule matchClassAttrStringVal(moduleVal(_:Id, Attrs:ClassAttrs), Attr:String) =>
+    classAttrStringGet(Attrs, Attr)
     requires classAttrsHasString(Attrs, Attr)
   rule matchClassAttrStringVal(rangeVal(Start:Int, _:Int), Attr:String) => Start
     requires Attr ==String "start"
@@ -7155,6 +7199,10 @@ module PYTHON
   rule valEq(None, None) => true
   rule valEq(Ellipsis, Ellipsis) => true
   rule valEq(#exception(E1:Id), #exception(E2:Id)) => Id2String(E1) ==String Id2String(E2)
+  rule valEq(moduleVal(M1:Id, _:ClassAttrs), moduleVal(M2:Id, _:ClassAttrs)) =>
+    Id2String(M1) ==String Id2String(M2)
+  rule valEq(moduleVal(_:Id, _:ClassAttrs), _V:Val) => false [owise]
+  rule valEq(_V:Val, moduleVal(_:Id, _:ClassAttrs)) => false [owise]
   rule valEq(None, _:Int) => false
   rule valEq(_:Int, None) => false
   rule valEq(None, True) => false
@@ -7396,6 +7444,8 @@ module PYTHON
     I1 ==Int I2 andBool Id2String(C1) ==String Id2String(C2)
   rule valIs(userObjectVal(C1:Id, ClassId1:Int, I1:Int, _:ClassAttrs), userObjectVal(C2:Id, ClassId2:Int, I2:Int, _:ClassAttrs)) =>
     I1 ==Int I2 andBool ClassId1 ==Int ClassId2 andBool Id2String(C1) ==String Id2String(C2)
+  rule valIs(moduleVal(M1:Id, _:ClassAttrs), moduleVal(M2:Id, _:ClassAttrs)) =>
+    Id2String(M1) ==String Id2String(M2)
   rule valIs(classVal(_:Id, _:Int, _:ClassAttrs), userObjectVal(_:Id, _:Int, _:Int, _:ClassAttrs)) => false
   rule valIs(userObjectVal(_:Id, _:Int, _:Int, _:ClassAttrs), classVal(_:Id, _:Int, _:ClassAttrs)) => false
   rule valIs(V1:Val, V2:Val) => valEq(V1, V2)
@@ -15386,6 +15436,31 @@ module PYTHON
   rule <k> namedExprExp(X:Id, V:Val) => V ... </k>
        <env> Rho => Rho [ X <- V ] </env>
 
+  rule <k> #import(M:Id) => stmtNoResult ... </k>
+       <env> Rho => Rho [ M <- builtinModule(M) ] </env>
+    requires builtinModuleSupported(M)
+  rule <k> #importAs(M:Id, Alias:Id) => stmtNoResult ... </k>
+       <env> Rho => Rho [ Alias <- builtinModule(M) ] </env>
+    requires builtinModuleSupported(M)
+  rule <k> #fromImport(M:Id, A:Id) => stmtNoResult ... </k>
+       <env> Rho => Rho [ A <- builtinModuleAttr(M, A) ] </env>
+    requires builtinModuleSupported(M) andBool builtinModuleHasAttr(M, A)
+  rule <k> #fromImportAs(M:Id, A:Id, Alias:Id) => stmtNoResult ... </k>
+       <env> Rho => Rho [ Alias <- builtinModuleAttr(M, A) ] </env>
+    requires builtinModuleSupported(M) andBool builtinModuleHasAttr(M, A)
+  rule <k> #import(M:Id) => exceptionSignal(#exception(#token("ModuleNotFoundError", "Id"))) ... </k>
+    requires notBool builtinModuleSupported(M)
+  rule <k> #importAs(M:Id, _Alias:Id) => exceptionSignal(#exception(#token("ModuleNotFoundError", "Id"))) ... </k>
+    requires notBool builtinModuleSupported(M)
+  rule <k> #fromImport(M:Id, _A:Id) => exceptionSignal(#exception(#token("ModuleNotFoundError", "Id"))) ... </k>
+    requires notBool builtinModuleSupported(M)
+  rule <k> #fromImportAs(M:Id, _A:Id, _Alias:Id) => exceptionSignal(#exception(#token("ModuleNotFoundError", "Id"))) ... </k>
+    requires notBool builtinModuleSupported(M)
+  rule <k> #fromImport(M:Id, A:Id) => exceptionSignal(#exception(#token("ImportError", "Id"))) ... </k>
+    requires builtinModuleSupported(M) andBool notBool builtinModuleHasAttr(M, A)
+  rule <k> #fromImportAs(M:Id, A:Id, _Alias:Id) => exceptionSignal(#exception(#token("ImportError", "Id"))) ... </k>
+    requires builtinModuleSupported(M) andBool notBool builtinModuleHasAttr(M, A)
+
   rule <k> fstringExp(Parts:FStringParts) => fStringEval(Parts, "") ... </k>
   rule <k> fStringEval(#fstrEnd, Acc:String) => Acc ... </k>
   rule <k> fStringEval(#fstrText(S:String, Rest:FStringParts), Acc:String) =>
@@ -16346,6 +16421,8 @@ module PYTHON
            exceptionSignal(#exception(#token("AttributeError", "Id")))
        ... </k>
     requires notBool classHasMatchAttr(functionMetaVal(Name, Qual, Doc, Module, Fun), Attr)
+  rule attrExp(moduleVal(_:Id, Attrs:ClassAttrs), Attr:Id) => classAttrGet(Attrs, Attr)
+    requires classAttrsHas(Attrs, Attr)
   rule attrExp(V:Val, Attr:Id) => intValue(V)
     requires isIntLike(V) andBool Id2String(Attr) ==String "real"
   rule attrExp(V:Val, Attr:Id) => 0

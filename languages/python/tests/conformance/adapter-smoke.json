@@ -1943,6 +1943,13 @@
       "coverage": ["class-definition", "special-methods", "__setattr__-profile", "attribute-assignment", "setattr-builtin", "exception-handling", "ordinary-python-source-adapter"]
     },
     {
+      "id": "adapter-class-delattr-method",
+      "source": "../adapter/adapter-class-delattr-method.py",
+      "reference": "Python 3.14.6 Data Model object.__delattr__ and class attribute deletion customization",
+      "expected_result": "True ~> .K",
+      "coverage": ["class-definition", "special-methods", "__delattr__-profile", "attribute-deletion", "delattr-builtin", "exception-handling", "ordinary-python-source-adapter"]
+    },
+    {
       "id": "adapter-issubclass-builtin",
       "source": "../adapter/adapter-issubclass-builtin.py",
       "reference": "Python Standard Library Built-in Functions issubclass; Python data model standard type hierarchy bool subclass of int",

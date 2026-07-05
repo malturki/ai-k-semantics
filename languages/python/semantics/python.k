@@ -30224,16 +30224,23 @@ module PYTHON
            Obj ~> delAttrApply(Attr)
        ... </k>
   rule <k> userObjectVal(C:Id, ClassId:Int, ObjectId:Int, Attrs:ClassAttrs) ~> delAttrApply(Attr:Id) =>
+           #call(boundMethodVal(userObjectVal(C, ClassId, ObjectId, Attrs), classAttrStringGet(Attrs, "__delattr__")), #arg(Id2String(Attr)))
+           ~> propertyDeleterDone()
+       ... </k>
+    requires classAttrsHasString(Attrs, "__delattr__")
+  rule <k> userObjectVal(C:Id, ClassId:Int, ObjectId:Int, Attrs:ClassAttrs) ~> delAttrApply(Attr:Id) =>
            #call(boundMethodVal(userObjectVal(C, ClassId, ObjectId, Attrs), propertyDel(classAttrGet(Attrs, Attr))), #noArgs)
            ~> propertyDeleterDone()
        ... </k>
     requires classAttrsHas(Attrs, Attr)
+      andBool notBool classAttrsHasString(Attrs, "__delattr__")
       andBool isPropertyVal(classAttrGet(Attrs, Attr))
       andBool propertyHasDeleter(classAttrGet(Attrs, Attr))
   rule <k> userObjectVal(_:Id, _:Int, _:Int, Attrs:ClassAttrs) ~> delAttrApply(Attr:Id) =>
            exceptionSignal(#exception(#token("AttributeError", "Id")))
        ... </k>
     requires classAttrsHas(Attrs, Attr)
+      andBool notBool classAttrsHasString(Attrs, "__delattr__")
       andBool isPropertyVal(classAttrGet(Attrs, Attr))
       andBool notBool propertyHasDeleter(classAttrGet(Attrs, Attr))
   rule <k> _V:Val ~> propertyDeleterDone() => stmtNoResult ... </k>
@@ -30244,6 +30251,7 @@ module PYTHON
        <objectAttrs> ... ObjectId |-> (ObjAttrs:ClassAttrs => classAttrDel(ObjAttrs, Attr)) ... </objectAttrs>
        <result> _ => .K </result>
     requires notBool classAttrsHas(Attrs, Attr)
+      andBool notBool classAttrsHasString(Attrs, "__delattr__")
       andBool classAttrsHas(ObjAttrs, Attr)
   rule <k> userObjectVal(_:Id, _:Int, ObjectId:Int, Attrs:ClassAttrs) ~> delAttrApply(Attr:Id) =>
            stmtNoResult
@@ -30251,6 +30259,7 @@ module PYTHON
        <objectAttrs> ... ObjectId |-> (ObjAttrs:ClassAttrs => classAttrDel(ObjAttrs, Attr)) ... </objectAttrs>
        <result> _ => .K </result>
     requires classAttrsHas(Attrs, Attr)
+      andBool notBool classAttrsHasString(Attrs, "__delattr__")
       andBool notBool isPropertyVal(classAttrGet(Attrs, Attr))
       andBool classAttrsHas(ObjAttrs, Attr)
   rule <k> userObjectVal(_:Id, _:Int, ObjectId:Int, Attrs:ClassAttrs) ~> delAttrApply(Attr:Id) =>
@@ -30258,12 +30267,14 @@ module PYTHON
        ... </k>
        <objectAttrs> ... ObjectId |-> ObjAttrs:ClassAttrs ... </objectAttrs>
     requires notBool classAttrsHas(Attrs, Attr)
+      andBool notBool classAttrsHasString(Attrs, "__delattr__")
       andBool notBool classAttrsHas(ObjAttrs, Attr)
   rule <k> userObjectVal(_:Id, _:Int, ObjectId:Int, Attrs:ClassAttrs) ~> delAttrApply(Attr:Id) =>
            exceptionSignal(#exception(#token("AttributeError", "Id")))
        ... </k>
        <objectAttrs> ... ObjectId |-> ObjAttrs:ClassAttrs ... </objectAttrs>
     requires classAttrsHas(Attrs, Attr)
+      andBool notBool classAttrsHasString(Attrs, "__delattr__")
       andBool notBool isPropertyVal(classAttrGet(Attrs, Attr))
       andBool notBool classAttrsHas(ObjAttrs, Attr)
   rule <k> V:Val ~> delAttrApply(_:Id) =>
@@ -30285,16 +30296,23 @@ module PYTHON
        ... </k>
     requires notBool isStringVal(Attr)
   rule <k> userObjectVal(C:Id, ClassId:Int, ObjectId:Int, Attrs:ClassAttrs) ~> delattrStringApply(Attr:String) =>
+           #call(boundMethodVal(userObjectVal(C, ClassId, ObjectId, Attrs), classAttrStringGet(Attrs, "__delattr__")), #arg(Attr))
+           ~> delattrBuiltinDone()
+       ... </k>
+    requires classAttrsHasString(Attrs, "__delattr__")
+  rule <k> userObjectVal(C:Id, ClassId:Int, ObjectId:Int, Attrs:ClassAttrs) ~> delattrStringApply(Attr:String) =>
            #call(boundMethodVal(userObjectVal(C, ClassId, ObjectId, Attrs), propertyDel(classAttrStringGet(Attrs, Attr))), #noArgs)
            ~> delattrBuiltinDone()
        ... </k>
     requires classAttrsHasString(Attrs, Attr)
+      andBool notBool classAttrsHasString(Attrs, "__delattr__")
       andBool isPropertyVal(classAttrStringGet(Attrs, Attr))
       andBool propertyHasDeleter(classAttrStringGet(Attrs, Attr))
   rule <k> userObjectVal(_:Id, _:Int, _:Int, Attrs:ClassAttrs) ~> delattrStringApply(Attr:String) =>
            exceptionSignal(#exception(#token("AttributeError", "Id")))
        ... </k>
     requires classAttrsHasString(Attrs, Attr)
+      andBool notBool classAttrsHasString(Attrs, "__delattr__")
       andBool isPropertyVal(classAttrStringGet(Attrs, Attr))
       andBool notBool propertyHasDeleter(classAttrStringGet(Attrs, Attr))
   rule <k> _V:Val ~> delattrBuiltinDone() => None ... </k>
@@ -30303,12 +30321,14 @@ module PYTHON
        ... </k>
        <objectAttrs> ... ObjectId |-> (ObjAttrs:ClassAttrs => classAttrStringDel(ObjAttrs, Attr)) ... </objectAttrs>
     requires notBool classAttrsHasString(Attrs, Attr)
+      andBool notBool classAttrsHasString(Attrs, "__delattr__")
       andBool classAttrsHasString(ObjAttrs, Attr)
   rule <k> userObjectVal(_:Id, _:Int, ObjectId:Int, Attrs:ClassAttrs) ~> delattrStringApply(Attr:String) =>
            None
        ... </k>
        <objectAttrs> ... ObjectId |-> (ObjAttrs:ClassAttrs => classAttrStringDel(ObjAttrs, Attr)) ... </objectAttrs>
     requires classAttrsHasString(Attrs, Attr)
+      andBool notBool classAttrsHasString(Attrs, "__delattr__")
       andBool notBool isPropertyVal(classAttrStringGet(Attrs, Attr))
       andBool classAttrsHasString(ObjAttrs, Attr)
   rule <k> userObjectVal(_:Id, _:Int, ObjectId:Int, Attrs:ClassAttrs) ~> delattrStringApply(Attr:String) =>
@@ -30316,12 +30336,14 @@ module PYTHON
        ... </k>
        <objectAttrs> ... ObjectId |-> ObjAttrs:ClassAttrs ... </objectAttrs>
     requires notBool classAttrsHasString(Attrs, Attr)
+      andBool notBool classAttrsHasString(Attrs, "__delattr__")
       andBool notBool classAttrsHasString(ObjAttrs, Attr)
   rule <k> userObjectVal(_:Id, _:Int, ObjectId:Int, Attrs:ClassAttrs) ~> delattrStringApply(Attr:String) =>
            exceptionSignal(#exception(#token("AttributeError", "Id")))
        ... </k>
        <objectAttrs> ... ObjectId |-> ObjAttrs:ClassAttrs ... </objectAttrs>
     requires classAttrsHasString(Attrs, Attr)
+      andBool notBool classAttrsHasString(Attrs, "__delattr__")
       andBool notBool isPropertyVal(classAttrStringGet(Attrs, Attr))
       andBool notBool classAttrsHasString(ObjAttrs, Attr)
   rule <k> V:Val ~> delattrStringApply(_:String) =>

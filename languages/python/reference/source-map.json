@@ -797,7 +797,7 @@
     {
       "id": "full-grammar",
       "title": "Full grammar",
-      "status": "syntax",
+      "status": "partial",
       "references": [
         {
           "title": "Python Language Reference: Full Grammar specification",
@@ -808,16 +808,20 @@
         {
           "id": "grammar.full-peg",
           "title": "Documented PEG grammar derived from CPython parser grammar",
-          "status": "syntax",
+          "status": "partial",
           "references": [
             {
               "title": "Full Grammar specification",
               "url": "https://docs.python.org/3/reference/grammar.html"
+            },
+            {
+              "title": "CPython PEG grammar",
+              "url": "https://github.com/python/cpython/tree/v3.14.6/Grammar/python.gram"
             }
           ],
-          "k_coverage": ["semantics/python.k: seed grammar plus explicit internal #fstring part syntax for adapter-preserved f-string expressions, conversion markers, empty format-spec markers, literal non-empty format-spec markers, and dynamic nested format-spec part markers over the current format subset", "harness/python_to_k_input.py: construct-preserving adapter maps CPython AST JoinedStr/FormattedValue nodes for simple f-strings, including !s/!r/!a conversion values, debug literal prefixes, empty JoinedStr format specs, literal non-empty JoinedStr format specs, and dynamic JoinedStr format specs with nested replacement fields over the current format subset"],
-          "test_coverage": ["tests/adapter/adapter-fstrings-basic.py", "tests/adapter/adapter-fstrings-conversions.py", "tests/adapter/adapter-fstrings-empty-format.py", "tests/adapter/adapter-fstrings-format-spec.py", "tests/adapter/adapter-fstrings-dynamic-format-spec.py", "tests/adapter/adapter-fstrings-current-string-conversion-values.py", "tests/adapter/adapter-string-repr-ascii-escaping.py", "tests/adapter/adapter-string-ascii-unicode.py"],
-          "gaps": ["Need construct-preserving parser strategy: native K grammar where feasible, or parser-front-end AST that preserves every documented construct."]
+          "k_coverage": ["semantics/python.k: seed grammar plus explicit internal #fstring part syntax for adapter-preserved f-string expressions, conversion markers, empty format-spec markers, literal non-empty format-spec markers, and dynamic nested format-spec part markers over the current format subset", "harness/python_to_k_input.py: construct-preserving adapter maps CPython AST nodes for the current executable subset after parsing with ast.parse(...)", "tests/conformance/cpython-peg-grammar-profile.json: pins CPython 3.14.6 Grammar/python.gram and the documented full grammar by SHA-256, records the 249-rule inventory, 61 invalid_* diagnostic rules, four start rules, and current parser-oracle boundary"],
+          "test_coverage": ["tests/conformance/cpython-peg-grammar-profile.json", "tests/conformance/cpython-classification.json: test_grammar, test_ast, test_tokenize, test_syntax, test_compile, and test_codeop classify grammar/parser/tokenizer boundaries", "tests/adapter/adapter-fstrings-basic.py", "tests/adapter/adapter-fstrings-conversions.py", "tests/adapter/adapter-fstrings-empty-format.py", "tests/adapter/adapter-fstrings-format-spec.py", "tests/adapter/adapter-fstrings-dynamic-format-spec.py", "tests/adapter/adapter-fstrings-current-string-conversion-values.py", "tests/adapter/adapter-string-repr-ascii-escaping.py", "tests/adapter/adapter-string-ascii-unicode.py"],
+          "gaps": ["Need native K grammar or a verified parser frontend that preserves every documented construct, full token stream and soft-keyword model, concrete syntax distinctions lost in CPython AST, invalid_* second-pass diagnostics, exact source spans and SyntaxError locations, and adapter coverage for all AST nodes produced by the full PEG grammar."]
         }
       ]
     },

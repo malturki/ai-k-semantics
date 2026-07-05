@@ -17,6 +17,7 @@ ADAPTER_SMOKE = ROOT / "languages/python/tests/conformance/adapter-smoke.json"
 DIAGNOSTICS_PROFILE = ROOT / "languages/python/tests/conformance/cpython-diagnostics-profile.json"
 RESOURCE_LIMITS_PROFILE = ROOT / "languages/python/tests/conformance/cpython-resource-limits-profile.json"
 BYTECODE_PROFILE = ROOT / "languages/python/tests/conformance/cpython-bytecode-profile.json"
+PEG_GRAMMAR_PROFILE = ROOT / "languages/python/tests/conformance/cpython-peg-grammar-profile.json"
 
 ID_RE = re.compile(r"^[a-z0-9][a-z0-9._-]*$")
 
@@ -95,6 +96,13 @@ def require_str(data: dict[str, Any], key: str, path: Path) -> str:
     value = data.get(key)
     if not isinstance(value, str) or not value.strip():
         raise ValueError(f"{path}: '{key}' must be a non-empty string")
+    return value
+
+
+def require_int(data: dict[str, Any], key: str, path: Path) -> int:
+    value = data.get(key)
+    if not isinstance(value, int):
+        raise ValueError(f"{path}: '{key}' must be an integer")
     return value
 
 
@@ -362,6 +370,73 @@ def validate_bytecode_profile(path: Path, cpython_test_ids: set[str]) -> None:
     require_list(data, "known_gaps", path)
 
 
+def validate_peg_grammar_profile(path: Path, construct_ids: set[str], cpython_test_ids: set[str]) -> None:
+    data = load_json(path)
+    profile = require_obj(data, "profile", path)
+    if profile.get("id") != "cpython-peg-grammar":
+        raise ValueError(f"{path}: profile.id must be 'cpython-peg-grammar'")
+    construct_id = require_str(profile, "construct_id", path)
+    if construct_id not in construct_ids:
+        raise ValueError(f"{path}: profile.construct_id references unknown construct '{construct_id}'")
+    require_str(profile, "language_version", path)
+    require_str(profile, "source_tag", path)
+    require_list(profile, "reference_sources", path)
+    if not re.fullmatch(r"[0-9a-f]{64}", require_str(profile, "source_sha256", path)):
+        raise ValueError(f"{path}: source_sha256 must be a lowercase sha256 hex digest")
+    if not re.fullmatch(r"[0-9a-f]{64}", require_str(profile, "documentation_sha256", path)):
+        raise ValueError(f"{path}: documentation_sha256 must be a lowercase sha256 hex digest")
+
+    inventory = require_obj(data, "grammar_inventory", path)
+    require_str(inventory, "source_path", path)
+    require_str(inventory, "documented_path", path)
+    if require_int(inventory, "rule_count", path) <= 0:
+        raise ValueError(f"{path}: grammar_inventory.rule_count must be positive")
+    if require_int(inventory, "invalid_rule_count", path) < 0:
+        raise ValueError(f"{path}: grammar_inventory.invalid_rule_count cannot be negative")
+    start_rules = require_list(inventory, "start_rules", path)
+    if set(start_rules) != {"file", "interactive", "eval", "func_type"}:
+        raise ValueError(f"{path}: grammar_inventory.start_rules must be file/interactive/eval/func_type")
+    require_list(inventory, "notes", path)
+
+    boundaries = require_list(data, "grammar_boundaries", path)
+    if not boundaries:
+        raise ValueError(f"{path}: grammar_boundaries cannot be empty")
+    seen: set[str] = set()
+    current_boundaries = 0
+    for boundary in boundaries:
+        if not isinstance(boundary, dict):
+            raise ValueError(f"{path}: grammar_boundaries entries must be objects")
+        boundary_id = validate_id(boundary.get("id"), "grammar boundary id", path)
+        if boundary_id in seen:
+            raise ValueError(f"{path}: duplicate grammar boundary id '{boundary_id}'")
+        seen.add(boundary_id)
+        status = require_str(boundary, "status", path)
+        if status not in DIAGNOSTIC_NORMALIZATION_STATUSES:
+            raise ValueError(f"{path}: grammar boundary '{boundary_id}' has invalid status '{status}'")
+        if status == "current":
+            current_boundaries += 1
+        require_str(boundary, "kind", path)
+        tests = require_list(boundary, "cpython_tests", path)
+        for test_id in tests:
+            if test_id not in cpython_test_ids:
+                raise ValueError(f"{path}: {boundary_id} references unknown CPython test '{test_id}'")
+        require_str(boundary, "description", path)
+    if current_boundaries == 0:
+        raise ValueError(f"{path}: at least one grammar boundary must be current")
+
+    runs = require_list(data, "reference_runs", path)
+    if not runs:
+        raise ValueError(f"{path}: reference_runs cannot be empty")
+    for run in runs:
+        if not isinstance(run, dict):
+            raise ValueError(f"{path}: reference_runs entries must be objects")
+        require_str(run, "date", path)
+        require_str(run, "command", path)
+        require_str(run, "result", path)
+        require_str(run, "notes", path)
+    require_list(data, "known_gaps", path)
+
+
 def main() -> int:
     construct_ids = validate_source_map(SOURCE_MAP)
     cpython_test_ids = validate_test_classification(TEST_CLASSIFICATION, construct_ids)
@@ -369,9 +444,10 @@ def main() -> int:
     validate_diagnostics_profile(DIAGNOSTICS_PROFILE, adapter_case_ids)
     validate_resource_limits_profile(RESOURCE_LIMITS_PROFILE, cpython_test_ids)
     validate_bytecode_profile(BYTECODE_PROFILE, cpython_test_ids)
+    validate_peg_grammar_profile(PEG_GRAMMAR_PROFILE, construct_ids, cpython_test_ids)
     print(
         "Validated Python source map, CPython test classification, adapter smoke manifest, "
-        "diagnostics profile, resource-limits profile, and bytecode profile "
+        "diagnostics profile, resource-limits profile, bytecode profile, and PEG grammar profile "
         f"({len(construct_ids)} construct ids, {len(cpython_test_ids)} CPython tests, "
         f"{len(adapter_case_ids)} adapter cases)."
     )

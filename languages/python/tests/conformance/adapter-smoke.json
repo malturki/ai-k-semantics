@@ -1964,6 +1964,13 @@
       "coverage": ["class-definition", "special-methods", "__getattribute__-profile", "__getattr__-profile", "attribute-access", "getattr-builtin", "hasattr-builtin", "exception-handling", "ordinary-python-source-adapter"]
     },
     {
+      "id": "adapter-class-inherited-attribute-hooks",
+      "source": "../adapter/adapter-class-inherited-attribute-hooks.py",
+      "reference": "Python 3.14.6 Data Model special method inheritance for customized attribute access, assignment, and deletion",
+      "expected_result": "True ~> .K",
+      "coverage": ["class-definition", "single-inheritance-profile", "special-methods", "__getattribute__-profile", "__getattr__-profile", "__setattr__-profile", "__delattr__-profile", "object-attribute-base-delegation", "descriptor-get-profile", "attribute-access", "attribute-assignment", "attribute-deletion", "getattr-builtin", "hasattr-builtin", "exception-handling", "ordinary-python-source-adapter"]
+    },
+    {
       "id": "adapter-class-delattr-method",
       "source": "../adapter/adapter-class-delattr-method.py",
       "reference": "Python 3.14.6 Data Model object.__delattr__ and class attribute deletion customization",

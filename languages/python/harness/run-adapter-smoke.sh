@@ -216,6 +216,7 @@ run_case "adapter-class-property-getter-chain" "$ROOT/tests/adapter/adapter-clas
 run_case "adapter-class-property-getattr-fallback" "$ROOT/tests/adapter/adapter-class-property-getattr-fallback.py" "True ~> .K"
 run_case "adapter-class-getattr-method" "$ROOT/tests/adapter/adapter-class-getattr-method.py" "True ~> .K"
 run_case "adapter-class-getattribute-method" "$ROOT/tests/adapter/adapter-class-getattribute-method.py" "True ~> .K"
+run_case "adapter-class-inherited-attribute-hooks" "$ROOT/tests/adapter/adapter-class-inherited-attribute-hooks.py" "True ~> .K"
 run_case "adapter-class-setattr-method" "$ROOT/tests/adapter/adapter-class-setattr-method.py" "True ~> .K"
 run_case "adapter-class-delattr-method" "$ROOT/tests/adapter/adapter-class-delattr-method.py" "True ~> .K"
 run_case "adapter-object-attribute-delegation" "$ROOT/tests/adapter/adapter-object-attribute-delegation.py" "True ~> .K"

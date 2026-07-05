@@ -1964,6 +1964,13 @@
       "coverage": ["class-definition", "special-methods", "object-attribute-base-delegation", "__setattr__-profile", "__delattr__-profile", "descriptor-set-profile", "descriptor-delete-profile", "ordinary-python-source-adapter"]
     },
     {
+      "id": "adapter-object-getattribute-delegation",
+      "source": "../adapter/adapter-object-getattribute-delegation.py",
+      "reference": "Python 3.14.6 Data Model object.__getattribute__ base lookup for customized attribute access",
+      "expected_result": "True ~> .K",
+      "coverage": ["class-definition", "special-methods", "object-attribute-base-delegation", "object-__getattribute__-profile", "attribute-access", "descriptor-get-profile", "ordinary-python-source-adapter"]
+    },
+    {
       "id": "adapter-issubclass-builtin",
       "source": "../adapter/adapter-issubclass-builtin.py",
       "reference": "Python Standard Library Built-in Functions issubclass; Python data model standard type hierarchy bool subclass of int",

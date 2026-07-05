@@ -477,6 +477,7 @@ module PYTHON-SYNTAX
                | "#hasattrDyn" "(" Exp "," Exp ")" [symbol(hasattrDynExp)]
                | "#setattr" "(" Exp "," Exp "," Exp ")" [symbol(setattrExp)]
                | "#delattr" "(" Exp "," Exp ")" [symbol(delattrExp)]
+               | "#objectGetattribute" "(" Exp "," Exp ")" [symbol(objectGetattributeExp)]
                | "#objectSetattr" "(" Exp "," Exp "," Exp ")" [symbol(objectSetattrExp)]
                | "#objectDelattr" "(" Exp "," Exp ")" [symbol(objectDelattrExp)]
                | "#fstring" "(" FStringParts ")" [symbol(fstringExp)]
@@ -909,6 +910,9 @@ module PYTHON
                  | typeAliasValueCache(Int) [symbol(typeAliasValueCache)]
                  | hasattrObject(Id) [symbol(hasattrObject)]
                  | hasattrGetattrDone() [symbol(hasattrGetattrDone)]
+                 | objectGetattributeName(Exp) [symbol(objectGetattributeName)]
+                 | objectGetattributeApply(Val) [symbol(objectGetattributeApply)]
+                 | objectGetattributeStringApply(String) [symbol(objectGetattributeStringApply)]
                  | getattrDynName(Exp) [symbol(getattrDynName)]
                  | getattrDynApply(Val) [symbol(getattrDynApply)]
                  | getattrDefaultDynName(Exp, Exp) [symbol(getattrDefaultDynName)]
@@ -16880,6 +16884,46 @@ module PYTHON
     requires exceptionMatches(E, #token("AttributeError", "Id"))
   rule <k> exceptionSignal(E:Val) ~> hasattrGetattrDone() => exceptionSignal(E) ... </k>
     requires notBool exceptionMatches(E, #token("AttributeError", "Id"))
+  rule <k> #objectGetattribute(Obj:Exp, Attr:Exp)
+        => Obj ~> objectGetattributeName(Attr) ... </k>
+  rule <k> Obj:Val ~> objectGetattributeName(Attr:Exp)
+        => Attr ~> objectGetattributeApply(Obj) ... </k>
+  rule <k> Attr:String ~> objectGetattributeApply(Obj:Val)
+        => Obj ~> objectGetattributeStringApply(Attr) ... </k>
+  rule <k> Attr:Val ~> objectGetattributeApply(_Obj:Val)
+        => exceptionSignal(#exception(#token("TypeError", "Id"))) ... </k>
+    requires notBool isStringVal(Attr)
+  rule <k> userObjectVal(_:Id, _:Int, ObjectId:Int, _:ClassAttrs) ~> objectGetattributeStringApply(Attr:String)
+        => classAttrStringGet(ObjAttrs, Attr) ... </k>
+       <objectAttrs> ... ObjectId |-> ObjAttrs:ClassAttrs ... </objectAttrs>
+    requires classAttrsHasString(ObjAttrs, Attr)
+  rule <k> userObjectVal(C:Id, ClassId:Int, ObjectId:Int, Attrs:ClassAttrs) ~> objectGetattributeStringApply(Attr:String)
+        => #call(boundMethodVal(userObjectVal(C, ClassId, ObjectId, Attrs), propertyGet(classAttrStringGet(Attrs, Attr))), #noArgs) ... </k>
+       <objectAttrs> ... ObjectId |-> ObjAttrs:ClassAttrs ... </objectAttrs>
+    requires notBool classAttrsHasString(ObjAttrs, Attr)
+      andBool classAttrsHasString(Attrs, Attr)
+      andBool isPropertyVal(classAttrStringGet(Attrs, Attr))
+  rule <k> userObjectVal(C:Id, ClassId:Int, ObjectId:Int, Attrs:ClassAttrs) ~> objectGetattributeStringApply(Attr:String)
+        => boundMethodVal(userObjectVal(C, ClassId, ObjectId, Attrs), classAttrStringGet(Attrs, Attr)) ... </k>
+       <objectAttrs> ... ObjectId |-> ObjAttrs:ClassAttrs ... </objectAttrs>
+    requires notBool classAttrsHasString(ObjAttrs, Attr)
+      andBool classAttrsHasString(Attrs, Attr)
+      andBool bindableUserMethodVal(classAttrStringGet(Attrs, Attr))
+  rule <k> userObjectVal(C:Id, ClassId:Int, ObjectId:Int, Attrs:ClassAttrs) ~> objectGetattributeStringApply(Attr:String)
+        => classAttrAccess(classVal(C, ClassId, Attrs), classAttrStringGet(Attrs, Attr)) ... </k>
+       <objectAttrs> ... ObjectId |-> ObjAttrs:ClassAttrs ... </objectAttrs>
+    requires notBool classAttrsHasString(ObjAttrs, Attr)
+      andBool classAttrsHasString(Attrs, Attr)
+      andBool notBool bindableUserMethodVal(classAttrStringGet(Attrs, Attr))
+      andBool notBool isPropertyVal(classAttrStringGet(Attrs, Attr))
+  rule <k> userObjectVal(_:Id, _:Int, ObjectId:Int, Attrs:ClassAttrs) ~> objectGetattributeStringApply(Attr:String)
+        => exceptionSignal(#exception(#token("AttributeError", "Id"))) ... </k>
+       <objectAttrs> ... ObjectId |-> ObjAttrs:ClassAttrs ... </objectAttrs>
+    requires notBool classAttrsHasString(ObjAttrs, Attr)
+      andBool notBool classAttrsHasString(Attrs, Attr)
+  rule <k> V:Val ~> objectGetattributeStringApply(_:String)
+        => exceptionSignal(#exception(#token("TypeError", "Id"))) ... </k>
+    requires notBool isUserObjectVal(V)
   rule <k> #getattrDyn(Obj:Exp, Attr:Exp)
         => Obj ~> getattrDynName(Attr) ... </k>
   rule <k> V:Val ~> getattrDynName(Attr:Exp)
@@ -36775,6 +36819,9 @@ module PYTHON
   rule <k> exceptionSignal(V:Val) ~> hasattrObject(_:Id) => exceptionSignal(V) ... </k>
   rule <k> exceptionSignal(V:Val) ~> getattrDynName(_:Exp) => exceptionSignal(V) ... </k>
   rule <k> exceptionSignal(V:Val) ~> getattrDynApply(_:Val) => exceptionSignal(V) ... </k>
+  rule <k> exceptionSignal(V:Val) ~> objectGetattributeName(_:Exp) => exceptionSignal(V) ... </k>
+  rule <k> exceptionSignal(V:Val) ~> objectGetattributeApply(_:Val) => exceptionSignal(V) ... </k>
+  rule <k> exceptionSignal(V:Val) ~> objectGetattributeStringApply(_:String) => exceptionSignal(V) ... </k>
   rule <k> exceptionSignal(V:Val) ~> getattrDefaultDynName(_:Exp, _:Exp) => exceptionSignal(V) ... </k>
   rule <k> exceptionSignal(V:Val) ~> getattrDefaultDynDefault(_:Val, _:Exp) => exceptionSignal(V) ... </k>
   rule <k> exceptionSignal(V:Val) ~> getattrDefaultDynApply(_:Val, _:String) => exceptionSignal(V) ... </k>

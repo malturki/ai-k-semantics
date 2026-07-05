@@ -1217,6 +1217,12 @@ def emit_exp(exp: ast.expr) -> str:
         ):
             return f"#objectSetattr({emit_exp(obj)}, {emit_exp(name)}, {emit_exp(value)})"
         case ast.Call(
+            func=ast.Attribute(value=ast.Name(id="object"), attr="__getattribute__", ctx=ast.Load()),
+            args=[obj, name],
+            keywords=[],
+        ):
+            return f"#objectGetattribute({emit_exp(obj)}, {emit_exp(name)})"
+        case ast.Call(
             func=ast.Attribute(value=ast.Name(id="object"), attr="__delattr__", ctx=ast.Load()),
             args=[obj, name],
             keywords=[],

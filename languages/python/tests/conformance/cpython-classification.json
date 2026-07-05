@@ -270,6 +270,54 @@
       "blockers": ["String literal semantics are not implemented yet."]
     },
     {
+      "id": "test_sys",
+      "source_path": "Lib/test/test_sys.py",
+      "classification": "cpython-implementation-detail",
+      "review_status": "seed",
+      "translation_status": "needs-extraction",
+      "construct_refs": ["profile.cpython-resource-limits", "profile.cpython-diagnostics"],
+      "last_reference_result": {
+        "date": "2026-07-05",
+        "command": "./python -m test --single-process --timeout 180 test_sys test_int test_resource",
+        "result": "success: test_sys passed as part of 3-test resource-profile run",
+        "notes": "Run against local CPython 3.14.6 source build with test_int and test_resource; total resource-profile run reported 162 tests run, 11 skipped, all OK."
+      },
+      "notes": ["Primary upstream source for CPython sys recursion limits, int_max_str_digits flags, tracebacklimit behavior, sys.implementation metadata, and implementation/platform details."],
+      "blockers": ["No sys module, process/runtime limit cells, command-line option profile, or environment-variable profile exists in K yet."]
+    },
+    {
+      "id": "test_int",
+      "source_path": "Lib/test/test_int.py",
+      "classification": "candidate-builtins",
+      "review_status": "seed",
+      "translation_status": "needs-extraction",
+      "construct_refs": ["stdlib.builtins", "stdlib.builtin-types", "profile.cpython-resource-limits"],
+      "last_reference_result": {
+        "date": "2026-07-05",
+        "command": "./python -m test --single-process --timeout 180 test_sys test_int test_resource",
+        "result": "success: test_int passed as part of 3-test resource-profile run",
+        "notes": "Run against local CPython 3.14.6 source build with test_sys and test_resource; total resource-profile run reported 162 tests run, 11 skipped, all OK."
+      },
+      "notes": ["Primary upstream source for int constructor/operator behavior and CPython integer string conversion length-limit tests."],
+      "blockers": ["Current int semantics covers only a finite constructor/operator subset and does not model global or per-interpreter int_max_str_digits limits."]
+    },
+    {
+      "id": "test_resource",
+      "source_path": "Lib/test/test_resource.py",
+      "classification": "platform-environment",
+      "review_status": "seed",
+      "translation_status": "needs-extraction",
+      "construct_refs": ["profile.cpython-resource-limits"],
+      "last_reference_result": {
+        "date": "2026-07-05",
+        "command": "./python -m test --single-process --timeout 180 test_sys test_int test_resource",
+        "result": "success: test_resource passed as part of 3-test resource-profile run",
+        "notes": "Run against local CPython 3.14.6 source build with test_sys and test_int; total resource-profile run reported 162 tests run, 11 skipped, all OK."
+      },
+      "notes": ["Primary upstream source for Unix resource module behavior and process resource-limit APIs."],
+      "blockers": ["Platform resource APIs are outside the current portable semantics and need a dedicated host/platform profile."]
+    },
+    {
       "id": "test_ssl",
       "source_path": "Lib/test/test_ssl.py",
       "classification": "environment-dependent",

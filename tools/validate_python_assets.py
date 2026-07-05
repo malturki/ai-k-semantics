@@ -15,6 +15,7 @@ SOURCE_MAP = ROOT / "languages/python/reference/source-map.json"
 TEST_CLASSIFICATION = ROOT / "languages/python/tests/conformance/cpython-classification.json"
 ADAPTER_SMOKE = ROOT / "languages/python/tests/conformance/adapter-smoke.json"
 DIAGNOSTICS_PROFILE = ROOT / "languages/python/tests/conformance/cpython-diagnostics-profile.json"
+RESOURCE_LIMITS_PROFILE = ROOT / "languages/python/tests/conformance/cpython-resource-limits-profile.json"
 
 ID_RE = re.compile(r"^[a-z0-9][a-z0-9._-]*$")
 
@@ -152,7 +153,7 @@ def validate_source_map(path: Path) -> set[str]:
     return construct_ids
 
 
-def validate_test_classification(path: Path, construct_ids: set[str]) -> None:
+def validate_test_classification(path: Path, construct_ids: set[str]) -> set[str]:
     data = load_json(path)
     suite = require_obj(data, "reference_suite", path)
     if suite.get("implementation") != "CPython":
@@ -189,6 +190,7 @@ def validate_test_classification(path: Path, construct_ids: set[str]) -> None:
                 raise ValueError(f"{path}: {test_id} references unknown construct '{ref}'")
         require_list(test, "notes", path)
         require_list(test, "blockers", path)
+    return seen
 
 
 def validate_adapter_smoke(path: Path) -> set[str]:
@@ -274,14 +276,53 @@ def validate_diagnostics_profile(path: Path, adapter_case_ids: set[str]) -> None
     require_list(data, "known_gaps", path)
 
 
+def validate_resource_limits_profile(path: Path, cpython_test_ids: set[str]) -> None:
+    data = load_json(path)
+    profile = require_obj(data, "profile", path)
+    if profile.get("id") != "cpython-resource-limits":
+        raise ValueError(f"{path}: profile.id must be 'cpython-resource-limits'")
+    require_str(profile, "language_version", path)
+    require_str(profile, "source_tag", path)
+    require_list(profile, "reference_sources", path)
+
+    boundaries = require_list(data, "resource_boundaries", path)
+    if not boundaries:
+        raise ValueError(f"{path}: resource_boundaries cannot be empty")
+    seen: set[str] = set()
+    current_boundaries = 0
+    for boundary in boundaries:
+        if not isinstance(boundary, dict):
+            raise ValueError(f"{path}: resource_boundaries entries must be objects")
+        boundary_id = validate_id(boundary.get("id"), "resource boundary id", path)
+        if boundary_id in seen:
+            raise ValueError(f"{path}: duplicate resource boundary id '{boundary_id}'")
+        seen.add(boundary_id)
+        status = require_str(boundary, "status", path)
+        if status not in DIAGNOSTIC_NORMALIZATION_STATUSES:
+            raise ValueError(f"{path}: resource boundary '{boundary_id}' has invalid status '{status}'")
+        if status == "current":
+            current_boundaries += 1
+        require_str(boundary, "kind", path)
+        tests = require_list(boundary, "cpython_tests", path)
+        for test_id in tests:
+            if test_id not in cpython_test_ids:
+                raise ValueError(f"{path}: {boundary_id} references unknown CPython test '{test_id}'")
+        require_str(boundary, "description", path)
+    if current_boundaries == 0:
+        raise ValueError(f"{path}: at least one resource boundary must be current")
+    require_list(data, "known_gaps", path)
+
+
 def main() -> int:
     construct_ids = validate_source_map(SOURCE_MAP)
-    validate_test_classification(TEST_CLASSIFICATION, construct_ids)
+    cpython_test_ids = validate_test_classification(TEST_CLASSIFICATION, construct_ids)
     adapter_case_ids = validate_adapter_smoke(ADAPTER_SMOKE)
     validate_diagnostics_profile(DIAGNOSTICS_PROFILE, adapter_case_ids)
+    validate_resource_limits_profile(RESOURCE_LIMITS_PROFILE, cpython_test_ids)
     print(
         "Validated Python source map, CPython test classification, adapter smoke manifest, "
-        f"and diagnostics profile ({len(construct_ids)} construct ids, "
+        "diagnostics profile, and resource-limits profile "
+        f"({len(construct_ids)} construct ids, {len(cpython_test_ids)} CPython tests, "
         f"{len(adapter_case_ids)} adapter cases)."
     )
     return 0

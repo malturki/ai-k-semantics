@@ -966,17 +966,26 @@
         {
           "id": "profile.cpython-resource-limits",
           "title": "CPython resource limits and implementation notes",
-          "status": "not-started",
+          "status": "partial",
           "references": [
             {
               "title": "Language Reference introduction",
               "url": "https://docs.python.org/3/reference/introduction.html",
               "section": "Implementation notes"
+            },
+            {
+              "title": "sys module",
+              "url": "https://docs.python.org/3/library/sys.html",
+              "section": "getrecursionlimit, setrecursionlimit, get_int_max_str_digits, set_int_max_str_digits"
+            },
+            {
+              "title": "resource module",
+              "url": "https://docs.python.org/3/library/resource.html"
             }
           ],
-          "k_coverage": [],
-          "test_coverage": [],
-          "gaps": ["Need profile for recursion limits, integer conversion limits, platform behavior, and implementation-defined edge cases."]
+          "k_coverage": ["tests/conformance/cpython-resource-limits-profile.json: records current implementation-note boundaries, optional-extension environment boundaries, and future runtime-limit/platform profiles for recursion limits, integer string conversion limits, and the Unix resource module"],
+          "test_coverage": ["tests/conformance/cpython-resource-limits-profile.json", "tests/conformance/cpython-classification.json: test_sys, test_int, test_resource, test_ssl, test_bz2, test_lzma, test_readline, and test_curses classify CPython resource, platform, and optional-extension boundaries"],
+          "gaps": ["Need K runtime cells and rules for recursion-depth tracking and RecursionError thresholds, sys recursion-limit APIs, integer string conversion length limits and related -X/environment profiles, platform resource APIs, optional extension availability, process/stack/CPU/memory/file descriptor limits, and precise separation between portable language semantics and CPython/host-environment behavior."]
         },
         {
           "id": "profile.cpython-bytecode-internals",

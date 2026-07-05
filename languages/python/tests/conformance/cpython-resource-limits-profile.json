@@ -1,0 +1,61 @@
+{
+  "profile": {
+    "id": "cpython-resource-limits",
+    "language_version": "Python 3.14.6",
+    "source_tag": "v3.14.6",
+    "reference_sources": [
+      "https://docs.python.org/3/reference/introduction.html#alternate-implementations",
+      "https://docs.python.org/3/library/sys.html#sys.getrecursionlimit",
+      "https://docs.python.org/3/library/sys.html#sys.setrecursionlimit",
+      "https://docs.python.org/3/library/stdtypes.html#integer-string-conversion-length-limitation",
+      "https://docs.python.org/3/library/resource.html",
+      "https://github.com/python/cpython/tree/v3.14.6/Lib/test/test_sys.py",
+      "https://github.com/python/cpython/tree/v3.14.6/Lib/test/test_int.py",
+      "https://github.com/python/cpython/tree/v3.14.6/Lib/test/test_resource.py"
+    ]
+  },
+  "resource_boundaries": [
+    {
+      "id": "implementation-notes-boundary",
+      "status": "current",
+      "kind": "classification",
+      "cpython_tests": [],
+      "description": "Portable Python semantics should not silently depend on CPython implementation notes; implementation-specific behavior is isolated under profile.cpython-resource-limits."
+    },
+    {
+      "id": "optional-extension-environment",
+      "status": "current",
+      "kind": "environment",
+      "cpython_tests": ["test_ssl", "test_bz2", "test_lzma", "test_readline", "test_curses"],
+      "description": "The local CPython 3.14.6 build records optional extension availability as environment-dependent, excluded conformance inputs rather than portable language semantics."
+    },
+    {
+      "id": "recursion-limit",
+      "status": "future",
+      "kind": "runtime-limit",
+      "cpython_tests": ["test_sys"],
+      "description": "CPython sys.getrecursionlimit and sys.setrecursionlimit behavior, including current-depth checks and RecursionError boundaries, is not modeled by the current K runtime."
+    },
+    {
+      "id": "integer-string-conversion-limit",
+      "status": "future",
+      "kind": "runtime-limit",
+      "cpython_tests": ["test_int", "test_sys"],
+      "description": "CPython's integer string conversion length limit, sys.get_int_max_str_digits, sys.set_int_max_str_digits, -X int_max_str_digits, and PYTHONINTMAXSTRDIGITS are not modeled by the current K runtime."
+    },
+    {
+      "id": "platform-resource-module",
+      "status": "future",
+      "kind": "platform",
+      "cpython_tests": ["test_resource"],
+      "description": "The Unix resource module and process resource-limit APIs are platform behavior outside the current portable Python semantics."
+    }
+  ],
+  "known_gaps": [
+    "No recursion-depth cell or RecursionError threshold is modeled.",
+    "No CPython integer string conversion length limit is enforced.",
+    "No process, stack, CPU, memory, file descriptor, locale, terminal, or optional-extension availability profile is modeled.",
+    "No command-line -X option or environment-variable profile is modeled.",
+    "Current executable semantics should treat these as CPython/environment profile work rather than portable language behavior."
+  ]
+}

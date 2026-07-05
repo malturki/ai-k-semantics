@@ -1,0 +1,80 @@
+{
+  "profile": {
+    "id": "cpython-bytecode-internals",
+    "language_version": "Python 3.14.6",
+    "source_tag": "v3.14.6",
+    "reference_sources": [
+      "https://docs.python.org/3/library/dis.html",
+      "https://docs.python.org/3/reference/datamodel.html#code-objects",
+      "https://docs.python.org/3/library/marshal.html",
+      "https://docs.python.org/3/library/py_compile.html",
+      "https://docs.python.org/3/library/compileall.html",
+      "https://docs.python.org/3/library/importlib.html#importlib.machinery.SourcelessFileLoader",
+      "https://github.com/python/cpython/tree/v3.14.6/Lib/dis.py",
+      "https://github.com/python/cpython/tree/v3.14.6/Lib/opcode.py",
+      "https://github.com/python/cpython/tree/v3.14.6/Python/bytecodes.c",
+      "https://github.com/python/cpython/tree/v3.14.6/Python/compile.c",
+      "https://github.com/python/cpython/tree/v3.14.6/Python/ceval.c",
+      "https://github.com/python/cpython/tree/v3.14.6/Objects/codeobject.c"
+    ]
+  },
+  "bytecode_boundaries": [
+    {
+      "id": "portable-source-semantics-boundary",
+      "status": "current",
+      "kind": "classification",
+      "cpython_tests": [],
+      "description": "The portable Python K semantics is source-level and must not depend on CPython bytecode opcode selection, inline-cache layout, adaptive specialization, eval-loop instruction dispatch, or compiler optimization details."
+    },
+    {
+      "id": "dis-opcode-introspection",
+      "status": "future",
+      "kind": "library-implementation-profile",
+      "cpython_tests": ["test_dis"],
+      "description": "CPython disassembly, opcode tables, pseudo-instructions, inline cache metadata, adaptive bytecode display, labels, offsets, and position rendering are implementation-profile behavior sourced from dis/opcode and the generated opcode metadata."
+    },
+    {
+      "id": "compile-code-object-surface",
+      "status": "future",
+      "kind": "compiler-profile",
+      "cpython_tests": ["test_compile", "test_codeop", "test_compiler_codegen", "test_compiler_assemble"],
+      "description": "CPython compile(), incremental compilation, AST-to-bytecode code generation, assembler behavior, stack metadata, code object attributes, and code object replacement are future CPython-profile work distinct from portable construct semantics."
+    },
+    {
+      "id": "marshal-code-object-format",
+      "status": "future",
+      "kind": "serialization-profile",
+      "cpython_tests": ["test_marshal"],
+      "description": "The marshal format, including code-object support and version-specific compatibility constraints, is intentionally undocumented and reserved for CPython .pyc/module-cache support."
+    },
+    {
+      "id": "pyc-cache-generation",
+      "status": "future",
+      "kind": "import-cache-profile",
+      "cpython_tests": ["test_py_compile", "test_compileall", "test_importlib"],
+      "description": "CPython .pyc file generation, invalidation modes, cache paths, sourceless bytecode loading, and importlib cache integration require a filesystem/import-cache profile rather than portable language semantics."
+    },
+    {
+      "id": "eval-loop-specialization",
+      "status": "future",
+      "kind": "interpreter-profile",
+      "cpython_tests": [],
+      "description": "The CPython eval loop, adaptive specialization, inline caches, opcode dispatch, frame layout, and reference-counting/interpreter internals are implementation details outside the current source-level K semantics."
+    }
+  ],
+  "reference_runs": [
+    {
+      "date": "2026-07-05",
+      "command": "./python -m test --single-process --timeout 240 test_dis test_compile test_codeop test_compiler_codegen test_compiler_assemble test_marshal test_py_compile test_compileall",
+      "result": "success: all 8 CPython bytecode/compiler/cache profile tests OK",
+      "notes": "Run against local CPython 3.14.6 source build; total bytecode-profile run reported 601 tests run, 14 skipped, all OK."
+    }
+  ],
+  "known_gaps": [
+    "No K code-object value, co_* metadata surface, frame instruction pointer, or bytecode offset/source-position mapping is modeled.",
+    "No CPython opcode table, pseudo-instruction lowering, inline cache, adaptive specialization, or eval-loop dispatch is modeled.",
+    "No CPython compiler pipeline from AST to code objects, bytecode optimizer, assembler, stack effect, or code-object validation is modeled.",
+    "No marshal code-object serialization, .pyc header, invalidation mode, cache path, or sourceless loader behavior is modeled.",
+    "The current executable semantics should treat this as an implementation profile and not as evidence of portable Python language behavior."
+  ]
+}

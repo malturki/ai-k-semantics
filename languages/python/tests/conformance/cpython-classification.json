@@ -74,10 +74,129 @@
         "grammar.full-peg",
         "execution.code-blocks-frames",
         "execution.naming-binding-scopes",
-        "profile.cpython-diagnostics"
+        "profile.cpython-diagnostics",
+        "profile.cpython-bytecode-internals"
       ],
-      "notes": ["Contains syntax, compiler, diagnostics, and CPython-specific checks; needs careful splitting."],
+      "last_reference_result": {
+        "date": "2026-07-05",
+        "command": "./python -m test --single-process --timeout 240 test_dis test_compile test_codeop test_compiler_codegen test_compiler_assemble test_marshal test_py_compile test_compileall",
+        "result": "success: test_compile passed as part of 8-test bytecode-profile run",
+        "notes": "Run against local CPython 3.14.6 source build with dis/compiler/marshal/pyc-cache tests; total bytecode-profile run reported 601 tests run, 14 skipped, all OK."
+      },
+      "notes": ["Contains syntax, compiler, diagnostics, code object, and CPython-specific checks; needs careful splitting."],
       "blockers": ["No compiler/diagnostic profile adapter exists yet."]
+    },
+    {
+      "id": "test_dis",
+      "source_path": "Lib/test/test_dis.py",
+      "classification": "cpython-implementation-detail",
+      "review_status": "seed",
+      "translation_status": "needs-extraction",
+      "construct_refs": ["profile.cpython-bytecode-internals"],
+      "last_reference_result": {
+        "date": "2026-07-05",
+        "command": "./python -m test --single-process --timeout 240 test_dis test_compile test_codeop test_compiler_codegen test_compiler_assemble test_marshal test_py_compile test_compileall",
+        "result": "success: test_dis passed as part of 8-test bytecode-profile run",
+        "notes": "Run against local CPython 3.14.6 source build with compiler/marshal/pyc-cache tests; total bytecode-profile run reported 601 tests run, 14 skipped, all OK."
+      },
+      "notes": ["Primary upstream source for CPython disassembly, opcode tables, inline cache metadata, adaptive bytecode display, code object inspection, and bytecode formatting behavior."],
+      "blockers": ["No CPython bytecode, code-object, inline-cache, or disassembly profile exists in K yet."]
+    },
+    {
+      "id": "test_codeop",
+      "source_path": "Lib/test/test_codeop.py",
+      "classification": "cpython-implementation-detail",
+      "review_status": "seed",
+      "translation_status": "needs-extraction",
+      "construct_refs": ["top.interactive-input", "grammar.full-peg", "profile.cpython-bytecode-internals"],
+      "last_reference_result": {
+        "date": "2026-07-05",
+        "command": "./python -m test --single-process --timeout 240 test_dis test_compile test_codeop test_compiler_codegen test_compiler_assemble test_marshal test_py_compile test_compileall",
+        "result": "success: test_codeop passed as part of 8-test bytecode-profile run",
+        "notes": "Run against local CPython 3.14.6 source build with dis/compiler/marshal/pyc-cache tests; total bytecode-profile run reported 601 tests run, 14 skipped, all OK."
+      },
+      "notes": ["Upstream source for incremental compilation and incomplete-input decisions layered over CPython compile() behavior."],
+      "blockers": ["Interactive input, exact parser diagnostics, and CPython compile-command behavior are not modeled yet."]
+    },
+    {
+      "id": "test_compiler_codegen",
+      "source_path": "Lib/test/test_compiler_codegen.py",
+      "classification": "cpython-implementation-detail",
+      "review_status": "seed",
+      "translation_status": "needs-extraction",
+      "construct_refs": ["profile.cpython-bytecode-internals"],
+      "last_reference_result": {
+        "date": "2026-07-05",
+        "command": "./python -m test --single-process --timeout 240 test_dis test_compile test_codeop test_compiler_codegen test_compiler_assemble test_marshal test_py_compile test_compileall",
+        "result": "success: test_compiler_codegen passed as part of 8-test bytecode-profile run",
+        "notes": "Run against local CPython 3.14.6 source build with dis/compiler/marshal/pyc-cache tests; total bytecode-profile run reported 601 tests run, 14 skipped, all OK."
+      },
+      "notes": ["Upstream source for CPython AST-to-bytecode code-generation expectations and pseudo-instruction placement."],
+      "blockers": ["The K semantics is source-level and does not model CPython's compiler pipeline or generated instruction sequences."]
+    },
+    {
+      "id": "test_compiler_assemble",
+      "source_path": "Lib/test/test_compiler_assemble.py",
+      "classification": "cpython-implementation-detail",
+      "review_status": "seed",
+      "translation_status": "needs-extraction",
+      "construct_refs": ["profile.cpython-bytecode-internals"],
+      "last_reference_result": {
+        "date": "2026-07-05",
+        "command": "./python -m test --single-process --timeout 240 test_dis test_compile test_codeop test_compiler_codegen test_compiler_assemble test_marshal test_py_compile test_compileall",
+        "result": "success: test_compiler_assemble passed as part of 8-test bytecode-profile run",
+        "notes": "Run against local CPython 3.14.6 source build with dis/compiler/marshal/pyc-cache tests; total bytecode-profile run reported 601 tests run, 14 skipped, all OK."
+      },
+      "notes": ["Upstream source for CPython code-object creation, assembler metadata, stack effects, and executable code-object behavior."],
+      "blockers": ["No K model for CPython code-object construction, validation, stack effects, or raw bytecode execution exists yet."]
+    },
+    {
+      "id": "test_marshal",
+      "source_path": "Lib/test/test_marshal.py",
+      "classification": "cpython-implementation-detail",
+      "review_status": "seed",
+      "translation_status": "needs-extraction",
+      "construct_refs": ["profile.cpython-bytecode-internals"],
+      "last_reference_result": {
+        "date": "2026-07-05",
+        "command": "./python -m test --single-process --timeout 240 test_dis test_compile test_codeop test_compiler_codegen test_compiler_assemble test_marshal test_py_compile test_compileall",
+        "result": "success: test_marshal passed as part of 8-test bytecode-profile run",
+        "notes": "Run against local CPython 3.14.6 source build with dis/compiler/pyc-cache tests; total bytecode-profile run reported 601 tests run, 14 skipped, all OK."
+      },
+      "notes": ["Primary upstream source for CPython marshal serialization, including version-specific code-object support used by .pyc files."],
+      "blockers": ["No marshal format, code-object serialization, or .pyc payload profile exists in K yet."]
+    },
+    {
+      "id": "test_py_compile",
+      "source_path": "Lib/test/test_py_compile.py",
+      "classification": "cpython-implementation-detail",
+      "review_status": "seed",
+      "translation_status": "needs-extraction",
+      "construct_refs": ["profile.cpython-bytecode-internals", "imports.find-load-protocol"],
+      "last_reference_result": {
+        "date": "2026-07-05",
+        "command": "./python -m test --single-process --timeout 240 test_dis test_compile test_codeop test_compiler_codegen test_compiler_assemble test_marshal test_py_compile test_compileall",
+        "result": "success: test_py_compile passed as part of 8-test bytecode-profile run",
+        "notes": "Run against local CPython 3.14.6 source build with dis/compiler/marshal tests; total bytecode-profile run reported 601 tests run, 14 skipped, all OK."
+      },
+      "notes": ["Primary upstream source for CPython .pyc cache writing, invalidation modes, and source-date-epoch behavior."],
+      "blockers": ["No filesystem-backed .pyc cache, import cache, or invalidation profile exists in K yet."]
+    },
+    {
+      "id": "test_compileall",
+      "source_path": "Lib/test/test_compileall.py",
+      "classification": "cpython-implementation-detail",
+      "review_status": "seed",
+      "translation_status": "needs-extraction",
+      "construct_refs": ["profile.cpython-bytecode-internals", "imports.find-load-protocol"],
+      "last_reference_result": {
+        "date": "2026-07-05",
+        "command": "./python -m test --single-process --timeout 240 test_dis test_compile test_codeop test_compiler_codegen test_compiler_assemble test_marshal test_py_compile test_compileall",
+        "result": "success: test_compileall passed as part of 8-test bytecode-profile run",
+        "notes": "Run against local CPython 3.14.6 source build with dis/compiler/marshal tests; total bytecode-profile run reported 601 tests run, 14 skipped, all OK."
+      },
+      "notes": ["Primary upstream source for recursive CPython bytecode cache generation, optimization-level cache paths, invalidation modes, and hardlink behavior."],
+      "blockers": ["No filesystem traversal, .pyc cache path, optimization-level, or import cache profile exists in K yet."]
     },
     {
       "id": "test_syntax",

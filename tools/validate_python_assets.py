@@ -16,6 +16,7 @@ TEST_CLASSIFICATION = ROOT / "languages/python/tests/conformance/cpython-classif
 ADAPTER_SMOKE = ROOT / "languages/python/tests/conformance/adapter-smoke.json"
 DIAGNOSTICS_PROFILE = ROOT / "languages/python/tests/conformance/cpython-diagnostics-profile.json"
 RESOURCE_LIMITS_PROFILE = ROOT / "languages/python/tests/conformance/cpython-resource-limits-profile.json"
+BYTECODE_PROFILE = ROOT / "languages/python/tests/conformance/cpython-bytecode-profile.json"
 
 ID_RE = re.compile(r"^[a-z0-9][a-z0-9._-]*$")
 
@@ -313,15 +314,64 @@ def validate_resource_limits_profile(path: Path, cpython_test_ids: set[str]) -> 
     require_list(data, "known_gaps", path)
 
 
+def validate_bytecode_profile(path: Path, cpython_test_ids: set[str]) -> None:
+    data = load_json(path)
+    profile = require_obj(data, "profile", path)
+    if profile.get("id") != "cpython-bytecode-internals":
+        raise ValueError(f"{path}: profile.id must be 'cpython-bytecode-internals'")
+    require_str(profile, "language_version", path)
+    require_str(profile, "source_tag", path)
+    require_list(profile, "reference_sources", path)
+
+    boundaries = require_list(data, "bytecode_boundaries", path)
+    if not boundaries:
+        raise ValueError(f"{path}: bytecode_boundaries cannot be empty")
+    seen: set[str] = set()
+    current_boundaries = 0
+    for boundary in boundaries:
+        if not isinstance(boundary, dict):
+            raise ValueError(f"{path}: bytecode_boundaries entries must be objects")
+        boundary_id = validate_id(boundary.get("id"), "bytecode boundary id", path)
+        if boundary_id in seen:
+            raise ValueError(f"{path}: duplicate bytecode boundary id '{boundary_id}'")
+        seen.add(boundary_id)
+        status = require_str(boundary, "status", path)
+        if status not in DIAGNOSTIC_NORMALIZATION_STATUSES:
+            raise ValueError(f"{path}: bytecode boundary '{boundary_id}' has invalid status '{status}'")
+        if status == "current":
+            current_boundaries += 1
+        require_str(boundary, "kind", path)
+        tests = require_list(boundary, "cpython_tests", path)
+        for test_id in tests:
+            if test_id not in cpython_test_ids:
+                raise ValueError(f"{path}: {boundary_id} references unknown CPython test '{test_id}'")
+        require_str(boundary, "description", path)
+    if current_boundaries == 0:
+        raise ValueError(f"{path}: at least one bytecode boundary must be current")
+
+    runs = require_list(data, "reference_runs", path)
+    if not runs:
+        raise ValueError(f"{path}: reference_runs cannot be empty")
+    for run in runs:
+        if not isinstance(run, dict):
+            raise ValueError(f"{path}: reference_runs entries must be objects")
+        require_str(run, "date", path)
+        require_str(run, "command", path)
+        require_str(run, "result", path)
+        require_str(run, "notes", path)
+    require_list(data, "known_gaps", path)
+
+
 def main() -> int:
     construct_ids = validate_source_map(SOURCE_MAP)
     cpython_test_ids = validate_test_classification(TEST_CLASSIFICATION, construct_ids)
     adapter_case_ids = validate_adapter_smoke(ADAPTER_SMOKE)
     validate_diagnostics_profile(DIAGNOSTICS_PROFILE, adapter_case_ids)
     validate_resource_limits_profile(RESOURCE_LIMITS_PROFILE, cpython_test_ids)
+    validate_bytecode_profile(BYTECODE_PROFILE, cpython_test_ids)
     print(
         "Validated Python source map, CPython test classification, adapter smoke manifest, "
-        "diagnostics profile, and resource-limits profile "
+        "diagnostics profile, resource-limits profile, and bytecode profile "
         f"({len(construct_ids)} construct ids, {len(cpython_test_ids)} CPython tests, "
         f"{len(adapter_case_ids)} adapter cases)."
     )

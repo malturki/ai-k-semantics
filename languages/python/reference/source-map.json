@@ -990,16 +990,33 @@
         {
           "id": "profile.cpython-bytecode-internals",
           "title": "CPython bytecode and internal interpreter behavior",
-          "status": "not-started",
+          "status": "partial",
           "references": [
             {
               "title": "CPython source",
               "url": "https://github.com/python/cpython/tree/v3.14.6"
+            },
+            {
+              "title": "dis module",
+              "url": "https://docs.python.org/3/library/dis.html"
+            },
+            {
+              "title": "Data model",
+              "url": "https://docs.python.org/3/reference/datamodel.html",
+              "section": "Code objects"
+            },
+            {
+              "title": "marshal module",
+              "url": "https://docs.python.org/3/library/marshal.html"
+            },
+            {
+              "title": "py_compile module",
+              "url": "https://docs.python.org/3/library/py_compile.html"
             }
           ],
-          "k_coverage": [],
-          "test_coverage": [],
-          "gaps": ["Non-goal for portable semantics unless selected as a CPython implementation-profile module."]
+          "k_coverage": ["tests/conformance/cpython-bytecode-profile.json: records the current portable source-semantics boundary and future CPython bytecode, code-object, compiler, marshal, .pyc cache, import-cache, and eval-loop implementation-profile boundaries"],
+          "test_coverage": ["tests/conformance/cpython-bytecode-profile.json", "tests/conformance/cpython-classification.json: test_dis, test_compile, test_codeop, test_compiler_codegen, test_compiler_assemble, test_marshal, test_py_compile, test_compileall, and test_importlib classify CPython bytecode/compiler/cache boundaries"],
+          "gaps": ["Need K code-object values and co_* metadata if this CPython profile is selected, bytecode offset/source-position mappings, opcode tables, pseudo-instruction lowering, inline caches, adaptive specialization, compiler pipeline and assembler behavior, stack effects, marshal code-object serialization, .pyc header/invalidation/cache-path behavior, sourceless loader semantics, eval-loop dispatch, and clear proof that none of these CPython internals leak into portable source-level Python semantics."]
         }
       ]
     }

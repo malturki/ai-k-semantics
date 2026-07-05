@@ -1922,6 +1922,13 @@
       "coverage": ["class-definition", "property-profile", "property-getter-profile", "property-setter-profile", "property-deleter-profile", "descriptor-get-profile", "descriptor-set-profile", "descriptor-delete-profile", "attribute-assignment", "attribute-deletion", "inherited-attributes", "exception-handling", "ordinary-python-source-adapter"]
     },
     {
+      "id": "adapter-delattr-builtin",
+      "source": "../adapter/adapter-delattr-builtin.py",
+      "reference": "Python 3.14.6 Standard Library Built-in Functions delattr; Python Data Model attribute deletion and descriptor invocation",
+      "expected_result": "True ~> .K",
+      "coverage": ["delattr-builtin", "attribute-deletion", "dynamic-attribute-name", "descriptor-delete-profile", "property-deleter-profile", "attribute-error", "type-error", "ordinary-python-source-adapter"]
+    },
+    {
       "id": "adapter-issubclass-builtin",
       "source": "../adapter/adapter-issubclass-builtin.py",
       "reference": "Python Standard Library Built-in Functions issubclass; Python data model standard type hierarchy bool subclass of int",

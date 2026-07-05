@@ -475,6 +475,7 @@ module PYTHON-SYNTAX
                | "#getattrDyn" "(" Exp "," Exp ")" [symbol(getattrDynExp)]
                | "#getattrDefaultDyn" "(" Exp "," Exp "," Exp ")" [symbol(getattrDefaultDynExp)]
                | "#hasattrDyn" "(" Exp "," Exp ")" [symbol(hasattrDynExp)]
+               | "#delattr" "(" Exp "," Exp ")" [symbol(delattrExp)]
                | "#fstring" "(" FStringParts ")" [symbol(fstringExp)]
                | "#list" "(" ArgExps ")" [symbol(listDisplayExp)]
                | "#tuple" "(" ArgExps ")" [symbol(tupleDisplayExp)]
@@ -734,6 +735,7 @@ module PYTHON
                       | builtinModuleAttrs(Id) [function, symbol(builtinModuleAttrs)]
                       | classAttrSet(ClassAttrs, Id, Val) [function, symbol(classAttrSet)]
                       | classAttrDel(ClassAttrs, Id) [function, symbol(classAttrDel)]
+                      | classAttrStringDel(ClassAttrs, String) [function, symbol(classAttrStringDel)]
                       | classAttrsAppend(ClassAttrs, ClassAttrs) [function, symbol(classAttrsAppend)]
                       | classAttrsInherit(ClassAttrs, Int, ClassAttrs) [function, symbol(classAttrsInherit)]
 
@@ -1020,6 +1022,10 @@ module PYTHON
                  | propertySetterDone() [symbol(propertySetterDone)]
                  | delAttrApply(Id) [symbol(delAttrApply)]
                  | propertyDeleterDone() [symbol(propertyDeleterDone)]
+                 | delattrName(Exp) [symbol(delattrName)]
+                 | delattrApply(Val) [symbol(delattrApply)]
+                 | delattrStringApply(String) [symbol(delattrStringApply)]
+                 | delattrBuiltinDone() [symbol(delattrBuiltinDone)]
                  | initObjectDone(Val) [symbol(initObjectDone)]
                  | formatDefault() [symbol(formatDefault)]
                  | formatSpec(Exp) [symbol(formatSpec)]
@@ -6560,6 +6566,15 @@ module PYTHON
     requires Id2String(A) =/=String Id2String(B)
   rule classAttrDel(classBase(BaseId:Int, Rest:ClassAttrs), B:Id) =>
     classBase(BaseId, classAttrDel(Rest, B))
+
+  rule classAttrStringDel(#noRuntimeClassAttrs, _:String) => #noRuntimeClassAttrs
+  rule classAttrStringDel(classAttr(A:Id, _V:Val, Rest:ClassAttrs), B:String) => Rest
+    requires classAttrIdMatchesString(A, B)
+  rule classAttrStringDel(classAttr(A:Id, V:Val, Rest:ClassAttrs), B:String) =>
+    classAttr(A, V, classAttrStringDel(Rest, B))
+    requires notBool classAttrIdMatchesString(A, B)
+  rule classAttrStringDel(classBase(BaseId:Int, Rest:ClassAttrs), B:String) =>
+    classBase(BaseId, classAttrStringDel(Rest, B))
 
   rule classAttrsAppend(#noRuntimeClassAttrs, Rest:ClassAttrs) => Rest
   rule classAttrsAppend(classAttr(A:Id, V:Val, Attrs:ClassAttrs), Rest:ClassAttrs) =>
@@ -30133,6 +30148,64 @@ module PYTHON
        ... </k>
     requires notBool isUserObjectVal(V)
 
+  rule <k> #delattr(Obj:Exp, Attr:Exp) =>
+           Obj ~> delattrName(Attr)
+       ... </k>
+  rule <k> Obj:Val ~> delattrName(Attr:Exp) =>
+           Attr ~> delattrApply(Obj)
+       ... </k>
+  rule <k> Attr:String ~> delattrApply(Obj:Val) =>
+           Obj ~> delattrStringApply(Attr)
+       ... </k>
+  rule <k> Attr:Val ~> delattrApply(_Obj:Val) =>
+           exceptionSignal(#exception(#token("TypeError", "Id")))
+       ... </k>
+    requires notBool isStringVal(Attr)
+  rule <k> userObjectVal(C:Id, ClassId:Int, ObjectId:Int, Attrs:ClassAttrs) ~> delattrStringApply(Attr:String) =>
+           #call(boundMethodVal(userObjectVal(C, ClassId, ObjectId, Attrs), propertyDel(classAttrStringGet(Attrs, Attr))), #noArgs)
+           ~> delattrBuiltinDone()
+       ... </k>
+    requires classAttrsHasString(Attrs, Attr)
+      andBool isPropertyVal(classAttrStringGet(Attrs, Attr))
+      andBool propertyHasDeleter(classAttrStringGet(Attrs, Attr))
+  rule <k> userObjectVal(_:Id, _:Int, _:Int, Attrs:ClassAttrs) ~> delattrStringApply(Attr:String) =>
+           exceptionSignal(#exception(#token("AttributeError", "Id")))
+       ... </k>
+    requires classAttrsHasString(Attrs, Attr)
+      andBool isPropertyVal(classAttrStringGet(Attrs, Attr))
+      andBool notBool propertyHasDeleter(classAttrStringGet(Attrs, Attr))
+  rule <k> _V:Val ~> delattrBuiltinDone() => None ... </k>
+  rule <k> userObjectVal(_:Id, _:Int, ObjectId:Int, Attrs:ClassAttrs) ~> delattrStringApply(Attr:String) =>
+           None
+       ... </k>
+       <objectAttrs> ... ObjectId |-> (ObjAttrs:ClassAttrs => classAttrStringDel(ObjAttrs, Attr)) ... </objectAttrs>
+    requires notBool classAttrsHasString(Attrs, Attr)
+      andBool classAttrsHasString(ObjAttrs, Attr)
+  rule <k> userObjectVal(_:Id, _:Int, ObjectId:Int, Attrs:ClassAttrs) ~> delattrStringApply(Attr:String) =>
+           None
+       ... </k>
+       <objectAttrs> ... ObjectId |-> (ObjAttrs:ClassAttrs => classAttrStringDel(ObjAttrs, Attr)) ... </objectAttrs>
+    requires classAttrsHasString(Attrs, Attr)
+      andBool notBool isPropertyVal(classAttrStringGet(Attrs, Attr))
+      andBool classAttrsHasString(ObjAttrs, Attr)
+  rule <k> userObjectVal(_:Id, _:Int, ObjectId:Int, Attrs:ClassAttrs) ~> delattrStringApply(Attr:String) =>
+           exceptionSignal(#exception(#token("AttributeError", "Id")))
+       ... </k>
+       <objectAttrs> ... ObjectId |-> ObjAttrs:ClassAttrs ... </objectAttrs>
+    requires notBool classAttrsHasString(Attrs, Attr)
+      andBool notBool classAttrsHasString(ObjAttrs, Attr)
+  rule <k> userObjectVal(_:Id, _:Int, ObjectId:Int, Attrs:ClassAttrs) ~> delattrStringApply(Attr:String) =>
+           exceptionSignal(#exception(#token("AttributeError", "Id")))
+       ... </k>
+       <objectAttrs> ... ObjectId |-> ObjAttrs:ClassAttrs ... </objectAttrs>
+    requires classAttrsHasString(Attrs, Attr)
+      andBool notBool isPropertyVal(classAttrStringGet(Attrs, Attr))
+      andBool notBool classAttrsHasString(ObjAttrs, Attr)
+  rule <k> V:Val ~> delattrStringApply(_:String) =>
+           exceptionSignal(#exception(#token("AttributeError", "Id")))
+       ... </k>
+    requires notBool isUserObjectVal(V)
+
   rule <k> subscriptAssignStmt(X:Id, I:Exp, E:Exp) =>
            E ~> subscriptAssignIndex(X, I)
        ... </k>
@@ -36595,6 +36668,10 @@ module PYTHON
   rule <k> exceptionSignal(V:Val) ~> propertySetterDone() => exceptionSignal(V) ... </k>
   rule <k> exceptionSignal(V:Val) ~> delAttrApply(_:Id) => exceptionSignal(V) ... </k>
   rule <k> exceptionSignal(V:Val) ~> propertyDeleterDone() => exceptionSignal(V) ... </k>
+  rule <k> exceptionSignal(V:Val) ~> delattrName(_:Exp) => exceptionSignal(V) ... </k>
+  rule <k> exceptionSignal(V:Val) ~> delattrApply(_:Val) => exceptionSignal(V) ... </k>
+  rule <k> exceptionSignal(V:Val) ~> delattrStringApply(_:String) => exceptionSignal(V) ... </k>
+  rule <k> exceptionSignal(V:Val) ~> delattrBuiltinDone() => exceptionSignal(V) ... </k>
   rule <k> exceptionSignal(V:Val) ~> initObjectDone(_:Val) => exceptionSignal(V) ... </k>
   rule <k> exceptionSignal(V:Val) ~> formatDefault() => exceptionSignal(V) ... </k>
   rule <k> exceptionSignal(V:Val) ~> formatSpec(_:Exp) => exceptionSignal(V) ... </k>

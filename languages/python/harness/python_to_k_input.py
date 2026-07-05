@@ -1206,6 +1206,8 @@ def emit_exp(exp: ast.expr) -> str:
             if emitted_name is not None:
                 return f"#hasattr({emit_exp(obj)}, {emitted_name})"
             return f"#hasattrDyn({emit_exp(obj)}, {emit_exp(name)})"
+        case ast.Call(func=ast.Name(id="delattr"), args=[obj, name], keywords=[]):
+            return f"#delattr({emit_exp(obj)}, {emit_exp(name)})"
         case ast.Call(func=ast.Name(id="all"), args=[arg], keywords=[]):
             return f"#all({emit_exp(arg)})"
         case ast.Call(func=ast.Name(id="any"), args=[arg], keywords=[]):

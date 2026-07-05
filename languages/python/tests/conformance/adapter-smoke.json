@@ -1922,6 +1922,13 @@
       "coverage": ["class-definition", "property-profile", "property-getter-profile", "property-setter-profile", "property-deleter-profile", "descriptor-get-profile", "descriptor-set-profile", "descriptor-delete-profile", "attribute-assignment", "attribute-deletion", "inherited-attributes", "exception-handling", "ordinary-python-source-adapter"]
     },
     {
+      "id": "adapter-class-property-getattr-fallback",
+      "source": "../adapter/adapter-class-property-getattr-fallback.py",
+      "reference": "Python 3.14.6 Data Model object.__getattr__ fallback after descriptor/property AttributeError",
+      "expected_result": "True ~> .K",
+      "coverage": ["class-definition", "property-profile", "property-getter-profile", "descriptor-get-profile", "__getattr__-profile", "attribute-access", "getattr-builtin", "hasattr-builtin", "exception-handling", "ordinary-python-source-adapter"]
+    },
+    {
       "id": "adapter-delattr-builtin",
       "source": "../adapter/adapter-delattr-builtin.py",
       "reference": "Python 3.14.6 Standard Library Built-in Functions delattr; Python Data Model attribute deletion and descriptor invocation",

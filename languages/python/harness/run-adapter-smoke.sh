@@ -213,6 +213,7 @@ run_case "adapter-class-property-basic" "$ROOT/tests/adapter/adapter-class-prope
 run_case "adapter-class-property-setter" "$ROOT/tests/adapter/adapter-class-property-setter.py" "True ~> .K"
 run_case "adapter-class-property-deleter" "$ROOT/tests/adapter/adapter-class-property-deleter.py" "True ~> .K"
 run_case "adapter-class-property-getter-chain" "$ROOT/tests/adapter/adapter-class-property-getter-chain.py" "True ~> .K"
+run_case "adapter-class-property-getattr-fallback" "$ROOT/tests/adapter/adapter-class-property-getattr-fallback.py" "True ~> .K"
 run_case "adapter-class-getattr-method" "$ROOT/tests/adapter/adapter-class-getattr-method.py" "True ~> .K"
 run_case "adapter-class-getattribute-method" "$ROOT/tests/adapter/adapter-class-getattribute-method.py" "True ~> .K"
 run_case "adapter-class-setattr-method" "$ROOT/tests/adapter/adapter-class-setattr-method.py" "True ~> .K"

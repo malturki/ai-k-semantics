@@ -28,6 +28,9 @@ DUNDER_DOC_NAME_ID = "kDunderDocName"
 DUNDER_MODULE_NAME_ID = "kDunderModuleName"
 DUNDER_QUALNAME_NAME_ID = "kDunderQualnameName"
 DUNDER_ALL_NAME_ID = "kDunderAllName"
+DUNDER_VALUE_NAME_ID = "kDunderValueName"
+DUNDER_TYPE_PARAMS_NAME_ID = "kDunderTypeParamsName"
+DUNDER_PARAMETERS_NAME_ID = "kDunderParametersName"
 NO_RELATIVE_MODULE_ID = "kNoRelativeModuleName"
 JSON_SURROGATE_PAIR_RE = re.compile(r"\\u(d[89ab][0-9a-f]{2})\\u(d[cdef][0-9a-f]{2})")
 SUPPORTED_ZERO_ARG_CLASS_PATTERNS = {
@@ -67,7 +70,10 @@ SUPPORTED_GETATTR_NAMES = {
     "__doc__",
     "__module__",
     "__name__",
+    "__parameters__",
     "__qualname__",
+    "__type_params__",
+    "__value__",
     "denominator",
     "imag",
     "missing",
@@ -674,6 +680,12 @@ def emit_id(name: str) -> str:
         return DUNDER_QUALNAME_NAME_ID
     if name == "__all__":
         return DUNDER_ALL_NAME_ID
+    if name == "__value__":
+        return DUNDER_VALUE_NAME_ID
+    if name == "__type_params__":
+        return DUNDER_TYPE_PARAMS_NAME_ID
+    if name == "__parameters__":
+        return DUNDER_PARAMETERS_NAME_ID
     return name
 
 
@@ -889,6 +901,8 @@ def emit_stmt(stmt: ast.stmt) -> str:
             return emit_assign(stmt, targets, value)
         case ast.AnnAssign(target=target, value=value):
             return emit_ann_assign(stmt, target, value)
+        case ast.TypeAlias(name=name, type_params=type_params, value=value):
+            return emit_type_alias(stmt, name, type_params, value)
         case ast.AugAssign(target=ast.Name(id=name), op=op, value=value):
             if isinstance(op, ast.FloorDiv):
                 return f"#floorDivAssign({emit_id(name)}, {emit_exp(value)})"
@@ -3612,6 +3626,19 @@ def emit_ann_assign(node: ast.AST, target: ast.expr, value: ast.expr | None) -> 
     if value is None:
         return f"#annOnly({emit_id(target.id)})"
     return f"#annAssign({emit_id(target.id)}, {emit_exp(value)})"
+
+
+def emit_type_alias(
+    node: ast.AST,
+    name: ast.expr,
+    type_params: list[ast.type_param],
+    value: ast.expr,
+) -> str:
+    if not isinstance(name, ast.Name):
+        raise unsupported(node, "type alias targets currently support only simple names")
+    if type_params:
+        raise unsupported(node, "generic type aliases are not supported yet")
+    return f"#typeAlias({emit_id(name.id)}, {emit_exp(value)})"
 
 
 def emit_delete(node: ast.AST, targets: list[ast.expr]) -> str:

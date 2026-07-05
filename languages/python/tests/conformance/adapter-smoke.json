@@ -4442,6 +4442,13 @@
       "coverage": ["annotated-assignment", "annotation-no-introspection-profile", "lazy-annotation-evaluation", "simple-name-target", "ordinary-python-source-adapter"]
     },
     {
+      "id": "adapter-type-alias-lazy",
+      "source": "../adapter/adapter-type-alias-lazy.py",
+      "reference": "Python Language Reference 4.2.3 Annotation scopes, 4.2.4 Lazy evaluation, and 7.14 The type statement",
+      "expected_result": "True ~> .K",
+      "coverage": ["type-statement", "type-alias", "annotation-scope", "lazy-type-alias-value", "type-alias-metadata", "ordinary-python-source-adapter"]
+    },
+    {
       "id": "adapter-assign-many",
       "source": "../adapter/adapter-assign-many.py",
       "reference": "Python Language Reference 7.2 Assignment statements",

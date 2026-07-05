@@ -749,6 +749,7 @@ run_case "adapter-set-mutating-methods" "$ROOT/tests/adapter/adapter-set-mutatin
 run_case "adapter-frozenset" "$ROOT/tests/adapter/adapter-frozenset.py" "True ~> .K"
 run_case "adapter-frozenset-iterable-builtins" "$ROOT/tests/adapter/adapter-frozenset-iterable-builtins.py" "True ~> .K"
 run_case "adapter-annotated-assignment" "$ROOT/tests/adapter/adapter-annotated-assignment.py" "True ~> .K"
+run_case "adapter-type-alias-lazy" "$ROOT/tests/adapter/adapter-type-alias-lazy.py" "True ~> .K"
 run_case "adapter-assign-many" "$ROOT/tests/adapter/adapter-assign-many.py" "True ~> .K"
 run_case "adapter-subscript-assignment" "$ROOT/tests/adapter/adapter-subscript-assignment.py" "True ~> .K"
 run_case "adapter-subscript-augmented-assignment" "$ROOT/tests/adapter/adapter-subscript-augmented-assignment.py" "True ~> .K"

@@ -246,17 +246,27 @@
         {
           "id": "execution.annotation-scopes",
           "title": "Annotation scopes and lazy type aliases",
-          "status": "not-started",
+          "status": "partial",
           "references": [
             {
               "title": "Execution model",
               "url": "https://docs.python.org/3/reference/executionmodel.html",
               "section": "Annotation scopes"
+            },
+            {
+              "title": "Execution model",
+              "url": "https://docs.python.org/3/reference/executionmodel.html",
+              "section": "Lazy evaluation"
+            },
+            {
+              "title": "Simple statements",
+              "url": "https://docs.python.org/3/reference/simple_stmts.html",
+              "section": "The type statement"
             }
           ],
-          "k_coverage": [],
-          "test_coverage": [],
-          "gaps": ["Need Python 3.14 annotation scope behavior, type parameter lists, and lazy evaluation boundaries."]
+          "k_coverage": ["semantics/python.k: adapter-backed non-generic top-level #typeAlias(NAME, expr) statement allocates a fresh typeAliasVal runtime object without evaluating the RHS expression", "semantics/python.k: typeAliasVal exposes current __name__, __module__, __type_params__, and __parameters__ metadata, is truthy and non-callable, compares by allocated object identity, and caches the evaluated __value__ in the object store after the first direct or getattr-based lazy read", "harness/python_to_k_input.py: CPython AST TypeAlias with a simple name and no type parameters lowers to #typeAlias while preserving the RHS expression for lazy evaluation"],
+          "test_coverage": ["tests/adapter/adapter-type-alias-lazy.py"],
+          "gaps": ["Need generic type aliases and TypeVar/ParamSpec/TypeVarTuple type-parameter lists, function and class type parameter syntax, class-scope annotation lookup behavior, lazy annotations for functions/classes/modules, TypeVar bounds/defaults, exact typing.TypeAliasType object identity/type/repr/doc/signature behavior, local annotation-scope closure capture, lazy-value exception and recursion behavior, hasattr-triggered lazy value evaluation, restrictions and exact SyntaxError diagnostics for yield/yield from/await/named expressions inside annotation scopes, and broader annotation-scope interaction with real module/function/class frames."]
         }
       ]
     },
@@ -587,9 +597,9 @@
               "section": "The type statement"
             }
           ],
-          "k_coverage": ["semantics/python.k: module-scope single-name and multi-name global declaration no-op", "semantics/python.k: #functionGlobals/functionGlobalVal records global declarations for ordinary functions and restores declared global bindings into the caller/module environment on normal return, explicit return, and exception propagation"],
-          "test_coverage": ["tests/examples/smoke-assert-global.py", "tests/adapter/adapter-global-many.py", "tests/adapter/adapter-global-function.py"],
-          "gaps": ["Need full parser-directive/static-scope analysis, nonlocal, type statements, annotation scopes, lazy type alias objects, class-block global behavior, delete semantics parity, and global declarations across decorated/generator/varargs/keyword-only/positional-only function profiles."]
+          "k_coverage": ["semantics/python.k: module-scope single-name and multi-name global declaration no-op", "semantics/python.k: #functionGlobals/functionGlobalVal records global declarations for ordinary functions and restores declared global bindings into the caller/module environment on normal return, explicit return, and exception propagation", "semantics/python.k and harness/python_to_k_input.py: non-generic simple-name type statements lower to #typeAlias and bind fresh lazy typeAliasVal objects in the current environment"],
+          "test_coverage": ["tests/examples/smoke-assert-global.py", "tests/adapter/adapter-global-many.py", "tests/adapter/adapter-global-function.py", "tests/adapter/adapter-type-alias-lazy.py"],
+          "gaps": ["Need full parser-directive/static-scope analysis, nonlocal, generic type statements and type parameters, full annotation scopes, class-block global behavior, delete semantics parity, and global declarations across decorated/generator/varargs/keyword-only/positional-only function profiles."]
         }
       ]
     },

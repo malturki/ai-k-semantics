@@ -379,6 +379,7 @@ module PYTHON-SYNTAX
                 | "#targetAssign" "(" Target ";" Exp ")" [symbol(targetAssignStmt), strict(2)]
                 | "#annAssign" "(" Id "," Exp ")" [symbol(annAssignStmt), strict(2)]
                 | "#annOnly" "(" Id ")" [symbol(annOnlyStmt)]
+                | "#typeAlias" "(" Id "," Exp ")" [symbol(typeAliasStmt)]
                 | "return" [symbol(returnNoneStmt)]
                 | "return" Exp [symbol(returnStmt)]
                 | "#def" "(" Id "," Id "," Block ")" [symbol(functionDefStmt)]
@@ -821,6 +822,7 @@ module PYTHON
                | functionApplyGlobals(IdItems, Val) [function, symbol(functionApplyGlobals)]
                | generatorFunctionVal(IdItems, YieldExps) [symbol(generatorFunctionVal)]
                | asyncFunctionVal(IdItems, Block) [symbol(asyncFunctionVal)]
+               | typeAliasVal(Id, Int, Exp) [symbol(typeAliasVal)]
                | "#importlibImportModuleFun" [symbol(importlibImportModuleFun)]
                | "#keywordIsKeywordFun" [symbol(keywordIsKeywordFun)]
                | "#keywordIsSoftKeywordFun" [symbol(keywordIsSoftKeywordFun)]
@@ -896,6 +898,7 @@ module PYTHON
                  | setMutatingAttrCallArgs(Val, Id) [symbol(setMutatingAttrCallArgs)]
                  | getattrDefaultObject(Id, Exp) [symbol(getattrDefaultObject)]
                  | getattrDefaultApply(Val, Id) [symbol(getattrDefaultApply)]
+                 | typeAliasValueCache(Int) [symbol(typeAliasValueCache)]
                  | hasattrObject(Id) [symbol(hasattrObject)]
                  | getattrDynName(Exp) [symbol(getattrDynName)]
                  | getattrDynApply(Val) [symbol(getattrDynApply)]
@@ -1752,6 +1755,7 @@ module PYTHON
                 | callableVal(Val) [function, symbol(callableVal)]
                 | isClassVal(Val) [function, symbol(isClassVal)]
                 | isUserObjectVal(Val) [function, symbol(isUserObjectVal)]
+                | isTypeAliasVal(Val) [function, symbol(isTypeAliasVal)]
                 | isBoundMethodVal(Val) [function, symbol(isBoundMethodVal)]
                 | isStaticOrClassMethodVal(Val) [function, symbol(isStaticOrClassMethodVal)]
                 | isPropertyVal(Val) [function, symbol(isPropertyVal)]
@@ -1791,6 +1795,10 @@ module PYTHON
                 | classHasAttrString(Val, String) [function, symbol(classHasAttrString)]
                 | classAttrsHasString(ClassAttrs, String) [function, symbol(classAttrsHasString)]
                 | classAttrIdMatchesString(Id, String) [function, symbol(classAttrIdMatchesString)]
+                | typeAliasLazyAttrId(Id) [function, symbol(typeAliasLazyAttrId)]
+                | typeAliasLazyAttrString(String) [function, symbol(typeAliasLazyAttrString)]
+                | typeAliasAttrId(Id) [function, symbol(typeAliasAttrId)]
+                | typeAliasAttrString(String) [function, symbol(typeAliasAttrString)]
                 | bindableUserMethodVal(Val) [function, symbol(bindableUserMethodVal)]
                 | contextManagerSupported(Val) [function, symbol(contextManagerSupported)]
                 | contextManagerSuppressesException(Val, Val) [function, symbol(contextManagerSuppressesException)]
@@ -3089,6 +3097,7 @@ module PYTHON
   rule truthy(functionMetaVal(_:String, _:String, _:Val, _:String, _:Val)) => true
   rule truthy(generatorFunctionVal(_:IdItems, _:YieldExps)) => true
   rule truthy(asyncFunctionVal(_:IdItems, _:Block)) => true
+  rule truthy(typeAliasVal(_:Id, _:Int, _:Exp)) => true
   rule truthy(#importlibImportModuleFun) => true
   rule truthy(#keywordIsKeywordFun) => true
   rule truthy(#keywordIsSoftKeywordFun) => true
@@ -3245,6 +3254,9 @@ module PYTHON
 
   rule isUserObjectVal(userObjectVal(_:Id, _:Int, _:Int, _:ClassAttrs)) => true
   rule isUserObjectVal(_:Val) => false [owise]
+
+  rule isTypeAliasVal(typeAliasVal(_:Id, _:Int, _:Exp)) => true
+  rule isTypeAliasVal(_:Val) => false [owise]
 
   rule isBoundMethodVal(boundMethodVal(_:Val, _:Val)) => true
   rule isBoundMethodVal(_:Val) => false [owise]
@@ -4958,6 +4970,7 @@ module PYTHON
   rule isIntLike(functionMetaVal(_:String, _:String, _:Val, _:String, _:Val)) => false
   rule isIntLike(generatorFunctionVal(_:IdItems, _:YieldExps)) => false
   rule isIntLike(asyncFunctionVal(_:IdItems, _:Block)) => false
+  rule isIntLike(typeAliasVal(_:Id, _:Int, _:Exp)) => false
   rule isIntLike(#importlibImportModuleFun) => false
   rule isIntLike(#keywordIsKeywordFun) => false
   rule isIntLike(#keywordIsSoftKeywordFun) => false
@@ -5995,6 +6008,7 @@ module PYTHON
   rule singletonIdentity(functionMetaVal(_:String, _:String, _:Val, _:String, _:Val)) => false
   rule singletonIdentity(generatorFunctionVal(_:IdItems, _:YieldExps)) => false
   rule singletonIdentity(asyncFunctionVal(_:IdItems, _:Block)) => false
+  rule singletonIdentity(typeAliasVal(_:Id, _:Int, _:Exp)) => false
   rule singletonIdentity(#importlibImportModuleFun) => false
   rule singletonIdentity(#keywordIsKeywordFun) => false
   rule singletonIdentity(#keywordIsSoftKeywordFun) => false
@@ -6689,7 +6703,25 @@ module PYTHON
   rule classAttrIdMatchesString(#token("kDunderModuleName", "Id"), B:String) => B ==String "__module__"
   rule classAttrIdMatchesString(#token("kDunderQualnameName", "Id"), B:String) => B ==String "__qualname__"
   rule classAttrIdMatchesString(#token("kDunderAllName", "Id"), B:String) => B ==String "__all__"
+  rule classAttrIdMatchesString(#token("kDunderValueName", "Id"), B:String) => B ==String "__value__"
+  rule classAttrIdMatchesString(#token("kDunderTypeParamsName", "Id"), B:String) => B ==String "__type_params__"
+  rule classAttrIdMatchesString(#token("kDunderParametersName", "Id"), B:String) => B ==String "__parameters__"
   rule classAttrIdMatchesString(A:Id, B:String) => Id2String(A) ==String B [owise]
+
+  rule typeAliasLazyAttrId(A:Id) => classAttrIdMatchesString(A, "__value__")
+  rule typeAliasLazyAttrString(A:String) => A ==String "__value__"
+  rule typeAliasAttrId(A:Id) =>
+    typeAliasLazyAttrId(A)
+      orBool classAttrIdMatchesString(A, "__name__")
+      orBool classAttrIdMatchesString(A, "__module__")
+      orBool classAttrIdMatchesString(A, "__type_params__")
+      orBool classAttrIdMatchesString(A, "__parameters__")
+  rule typeAliasAttrString(A:String) =>
+    typeAliasLazyAttrString(A)
+      orBool A ==String "__name__"
+      orBool A ==String "__module__"
+      orBool A ==String "__type_params__"
+      orBool A ==String "__parameters__"
 
   rule classAttrGet(classAttr(A:Id, V:Val, _Rest:ClassAttrs), B:Id) => V
     requires Id2String(A) ==String Id2String(B)
@@ -6750,6 +6782,7 @@ module PYTHON
       orBool classAttrIdMatchesString(A, "__qualname__")
       orBool classAttrIdMatchesString(A, "__doc__")
       orBool classAttrIdMatchesString(A, "__module__")
+  rule classHasMatchAttr(typeAliasVal(_:Id, _:Int, _:Exp), A:Id) => typeAliasAttrId(A)
   rule classHasMatchAttr(V:Val, A:Id) => true
     requires isIntLike(V)
       andBool (Id2String(A) ==String "real"
@@ -6770,6 +6803,9 @@ module PYTHON
   rule getattrStringSupported("__qualname__") => true
   rule getattrStringSupported("__doc__") => true
   rule getattrStringSupported("__module__") => true
+  rule getattrStringSupported("__value__") => true
+  rule getattrStringSupported("__type_params__") => true
+  rule getattrStringSupported("__parameters__") => true
   rule getattrStringSupported(_:String) => false [owise]
 
   rule classHasAttrString(classVal(_:Id, _:Int, Attrs:ClassAttrs), A:String) => true
@@ -6793,6 +6829,7 @@ module PYTHON
       orBool A ==String "__qualname__"
       orBool A ==String "__doc__"
       orBool A ==String "__module__"
+  rule classHasAttrString(typeAliasVal(_:Id, _:Int, _:Exp), A:String) => typeAliasAttrString(A)
   rule classHasAttrString(V:Val, A:String) => true
     requires isIntLike(V)
       andBool (A ==String "real"
@@ -6884,6 +6921,14 @@ module PYTHON
     requires classAttrIdMatchesString(Attr, "__doc__")
   rule matchClassAttrVal(functionMetaVal(_:String, _:String, _:Val, Module:String, _:Val), Attr:Id) => Module
     requires classAttrIdMatchesString(Attr, "__module__")
+  rule matchClassAttrVal(typeAliasVal(Name:Id, _:Int, _:Exp), Attr:Id) => Id2String(Name)
+    requires classAttrIdMatchesString(Attr, "__name__")
+  rule matchClassAttrVal(typeAliasVal(_:Id, _:Int, _:Exp), Attr:Id) => "__main__"
+    requires classAttrIdMatchesString(Attr, "__module__")
+  rule matchClassAttrVal(typeAliasVal(_:Id, _:Int, _:Exp), Attr:Id) => ()
+    requires classAttrIdMatchesString(Attr, "__type_params__")
+  rule matchClassAttrVal(typeAliasVal(_:Id, _:Int, _:Exp), Attr:Id) => ()
+    requires classAttrIdMatchesString(Attr, "__parameters__")
   rule matchClassAttrVal(V:Val, Attr:Id) => intValue(V)
     requires isIntLike(V) andBool Id2String(Attr) ==String "real"
   rule matchClassAttrVal(V:Val, Attr:Id) => 0
@@ -6932,6 +6977,10 @@ module PYTHON
   rule matchClassAttrStringVal(functionMetaVal(_:String, Qual:String, _:Val, _:String, _:Val), "__qualname__") => Qual
   rule matchClassAttrStringVal(functionMetaVal(_:String, _:String, Doc:Val, _:String, _:Val), "__doc__") => Doc
   rule matchClassAttrStringVal(functionMetaVal(_:String, _:String, _:Val, Module:String, _:Val), "__module__") => Module
+  rule matchClassAttrStringVal(typeAliasVal(Name:Id, _:Int, _:Exp), "__name__") => Id2String(Name)
+  rule matchClassAttrStringVal(typeAliasVal(_:Id, _:Int, _:Exp), "__module__") => "__main__"
+  rule matchClassAttrStringVal(typeAliasVal(_:Id, _:Int, _:Exp), "__type_params__") => ()
+  rule matchClassAttrStringVal(typeAliasVal(_:Id, _:Int, _:Exp), "__parameters__") => ()
   rule matchClassAttrStringVal(V:Val, Attr:String) => intValue(V)
     requires isIntLike(V) andBool Attr ==String "real"
   rule matchClassAttrStringVal(V:Val, Attr:String) => 0
@@ -7319,6 +7368,12 @@ module PYTHON
     Id2String(M1) ==String Id2String(M2)
   rule valEq(moduleVal(_:Id, _:ClassAttrs), _V:Val) => false [owise]
   rule valEq(_V:Val, moduleVal(_:Id, _:ClassAttrs)) => false [owise]
+  rule valEq(typeAliasVal(_:Id, I1:Int, _:Exp), typeAliasVal(_:Id, I2:Int, _:Exp)) =>
+    I1 ==Int I2
+  rule valEq(typeAliasVal(_:Id, _:Int, _:Exp), V:Val) => false
+    requires notBool isTypeAliasVal(V)
+  rule valEq(V:Val, typeAliasVal(_:Id, _:Int, _:Exp)) => false
+    requires notBool isTypeAliasVal(V)
   rule valEq(None, _:Int) => false
   rule valEq(_:Int, None) => false
   rule valEq(None, True) => false
@@ -7562,6 +7617,12 @@ module PYTHON
     I1 ==Int I2 andBool ClassId1 ==Int ClassId2 andBool Id2String(C1) ==String Id2String(C2)
   rule valIs(moduleVal(M1:Id, _:ClassAttrs), moduleVal(M2:Id, _:ClassAttrs)) =>
     Id2String(M1) ==String Id2String(M2)
+  rule valIs(typeAliasVal(_:Id, I1:Int, _:Exp), typeAliasVal(_:Id, I2:Int, _:Exp)) =>
+    I1 ==Int I2
+  rule valIs(typeAliasVal(_:Id, _:Int, _:Exp), V:Val) => false
+    requires notBool isTypeAliasVal(V)
+  rule valIs(V:Val, typeAliasVal(_:Id, _:Int, _:Exp)) => false
+    requires notBool isTypeAliasVal(V)
   rule valIs(#importlibImportModuleFun, #importlibImportModuleFun) => true
   rule valIs(#keywordIsKeywordFun, #keywordIsKeywordFun) => true
   rule valIs(#keywordIsSoftKeywordFun, #keywordIsSoftKeywordFun) => true
@@ -16538,6 +16599,30 @@ module PYTHON
     requires Id2String(Attr) ==String "real"
   rule attrExp(_:Float, Attr:Id) => 0.0
     requires Id2String(Attr) ==String "imag"
+  rule <k> attrExp(typeAliasVal(_:Id, I:Int, _:Exp), Attr:Id)
+        => classAttrGet(ObjAttrs, #token("kDunderValueName", "Id")) ... </k>
+       <objectAttrs> ... I |-> ObjAttrs:ClassAttrs ... </objectAttrs>
+    requires typeAliasLazyAttrId(Attr)
+      andBool classAttrsHas(ObjAttrs, #token("kDunderValueName", "Id"))
+  rule <k> attrExp(typeAliasVal(_:Id, I:Int, E:Exp), Attr:Id)
+        => E ~> typeAliasValueCache(I) ... </k>
+       <objectAttrs> ... I |-> ObjAttrs:ClassAttrs ... </objectAttrs>
+    requires typeAliasLazyAttrId(Attr)
+      andBool notBool classAttrsHas(ObjAttrs, #token("kDunderValueName", "Id"))
+  rule attrExp(typeAliasVal(Name:Id, _:Int, _:Exp), Attr:Id) => Id2String(Name)
+    requires classAttrIdMatchesString(Attr, "__name__")
+  rule attrExp(typeAliasVal(_:Id, _:Int, _:Exp), Attr:Id) => "__main__"
+    requires classAttrIdMatchesString(Attr, "__module__")
+  rule attrExp(typeAliasVal(_:Id, _:Int, _:Exp), Attr:Id) => ()
+    requires classAttrIdMatchesString(Attr, "__type_params__")
+  rule attrExp(typeAliasVal(_:Id, _:Int, _:Exp), Attr:Id) => ()
+    requires classAttrIdMatchesString(Attr, "__parameters__")
+  rule <k> attrExp(typeAliasVal(_:Id, _:Int, _:Exp), Attr:Id) =>
+           exceptionSignal(#exception(#token("AttributeError", "Id")))
+       ... </k>
+    requires notBool typeAliasAttrId(Attr)
+  rule <k> V:Val ~> typeAliasValueCache(I:Int) => V ... </k>
+       <objectAttrs> ... I |-> (ObjAttrs:ClassAttrs => classAttrSet(ObjAttrs, #token("kDunderValueName", "Id"), V)) ... </objectAttrs>
   rule attrExp(functionMetaVal(Name:String, _:String, _:Val, _:String, _:Val), Attr:Id) => Name
     requires classAttrIdMatchesString(Attr, "__name__")
   rule attrExp(functionMetaVal(_:String, Qual:String, _:Val, _:String, _:Val), Attr:Id) => Qual
@@ -16586,15 +16671,29 @@ module PYTHON
       andBool classAttrsHas(Attrs, Attr)
       andBool notBool bindableUserMethodVal(classAttrGet(Attrs, Attr))
       andBool notBool isPropertyVal(classAttrGet(Attrs, Attr))
+  rule <k> #getattr(typeAliasVal(_:Id, I:Int, _:Exp), Attr:Id)
+        => classAttrGet(ObjAttrs, #token("kDunderValueName", "Id")) ... </k>
+       <objectAttrs> ... I |-> ObjAttrs:ClassAttrs ... </objectAttrs>
+    requires typeAliasLazyAttrId(Attr)
+      andBool classAttrsHas(ObjAttrs, #token("kDunderValueName", "Id"))
+  rule <k> #getattr(typeAliasVal(_:Id, I:Int, E:Exp), Attr:Id)
+        => E ~> typeAliasValueCache(I) ... </k>
+       <objectAttrs> ... I |-> ObjAttrs:ClassAttrs ... </objectAttrs>
+    requires typeAliasLazyAttrId(Attr)
+      andBool notBool classAttrsHas(ObjAttrs, #token("kDunderValueName", "Id"))
   rule #getattr(V:Val, Attr:Id) => matchClassAttrVal(V, Attr)
-    requires classHasMatchAttr(V, Attr) andBool notBool isUserObjectVal(V)
+    requires classHasMatchAttr(V, Attr)
+      andBool notBool isUserObjectVal(V)
+      andBool notBool (isTypeAliasVal(V) andBool typeAliasLazyAttrId(Attr))
   rule <k> #getattrDefault(Obj:Exp, Attr:Id, Default:Exp)
         => Obj ~> getattrDefaultObject(Attr, Default) ... </k>
   rule <k> V:Val ~> getattrDefaultObject(Attr:Id, Default:Exp)
         => Default ~> getattrDefaultApply(V, Attr) ... </k>
   rule <k> _Default:Val ~> getattrDefaultApply(V:Val, Attr:Id)
         => matchClassAttrVal(V, Attr) ... </k>
-    requires classHasMatchAttr(V, Attr) andBool notBool isUserObjectVal(V)
+    requires classHasMatchAttr(V, Attr)
+      andBool notBool isUserObjectVal(V)
+      andBool notBool (isTypeAliasVal(V) andBool typeAliasLazyAttrId(Attr))
   rule <k> _Default:Val ~> getattrDefaultApply(userObjectVal(_:Id, _:Int, ObjectId:Int, _:ClassAttrs), Attr:Id)
         => classAttrGet(ObjAttrs, Attr) ... </k>
        <objectAttrs> ... ObjectId |-> ObjAttrs:ClassAttrs ... </objectAttrs>
@@ -16618,6 +16717,16 @@ module PYTHON
       andBool classAttrsHas(Attrs, Attr)
       andBool notBool bindableUserMethodVal(classAttrGet(Attrs, Attr))
       andBool notBool isPropertyVal(classAttrGet(Attrs, Attr))
+  rule <k> _Default:Val ~> getattrDefaultApply(typeAliasVal(_:Id, I:Int, _:Exp), Attr:Id)
+        => classAttrGet(ObjAttrs, #token("kDunderValueName", "Id")) ... </k>
+       <objectAttrs> ... I |-> ObjAttrs:ClassAttrs ... </objectAttrs>
+    requires typeAliasLazyAttrId(Attr)
+      andBool classAttrsHas(ObjAttrs, #token("kDunderValueName", "Id"))
+  rule <k> _Default:Val ~> getattrDefaultApply(typeAliasVal(_:Id, I:Int, E:Exp), Attr:Id)
+        => E ~> typeAliasValueCache(I) ... </k>
+       <objectAttrs> ... I |-> ObjAttrs:ClassAttrs ... </objectAttrs>
+    requires typeAliasLazyAttrId(Attr)
+      andBool notBool classAttrsHas(ObjAttrs, #token("kDunderValueName", "Id"))
   rule <k> Default:Val ~> getattrDefaultApply(userObjectVal(_:Id, _:Int, ObjectId:Int, Attrs:ClassAttrs), Attr:Id)
         => Default ... </k>
        <objectAttrs> ... ObjectId |-> ObjAttrs:ClassAttrs ... </objectAttrs>
@@ -16645,9 +16754,21 @@ module PYTHON
         => Obj ~> getattrDynName(Attr) ... </k>
   rule <k> V:Val ~> getattrDynName(Attr:Exp)
         => Attr ~> getattrDynApply(V) ... </k>
+  rule <k> Attr:String ~> getattrDynApply(typeAliasVal(_:Id, I:Int, _:Exp))
+        => classAttrStringGet(ObjAttrs, Attr) ... </k>
+       <objectAttrs> ... I |-> ObjAttrs:ClassAttrs ... </objectAttrs>
+    requires typeAliasLazyAttrString(Attr)
+      andBool classAttrsHasString(ObjAttrs, Attr)
+  rule <k> Attr:String ~> getattrDynApply(typeAliasVal(_:Id, I:Int, E:Exp))
+        => E ~> typeAliasValueCache(I) ... </k>
+       <objectAttrs> ... I |-> ObjAttrs:ClassAttrs ... </objectAttrs>
+    requires typeAliasLazyAttrString(Attr)
+      andBool notBool classAttrsHasString(ObjAttrs, Attr)
   rule <k> Attr:String ~> getattrDynApply(V:Val)
         => matchClassAttrStringVal(V, Attr) ... </k>
-    requires classHasAttrString(V, Attr) andBool notBool isUserObjectVal(V)
+    requires classHasAttrString(V, Attr)
+      andBool notBool isUserObjectVal(V)
+      andBool notBool (isTypeAliasVal(V) andBool typeAliasLazyAttrString(Attr))
   rule <k> Attr:String ~> getattrDynApply(userObjectVal(_:Id, _:Int, ObjectId:Int, _:ClassAttrs))
         => classAttrStringGet(ObjAttrs, Attr) ... </k>
        <objectAttrs> ... ObjectId |-> ObjAttrs:ClassAttrs ... </objectAttrs>
@@ -16702,9 +16823,21 @@ module PYTHON
   rule <k> Attr:Val ~> getattrDefaultDynDefault(_V:Val, _Default:Exp)
         => exceptionSignal(#exception(#token("TypeError", "Id"))) ... </k>
     requires notBool isStringVal(Attr)
+  rule <k> _Default:Val ~> getattrDefaultDynApply(typeAliasVal(_:Id, I:Int, _:Exp), Attr:String)
+        => classAttrStringGet(ObjAttrs, Attr) ... </k>
+       <objectAttrs> ... I |-> ObjAttrs:ClassAttrs ... </objectAttrs>
+    requires typeAliasLazyAttrString(Attr)
+      andBool classAttrsHasString(ObjAttrs, Attr)
+  rule <k> _Default:Val ~> getattrDefaultDynApply(typeAliasVal(_:Id, I:Int, E:Exp), Attr:String)
+        => E ~> typeAliasValueCache(I) ... </k>
+       <objectAttrs> ... I |-> ObjAttrs:ClassAttrs ... </objectAttrs>
+    requires typeAliasLazyAttrString(Attr)
+      andBool notBool classAttrsHasString(ObjAttrs, Attr)
   rule <k> _Default:Val ~> getattrDefaultDynApply(V:Val, Attr:String)
         => matchClassAttrStringVal(V, Attr) ... </k>
-    requires classHasAttrString(V, Attr) andBool notBool isUserObjectVal(V)
+    requires classHasAttrString(V, Attr)
+      andBool notBool isUserObjectVal(V)
+      andBool notBool (isTypeAliasVal(V) andBool typeAliasLazyAttrString(Attr))
   rule <k> _Default:Val ~> getattrDefaultDynApply(userObjectVal(_:Id, _:Int, ObjectId:Int, _:ClassAttrs), Attr:String)
         => classAttrStringGet(ObjAttrs, Attr) ... </k>
        <objectAttrs> ... ObjectId |-> ObjAttrs:ClassAttrs ... </objectAttrs>
@@ -30474,6 +30607,12 @@ module PYTHON
   rule <k> annOnlyStmt(_:Id) => stmtNoResult ... </k>
        <result> _ => .K </result>
 
+  rule <k> typeAliasStmt(X:Id, E:Exp) => stmtNoResult ... </k>
+       <env> Rho => Rho [ X <- typeAliasVal(X, I, E) ] </env>
+       <objectAttrs> ObjectAttrs => ObjectAttrs [ I <- #noRuntimeClassAttrs ] </objectAttrs>
+       <nextObject> I => I +Int 1 </nextObject>
+       <result> _ => .K </result>
+
   rule <k> unpackAssignStmt(IDS:IdItems, iteratorRef(I:Int)) =>
            #listCtor(iteratorRef(I)) ~> unpackAssignIterator(IDS)
        ... </k>
@@ -36228,6 +36367,7 @@ module PYTHON
   rule <k> exceptionSignal(V:Val) ~> compareFrom(_:Val, _:CmpChain) => exceptionSignal(V) ... </k>
   rule <k> exceptionSignal(V:Val) ~> getattrDefaultObject(_:Id, _:Exp) => exceptionSignal(V) ... </k>
   rule <k> exceptionSignal(V:Val) ~> getattrDefaultApply(_:Val, _:Id) => exceptionSignal(V) ... </k>
+  rule <k> exceptionSignal(V:Val) ~> typeAliasValueCache(_:Int) => exceptionSignal(V) ... </k>
   rule <k> exceptionSignal(V:Val) ~> hasattrObject(_:Id) => exceptionSignal(V) ... </k>
   rule <k> exceptionSignal(V:Val) ~> getattrDynName(_:Exp) => exceptionSignal(V) ... </k>
   rule <k> exceptionSignal(V:Val) ~> getattrDynApply(_:Val) => exceptionSignal(V) ... </k>

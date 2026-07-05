@@ -1789,6 +1789,7 @@ module PYTHON
                 | callableVal(Val) [function, symbol(callableVal)]
                 | isClassVal(Val) [function, symbol(isClassVal)]
                 | isUserObjectVal(Val) [function, symbol(isUserObjectVal)]
+                | classValueExactClassId(Val, Int) [function, symbol(classValueExactClassId)]
                 | isTypeAliasVal(Val) [function, symbol(isTypeAliasVal)]
                 | isBoundMethodVal(Val) [function, symbol(isBoundMethodVal)]
                 | isStaticOrClassMethodVal(Val) [function, symbol(isStaticOrClassMethodVal)]
@@ -2746,6 +2747,10 @@ module PYTHON
   syntax Map ::= bindSuffixVals(Map, IdItems, ValItems, Int) [function, symbol(bindSuffixVals)]
   syntax Map ::= bindOneVal(Map, Id, Val) [function, symbol(bindOneVal)]
   syntax Map ::= bindStarUnpack(Map, IdItems, Id, IdItems, ValItems) [function, symbol(bindStarUnpack)]
+  syntax Map ::= classValueAttrSet(Map, Int, Id, Val) [function, symbol(classValueAttrSet)]
+               | classValueAttrStringSet(Map, Int, String, Val) [function, symbol(classValueAttrStringSet)]
+               | classValueAttrDel(Map, Int, Id) [function, symbol(classValueAttrDel)]
+               | classValueAttrStringDel(Map, Int, String) [function, symbol(classValueAttrStringDel)]
   syntax ValItems ::= argValsToValItems(ArgVals) [function, symbol(argValsToValItems)]
   syntax ValItems ::= dictPairItems(Val) [function, symbol(dictPairItems)]
   syntax ValItems ::= argValsToSetItems(ArgVals) [function, symbol(argValsToSetItems)]
@@ -3288,6 +3293,10 @@ module PYTHON
 
   rule isUserObjectVal(userObjectVal(_:Id, _:Int, _:Int, _:ClassAttrs)) => true
   rule isUserObjectVal(_:Val) => false [owise]
+
+  rule classValueExactClassId(classVal(_:Id, ClassId:Int, _:ClassAttrs), ExpectedClassId:Int) => ClassId ==Int ExpectedClassId
+  rule classValueExactClassId(userObjectVal(_:Id, ClassId:Int, _:Int, _:ClassAttrs), ExpectedClassId:Int) => ClassId ==Int ExpectedClassId
+  rule classValueExactClassId(_:Val, _:Int) => false [owise]
 
   rule isTypeAliasVal(typeAliasVal(_:Id, _:Int, _:Exp)) => true
   rule isTypeAliasVal(_:Val) => false [owise]
@@ -9250,6 +9259,42 @@ module PYTHON
       Suffix,
       VS,
       valItemsLen(VS))
+
+  rule classValueAttrSet(.Map, _ClassId:Int, _Attr:Id, _V:Val) => .Map
+  rule classValueAttrSet((X:Id |-> classVal(C:Id, ClassId:Int, Attrs:ClassAttrs)) Rho:Map, ClassId:Int, Attr:Id, V:Val) =>
+    classValueAttrSet(Rho, ClassId, Attr, V) [ X <- classVal(C, ClassId, classAttrSet(Attrs, Attr, V)) ]
+  rule classValueAttrSet((X:Id |-> userObjectVal(C:Id, ClassId:Int, ObjectId:Int, Attrs:ClassAttrs)) Rho:Map, ClassId:Int, Attr:Id, V:Val) =>
+    classValueAttrSet(Rho, ClassId, Attr, V) [ X <- userObjectVal(C, ClassId, ObjectId, classAttrSet(Attrs, Attr, V)) ]
+  rule classValueAttrSet((X:Id |-> V0:Val) Rho:Map, ClassId:Int, Attr:Id, V:Val) =>
+    classValueAttrSet(Rho, ClassId, Attr, V) [ X <- V0 ]
+    requires notBool classValueExactClassId(V0, ClassId)
+
+  rule classValueAttrStringSet(.Map, _ClassId:Int, _Attr:String, _V:Val) => .Map
+  rule classValueAttrStringSet((X:Id |-> classVal(C:Id, ClassId:Int, Attrs:ClassAttrs)) Rho:Map, ClassId:Int, Attr:String, V:Val) =>
+    classValueAttrStringSet(Rho, ClassId, Attr, V) [ X <- classVal(C, ClassId, classAttrStringSet(Attrs, Attr, V)) ]
+  rule classValueAttrStringSet((X:Id |-> userObjectVal(C:Id, ClassId:Int, ObjectId:Int, Attrs:ClassAttrs)) Rho:Map, ClassId:Int, Attr:String, V:Val) =>
+    classValueAttrStringSet(Rho, ClassId, Attr, V) [ X <- userObjectVal(C, ClassId, ObjectId, classAttrStringSet(Attrs, Attr, V)) ]
+  rule classValueAttrStringSet((X:Id |-> V0:Val) Rho:Map, ClassId:Int, Attr:String, V:Val) =>
+    classValueAttrStringSet(Rho, ClassId, Attr, V) [ X <- V0 ]
+    requires notBool classValueExactClassId(V0, ClassId)
+
+  rule classValueAttrDel(.Map, _ClassId:Int, _Attr:Id) => .Map
+  rule classValueAttrDel((X:Id |-> classVal(C:Id, ClassId:Int, Attrs:ClassAttrs)) Rho:Map, ClassId:Int, Attr:Id) =>
+    classValueAttrDel(Rho, ClassId, Attr) [ X <- classVal(C, ClassId, classAttrDel(Attrs, Attr)) ]
+  rule classValueAttrDel((X:Id |-> userObjectVal(C:Id, ClassId:Int, ObjectId:Int, Attrs:ClassAttrs)) Rho:Map, ClassId:Int, Attr:Id) =>
+    classValueAttrDel(Rho, ClassId, Attr) [ X <- userObjectVal(C, ClassId, ObjectId, classAttrDel(Attrs, Attr)) ]
+  rule classValueAttrDel((X:Id |-> V0:Val) Rho:Map, ClassId:Int, Attr:Id) =>
+    classValueAttrDel(Rho, ClassId, Attr) [ X <- V0 ]
+    requires notBool classValueExactClassId(V0, ClassId)
+
+  rule classValueAttrStringDel(.Map, _ClassId:Int, _Attr:String) => .Map
+  rule classValueAttrStringDel((X:Id |-> classVal(C:Id, ClassId:Int, Attrs:ClassAttrs)) Rho:Map, ClassId:Int, Attr:String) =>
+    classValueAttrStringDel(Rho, ClassId, Attr) [ X <- classVal(C, ClassId, classAttrStringDel(Attrs, Attr)) ]
+  rule classValueAttrStringDel((X:Id |-> userObjectVal(C:Id, ClassId:Int, ObjectId:Int, Attrs:ClassAttrs)) Rho:Map, ClassId:Int, Attr:String) =>
+    classValueAttrStringDel(Rho, ClassId, Attr) [ X <- userObjectVal(C, ClassId, ObjectId, classAttrStringDel(Attrs, Attr)) ]
+  rule classValueAttrStringDel((X:Id |-> V0:Val) Rho:Map, ClassId:Int, Attr:String) =>
+    classValueAttrStringDel(Rho, ClassId, Attr) [ X <- V0 ]
+    requires notBool classValueExactClassId(V0, ClassId)
 
   rule argValsToValItems(argValsCons(V:Val, #noArgVals)) => valItemsLast(V)
   rule argValsToValItems(argValsCons(V:Val, VS:ArgVals)) =>
@@ -30416,10 +30461,15 @@ module PYTHON
     requires classAttrsHas(Attrs, Attr)
       andBool notBool classAttrsHasString(Attrs, "__setattr__")
       andBool notBool isPropertyVal(classAttrGet(Attrs, Attr))
+  rule <k> classVal(_:Id, ClassId:Int, _:ClassAttrs) ~> assignAttrApply(V:Val, Attr:Id) =>
+           stmtNoResult
+       ... </k>
+       <env> Rho => classValueAttrSet(Rho, ClassId, Attr, V) </env>
+       <result> _ => .K </result>
   rule <k> V:Val ~> assignAttrApply(_:Val, _:Id) =>
            exceptionSignal(#exception(#token("AttributeError", "Id")))
        ... </k>
-    requires notBool isUserObjectVal(V)
+    requires notBool isUserObjectVal(V) andBool notBool isClassVal(V)
 
   rule <k> #setattr(Obj:Exp, Attr:Exp, Value:Exp) =>
            Obj ~> setattrName(Attr, Value)
@@ -30471,10 +30521,14 @@ module PYTHON
     requires classAttrsHasString(Attrs, Attr)
       andBool notBool classAttrsHasString(Attrs, "__setattr__")
       andBool notBool isPropertyVal(classAttrStringGet(Attrs, Attr))
+  rule <k> classVal(_:Id, ClassId:Int, _:ClassAttrs) ~> setattrStringApply(Attr:String, V:Val) =>
+           None
+       ... </k>
+       <env> Rho => classValueAttrStringSet(Rho, ClassId, Attr, V) </env>
   rule <k> V:Val ~> setattrStringApply(_:String, _:Val) =>
            exceptionSignal(#exception(#token("AttributeError", "Id")))
        ... </k>
-    requires notBool isUserObjectVal(V)
+    requires notBool isUserObjectVal(V) andBool notBool isClassVal(V)
 
   rule <k> #objectSetattr(Obj:Exp, Attr:Exp, Value:Exp) =>
            Obj ~> objectSetattrName(Attr, Value)
@@ -30579,10 +30633,20 @@ module PYTHON
       andBool notBool classAttrsHasString(Attrs, "__delattr__")
       andBool notBool isPropertyVal(classAttrGet(Attrs, Attr))
       andBool notBool classAttrsHas(ObjAttrs, Attr)
+  rule <k> classVal(_:Id, ClassId:Int, Attrs:ClassAttrs) ~> delAttrApply(Attr:Id) =>
+           stmtNoResult
+       ... </k>
+       <env> Rho => classValueAttrDel(Rho, ClassId, Attr) </env>
+       <result> _ => .K </result>
+    requires classAttrsHas(Attrs, Attr)
+  rule <k> classVal(_:Id, _:Int, Attrs:ClassAttrs) ~> delAttrApply(Attr:Id) =>
+           exceptionSignal(#exception(#token("AttributeError", "Id")))
+       ... </k>
+    requires notBool classAttrsHas(Attrs, Attr)
   rule <k> V:Val ~> delAttrApply(_:Id) =>
            exceptionSignal(#exception(#token("AttributeError", "Id")))
        ... </k>
-    requires notBool isUserObjectVal(V)
+    requires notBool isUserObjectVal(V) andBool notBool isClassVal(V)
 
   rule <k> #delattr(Obj:Exp, Attr:Exp) =>
            Obj ~> delattrName(Attr)
@@ -30648,10 +30712,19 @@ module PYTHON
       andBool notBool classAttrsHasString(Attrs, "__delattr__")
       andBool notBool isPropertyVal(classAttrStringGet(Attrs, Attr))
       andBool notBool classAttrsHasString(ObjAttrs, Attr)
+  rule <k> classVal(_:Id, ClassId:Int, Attrs:ClassAttrs) ~> delattrStringApply(Attr:String) =>
+           None
+       ... </k>
+       <env> Rho => classValueAttrStringDel(Rho, ClassId, Attr) </env>
+    requires classAttrsHasString(Attrs, Attr)
+  rule <k> classVal(_:Id, _:Int, Attrs:ClassAttrs) ~> delattrStringApply(Attr:String) =>
+           exceptionSignal(#exception(#token("AttributeError", "Id")))
+       ... </k>
+    requires notBool classAttrsHasString(Attrs, Attr)
   rule <k> V:Val ~> delattrStringApply(_:String) =>
            exceptionSignal(#exception(#token("AttributeError", "Id")))
        ... </k>
-    requires notBool isUserObjectVal(V)
+    requires notBool isUserObjectVal(V) andBool notBool isClassVal(V)
 
   rule <k> #objectDelattr(Obj:Exp, Attr:Exp) =>
            Obj ~> objectDelattrName(Attr)

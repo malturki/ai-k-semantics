@@ -192,6 +192,7 @@ run_case "adapter-callable-builtin" "$ROOT/tests/adapter/adapter-callable-builti
 run_case "adapter-isinstance-builtin" "$ROOT/tests/adapter/adapter-isinstance-builtin.py" "True ~> .K"
 run_case "adapter-class-basic" "$ROOT/tests/adapter/adapter-class-basic.py" "True ~> .K"
 run_case "adapter-class-attributes" "$ROOT/tests/adapter/adapter-class-attributes.py" "True ~> .K"
+run_case "adapter-class-attribute-mutation" "$ROOT/tests/adapter/adapter-class-attribute-mutation.py" "True ~> .K"
 run_case "adapter-class-metadata" "$ROOT/tests/adapter/adapter-class-metadata.py" "True ~> .K"
 run_case "adapter-class-methods-instance-attrs" "$ROOT/tests/adapter/adapter-class-methods-instance-attrs.py" "True ~> .K"
 run_case "adapter-class-method-defaults" "$ROOT/tests/adapter/adapter-class-method-defaults.py" "True ~> .K"

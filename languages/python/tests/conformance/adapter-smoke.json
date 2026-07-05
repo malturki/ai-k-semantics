@@ -1775,6 +1775,13 @@
       "coverage": ["class-definition", "class-body-namespace-profile", "simple-class-attribute-assignment", "class-attribute-lookup", "instance-class-attribute-fallback", "getattr-builtin", "hasattr-builtin", "ordinary-python-source-adapter"]
     },
     {
+      "id": "adapter-class-attribute-mutation",
+      "source": "../adapter/adapter-class-attribute-mutation.py",
+      "reference": "Python 3.14.6 Language Reference 7.2 Assignment statements; 7.5 The del statement; 8.8 Class definitions; Python Data Model attribute assignment and deletion; Built-in Functions getattr, hasattr, setattr, delattr",
+      "expected_result": "True ~> .K",
+      "coverage": ["class-definition", "class-attribute-assignment", "class-attribute-deletion", "class-attribute-rebinding", "class-alias-profile", "instance-class-attribute-fallback", "instance-attribute-shadowing", "getattr-builtin", "hasattr-builtin", "setattr-builtin", "delattr-builtin", "attribute-error", "ordinary-python-source-adapter"]
+    },
+    {
       "id": "adapter-class-metadata",
       "source": "../adapter/adapter-class-metadata.py",
       "reference": "Python 3.14.6 Language Reference 8.8 Class definitions: class namespace execution initializes __module__, __qualname__, and __doc__; Built-in Functions getattr, hasattr",

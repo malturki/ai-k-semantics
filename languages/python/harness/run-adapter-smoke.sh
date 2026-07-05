@@ -215,6 +215,7 @@ run_case "adapter-class-property-deleter" "$ROOT/tests/adapter/adapter-class-pro
 run_case "adapter-class-property-getter-chain" "$ROOT/tests/adapter/adapter-class-property-getter-chain.py" "True ~> .K"
 run_case "adapter-class-setattr-method" "$ROOT/tests/adapter/adapter-class-setattr-method.py" "True ~> .K"
 run_case "adapter-class-delattr-method" "$ROOT/tests/adapter/adapter-class-delattr-method.py" "True ~> .K"
+run_case "adapter-object-attribute-delegation" "$ROOT/tests/adapter/adapter-object-attribute-delegation.py" "True ~> .K"
 run_case "adapter-setattr-builtin" "$ROOT/tests/adapter/adapter-setattr-builtin.py" "True ~> .K"
 run_case "adapter-delattr-builtin" "$ROOT/tests/adapter/adapter-delattr-builtin.py" "True ~> .K"
 run_case "adapter-issubclass-builtin" "$ROOT/tests/adapter/adapter-issubclass-builtin.py" "True ~> .K"

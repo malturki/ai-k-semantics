@@ -1210,6 +1210,18 @@ def emit_exp(exp: ast.expr) -> str:
             return f"#setattr({emit_exp(obj)}, {emit_exp(name)}, {emit_exp(value)})"
         case ast.Call(func=ast.Name(id="delattr"), args=[obj, name], keywords=[]):
             return f"#delattr({emit_exp(obj)}, {emit_exp(name)})"
+        case ast.Call(
+            func=ast.Attribute(value=ast.Name(id="object"), attr="__setattr__", ctx=ast.Load()),
+            args=[obj, name, value],
+            keywords=[],
+        ):
+            return f"#objectSetattr({emit_exp(obj)}, {emit_exp(name)}, {emit_exp(value)})"
+        case ast.Call(
+            func=ast.Attribute(value=ast.Name(id="object"), attr="__delattr__", ctx=ast.Load()),
+            args=[obj, name],
+            keywords=[],
+        ):
+            return f"#objectDelattr({emit_exp(obj)}, {emit_exp(name)})"
         case ast.Call(func=ast.Name(id="all"), args=[arg], keywords=[]):
             return f"#all({emit_exp(arg)})"
         case ast.Call(func=ast.Name(id="any"), args=[arg], keywords=[]):

@@ -477,6 +477,8 @@ module PYTHON-SYNTAX
                | "#hasattrDyn" "(" Exp "," Exp ")" [symbol(hasattrDynExp)]
                | "#setattr" "(" Exp "," Exp "," Exp ")" [symbol(setattrExp)]
                | "#delattr" "(" Exp "," Exp ")" [symbol(delattrExp)]
+               | "#objectSetattr" "(" Exp "," Exp "," Exp ")" [symbol(objectSetattrExp)]
+               | "#objectDelattr" "(" Exp "," Exp ")" [symbol(objectDelattrExp)]
                | "#fstring" "(" FStringParts ")" [symbol(fstringExp)]
                | "#list" "(" ArgExps ")" [symbol(listDisplayExp)]
                | "#tuple" "(" ArgExps ")" [symbol(tupleDisplayExp)]
@@ -1028,12 +1030,21 @@ module PYTHON
                  | setattrApply(Val, Val) [symbol(setattrApply)]
                  | setattrStringApply(String, Val) [symbol(setattrStringApply)]
                  | setattrBuiltinDone() [symbol(setattrBuiltinDone)]
+                 | objectSetattrName(Exp, Exp) [symbol(objectSetattrName)]
+                 | objectSetattrValue(Val, Exp) [symbol(objectSetattrValue)]
+                 | objectSetattrApply(Val, Val) [symbol(objectSetattrApply)]
+                 | objectSetattrStringApply(String, Val) [symbol(objectSetattrStringApply)]
+                 | objectSetattrDone() [symbol(objectSetattrDone)]
                  | delAttrApply(Id) [symbol(delAttrApply)]
                  | propertyDeleterDone() [symbol(propertyDeleterDone)]
                  | delattrName(Exp) [symbol(delattrName)]
                  | delattrApply(Val) [symbol(delattrApply)]
                  | delattrStringApply(String) [symbol(delattrStringApply)]
                  | delattrBuiltinDone() [symbol(delattrBuiltinDone)]
+                 | objectDelattrName(Exp) [symbol(objectDelattrName)]
+                 | objectDelattrApply(Val) [symbol(objectDelattrApply)]
+                 | objectDelattrStringApply(String) [symbol(objectDelattrStringApply)]
+                 | objectDelattrDone() [symbol(objectDelattrDone)]
                  | initObjectDone(Val) [symbol(initObjectDone)]
                  | formatDefault() [symbol(formatDefault)]
                  | formatSpec(Exp) [symbol(formatSpec)]
@@ -30220,6 +30231,52 @@ module PYTHON
        ... </k>
     requires notBool isUserObjectVal(V)
 
+  rule <k> #objectSetattr(Obj:Exp, Attr:Exp, Value:Exp) =>
+           Obj ~> objectSetattrName(Attr, Value)
+       ... </k>
+  rule <k> Obj:Val ~> objectSetattrName(Attr:Exp, Value:Exp) =>
+           Attr ~> objectSetattrValue(Obj, Value)
+       ... </k>
+  rule <k> Attr:Val ~> objectSetattrValue(Obj:Val, Value:Exp) =>
+           Value ~> objectSetattrApply(Obj, Attr)
+       ... </k>
+  rule <k> Value:Val ~> objectSetattrApply(Obj:Val, Attr:String) =>
+           Obj ~> objectSetattrStringApply(Attr, Value)
+       ... </k>
+  rule <k> _Value:Val ~> objectSetattrApply(_Obj:Val, Attr:Val) =>
+           exceptionSignal(#exception(#token("TypeError", "Id")))
+       ... </k>
+    requires notBool isStringVal(Attr)
+  rule <k> userObjectVal(C:Id, ClassId:Int, ObjectId:Int, Attrs:ClassAttrs) ~> objectSetattrStringApply(Attr:String, V:Val) =>
+           #call(boundMethodVal(userObjectVal(C, ClassId, ObjectId, Attrs), propertySet(classAttrStringGet(Attrs, Attr))), #arg(V))
+           ~> objectSetattrDone()
+       ... </k>
+    requires classAttrsHasString(Attrs, Attr)
+      andBool isPropertyVal(classAttrStringGet(Attrs, Attr))
+      andBool propertyHasSetter(classAttrStringGet(Attrs, Attr))
+  rule <k> userObjectVal(_:Id, _:Int, _:Int, Attrs:ClassAttrs) ~> objectSetattrStringApply(Attr:String, _V:Val) =>
+           exceptionSignal(#exception(#token("AttributeError", "Id")))
+       ... </k>
+    requires classAttrsHasString(Attrs, Attr)
+      andBool isPropertyVal(classAttrStringGet(Attrs, Attr))
+      andBool notBool propertyHasSetter(classAttrStringGet(Attrs, Attr))
+  rule <k> _V:Val ~> objectSetattrDone() => None ... </k>
+  rule <k> userObjectVal(_:Id, _:Int, ObjectId:Int, Attrs:ClassAttrs) ~> objectSetattrStringApply(Attr:String, V:Val) =>
+           None
+       ... </k>
+       <objectAttrs> ... ObjectId |-> (ObjAttrs:ClassAttrs => classAttrStringSet(ObjAttrs, Attr, V)) ... </objectAttrs>
+    requires notBool classAttrsHasString(Attrs, Attr)
+  rule <k> userObjectVal(_:Id, _:Int, ObjectId:Int, Attrs:ClassAttrs) ~> objectSetattrStringApply(Attr:String, V:Val) =>
+           None
+       ... </k>
+       <objectAttrs> ... ObjectId |-> (ObjAttrs:ClassAttrs => classAttrStringSet(ObjAttrs, Attr, V)) ... </objectAttrs>
+    requires classAttrsHasString(Attrs, Attr)
+      andBool notBool isPropertyVal(classAttrStringGet(Attrs, Attr))
+  rule <k> V:Val ~> objectSetattrStringApply(_:String, _:Val) =>
+           exceptionSignal(#exception(#token("TypeError", "Id")))
+       ... </k>
+    requires notBool isUserObjectVal(V)
+
   rule <k> delAttrStmt(Obj:Exp, Attr:Id) =>
            Obj ~> delAttrApply(Attr)
        ... </k>
@@ -30348,6 +30405,64 @@ module PYTHON
       andBool notBool classAttrsHasString(ObjAttrs, Attr)
   rule <k> V:Val ~> delattrStringApply(_:String) =>
            exceptionSignal(#exception(#token("AttributeError", "Id")))
+       ... </k>
+    requires notBool isUserObjectVal(V)
+
+  rule <k> #objectDelattr(Obj:Exp, Attr:Exp) =>
+           Obj ~> objectDelattrName(Attr)
+       ... </k>
+  rule <k> Obj:Val ~> objectDelattrName(Attr:Exp) =>
+           Attr ~> objectDelattrApply(Obj)
+       ... </k>
+  rule <k> Attr:String ~> objectDelattrApply(Obj:Val) =>
+           Obj ~> objectDelattrStringApply(Attr)
+       ... </k>
+  rule <k> Attr:Val ~> objectDelattrApply(_Obj:Val) =>
+           exceptionSignal(#exception(#token("TypeError", "Id")))
+       ... </k>
+    requires notBool isStringVal(Attr)
+  rule <k> userObjectVal(C:Id, ClassId:Int, ObjectId:Int, Attrs:ClassAttrs) ~> objectDelattrStringApply(Attr:String) =>
+           #call(boundMethodVal(userObjectVal(C, ClassId, ObjectId, Attrs), propertyDel(classAttrStringGet(Attrs, Attr))), #noArgs)
+           ~> objectDelattrDone()
+       ... </k>
+    requires classAttrsHasString(Attrs, Attr)
+      andBool isPropertyVal(classAttrStringGet(Attrs, Attr))
+      andBool propertyHasDeleter(classAttrStringGet(Attrs, Attr))
+  rule <k> userObjectVal(_:Id, _:Int, _:Int, Attrs:ClassAttrs) ~> objectDelattrStringApply(Attr:String) =>
+           exceptionSignal(#exception(#token("AttributeError", "Id")))
+       ... </k>
+    requires classAttrsHasString(Attrs, Attr)
+      andBool isPropertyVal(classAttrStringGet(Attrs, Attr))
+      andBool notBool propertyHasDeleter(classAttrStringGet(Attrs, Attr))
+  rule <k> _V:Val ~> objectDelattrDone() => None ... </k>
+  rule <k> userObjectVal(_:Id, _:Int, ObjectId:Int, Attrs:ClassAttrs) ~> objectDelattrStringApply(Attr:String) =>
+           None
+       ... </k>
+       <objectAttrs> ... ObjectId |-> (ObjAttrs:ClassAttrs => classAttrStringDel(ObjAttrs, Attr)) ... </objectAttrs>
+    requires notBool classAttrsHasString(Attrs, Attr)
+      andBool classAttrsHasString(ObjAttrs, Attr)
+  rule <k> userObjectVal(_:Id, _:Int, ObjectId:Int, Attrs:ClassAttrs) ~> objectDelattrStringApply(Attr:String) =>
+           None
+       ... </k>
+       <objectAttrs> ... ObjectId |-> (ObjAttrs:ClassAttrs => classAttrStringDel(ObjAttrs, Attr)) ... </objectAttrs>
+    requires classAttrsHasString(Attrs, Attr)
+      andBool notBool isPropertyVal(classAttrStringGet(Attrs, Attr))
+      andBool classAttrsHasString(ObjAttrs, Attr)
+  rule <k> userObjectVal(_:Id, _:Int, ObjectId:Int, Attrs:ClassAttrs) ~> objectDelattrStringApply(Attr:String) =>
+           exceptionSignal(#exception(#token("AttributeError", "Id")))
+       ... </k>
+       <objectAttrs> ... ObjectId |-> ObjAttrs:ClassAttrs ... </objectAttrs>
+    requires notBool classAttrsHasString(Attrs, Attr)
+      andBool notBool classAttrsHasString(ObjAttrs, Attr)
+  rule <k> userObjectVal(_:Id, _:Int, ObjectId:Int, Attrs:ClassAttrs) ~> objectDelattrStringApply(Attr:String) =>
+           exceptionSignal(#exception(#token("AttributeError", "Id")))
+       ... </k>
+       <objectAttrs> ... ObjectId |-> ObjAttrs:ClassAttrs ... </objectAttrs>
+    requires classAttrsHasString(Attrs, Attr)
+      andBool notBool isPropertyVal(classAttrStringGet(Attrs, Attr))
+      andBool notBool classAttrsHasString(ObjAttrs, Attr)
+  rule <k> V:Val ~> objectDelattrStringApply(_:String) =>
+           exceptionSignal(#exception(#token("TypeError", "Id")))
        ... </k>
     requires notBool isUserObjectVal(V)
 
@@ -36816,12 +36931,21 @@ module PYTHON
   rule <k> exceptionSignal(V:Val) ~> setattrApply(_:Val, _:Val) => exceptionSignal(V) ... </k>
   rule <k> exceptionSignal(V:Val) ~> setattrStringApply(_:String, _:Val) => exceptionSignal(V) ... </k>
   rule <k> exceptionSignal(V:Val) ~> setattrBuiltinDone() => exceptionSignal(V) ... </k>
+  rule <k> exceptionSignal(V:Val) ~> objectSetattrName(_:Exp, _:Exp) => exceptionSignal(V) ... </k>
+  rule <k> exceptionSignal(V:Val) ~> objectSetattrValue(_:Val, _:Exp) => exceptionSignal(V) ... </k>
+  rule <k> exceptionSignal(V:Val) ~> objectSetattrApply(_:Val, _:Val) => exceptionSignal(V) ... </k>
+  rule <k> exceptionSignal(V:Val) ~> objectSetattrStringApply(_:String, _:Val) => exceptionSignal(V) ... </k>
+  rule <k> exceptionSignal(V:Val) ~> objectSetattrDone() => exceptionSignal(V) ... </k>
   rule <k> exceptionSignal(V:Val) ~> delAttrApply(_:Id) => exceptionSignal(V) ... </k>
   rule <k> exceptionSignal(V:Val) ~> propertyDeleterDone() => exceptionSignal(V) ... </k>
   rule <k> exceptionSignal(V:Val) ~> delattrName(_:Exp) => exceptionSignal(V) ... </k>
   rule <k> exceptionSignal(V:Val) ~> delattrApply(_:Val) => exceptionSignal(V) ... </k>
   rule <k> exceptionSignal(V:Val) ~> delattrStringApply(_:String) => exceptionSignal(V) ... </k>
   rule <k> exceptionSignal(V:Val) ~> delattrBuiltinDone() => exceptionSignal(V) ... </k>
+  rule <k> exceptionSignal(V:Val) ~> objectDelattrName(_:Exp) => exceptionSignal(V) ... </k>
+  rule <k> exceptionSignal(V:Val) ~> objectDelattrApply(_:Val) => exceptionSignal(V) ... </k>
+  rule <k> exceptionSignal(V:Val) ~> objectDelattrStringApply(_:String) => exceptionSignal(V) ... </k>
+  rule <k> exceptionSignal(V:Val) ~> objectDelattrDone() => exceptionSignal(V) ... </k>
   rule <k> exceptionSignal(V:Val) ~> initObjectDone(_:Val) => exceptionSignal(V) ... </k>
   rule <k> exceptionSignal(V:Val) ~> formatDefault() => exceptionSignal(V) ... </k>
   rule <k> exceptionSignal(V:Val) ~> formatSpec(_:Exp) => exceptionSignal(V) ... </k>

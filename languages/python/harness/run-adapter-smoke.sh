@@ -480,6 +480,7 @@ run_case "adapter-function-arg-expressions" "$ROOT/tests/adapter/adapter-functio
 run_case "adapter-call-arity-errors" "$ROOT/tests/adapter/adapter-call-arity-errors.py" "True ~> .K"
 run_case "adapter-function-defaults" "$ROOT/tests/adapter/adapter-function-defaults.py" "True ~> .K"
 run_case "adapter-function-annotations" "$ROOT/tests/adapter/adapter-function-annotations.py" "True ~> .K"
+run_case "adapter-function-metadata" "$ROOT/tests/adapter/adapter-function-metadata.py" "True ~> .K"
 run_case "adapter-function-decorators" "$ROOT/tests/adapter/adapter-function-decorators.py" "True ~> .K"
 run_case "adapter-function-decorators-defaults" "$ROOT/tests/adapter/adapter-function-decorators-defaults.py" "True ~> .K"
 run_case "adapter-function-decorators-rich-signatures" "$ROOT/tests/adapter/adapter-function-decorators-rich-signatures.py" "True ~> .K"

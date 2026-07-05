@@ -23,6 +23,7 @@ class UnsupportedPythonSubset(ValueError):
 
 ELLIPSIS_NAME_ID = "kEllipsisName"
 DUNDER_INIT_NAME_ID = "kDunderInitName"
+DUNDER_NAME_NAME_ID = "kDunderNameName"
 DUNDER_DOC_NAME_ID = "kDunderDocName"
 DUNDER_MODULE_NAME_ID = "kDunderModuleName"
 DUNDER_QUALNAME_NAME_ID = "kDunderQualnameName"
@@ -61,6 +62,10 @@ CLASS_PATTERN_ID_ALIASES = {
     "set": "kSetClassName",
 }
 SUPPORTED_GETATTR_NAMES = {
+    "__doc__",
+    "__module__",
+    "__name__",
+    "__qualname__",
     "denominator",
     "imag",
     "missing",
@@ -632,6 +637,8 @@ def emit_id(name: str) -> str:
         return ELLIPSIS_NAME_ID
     if name == "__init__":
         return DUNDER_INIT_NAME_ID
+    if name == "__name__":
+        return DUNDER_NAME_NAME_ID
     if name == "__doc__":
         return DUNDER_DOC_NAME_ID
     if name == "__module__":
@@ -1945,6 +1952,17 @@ def emit_simple_generator_function_def(
     return f"#genDef({emit_id(name)}, {emit_id_items(names)}, {emit_yield_exps(yields)})"
 
 
+def split_body_docstring(body: list[ast.stmt]) -> tuple[str, list[ast.stmt]]:
+    if (
+        body
+        and isinstance(body[0], ast.Expr)
+        and isinstance(body[0].value, ast.Constant)
+        and isinstance(body[0].value.value, str)
+    ):
+        return emit_string(body[0].value.value), body[1:]
+    return "None", body
+
+
 def emit_simple_class_def(
     node: ast.AST,
     name: str,
@@ -1966,16 +1984,7 @@ def emit_simple_class_def(
         base_name = bases[0].id
     if getattr(node, "type_params", []):
         raise unsupported(node, "class type parameters are not supported yet")
-    doc_value = "None"
-    body_items = body
-    if (
-        body
-        and isinstance(body[0], ast.Expr)
-        and isinstance(body[0].value, ast.Constant)
-        and isinstance(body[0].value.value, str)
-    ):
-        doc_value = emit_string(body[0].value.value)
-        body_items = body[1:]
+    doc_value, body_items = split_body_docstring(body)
     members: list[tuple[str, str, str, str, str]] = [
         ("attr", emit_id("__module__"), emit_string("__main__"), "", ""),
         ("attr", emit_id("__qualname__"), emit_string(name), "", ""),
@@ -2928,9 +2937,17 @@ def emit_function_def(
     # not expose metadata/introspection, so annotations are erased in this subset.
     if type_comment is not None:
         raise unsupported(node, "function type comments are not supported yet")
+    doc_value, body_items = split_body_docstring(body)
+    body = body_items
+
+    def finish(stmt: str) -> str:
+        if doc_value == "None":
+            return stmt
+        return f"#functionDoc({emit_id(name)}, {doc_value}, {stmt})"
+
     generator_function = emit_simple_generator_function_def(name, args, body, decorators, returns)
     if generator_function is not None:
-        return generator_function
+        return finish(generator_function)
     if decorators:
         return emit_decorated_function_def(node, name, args, body, decorators)
     if args.kwonlyargs:
@@ -2944,55 +2961,55 @@ def emit_function_def(
                     if args.defaults or kw_defaults is not None:
                         pos_defaults = emit_arg_exps(args.defaults) if args.defaults else "#noArgs"
                         kw_defaults_exp = kw_defaults if kw_defaults is not None else "#noArgs"
-                        return f"#defPosOnlyVarArgsKwDefaultsKwArgs({name}, {emit_id_items(pos_names)}, {emit_id_items(names)}, {pos_defaults}, {args.vararg.arg}, {emit_id_items(kw_names)}, {kw_defaults_exp}, {args.kwarg.arg}, {emit_block(body)})"
-                    return f"#defPosOnlyVarArgsKwOnlyKwArgs({name}, {emit_id_items(pos_names)}, {emit_id_items(names)}, {args.vararg.arg}, {emit_id_items(kw_names)}, {args.kwarg.arg}, {emit_block(body)})"
+                        return finish(f"#defPosOnlyVarArgsKwDefaultsKwArgs({name}, {emit_id_items(pos_names)}, {emit_id_items(names)}, {pos_defaults}, {args.vararg.arg}, {emit_id_items(kw_names)}, {kw_defaults_exp}, {args.kwarg.arg}, {emit_block(body)})")
+                    return finish(f"#defPosOnlyVarArgsKwOnlyKwArgs({name}, {emit_id_items(pos_names)}, {emit_id_items(names)}, {args.vararg.arg}, {emit_id_items(kw_names)}, {args.kwarg.arg}, {emit_block(body)})")
                 if args.defaults or kw_defaults is not None:
                     pos_defaults = emit_arg_exps(args.defaults) if args.defaults else "#noArgs"
                     kw_defaults_exp = kw_defaults if kw_defaults is not None else "#noArgs"
-                    return f"#defPosOnlyVarArgsKwDefaults({name}, {emit_id_items(pos_names)}, {emit_id_items(names)}, {pos_defaults}, {args.vararg.arg}, {emit_id_items(kw_names)}, {kw_defaults_exp}, {emit_block(body)})"
-                return f"#defPosOnlyVarArgsKwOnly({name}, {emit_id_items(pos_names)}, {emit_id_items(names)}, {args.vararg.arg}, {emit_id_items(kw_names)}, {emit_block(body)})"
+                    return finish(f"#defPosOnlyVarArgsKwDefaults({name}, {emit_id_items(pos_names)}, {emit_id_items(names)}, {pos_defaults}, {args.vararg.arg}, {emit_id_items(kw_names)}, {kw_defaults_exp}, {emit_block(body)})")
+                return finish(f"#defPosOnlyVarArgsKwOnly({name}, {emit_id_items(pos_names)}, {emit_id_items(names)}, {args.vararg.arg}, {emit_id_items(kw_names)}, {emit_block(body)})")
             if args.kwarg is not None:
                 if args.defaults or kw_defaults is not None:
                     pos_defaults = emit_arg_exps(args.defaults) if args.defaults else "#noArgs"
                     kw_defaults_exp = kw_defaults if kw_defaults is not None else "#noArgs"
-                    return f"#defPosOnlyKwDefaultsKwArgs({name}, {emit_id_items(pos_names)}, {emit_id_items(names)}, {pos_defaults}, {emit_id_items(kw_names)}, {kw_defaults_exp}, {args.kwarg.arg}, {emit_block(body)})"
-                return f"#defPosOnlyKwOnlyKwArgs({name}, {emit_id_items(pos_names)}, {emit_id_items(names)}, {emit_id_items(kw_names)}, {args.kwarg.arg}, {emit_block(body)})"
+                    return finish(f"#defPosOnlyKwDefaultsKwArgs({name}, {emit_id_items(pos_names)}, {emit_id_items(names)}, {pos_defaults}, {emit_id_items(kw_names)}, {kw_defaults_exp}, {args.kwarg.arg}, {emit_block(body)})")
+                return finish(f"#defPosOnlyKwOnlyKwArgs({name}, {emit_id_items(pos_names)}, {emit_id_items(names)}, {emit_id_items(kw_names)}, {args.kwarg.arg}, {emit_block(body)})")
             if args.defaults or kw_defaults is not None:
                 pos_defaults = emit_arg_exps(args.defaults) if args.defaults else "#noArgs"
                 kw_defaults_exp = kw_defaults if kw_defaults is not None else "#noArgs"
-                return f"#defPosOnlyKwOnlyDefaults({name}, {emit_id_items(pos_names)}, {emit_id_items(names)}, {pos_defaults}, {emit_id_items(kw_names)}, {kw_defaults_exp}, {emit_block(body)})"
-            return f"#defPosOnlyKwOnly({name}, {emit_id_items(pos_names)}, {emit_id_items(names)}, {emit_id_items(kw_names)}, {emit_block(body)})"
+                return finish(f"#defPosOnlyKwOnlyDefaults({name}, {emit_id_items(pos_names)}, {emit_id_items(names)}, {pos_defaults}, {emit_id_items(kw_names)}, {kw_defaults_exp}, {emit_block(body)})")
+            return finish(f"#defPosOnlyKwOnly({name}, {emit_id_items(pos_names)}, {emit_id_items(names)}, {emit_id_items(kw_names)}, {emit_block(body)})")
         if args.kwarg is not None:
             if args.vararg is not None:
                 if args.defaults or kw_defaults is not None:
                     pos_defaults = emit_arg_exps(args.defaults) if args.defaults else "#noArgs"
                     kw_defaults_exp = kw_defaults if kw_defaults is not None else "#noArgs"
-                    return f"#defVarArgsKwDefaultsKwArgs({name}, {emit_id_items(names)}, {pos_defaults}, {args.vararg.arg}, {emit_id_items(kw_names)}, {kw_defaults_exp}, {args.kwarg.arg}, {emit_block(body)})"
-                return f"#defVarArgsKwOnlyKwArgs({name}, {emit_id_items(names)}, {args.vararg.arg}, {emit_id_items(kw_names)}, {args.kwarg.arg}, {emit_block(body)})"
+                    return finish(f"#defVarArgsKwDefaultsKwArgs({name}, {emit_id_items(names)}, {pos_defaults}, {args.vararg.arg}, {emit_id_items(kw_names)}, {kw_defaults_exp}, {args.kwarg.arg}, {emit_block(body)})")
+                return finish(f"#defVarArgsKwOnlyKwArgs({name}, {emit_id_items(names)}, {args.vararg.arg}, {emit_id_items(kw_names)}, {args.kwarg.arg}, {emit_block(body)})")
             if names:
                 if args.defaults or kw_defaults is not None:
                     pos_defaults = emit_arg_exps(args.defaults) if args.defaults else "#noArgs"
                     kw_defaults_exp = kw_defaults if kw_defaults is not None else "#noArgs"
-                    return f"#defPosKwDefaultsKwArgs({name}, {emit_id_items(names)}, {pos_defaults}, {emit_id_items(kw_names)}, {kw_defaults_exp}, {args.kwarg.arg}, {emit_block(body)})"
-                return f"#defPosKwOnlyKwArgs({name}, {emit_id_items(names)}, {emit_id_items(kw_names)}, {args.kwarg.arg}, {emit_block(body)})"
+                    return finish(f"#defPosKwDefaultsKwArgs({name}, {emit_id_items(names)}, {pos_defaults}, {emit_id_items(kw_names)}, {kw_defaults_exp}, {args.kwarg.arg}, {emit_block(body)})")
+                return finish(f"#defPosKwOnlyKwArgs({name}, {emit_id_items(names)}, {emit_id_items(kw_names)}, {args.kwarg.arg}, {emit_block(body)})")
             if kw_defaults is not None:
-                return f"#defKwDefaultsKwArgs({name}, {emit_id_items(kw_names)}, {kw_defaults}, {args.kwarg.arg}, {emit_block(body)})"
-            return f"#defKwOnlyKwArgs({name}, {emit_id_items(kw_names)}, {args.kwarg.arg}, {emit_block(body)})"
+                return finish(f"#defKwDefaultsKwArgs({name}, {emit_id_items(kw_names)}, {kw_defaults}, {args.kwarg.arg}, {emit_block(body)})")
+            return finish(f"#defKwOnlyKwArgs({name}, {emit_id_items(kw_names)}, {args.kwarg.arg}, {emit_block(body)})")
         if args.vararg is not None:
             if args.defaults or kw_defaults is not None:
                 pos_defaults = emit_arg_exps(args.defaults) if args.defaults else "#noArgs"
                 kw_defaults_exp = kw_defaults if kw_defaults is not None else "#noArgs"
-                return f"#defVarArgsKwDefaults({name}, {emit_id_items(names)}, {pos_defaults}, {args.vararg.arg}, {emit_id_items(kw_names)}, {kw_defaults_exp}, {emit_block(body)})"
-            return f"#defVarArgsKwOnly({name}, {emit_id_items(names)}, {args.vararg.arg}, {emit_id_items(kw_names)}, {emit_block(body)})"
+                return finish(f"#defVarArgsKwDefaults({name}, {emit_id_items(names)}, {pos_defaults}, {args.vararg.arg}, {emit_id_items(kw_names)}, {kw_defaults_exp}, {emit_block(body)})")
+            return finish(f"#defVarArgsKwOnly({name}, {emit_id_items(names)}, {args.vararg.arg}, {emit_id_items(kw_names)}, {emit_block(body)})")
         if names:
             if args.defaults or kw_defaults is not None:
                 pos_defaults = emit_arg_exps(args.defaults) if args.defaults else "#noArgs"
                 kw_defaults_exp = kw_defaults if kw_defaults is not None else "#noArgs"
-                return f"#defPosKwDefaults({name}, {emit_id_items(names)}, {pos_defaults}, {emit_id_items(kw_names)}, {kw_defaults_exp}, {emit_block(body)})"
-            return f"#defPosKwOnly({name}, {emit_id_items(names)}, {emit_id_items(kw_names)}, {emit_block(body)})"
+                return finish(f"#defPosKwDefaults({name}, {emit_id_items(names)}, {pos_defaults}, {emit_id_items(kw_names)}, {kw_defaults_exp}, {emit_block(body)})")
+            return finish(f"#defPosKwOnly({name}, {emit_id_items(names)}, {emit_id_items(kw_names)}, {emit_block(body)})")
         if kw_defaults is not None:
-            return f"#defKwDefaults({name}, {emit_id_items(kw_names)}, {kw_defaults}, {emit_block(body)})"
-        return f"#defKwOnly({name}, {emit_id_items(kw_names)}, {emit_block(body)})"
+            return finish(f"#defKwDefaults({name}, {emit_id_items(kw_names)}, {kw_defaults}, {emit_block(body)})")
+        return finish(f"#defKwOnly({name}, {emit_id_items(kw_names)}, {emit_block(body)})")
     names = [arg.arg for arg in args.args]
     if args.posonlyargs:
         if args.kwarg is not None or any(default is not None for default in args.kw_defaults):
@@ -3002,28 +3019,28 @@ def emit_function_def(
         if args.kwarg is not None:
             if args.vararg is not None:
                 if args.defaults:
-                    return f"#defPosOnlyVarKwArgsDefaults({name}, {emit_id_items(pos_names)}, {emit_id_items(names)}, {emit_arg_exps(args.defaults)}, {args.vararg.arg}, {args.kwarg.arg}, {emit_block(body)})"
-                return f"#defPosOnlyVarKwArgs({name}, {emit_id_items(pos_names)}, {emit_id_items(names)}, {args.vararg.arg}, {args.kwarg.arg}, {emit_block(body)})"
+                    return finish(f"#defPosOnlyVarKwArgsDefaults({name}, {emit_id_items(pos_names)}, {emit_id_items(names)}, {emit_arg_exps(args.defaults)}, {args.vararg.arg}, {args.kwarg.arg}, {emit_block(body)})")
+                return finish(f"#defPosOnlyVarKwArgs({name}, {emit_id_items(pos_names)}, {emit_id_items(names)}, {args.vararg.arg}, {args.kwarg.arg}, {emit_block(body)})")
             if args.defaults:
-                return f"#defPosOnlyKwArgsDefaults({name}, {emit_id_items(pos_names)}, {emit_id_items(names)}, {emit_arg_exps(args.defaults)}, {args.kwarg.arg}, {emit_block(body)})"
-            return f"#defPosOnlyKwArgs({name}, {emit_id_items(pos_names)}, {emit_id_items(names)}, {args.kwarg.arg}, {emit_block(body)})"
+                return finish(f"#defPosOnlyKwArgsDefaults({name}, {emit_id_items(pos_names)}, {emit_id_items(names)}, {emit_arg_exps(args.defaults)}, {args.kwarg.arg}, {emit_block(body)})")
+            return finish(f"#defPosOnlyKwArgs({name}, {emit_id_items(pos_names)}, {emit_id_items(names)}, {args.kwarg.arg}, {emit_block(body)})")
         if args.vararg is not None:
             if args.defaults:
-                return f"#defPosOnlyVarArgsDefaults({name}, {emit_id_items(pos_names)}, {emit_id_items(names)}, {emit_arg_exps(args.defaults)}, {args.vararg.arg}, {emit_block(body)})"
-            return f"#defPosOnlyVarArgs({name}, {emit_id_items(pos_names)}, {emit_id_items(names)}, {args.vararg.arg}, {emit_block(body)})"
+                return finish(f"#defPosOnlyVarArgsDefaults({name}, {emit_id_items(pos_names)}, {emit_id_items(names)}, {emit_arg_exps(args.defaults)}, {args.vararg.arg}, {emit_block(body)})")
+            return finish(f"#defPosOnlyVarArgs({name}, {emit_id_items(pos_names)}, {emit_id_items(names)}, {args.vararg.arg}, {emit_block(body)})")
         if args.defaults:
-            return f"#defPosOnlyDefaults({name}, {emit_id_items(pos_names)}, {emit_id_items(names)}, {emit_arg_exps(args.defaults)}, {emit_block(body)})"
-        return f"#defPosOnly({name}, {emit_id_items(pos_names)}, {emit_id_items(names)}, {emit_block(body)})"
+            return finish(f"#defPosOnlyDefaults({name}, {emit_id_items(pos_names)}, {emit_id_items(names)}, {emit_arg_exps(args.defaults)}, {emit_block(body)})")
+        return finish(f"#defPosOnly({name}, {emit_id_items(pos_names)}, {emit_id_items(names)}, {emit_block(body)})")
     if args.kwarg is not None:
         if args.posonlyargs or any(default is not None for default in args.kw_defaults):
             raise unsupported(node, "kwargs are supported only without positional-only parameters or keyword-only parameters")
         if args.vararg is not None:
             if args.defaults:
-                return f"#defVarKwArgsDefaults({name}, {emit_id_items(names)}, {emit_arg_exps(args.defaults)}, {args.vararg.arg}, {args.kwarg.arg}, {emit_block(body)})"
-            return f"#defVarKwArgs({name}, {emit_id_items(names)}, {args.vararg.arg}, {args.kwarg.arg}, {emit_block(body)})"
+                return finish(f"#defVarKwArgsDefaults({name}, {emit_id_items(names)}, {emit_arg_exps(args.defaults)}, {args.vararg.arg}, {args.kwarg.arg}, {emit_block(body)})")
+            return finish(f"#defVarKwArgs({name}, {emit_id_items(names)}, {args.vararg.arg}, {args.kwarg.arg}, {emit_block(body)})")
         if args.defaults:
-            return f"#defKwArgsDefaults({name}, {emit_id_items(names)}, {emit_arg_exps(args.defaults)}, {args.kwarg.arg}, {emit_block(body)})"
-        return f"#defKwArgs({name}, {emit_id_items(names)}, {args.kwarg.arg}, {emit_block(body)})"
+            return finish(f"#defKwArgsDefaults({name}, {emit_id_items(names)}, {emit_arg_exps(args.defaults)}, {args.kwarg.arg}, {emit_block(body)})")
+        return finish(f"#defKwArgs({name}, {emit_id_items(names)}, {args.kwarg.arg}, {emit_block(body)})")
     if (
         args.posonlyargs
         or any(default is not None for default in args.kw_defaults)
@@ -3031,14 +3048,13 @@ def emit_function_def(
         raise unsupported(node, "positional-only, keyword-only, and kwargs are not supported yet")
     if args.vararg is not None:
         if args.defaults:
-            return f"#defVarArgsDefaults({name}, {emit_id_items(names)}, {emit_arg_exps(args.defaults)}, {args.vararg.arg}, {emit_block(body)})"
-        return f"#defVarArgs({name}, {emit_id_items(names)}, {args.vararg.arg}, {emit_block(body)})"
+            return finish(f"#defVarArgsDefaults({name}, {emit_id_items(names)}, {emit_arg_exps(args.defaults)}, {args.vararg.arg}, {emit_block(body)})")
+        return finish(f"#defVarArgs({name}, {emit_id_items(names)}, {args.vararg.arg}, {emit_block(body)})")
     if args.defaults:
-        return f"#defDefaults({name}, {emit_id_items(names)}, {emit_arg_exps(args.defaults)}, {emit_block(body)})"
+        return finish(f"#defDefaults({name}, {emit_id_items(names)}, {emit_arg_exps(args.defaults)}, {emit_block(body)})")
     if len(names) == 1:
-        return f"#def({name}, {names[0]}, {emit_block(body)})"
-    return f"#defArgs({name}, {emit_id_items(names)}, {emit_block(body)})"
-
+        return finish(f"#def({name}, {names[0]}, {emit_block(body)})")
+    return finish(f"#defArgs({name}, {emit_id_items(names)}, {emit_block(body)})")
 
 def emit_decorated_function_def(
     node: ast.AST,

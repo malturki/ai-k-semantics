@@ -413,6 +413,7 @@ module PYTHON-SYNTAX
                 | "#defPosKwOnlyKwArgs" "(" Id "," IdItems "," IdItems "," Id "," Block ")" [symbol(functionDefPosKwOnlyKwArgsStmt)]
                 | "#defPosKwDefaultsKwArgs" "(" Id "," IdItems "," ArgExps "," IdItems "," ArgExps "," Id "," Block ")" [symbol(functionDefPosKwDefaultsKwArgsStmt)]
                 | "#defDecorated" "(" Id "," ArgExps "," FunctionSpec ")" [symbol(functionDefDecoratedStmt)]
+                | "#functionDoc" "(" Id "," Val "," Stmt ")" [symbol(functionDocStmt)]
                 | "#genDef" "(" Id "," IdItems "," YieldExps ")" [symbol(generatorFunctionDefStmt)]
                 | "#class" "(" Id ")" [symbol(classDefStmt)]
                 | "#classAttrs" "(" Id "," ClassAttrExps ")" [symbol(classDefAttrsStmt)]
@@ -804,6 +805,9 @@ module PYTHON
                | functionValPosKwDefaults(IdItems, ArgVals, IdItems, ArgVals, Block) [symbol(functionValPosKwDefaults)]
                | functionValPosKwOnlyKwArgs(IdItems, IdItems, Id, Block) [symbol(functionValPosKwOnlyKwArgs)]
                | functionValPosKwDefaultsKwArgs(IdItems, ArgVals, IdItems, ArgVals, Id, Block) [symbol(functionValPosKwDefaultsKwArgs)]
+               | functionMetaVal(String, String, Val, String, Val) [symbol(functionMetaVal)]
+               | functionMeta(Id, Val, Val) [function, symbol(functionMeta)]
+               | functionSetDoc(Id, Val, Val) [function, symbol(functionSetDoc)]
                | generatorFunctionVal(IdItems, YieldExps) [symbol(generatorFunctionVal)]
                | classVal(Id, Int, ClassAttrs) [symbol(classVal)]
                | userObjectVal(Id, Int, Int, ClassAttrs) [symbol(userObjectVal)]
@@ -1658,6 +1662,7 @@ module PYTHON
                  | bindDecoratedFunctionTwoDefaultBuilderKw(Id, ArgVals, FunctionTwoDefaultBuilder, ArgExps) [symbol(bindDecoratedFunctionTwoDefaultBuilderKw)]
                  | bindDecoratedFunctionTwoDefaultBuilderVals(Id, ArgVals, ArgVals, FunctionTwoDefaultBuilder) [symbol(bindDecoratedFunctionTwoDefaultBuilderVals)]
                  | applyDecorators(Id, ArgVals) [symbol(applyDecorators)]
+                 | functionDocApply(Id, Val) [symbol(functionDocApply)]
                  | bindFunctionDefaults(Id, IdItems, Block) [symbol(bindFunctionDefaults)]
                  | bindFunctionVarArgsDefaults(Id, IdItems, Id, Block) [symbol(bindFunctionVarArgsDefaults)]
                  | bindFunctionVarArgsKwDefaults(Id, IdItems, ArgExps, Id, IdItems, Block) [symbol(bindFunctionVarArgsKwDefaults)]
@@ -3047,6 +3052,7 @@ module PYTHON
   rule truthy(functionValPosKwDefaults(_:IdItems, _:ArgVals, _:IdItems, _:ArgVals, _:Block)) => true
   rule truthy(functionValPosKwOnlyKwArgs(_:IdItems, _:IdItems, _:Id, _:Block)) => true
   rule truthy(functionValPosKwDefaultsKwArgs(_:IdItems, _:ArgVals, _:IdItems, _:ArgVals, _:Id, _:Block)) => true
+  rule truthy(functionMetaVal(_:String, _:String, _:Val, _:String, _:Val)) => true
   rule truthy(generatorFunctionVal(_:IdItems, _:YieldExps)) => true
   rule truthy(classVal(_:Id, _:Int, _:ClassAttrs)) => true
   rule truthy(userObjectVal(_:Id, _:Int, _:Int, _:ClassAttrs)) => true
@@ -3184,6 +3190,7 @@ module PYTHON
   rule callableVal(functionValPosKwDefaults(_:IdItems, _:ArgVals, _:IdItems, _:ArgVals, _:Block)) => true
   rule callableVal(functionValPosKwOnlyKwArgs(_:IdItems, _:IdItems, _:Id, _:Block)) => true
   rule callableVal(functionValPosKwDefaultsKwArgs(_:IdItems, _:ArgVals, _:IdItems, _:ArgVals, _:Id, _:Block)) => true
+  rule callableVal(functionMetaVal(_:String, _:String, _:Val, _:String, F:Val)) => callableVal(F)
   rule callableVal(generatorFunctionVal(_:IdItems, _:YieldExps)) => true
   rule callableVal(classVal(_:Id, _:Int, _:ClassAttrs)) => true
   rule callableVal(boundMethodVal(_:Val, _:Val)) => true
@@ -4903,6 +4910,7 @@ module PYTHON
   rule isIntLike(functionValPosKwDefaults(_:IdItems, _:ArgVals, _:IdItems, _:ArgVals, _:Block)) => false
   rule isIntLike(functionValPosKwOnlyKwArgs(_:IdItems, _:IdItems, _:Id, _:Block)) => false
   rule isIntLike(functionValPosKwDefaultsKwArgs(_:IdItems, _:ArgVals, _:IdItems, _:ArgVals, _:Id, _:Block)) => false
+  rule isIntLike(functionMetaVal(_:String, _:String, _:Val, _:String, _:Val)) => false
   rule isIntLike(generatorFunctionVal(_:IdItems, _:YieldExps)) => false
   rule isIntLike(classVal(_:Id, _:Int, _:ClassAttrs)) => false
   rule isIntLike(userObjectVal(_:Id, _:Int, _:Int, _:ClassAttrs)) => false
@@ -5933,6 +5941,7 @@ module PYTHON
   rule singletonIdentity(functionValPosKwDefaults(_:IdItems, _:ArgVals, _:IdItems, _:ArgVals, _:Block)) => false
   rule singletonIdentity(functionValPosKwOnlyKwArgs(_:IdItems, _:IdItems, _:Id, _:Block)) => false
   rule singletonIdentity(functionValPosKwDefaultsKwArgs(_:IdItems, _:ArgVals, _:IdItems, _:ArgVals, _:Id, _:Block)) => false
+  rule singletonIdentity(functionMetaVal(_:String, _:String, _:Val, _:String, _:Val)) => false
   rule singletonIdentity(generatorFunctionVal(_:IdItems, _:YieldExps)) => false
   rule singletonIdentity(classVal(_:Id, _:Int, _:ClassAttrs)) => false
   rule singletonIdentity(userObjectVal(_:Id, _:Int, _:Int, _:ClassAttrs)) => false
@@ -6491,6 +6500,13 @@ module PYTHON
   rule classAttrsInherit(Attrs:ClassAttrs, BaseId:Int, BaseAttrs:ClassAttrs) =>
     classBase(BaseId, classAttrsAppend(Attrs, BaseAttrs))
 
+  rule functionMeta(F:Id, Doc:Val, Fun:Val) =>
+    functionMetaVal(Id2String(F), Id2String(F), Doc, "__main__", Fun)
+
+  rule functionSetDoc(_F:Id, Doc:Val, functionMetaVal(Name:String, Qual:String, _OldDoc:Val, Module:String, Fun:Val)) =>
+    functionMetaVal(Name, Qual, Doc, Module, Fun)
+  rule functionSetDoc(F:Id, Doc:Val, Fun:Val) => functionMeta(F, Doc, Fun) [owise]
+
   rule classAttrsHas(#noRuntimeClassAttrs, _:Id) => false
   rule classAttrsHas(classAttr(A:Id, _:Val, _Rest:ClassAttrs), B:Id) => true
     requires Id2String(A) ==String Id2String(B)
@@ -6513,6 +6529,7 @@ module PYTHON
   rule classAttrsHasString(classBase(_:Int, Rest:ClassAttrs), B:String) => classAttrsHasString(Rest, B)
 
   rule classAttrIdMatchesString(#token("kDunderInitName", "Id"), B:String) => B ==String "__init__"
+  rule classAttrIdMatchesString(#token("kDunderNameName", "Id"), B:String) => B ==String "__name__"
   rule classAttrIdMatchesString(#token("kDunderDocName", "Id"), B:String) => B ==String "__doc__"
   rule classAttrIdMatchesString(#token("kDunderModuleName", "Id"), B:String) => B ==String "__module__"
   rule classAttrIdMatchesString(#token("kDunderQualnameName", "Id"), B:String) => B ==String "__qualname__"
@@ -6570,6 +6587,11 @@ module PYTHON
     requires Id2String(A) ==String "real" orBool Id2String(A) ==String "imag"
   rule classHasMatchAttr(_:Float, A:Id) => true
     requires Id2String(A) ==String "real" orBool Id2String(A) ==String "imag"
+  rule classHasMatchAttr(functionMetaVal(_:String, _:String, _:Val, _:String, _:Val), A:Id) => true
+    requires classAttrIdMatchesString(A, "__name__")
+      orBool classAttrIdMatchesString(A, "__qualname__")
+      orBool classAttrIdMatchesString(A, "__doc__")
+      orBool classAttrIdMatchesString(A, "__module__")
   rule classHasMatchAttr(V:Val, A:Id) => true
     requires isIntLike(V)
       andBool (Id2String(A) ==String "real"
@@ -6586,6 +6608,10 @@ module PYTHON
   rule getattrStringSupported("numerator") => true
   rule getattrStringSupported("denominator") => true
   rule getattrStringSupported("missing") => true
+  rule getattrStringSupported("__name__") => true
+  rule getattrStringSupported("__qualname__") => true
+  rule getattrStringSupported("__doc__") => true
+  rule getattrStringSupported("__module__") => true
   rule getattrStringSupported(_:String) => false [owise]
 
   rule classHasAttrString(classVal(_:Id, _:Int, Attrs:ClassAttrs), A:String) => true
@@ -6602,6 +6628,11 @@ module PYTHON
     requires A ==String "real" orBool A ==String "imag"
   rule classHasAttrString(_:Float, A:String) => true
     requires A ==String "real" orBool A ==String "imag"
+  rule classHasAttrString(functionMetaVal(_:String, _:String, _:Val, _:String, _:Val), A:String) => true
+    requires A ==String "__name__"
+      orBool A ==String "__qualname__"
+      orBool A ==String "__doc__"
+      orBool A ==String "__module__"
   rule classHasAttrString(V:Val, A:String) => true
     requires isIntLike(V)
       andBool (A ==String "real"
@@ -6646,6 +6677,7 @@ module PYTHON
   rule bindableUserMethodVal(functionValPosOnlyKwOnlyDefaults(_:IdItems, _:IdItems, _:ArgVals, _:IdItems, _:ArgVals, _:Block)) => true
   rule bindableUserMethodVal(functionValPosOnlyKwOnlyKwArgs(_:IdItems, _:IdItems, _:IdItems, _:Id, _:Block)) => true
   rule bindableUserMethodVal(functionValPosOnlyKwDefaultsKwArgs(_:IdItems, _:IdItems, _:ArgVals, _:IdItems, _:ArgVals, _:Id, _:Block)) => true
+  rule bindableUserMethodVal(functionMetaVal(_:String, _:String, _:Val, _:String, F:Val)) => bindableUserMethodVal(F)
   rule bindableUserMethodVal(_:Val) => false [owise]
 
   rule matchClassAttrVal(classVal(C:Id, ClassId:Int, Attrs:ClassAttrs), Attr:Id) =>
@@ -6680,6 +6712,14 @@ module PYTHON
     requires Id2String(Attr) ==String "real"
   rule matchClassAttrVal(_:Float, Attr:Id) => 0.0
     requires Id2String(Attr) ==String "imag"
+  rule matchClassAttrVal(functionMetaVal(Name:String, _:String, _:Val, _:String, _:Val), Attr:Id) => Name
+    requires classAttrIdMatchesString(Attr, "__name__")
+  rule matchClassAttrVal(functionMetaVal(_:String, Qual:String, _:Val, _:String, _:Val), Attr:Id) => Qual
+    requires classAttrIdMatchesString(Attr, "__qualname__")
+  rule matchClassAttrVal(functionMetaVal(_:String, _:String, Doc:Val, _:String, _:Val), Attr:Id) => Doc
+    requires classAttrIdMatchesString(Attr, "__doc__")
+  rule matchClassAttrVal(functionMetaVal(_:String, _:String, _:Val, Module:String, _:Val), Attr:Id) => Module
+    requires classAttrIdMatchesString(Attr, "__module__")
   rule matchClassAttrVal(V:Val, Attr:Id) => intValue(V)
     requires isIntLike(V) andBool Id2String(Attr) ==String "real"
   rule matchClassAttrVal(V:Val, Attr:Id) => 0
@@ -6721,6 +6761,10 @@ module PYTHON
     requires Attr ==String "real"
   rule matchClassAttrStringVal(_:Float, Attr:String) => 0.0
     requires Attr ==String "imag"
+  rule matchClassAttrStringVal(functionMetaVal(Name:String, _:String, _:Val, _:String, _:Val), "__name__") => Name
+  rule matchClassAttrStringVal(functionMetaVal(_:String, Qual:String, _:Val, _:String, _:Val), "__qualname__") => Qual
+  rule matchClassAttrStringVal(functionMetaVal(_:String, _:String, Doc:Val, _:String, _:Val), "__doc__") => Doc
+  rule matchClassAttrStringVal(functionMetaVal(_:String, _:String, _:Val, Module:String, _:Val), "__module__") => Module
   rule matchClassAttrStringVal(V:Val, Attr:String) => intValue(V)
     requires isIntLike(V) andBool Attr ==String "real"
   rule matchClassAttrStringVal(V:Val, Attr:String) => 0
@@ -16274,6 +16318,18 @@ module PYTHON
     requires Id2String(Attr) ==String "real"
   rule attrExp(_:Float, Attr:Id) => 0.0
     requires Id2String(Attr) ==String "imag"
+  rule attrExp(functionMetaVal(Name:String, _:String, _:Val, _:String, _:Val), Attr:Id) => Name
+    requires classAttrIdMatchesString(Attr, "__name__")
+  rule attrExp(functionMetaVal(_:String, Qual:String, _:Val, _:String, _:Val), Attr:Id) => Qual
+    requires classAttrIdMatchesString(Attr, "__qualname__")
+  rule attrExp(functionMetaVal(_:String, _:String, Doc:Val, _:String, _:Val), Attr:Id) => Doc
+    requires classAttrIdMatchesString(Attr, "__doc__")
+  rule attrExp(functionMetaVal(_:String, _:String, _:Val, Module:String, _:Val), Attr:Id) => Module
+    requires classAttrIdMatchesString(Attr, "__module__")
+  rule <k> attrExp(functionMetaVal(Name:String, Qual:String, Doc:Val, Module:String, Fun:Val), Attr:Id) =>
+           exceptionSignal(#exception(#token("AttributeError", "Id")))
+       ... </k>
+    requires notBool classHasMatchAttr(functionMetaVal(Name, Qual, Doc, Module, Fun), Attr)
   rule attrExp(V:Val, Attr:Id) => intValue(V)
     requires isIntLike(V) andBool Id2String(Attr) ==String "real"
   rule attrExp(V:Val, Attr:Id) => 0
@@ -17155,6 +17211,9 @@ module PYTHON
            exceptionSignal(#exception(#token("TypeError", "Id")))
        ... </k>
     requires notBool callableVal(F)
+  rule <k> A:Val ~> callApply(functionMetaVal(_:String, _:String, _:Val, _:String, F:Val)) =>
+           A ~> callApply(F)
+       ... </k>
   rule <k> A:Val ~> callApply(classVal(C:Id, ClassId:Int, Attrs:ClassAttrs)) =>
            argsVal(argValsCons(A, #noArgVals))
            ~> callApplyArgs(boundMethodVal(userObjectVal(C, ClassId, I, Attrs), classAttrGet(Attrs, #token("kDunderInitName", "Id"))))
@@ -17759,6 +17818,9 @@ module PYTHON
            exceptionSignal(#exception(#token("TypeError", "Id")))
        ... </k>
     requires notBool callableVal(F)
+  rule <k> argsVal(VS:ArgVals) ~> callApplyArgs(functionMetaVal(_:String, _:String, _:Val, _:String, F:Val)) =>
+           argsVal(VS) ~> callApplyArgs(F)
+       ... </k>
   rule <k> argsVal(VS:ArgVals) ~> callApplyArgs(boundMethodVal(Self:Val, F:Val)) =>
            argsVal(argValsCons(Self, VS)) ~> callApplyArgs(F)
        ... </k>
@@ -18372,6 +18434,9 @@ module PYTHON
            exceptionSignal(#exception(#token("TypeError", "Id")))
        ... </k>
     requires notBool callableVal(F)
+  rule <k> kwArgsVal(KWS:KwArgVals) ~> callApplyKwArgs(functionMetaVal(_:String, _:String, _:Val, _:String, F:Val)) =>
+           kwArgsVal(KWS) ~> callApplyKwArgs(F)
+       ... </k>
   rule <k> kwArgsVal(KWS:KwArgVals) ~> callApplyKwArgs(boundMethodVal(Self:Val, F:Val)) =>
            kwArgsVal(KWS) ~> callApplyMixedArgs(F, argValsCons(Self, #noArgVals))
        ... </k>
@@ -19091,6 +19156,9 @@ module PYTHON
     requires notBool callableVal(F)
   rule <k> kwArgsVal(_:KwArgVals) ~> callApplyMixedArgs(generatorFunctionVal(_:IdItems, _:YieldExps), _:ArgVals) =>
            exceptionSignal(#exception(#token("TypeError", "Id")))
+       ... </k>
+  rule <k> kwArgsVal(KWS:KwArgVals) ~> callApplyMixedArgs(functionMetaVal(_:String, _:String, _:Val, _:String, F:Val), VS:ArgVals) =>
+           kwArgsVal(KWS) ~> callApplyMixedArgs(F, VS)
        ... </k>
   rule <k> kwArgsVal(KWS:KwArgVals) ~> callApplyMixedArgs(boundMethodVal(Self:Val, F:Val), VS:ArgVals) =>
            kwArgsVal(KWS) ~> callApplyMixedArgs(F, argValsCons(Self, VS))
@@ -30171,14 +30239,20 @@ module PYTHON
       andBool notBool starUnpackArityOk(Prefix, Suffix, unpackValueLen(V))
 
   rule <k> functionDefStmt(F:Id, X:Id, Body:Block) => stmtNoResult ... </k>
-       <env> Rho => Rho [ F <- functionVal(X, Body) ] </env>
+       <env> Rho => Rho [ F <- functionMeta(F, None, functionVal(X, Body)) ] </env>
        <result> _ => .K </result>
   rule <k> functionDefArgsStmt(F:Id, IDS:IdItems, Body:Block) => stmtNoResult ... </k>
-       <env> Rho => Rho [ F <- functionValArgs(IDS, Body) ] </env>
+       <env> Rho => Rho [ F <- functionMeta(F, None, functionValArgs(IDS, Body)) ] </env>
        <result> _ => .K </result>
   rule <k> generatorFunctionDefStmt(F:Id, IDS:IdItems, Yields:YieldExps) => stmtNoResult ... </k>
-       <env> Rho => Rho [ F <- generatorFunctionVal(IDS, Yields) ] </env>
+       <env> Rho => Rho [ F <- functionMeta(F, None, generatorFunctionVal(IDS, Yields)) ] </env>
        <result> _ => .K </result>
+  rule <k> functionDocStmt(F:Id, Doc:Val, S:Stmt) =>
+           S ~> functionDocApply(F, Doc)
+       ... </k>
+  rule <k> stmtNoResult ~> functionDocApply(F:Id, Doc:Val) => stmtNoResult ... </k>
+       <env> ... F |-> (Fun:Val => functionSetDoc(F, Doc, Fun)) ... </env>
+  rule <k> exceptionSignal(V:Val) ~> functionDocApply(_:Id, _:Val) => exceptionSignal(V) ... </k>
   rule <k> classDefStmt(C:Id) => stmtNoResult ... </k>
        <env> Rho => Rho [ C <- classVal(C, I, #noRuntimeClassAttrs) ] </env>
        <nextObject> I => I +Int 1 </nextObject>
@@ -32206,16 +32280,16 @@ module PYTHON
     requires classAttrsHas(Attrs, M)
       andBool isPropertyVal(classAttrGet(Attrs, M))
   rule <k> functionDefVarArgsStmt(F:Id, IDS:IdItems, Var:Id, Body:Block) => stmtNoResult ... </k>
-       <env> Rho => Rho [ F <- functionValVarArgs(IDS, Var, Body) ] </env>
+       <env> Rho => Rho [ F <- functionMeta(F, None, functionValVarArgs(IDS, Var, Body)) ] </env>
        <result> _ => .K </result>
   rule <k> functionDefVarArgsDefaultsStmt(F:Id, IDS:IdItems, Defaults:ArgExps, Var:Id, Body:Block) =>
            evalArgs(Defaults, #noArgVals) ~> bindFunctionVarArgsDefaults(F, IDS, Var, Body)
        ... </k>
   rule <k> argsVal(Defaults:ArgVals) ~> bindFunctionVarArgsDefaults(F:Id, IDS:IdItems, Var:Id, Body:Block) => stmtNoResult ... </k>
-       <env> Rho => Rho [ F <- functionValVarArgsDefaults(IDS, Defaults, Var, Body) ] </env>
+       <env> Rho => Rho [ F <- functionMeta(F, None, functionValVarArgsDefaults(IDS, Defaults, Var, Body)) ] </env>
        <result> _ => .K </result>
   rule <k> functionDefVarArgsKwOnlyStmt(F:Id, IDS:IdItems, Var:Id, KwOnly:IdItems, Body:Block) => stmtNoResult ... </k>
-       <env> Rho => Rho [ F <- functionValVarArgsKwOnly(IDS, Var, KwOnly, Body) ] </env>
+       <env> Rho => Rho [ F <- functionMeta(F, None, functionValVarArgsKwOnly(IDS, Var, KwOnly, Body)) ] </env>
        <result> _ => .K </result>
   rule <k> functionDefVarArgsKwDefaultsStmt(F:Id, IDS:IdItems, Defaults:ArgExps, Var:Id, KwOnly:IdItems, KwDefaults:ArgExps, Body:Block) =>
            evalArgs(Defaults, #noArgVals) ~> bindFunctionVarArgsKwDefaults(F, IDS, KwDefaults, Var, KwOnly, Body)
@@ -32224,10 +32298,10 @@ module PYTHON
            evalArgs(KwDefaults, #noArgVals) ~> bindFunctionVarArgsKwDefaultVals(F, IDS, Defaults, Var, KwOnly, Body)
        ... </k>
   rule <k> argsVal(KwDefaults:ArgVals) ~> bindFunctionVarArgsKwDefaultVals(F:Id, IDS:IdItems, Defaults:ArgVals, Var:Id, KwOnly:IdItems, Body:Block) => stmtNoResult ... </k>
-       <env> Rho => Rho [ F <- functionValVarArgsKwDefaults(IDS, Defaults, Var, KwOnly, KwDefaults, Body) ] </env>
+       <env> Rho => Rho [ F <- functionMeta(F, None, functionValVarArgsKwDefaults(IDS, Defaults, Var, KwOnly, KwDefaults, Body)) ] </env>
        <result> _ => .K </result>
   rule <k> functionDefVarArgsKwOnlyKwArgsStmt(F:Id, IDS:IdItems, Var:Id, KwOnly:IdItems, Kw:Id, Body:Block) => stmtNoResult ... </k>
-       <env> Rho => Rho [ F <- functionValVarArgsKwOnlyKwArgs(IDS, Var, KwOnly, Kw, Body) ] </env>
+       <env> Rho => Rho [ F <- functionMeta(F, None, functionValVarArgsKwOnlyKwArgs(IDS, Var, KwOnly, Kw, Body)) ] </env>
        <result> _ => .K </result>
   rule <k> functionDefVarArgsKwDefaultsKwArgsStmt(F:Id, IDS:IdItems, Defaults:ArgExps, Var:Id, KwOnly:IdItems, KwDefaults:ArgExps, Kw:Id, Body:Block) =>
            evalArgs(Defaults, #noArgVals) ~> bindFunctionVarArgsKwDefaultsKwArgs(F, IDS, KwDefaults, Var, KwOnly, Kw, Body)
@@ -32236,64 +32310,64 @@ module PYTHON
            evalArgs(KwDefaults, #noArgVals) ~> bindFunctionVarArgsKwDefaultValsKwArgs(F, IDS, Defaults, Var, KwOnly, Kw, Body)
        ... </k>
   rule <k> argsVal(KwDefaults:ArgVals) ~> bindFunctionVarArgsKwDefaultValsKwArgs(F:Id, IDS:IdItems, Defaults:ArgVals, Var:Id, KwOnly:IdItems, Kw:Id, Body:Block) => stmtNoResult ... </k>
-       <env> Rho => Rho [ F <- functionValVarArgsKwDefaultsKwArgs(IDS, Defaults, Var, KwOnly, KwDefaults, Kw, Body) ] </env>
+       <env> Rho => Rho [ F <- functionMeta(F, None, functionValVarArgsKwDefaultsKwArgs(IDS, Defaults, Var, KwOnly, KwDefaults, Kw, Body)) ] </env>
        <result> _ => .K </result>
   rule <k> functionDefVarKwArgsStmt(F:Id, IDS:IdItems, Var:Id, Kw:Id, Body:Block) => stmtNoResult ... </k>
-       <env> Rho => Rho [ F <- functionValVarKwArgs(IDS, Var, Kw, Body) ] </env>
+       <env> Rho => Rho [ F <- functionMeta(F, None, functionValVarKwArgs(IDS, Var, Kw, Body)) ] </env>
        <result> _ => .K </result>
   rule <k> functionDefVarKwArgsDefaultsStmt(F:Id, IDS:IdItems, Defaults:ArgExps, Var:Id, Kw:Id, Body:Block) =>
            evalArgs(Defaults, #noArgVals) ~> bindFunctionVarKwArgsDefaults(F, IDS, Var, Kw, Body)
        ... </k>
   rule <k> argsVal(Defaults:ArgVals) ~> bindFunctionVarKwArgsDefaults(F:Id, IDS:IdItems, Var:Id, Kw:Id, Body:Block) => stmtNoResult ... </k>
-       <env> Rho => Rho [ F <- functionValVarKwArgsDefaults(IDS, Defaults, Var, Kw, Body) ] </env>
+       <env> Rho => Rho [ F <- functionMeta(F, None, functionValVarKwArgsDefaults(IDS, Defaults, Var, Kw, Body)) ] </env>
        <result> _ => .K </result>
   rule <k> functionDefKwArgsStmt(F:Id, IDS:IdItems, Kw:Id, Body:Block) => stmtNoResult ... </k>
-       <env> Rho => Rho [ F <- functionValKwArgs(IDS, Kw, Body) ] </env>
+       <env> Rho => Rho [ F <- functionMeta(F, None, functionValKwArgs(IDS, Kw, Body)) ] </env>
        <result> _ => .K </result>
   rule <k> functionDefKwArgsDefaultsStmt(F:Id, IDS:IdItems, Defaults:ArgExps, Kw:Id, Body:Block) =>
            evalArgs(Defaults, #noArgVals) ~> bindFunctionKwArgsDefaults(F, IDS, Kw, Body)
        ... </k>
   rule <k> argsVal(Defaults:ArgVals) ~> bindFunctionKwArgsDefaults(F:Id, IDS:IdItems, Kw:Id, Body:Block) => stmtNoResult ... </k>
-       <env> Rho => Rho [ F <- functionValKwArgsDefaults(IDS, Defaults, Kw, Body) ] </env>
+       <env> Rho => Rho [ F <- functionMeta(F, None, functionValKwArgsDefaults(IDS, Defaults, Kw, Body)) ] </env>
        <result> _ => .K </result>
   rule <k> functionDefPosOnlyStmt(F:Id, Pos:IdItems, Rest:IdItems, Body:Block) => stmtNoResult ... </k>
-       <env> Rho => Rho [ F <- functionValPosOnly(Pos, Rest, Body) ] </env>
+       <env> Rho => Rho [ F <- functionMeta(F, None, functionValPosOnly(Pos, Rest, Body)) ] </env>
        <result> _ => .K </result>
   rule <k> functionDefPosOnlyDefaultsStmt(F:Id, Pos:IdItems, Rest:IdItems, Defaults:ArgExps, Body:Block) =>
            evalArgs(Defaults, #noArgVals) ~> bindFunctionPosOnlyDefaults(F, Pos, Rest, Body)
        ... </k>
   rule <k> argsVal(Defaults:ArgVals) ~> bindFunctionPosOnlyDefaults(F:Id, Pos:IdItems, Rest:IdItems, Body:Block) => stmtNoResult ... </k>
-       <env> Rho => Rho [ F <- functionValPosOnlyDefaults(Pos, Rest, Defaults, Body) ] </env>
+       <env> Rho => Rho [ F <- functionMeta(F, None, functionValPosOnlyDefaults(Pos, Rest, Defaults, Body)) ] </env>
        <result> _ => .K </result>
   rule <k> functionDefPosOnlyVarArgsStmt(F:Id, Pos:IdItems, Rest:IdItems, Var:Id, Body:Block) => stmtNoResult ... </k>
-       <env> Rho => Rho [ F <- functionValPosOnlyVarArgs(Pos, Rest, Var, Body) ] </env>
+       <env> Rho => Rho [ F <- functionMeta(F, None, functionValPosOnlyVarArgs(Pos, Rest, Var, Body)) ] </env>
        <result> _ => .K </result>
   rule <k> functionDefPosOnlyVarArgsDefaultsStmt(F:Id, Pos:IdItems, Rest:IdItems, Defaults:ArgExps, Var:Id, Body:Block) =>
            evalArgs(Defaults, #noArgVals) ~> bindFunctionPosOnlyVarArgsDefaults(F, Pos, Rest, Var, Body)
        ... </k>
   rule <k> argsVal(Defaults:ArgVals) ~> bindFunctionPosOnlyVarArgsDefaults(F:Id, Pos:IdItems, Rest:IdItems, Var:Id, Body:Block) => stmtNoResult ... </k>
-       <env> Rho => Rho [ F <- functionValPosOnlyVarArgsDefaults(Pos, Rest, Defaults, Var, Body) ] </env>
+       <env> Rho => Rho [ F <- functionMeta(F, None, functionValPosOnlyVarArgsDefaults(Pos, Rest, Defaults, Var, Body)) ] </env>
        <result> _ => .K </result>
   rule <k> functionDefPosOnlyKwArgsStmt(F:Id, Pos:IdItems, Rest:IdItems, Kw:Id, Body:Block) => stmtNoResult ... </k>
-       <env> Rho => Rho [ F <- functionValPosOnlyKwArgs(Pos, Rest, Kw, Body) ] </env>
+       <env> Rho => Rho [ F <- functionMeta(F, None, functionValPosOnlyKwArgs(Pos, Rest, Kw, Body)) ] </env>
        <result> _ => .K </result>
   rule <k> functionDefPosOnlyKwArgsDefaultsStmt(F:Id, Pos:IdItems, Rest:IdItems, Defaults:ArgExps, Kw:Id, Body:Block) =>
            evalArgs(Defaults, #noArgVals) ~> bindFunctionPosOnlyKwArgsDefaults(F, Pos, Rest, Kw, Body)
        ... </k>
   rule <k> argsVal(Defaults:ArgVals) ~> bindFunctionPosOnlyKwArgsDefaults(F:Id, Pos:IdItems, Rest:IdItems, Kw:Id, Body:Block) => stmtNoResult ... </k>
-       <env> Rho => Rho [ F <- functionValPosOnlyKwArgsDefaults(Pos, Rest, Defaults, Kw, Body) ] </env>
+       <env> Rho => Rho [ F <- functionMeta(F, None, functionValPosOnlyKwArgsDefaults(Pos, Rest, Defaults, Kw, Body)) ] </env>
        <result> _ => .K </result>
   rule <k> functionDefPosOnlyVarKwArgsStmt(F:Id, Pos:IdItems, Rest:IdItems, Var:Id, Kw:Id, Body:Block) => stmtNoResult ... </k>
-       <env> Rho => Rho [ F <- functionValPosOnlyVarKwArgs(Pos, Rest, Var, Kw, Body) ] </env>
+       <env> Rho => Rho [ F <- functionMeta(F, None, functionValPosOnlyVarKwArgs(Pos, Rest, Var, Kw, Body)) ] </env>
        <result> _ => .K </result>
   rule <k> functionDefPosOnlyVarKwArgsDefaultsStmt(F:Id, Pos:IdItems, Rest:IdItems, Defaults:ArgExps, Var:Id, Kw:Id, Body:Block) =>
            evalArgs(Defaults, #noArgVals) ~> bindFunctionPosOnlyVarKwArgsDefaults(F, Pos, Rest, Var, Kw, Body)
        ... </k>
   rule <k> argsVal(Defaults:ArgVals) ~> bindFunctionPosOnlyVarKwArgsDefaults(F:Id, Pos:IdItems, Rest:IdItems, Var:Id, Kw:Id, Body:Block) => stmtNoResult ... </k>
-       <env> Rho => Rho [ F <- functionValPosOnlyVarKwArgsDefaults(Pos, Rest, Defaults, Var, Kw, Body) ] </env>
+       <env> Rho => Rho [ F <- functionMeta(F, None, functionValPosOnlyVarKwArgsDefaults(Pos, Rest, Defaults, Var, Kw, Body)) ] </env>
        <result> _ => .K </result>
   rule <k> functionDefPosOnlyVarArgsKwOnlyStmt(F:Id, Pos:IdItems, Rest:IdItems, Var:Id, KwOnly:IdItems, Body:Block) => stmtNoResult ... </k>
-       <env> Rho => Rho [ F <- functionValPosOnlyVarArgsKwOnly(Pos, Rest, Var, KwOnly, Body) ] </env>
+       <env> Rho => Rho [ F <- functionMeta(F, None, functionValPosOnlyVarArgsKwOnly(Pos, Rest, Var, KwOnly, Body)) ] </env>
        <result> _ => .K </result>
   rule <k> functionDefPosOnlyVarArgsKwDefaultsStmt(F:Id, Pos:IdItems, Rest:IdItems, Defaults:ArgExps, Var:Id, KwOnly:IdItems, KwDefaults:ArgExps, Body:Block) =>
            evalArgs(Defaults, #noArgVals) ~> bindFunctionPosOnlyVarArgsKwDefaults(F, Pos, Rest, KwDefaults, Var, KwOnly, Body)
@@ -32302,10 +32376,10 @@ module PYTHON
            evalArgs(KwDefaults, #noArgVals) ~> bindFunctionPosOnlyVarArgsKwDefaultVals(F, Pos, Rest, Defaults, Var, KwOnly, Body)
        ... </k>
   rule <k> argsVal(KwDefaults:ArgVals) ~> bindFunctionPosOnlyVarArgsKwDefaultVals(F:Id, Pos:IdItems, Rest:IdItems, Defaults:ArgVals, Var:Id, KwOnly:IdItems, Body:Block) => stmtNoResult ... </k>
-       <env> Rho => Rho [ F <- functionValPosOnlyVarArgsKwDefaults(Pos, Rest, Defaults, Var, KwOnly, KwDefaults, Body) ] </env>
+       <env> Rho => Rho [ F <- functionMeta(F, None, functionValPosOnlyVarArgsKwDefaults(Pos, Rest, Defaults, Var, KwOnly, KwDefaults, Body)) ] </env>
        <result> _ => .K </result>
   rule <k> functionDefPosOnlyVarArgsKwOnlyKwArgsStmt(F:Id, Pos:IdItems, Rest:IdItems, Var:Id, KwOnly:IdItems, Kw:Id, Body:Block) => stmtNoResult ... </k>
-       <env> Rho => Rho [ F <- functionValPosOnlyVarArgsKwOnlyKwArgs(Pos, Rest, Var, KwOnly, Kw, Body) ] </env>
+       <env> Rho => Rho [ F <- functionMeta(F, None, functionValPosOnlyVarArgsKwOnlyKwArgs(Pos, Rest, Var, KwOnly, Kw, Body)) ] </env>
        <result> _ => .K </result>
   rule <k> functionDefPosOnlyVarArgsKwDefaultsKwArgsStmt(F:Id, Pos:IdItems, Rest:IdItems, Defaults:ArgExps, Var:Id, KwOnly:IdItems, KwDefaults:ArgExps, Kw:Id, Body:Block) =>
            evalArgs(Defaults, #noArgVals) ~> bindFunctionPosOnlyVarArgsKwDefaultsKwArgs(F, Pos, Rest, KwDefaults, Var, KwOnly, Kw, Body)
@@ -32314,10 +32388,10 @@ module PYTHON
            evalArgs(KwDefaults, #noArgVals) ~> bindFunctionPosOnlyVarArgsKwDefaultValsKwArgs(F, Pos, Rest, Defaults, Var, KwOnly, Kw, Body)
        ... </k>
   rule <k> argsVal(KwDefaults:ArgVals) ~> bindFunctionPosOnlyVarArgsKwDefaultValsKwArgs(F:Id, Pos:IdItems, Rest:IdItems, Defaults:ArgVals, Var:Id, KwOnly:IdItems, Kw:Id, Body:Block) => stmtNoResult ... </k>
-       <env> Rho => Rho [ F <- functionValPosOnlyVarArgsKwDefaultsKwArgs(Pos, Rest, Defaults, Var, KwOnly, KwDefaults, Kw, Body) ] </env>
+       <env> Rho => Rho [ F <- functionMeta(F, None, functionValPosOnlyVarArgsKwDefaultsKwArgs(Pos, Rest, Defaults, Var, KwOnly, KwDefaults, Kw, Body)) ] </env>
        <result> _ => .K </result>
   rule <k> functionDefPosOnlyKwOnlyStmt(F:Id, Pos:IdItems, Rest:IdItems, KwOnly:IdItems, Body:Block) => stmtNoResult ... </k>
-       <env> Rho => Rho [ F <- functionValPosOnlyKwOnly(Pos, Rest, KwOnly, Body) ] </env>
+       <env> Rho => Rho [ F <- functionMeta(F, None, functionValPosOnlyKwOnly(Pos, Rest, KwOnly, Body)) ] </env>
        <result> _ => .K </result>
   rule <k> functionDefPosOnlyKwOnlyDefaultsStmt(F:Id, Pos:IdItems, Rest:IdItems, Defaults:ArgExps, KwOnly:IdItems, KwDefaults:ArgExps, Body:Block) =>
            evalArgs(Defaults, #noArgVals) ~> bindFunctionPosOnlyKwOnlyDefaults(F, Pos, Rest, KwDefaults, KwOnly, Body)
@@ -32326,10 +32400,10 @@ module PYTHON
            evalArgs(KwDefaults, #noArgVals) ~> bindFunctionPosOnlyKwOnlyDefaultVals(F, Pos, Rest, Defaults, KwOnly, Body)
        ... </k>
   rule <k> argsVal(KwDefaults:ArgVals) ~> bindFunctionPosOnlyKwOnlyDefaultVals(F:Id, Pos:IdItems, Rest:IdItems, Defaults:ArgVals, KwOnly:IdItems, Body:Block) => stmtNoResult ... </k>
-       <env> Rho => Rho [ F <- functionValPosOnlyKwOnlyDefaults(Pos, Rest, Defaults, KwOnly, KwDefaults, Body) ] </env>
+       <env> Rho => Rho [ F <- functionMeta(F, None, functionValPosOnlyKwOnlyDefaults(Pos, Rest, Defaults, KwOnly, KwDefaults, Body)) ] </env>
        <result> _ => .K </result>
   rule <k> functionDefPosOnlyKwOnlyKwArgsStmt(F:Id, Pos:IdItems, Rest:IdItems, KwOnly:IdItems, Kw:Id, Body:Block) => stmtNoResult ... </k>
-       <env> Rho => Rho [ F <- functionValPosOnlyKwOnlyKwArgs(Pos, Rest, KwOnly, Kw, Body) ] </env>
+       <env> Rho => Rho [ F <- functionMeta(F, None, functionValPosOnlyKwOnlyKwArgs(Pos, Rest, KwOnly, Kw, Body)) ] </env>
        <result> _ => .K </result>
   rule <k> functionDefPosOnlyKwDefaultsKwArgsStmt(F:Id, Pos:IdItems, Rest:IdItems, Defaults:ArgExps, KwOnly:IdItems, KwDefaults:ArgExps, Kw:Id, Body:Block) =>
            evalArgs(Defaults, #noArgVals) ~> bindFunctionPosOnlyKwDefaultsKwArgs(F, Pos, Rest, KwDefaults, KwOnly, Kw, Body)
@@ -32338,13 +32412,13 @@ module PYTHON
            evalArgs(KwDefaults, #noArgVals) ~> bindFunctionPosOnlyKwDefaultValsKwArgs(F, Pos, Rest, Defaults, KwOnly, Kw, Body)
        ... </k>
   rule <k> argsVal(KwDefaults:ArgVals) ~> bindFunctionPosOnlyKwDefaultValsKwArgs(F:Id, Pos:IdItems, Rest:IdItems, Defaults:ArgVals, KwOnly:IdItems, Kw:Id, Body:Block) => stmtNoResult ... </k>
-       <env> Rho => Rho [ F <- functionValPosOnlyKwDefaultsKwArgs(Pos, Rest, Defaults, KwOnly, KwDefaults, Kw, Body) ] </env>
+       <env> Rho => Rho [ F <- functionMeta(F, None, functionValPosOnlyKwDefaultsKwArgs(Pos, Rest, Defaults, KwOnly, KwDefaults, Kw, Body)) ] </env>
        <result> _ => .K </result>
   rule <k> functionDefKwOnlyStmt(F:Id, IDS:IdItems, Body:Block) => stmtNoResult ... </k>
-       <env> Rho => Rho [ F <- functionValKwOnly(IDS, Body) ] </env>
+       <env> Rho => Rho [ F <- functionMeta(F, None, functionValKwOnly(IDS, Body)) ] </env>
        <result> _ => .K </result>
   rule <k> functionDefPosKwOnlyStmt(F:Id, Pos:IdItems, KwOnly:IdItems, Body:Block) => stmtNoResult ... </k>
-       <env> Rho => Rho [ F <- functionValPosKwOnly(Pos, KwOnly, Body) ] </env>
+       <env> Rho => Rho [ F <- functionMeta(F, None, functionValPosKwOnly(Pos, KwOnly, Body)) ] </env>
        <result> _ => .K </result>
   rule <k> functionDefPosKwDefaultsStmt(F:Id, Pos:IdItems, PosDefaults:ArgExps, KwOnly:IdItems, KwDefaults:ArgExps, Body:Block) =>
            evalArgs(PosDefaults, #noArgVals) ~> bindFunctionPosKwDefaults(F, Pos, KwDefaults, KwOnly, Body)
@@ -32353,10 +32427,10 @@ module PYTHON
            evalArgs(KwDefaults, #noArgVals) ~> bindFunctionPosKwDefaultVals(F, Pos, PosDefaults, KwOnly, Body)
        ... </k>
   rule <k> argsVal(KwDefaults:ArgVals) ~> bindFunctionPosKwDefaultVals(F:Id, Pos:IdItems, PosDefaults:ArgVals, KwOnly:IdItems, Body:Block) => stmtNoResult ... </k>
-       <env> Rho => Rho [ F <- functionValPosKwDefaults(Pos, PosDefaults, KwOnly, KwDefaults, Body) ] </env>
+       <env> Rho => Rho [ F <- functionMeta(F, None, functionValPosKwDefaults(Pos, PosDefaults, KwOnly, KwDefaults, Body)) ] </env>
        <result> _ => .K </result>
   rule <k> functionDefPosKwOnlyKwArgsStmt(F:Id, Pos:IdItems, KwOnly:IdItems, Kw:Id, Body:Block) => stmtNoResult ... </k>
-       <env> Rho => Rho [ F <- functionValPosKwOnlyKwArgs(Pos, KwOnly, Kw, Body) ] </env>
+       <env> Rho => Rho [ F <- functionMeta(F, None, functionValPosKwOnlyKwArgs(Pos, KwOnly, Kw, Body)) ] </env>
        <result> _ => .K </result>
   rule <k> functionDefPosKwDefaultsKwArgsStmt(F:Id, Pos:IdItems, PosDefaults:ArgExps, KwOnly:IdItems, KwDefaults:ArgExps, Kw:Id, Body:Block) =>
            evalArgs(PosDefaults, #noArgVals) ~> bindFunctionPosKwDefaultsKwArgs(F, Pos, KwDefaults, KwOnly, Kw, Body)
@@ -32365,28 +32439,28 @@ module PYTHON
            evalArgs(KwDefaults, #noArgVals) ~> bindFunctionPosKwDefaultValsKwArgs(F, Pos, PosDefaults, KwOnly, Kw, Body)
        ... </k>
   rule <k> argsVal(KwDefaults:ArgVals) ~> bindFunctionPosKwDefaultValsKwArgs(F:Id, Pos:IdItems, PosDefaults:ArgVals, KwOnly:IdItems, Kw:Id, Body:Block) => stmtNoResult ... </k>
-       <env> Rho => Rho [ F <- functionValPosKwDefaultsKwArgs(Pos, PosDefaults, KwOnly, KwDefaults, Kw, Body) ] </env>
+       <env> Rho => Rho [ F <- functionMeta(F, None, functionValPosKwDefaultsKwArgs(Pos, PosDefaults, KwOnly, KwDefaults, Kw, Body)) ] </env>
        <result> _ => .K </result>
   rule <k> functionDefKwDefaultsStmt(F:Id, IDS:IdItems, Defaults:ArgExps, Body:Block) =>
            evalArgs(Defaults, #noArgVals) ~> bindFunctionKwDefaults(F, IDS, Body)
        ... </k>
   rule <k> argsVal(Defaults:ArgVals) ~> bindFunctionKwDefaults(F:Id, IDS:IdItems, Body:Block) => stmtNoResult ... </k>
-       <env> Rho => Rho [ F <- functionValKwDefaults(IDS, Defaults, Body) ] </env>
+       <env> Rho => Rho [ F <- functionMeta(F, None, functionValKwDefaults(IDS, Defaults, Body)) ] </env>
        <result> _ => .K </result>
   rule <k> functionDefKwOnlyKwArgsStmt(F:Id, IDS:IdItems, Kw:Id, Body:Block) => stmtNoResult ... </k>
-       <env> Rho => Rho [ F <- functionValKwOnlyKwArgs(IDS, Kw, Body) ] </env>
+       <env> Rho => Rho [ F <- functionMeta(F, None, functionValKwOnlyKwArgs(IDS, Kw, Body)) ] </env>
        <result> _ => .K </result>
   rule <k> functionDefKwDefaultsKwArgsStmt(F:Id, IDS:IdItems, Defaults:ArgExps, Kw:Id, Body:Block) =>
            evalArgs(Defaults, #noArgVals) ~> bindFunctionKwDefaultsKwArgs(F, IDS, Kw, Body)
        ... </k>
   rule <k> argsVal(Defaults:ArgVals) ~> bindFunctionKwDefaultsKwArgs(F:Id, IDS:IdItems, Kw:Id, Body:Block) => stmtNoResult ... </k>
-       <env> Rho => Rho [ F <- functionValKwDefaultsKwArgs(IDS, Defaults, Kw, Body) ] </env>
+       <env> Rho => Rho [ F <- functionMeta(F, None, functionValKwDefaultsKwArgs(IDS, Defaults, Kw, Body)) ] </env>
        <result> _ => .K </result>
   rule <k> functionDefDefaultsStmt(F:Id, IDS:IdItems, Defaults:ArgExps, Body:Block) =>
            evalArgs(Defaults, #noArgVals) ~> bindFunctionDefaults(F, IDS, Body)
        ... </k>
   rule <k> argsVal(Defaults:ArgVals) ~> bindFunctionDefaults(F:Id, IDS:IdItems, Body:Block) => stmtNoResult ... </k>
-       <env> Rho => Rho [ F <- functionValDefaults(IDS, Defaults, Body) ] </env>
+       <env> Rho => Rho [ F <- functionMeta(F, None, functionValDefaults(IDS, Defaults, Body)) ] </env>
        <result> _ => .K </result>
 
   rule buildFunctionDefault(functionDefaultBuilderDefaults(IDS:IdItems, Body:Block), Defaults:ArgVals) =>
@@ -32494,19 +32568,19 @@ module PYTHON
            evalArgs(Decorators, #noArgVals) ~> bindDecoratedFunctionTwoDefaultBuilder(F, Builder, Defaults, KwDefaults)
        ... </k>
   rule <k> argsVal(Decorators:ArgVals) ~> bindDecoratedFunction(F:Id, Fun:Val) =>
-           Fun ~> applyDecorators(F, reverseArgVals(Decorators))
+           functionMeta(F, None, Fun) ~> applyDecorators(F, reverseArgVals(Decorators))
        ... </k>
   rule <k> argsVal(Decorators:ArgVals) ~> bindDecoratedFunctionDefaults(F:Id, IDS:IdItems, Defaults:ArgExps, Body:Block) =>
            evalArgs(Defaults, #noArgVals) ~> bindDecoratedFunctionDefaultVals(F, Decorators, IDS, Body)
        ... </k>
   rule <k> argsVal(Defaults:ArgVals) ~> bindDecoratedFunctionDefaultVals(F:Id, Decorators:ArgVals, IDS:IdItems, Body:Block) =>
-           functionValDefaults(IDS, Defaults, Body) ~> applyDecorators(F, reverseArgVals(Decorators))
+           functionMeta(F, None, functionValDefaults(IDS, Defaults, Body)) ~> applyDecorators(F, reverseArgVals(Decorators))
        ... </k>
   rule <k> argsVal(Decorators:ArgVals) ~> bindDecoratedFunctionDefaultBuilder(F:Id, Builder:FunctionDefaultBuilder, Defaults:ArgExps) =>
            evalArgs(Defaults, #noArgVals) ~> bindDecoratedFunctionDefaultBuilderVals(F, Decorators, Builder)
        ... </k>
   rule <k> argsVal(Defaults:ArgVals) ~> bindDecoratedFunctionDefaultBuilderVals(F:Id, Decorators:ArgVals, Builder:FunctionDefaultBuilder) =>
-           buildFunctionDefault(Builder, Defaults) ~> applyDecorators(F, reverseArgVals(Decorators))
+           functionMeta(F, None, buildFunctionDefault(Builder, Defaults)) ~> applyDecorators(F, reverseArgVals(Decorators))
        ... </k>
   rule <k> argsVal(Decorators:ArgVals) ~> bindDecoratedFunctionTwoDefaultBuilder(F:Id, Builder:FunctionTwoDefaultBuilder, Defaults:ArgExps, KwDefaults:ArgExps) =>
            evalArgs(Defaults, #noArgVals) ~> bindDecoratedFunctionTwoDefaultBuilderKw(F, Decorators, Builder, KwDefaults)
@@ -32515,7 +32589,7 @@ module PYTHON
            evalArgs(KwDefaults, #noArgVals) ~> bindDecoratedFunctionTwoDefaultBuilderVals(F, Decorators, Defaults, Builder)
        ... </k>
   rule <k> argsVal(KwDefaults:ArgVals) ~> bindDecoratedFunctionTwoDefaultBuilderVals(F:Id, Decorators:ArgVals, Defaults:ArgVals, Builder:FunctionTwoDefaultBuilder) =>
-           buildFunctionTwoDefaults(Builder, Defaults, KwDefaults) ~> applyDecorators(F, reverseArgVals(Decorators))
+           functionMeta(F, None, buildFunctionTwoDefaults(Builder, Defaults, KwDefaults)) ~> applyDecorators(F, reverseArgVals(Decorators))
        ... </k>
   rule <k> Fun:Val ~> applyDecorators(F:Id, #noArgVals) => stmtNoResult ... </k>
        <env> Rho => Rho [ F <- Fun ] </env>

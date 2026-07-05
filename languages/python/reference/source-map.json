@@ -903,16 +903,16 @@
         {
           "id": "stdlib.importlib",
           "title": "importlib",
-          "status": "not-started",
+          "status": "partial",
           "references": [
             {
               "title": "importlib",
               "url": "https://docs.python.org/3/library/importlib.html"
             }
           ],
-          "k_coverage": [],
-          "test_coverage": [],
-          "gaps": ["Need import-system linkage and host/filesystem profile."]
+          "k_coverage": ["semantics/python.k: fixed builtin importlib module with __name__ and import_module; import_module returns the current fixed math, keyword, or importlib module values for supported absolute names, accepts an ignored second package argument for absolute names, raises the current ModuleNotFoundError sentinel for unsupported nonempty absolute names, raises ValueError for empty names, raises TypeError for relative names without package resolution, raises AttributeError for the current non-string-name profile, and raises TypeError for wrong positional arity"],
+          "test_coverage": ["tests/adapter/adapter-importlib-import-module.py"],
+          "gaps": ["Need importlib.__import__, invalidate_caches, reload, abc/machinery/util modules, ModuleSpec, sys.meta_path/path hooks, real sys.modules table, parent-package loading, positive relative import package anchors, filesystem/namespace/package profiles, exact diagnostics, and importlib test-suite extraction."]
         }
       ]
     },

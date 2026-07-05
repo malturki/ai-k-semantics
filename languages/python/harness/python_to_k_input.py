@@ -95,10 +95,15 @@ SUPPORTED_BUILTIN_CLASS_NAMES = {
     "tuple",
 }
 SUPPORTED_IMPORT_MODULES = {
+    "importlib",
     "keyword",
     "math",
 }
 SUPPORTED_FROM_IMPORT_NAMES = {
+    "importlib": {
+        "__name__",
+        "import_module",
+    },
     "keyword": {
         "__all__",
         "__name__",

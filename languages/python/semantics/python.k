@@ -821,8 +821,10 @@ module PYTHON
                | functionApplyGlobals(IdItems, Val) [function, symbol(functionApplyGlobals)]
                | generatorFunctionVal(IdItems, YieldExps) [symbol(generatorFunctionVal)]
                | asyncFunctionVal(IdItems, Block) [symbol(asyncFunctionVal)]
+               | "#importlibImportModuleFun" [symbol(importlibImportModuleFun)]
                | "#keywordIsKeywordFun" [symbol(keywordIsKeywordFun)]
                | "#keywordIsSoftKeywordFun" [symbol(keywordIsSoftKeywordFun)]
+               | importlibImportModule(String) [function, symbol(importlibImportModule)]
                | keywordAllList() [function, symbol(keywordAllList)]
                | keywordKwList() [function, symbol(keywordKwList)]
                | keywordSoftKwList() [function, symbol(keywordSoftKwList)]
@@ -1764,6 +1766,8 @@ module PYTHON
                 | valEq(Val, Val) [function, symbol(valEq)]
                 | builtinModuleSupported(Id) [function, symbol(builtinModuleSupported)]
                 | builtinModuleHasAttr(Id, Id) [function, symbol(builtinModuleHasAttr)]
+                | importlibImportModuleSupported(String) [function, symbol(importlibImportModuleSupported)]
+                | importlibImportModuleRelativeName(String) [function, symbol(importlibImportModuleRelativeName)]
                 | keywordIsKeywordString(String) [function, symbol(keywordIsKeywordString)]
                 | keywordIsSoftKeywordString(String) [function, symbol(keywordIsSoftKeywordString)]
                 | singletonPatternEq(Val, Val) [function, symbol(singletonPatternEq)]
@@ -3085,6 +3089,7 @@ module PYTHON
   rule truthy(functionMetaVal(_:String, _:String, _:Val, _:String, _:Val)) => true
   rule truthy(generatorFunctionVal(_:IdItems, _:YieldExps)) => true
   rule truthy(asyncFunctionVal(_:IdItems, _:Block)) => true
+  rule truthy(#importlibImportModuleFun) => true
   rule truthy(#keywordIsKeywordFun) => true
   rule truthy(#keywordIsSoftKeywordFun) => true
   rule truthy(moduleVal(_:Id, _:ClassAttrs)) => true
@@ -3228,6 +3233,7 @@ module PYTHON
   rule callableVal(functionMetaVal(_:String, _:String, _:Val, _:String, F:Val)) => callableVal(F)
   rule callableVal(generatorFunctionVal(_:IdItems, _:YieldExps)) => true
   rule callableVal(asyncFunctionVal(_:IdItems, _:Block)) => true
+  rule callableVal(#importlibImportModuleFun) => true
   rule callableVal(#keywordIsKeywordFun) => true
   rule callableVal(#keywordIsSoftKeywordFun) => true
   rule callableVal(classVal(_:Id, _:Int, _:ClassAttrs)) => true
@@ -4952,6 +4958,7 @@ module PYTHON
   rule isIntLike(functionMetaVal(_:String, _:String, _:Val, _:String, _:Val)) => false
   rule isIntLike(generatorFunctionVal(_:IdItems, _:YieldExps)) => false
   rule isIntLike(asyncFunctionVal(_:IdItems, _:Block)) => false
+  rule isIntLike(#importlibImportModuleFun) => false
   rule isIntLike(#keywordIsKeywordFun) => false
   rule isIntLike(#keywordIsSoftKeywordFun) => false
   rule isIntLike(moduleVal(_:Id, _:ClassAttrs)) => false
@@ -5988,6 +5995,7 @@ module PYTHON
   rule singletonIdentity(functionMetaVal(_:String, _:String, _:Val, _:String, _:Val)) => false
   rule singletonIdentity(generatorFunctionVal(_:IdItems, _:YieldExps)) => false
   rule singletonIdentity(asyncFunctionVal(_:IdItems, _:Block)) => false
+  rule singletonIdentity(#importlibImportModuleFun) => false
   rule singletonIdentity(#keywordIsKeywordFun) => false
   rule singletonIdentity(#keywordIsSoftKeywordFun) => false
   rule singletonIdentity(moduleVal(_:Id, _:ClassAttrs)) => false
@@ -6549,7 +6557,7 @@ module PYTHON
     classBase(BaseId, classAttrsAppend(Attrs, BaseAttrs))
 
   rule builtinModuleSupported(M:Id) =>
-    Id2String(M) ==String "math" orBool Id2String(M) ==String "keyword"
+    Id2String(M) ==String "math" orBool Id2String(M) ==String "keyword" orBool Id2String(M) ==String "importlib"
 
   rule builtinModule(M:Id) => moduleVal(M, builtinModuleAttrs(M))
     requires builtinModuleSupported(M)
@@ -6570,6 +6578,23 @@ module PYTHON
     classAttr(#token("softkwlist", "Id"), keywordSoftKwList(),
       #noRuntimeClassAttrs))))))
     requires Id2String(M) ==String "keyword"
+  rule builtinModuleAttrs(M:Id) =>
+    classAttr(#token("kDunderNameName", "Id"), "importlib",
+    classAttr(#token("import_module", "Id"), #importlibImportModuleFun,
+      #noRuntimeClassAttrs))
+    requires Id2String(M) ==String "importlib"
+
+  rule importlibImportModuleSupported("math") => true
+  rule importlibImportModuleSupported("keyword") => true
+  rule importlibImportModuleSupported("importlib") => true
+  rule importlibImportModuleSupported(_:String) => false [owise]
+
+  rule importlibImportModuleRelativeName(S:String) =>
+    lengthString(S) >Int 0 andBool substrString(S, 0, 1) ==String "."
+
+  rule importlibImportModule("math") => builtinModule(#token("math", "Id"))
+  rule importlibImportModule("keyword") => builtinModule(#token("keyword", "Id"))
+  rule importlibImportModule("importlib") => builtinModule(#token("importlib", "Id"))
 
   rule keywordAllList() => ["iskeyword", "issoftkeyword", "kwlist", "softkwlist",]
   rule keywordKwList() => ["False", "None", "True", "and", "as", "assert", "async", "await", "break", "class", "continue", "def", "del", "elif", "else", "except", "finally", "for", "from", "global", "if", "import", "in", "is", "lambda", "nonlocal", "not", "or", "pass", "raise", "return", "try", "while", "with", "yield",]
@@ -7281,8 +7306,11 @@ module PYTHON
   rule valEq(None, None) => true
   rule valEq(Ellipsis, Ellipsis) => true
   rule valEq(#exception(E1:Id), #exception(E2:Id)) => Id2String(E1) ==String Id2String(E2)
+  rule valEq(#importlibImportModuleFun, #importlibImportModuleFun) => true
   rule valEq(#keywordIsKeywordFun, #keywordIsKeywordFun) => true
   rule valEq(#keywordIsSoftKeywordFun, #keywordIsSoftKeywordFun) => true
+  rule valEq(#importlibImportModuleFun, _V:Val) => false [owise]
+  rule valEq(_V:Val, #importlibImportModuleFun) => false [owise]
   rule valEq(#keywordIsKeywordFun, _V:Val) => false [owise]
   rule valEq(_V:Val, #keywordIsKeywordFun) => false [owise]
   rule valEq(#keywordIsSoftKeywordFun, _V:Val) => false [owise]
@@ -7534,8 +7562,11 @@ module PYTHON
     I1 ==Int I2 andBool ClassId1 ==Int ClassId2 andBool Id2String(C1) ==String Id2String(C2)
   rule valIs(moduleVal(M1:Id, _:ClassAttrs), moduleVal(M2:Id, _:ClassAttrs)) =>
     Id2String(M1) ==String Id2String(M2)
+  rule valIs(#importlibImportModuleFun, #importlibImportModuleFun) => true
   rule valIs(#keywordIsKeywordFun, #keywordIsKeywordFun) => true
   rule valIs(#keywordIsSoftKeywordFun, #keywordIsSoftKeywordFun) => true
+  rule valIs(#importlibImportModuleFun, _V:Val) => false [owise]
+  rule valIs(_V:Val, #importlibImportModuleFun) => false [owise]
   rule valIs(#keywordIsKeywordFun, _V:Val) => false [owise]
   rule valIs(_V:Val, #keywordIsKeywordFun) => false [owise]
   rule valIs(#keywordIsSoftKeywordFun, _V:Val) => false [owise]
@@ -17402,6 +17433,26 @@ module PYTHON
            exceptionSignal(#exception(#token("TypeError", "Id")))
        ... </k>
     requires notBool callableVal(F)
+  rule <k> S:String ~> callApply(#importlibImportModuleFun) =>
+           importlibImportModule(S)
+       ... </k>
+    requires importlibImportModuleSupported(S)
+  rule <k> S:String ~> callApply(#importlibImportModuleFun) =>
+           exceptionSignal(#exception(#token("ValueError", "Id")))
+       ... </k>
+    requires lengthString(S) ==Int 0
+  rule <k> S:String ~> callApply(#importlibImportModuleFun) =>
+           exceptionSignal(#exception(#token("TypeError", "Id")))
+       ... </k>
+    requires importlibImportModuleRelativeName(S)
+  rule <k> S:String ~> callApply(#importlibImportModuleFun) =>
+           exceptionSignal(#exception(#token("ModuleNotFoundError", "Id")))
+       ... </k>
+    requires lengthString(S) >Int 0 andBool notBool importlibImportModuleSupported(S) andBool notBool importlibImportModuleRelativeName(S)
+  rule <k> V:Val ~> callApply(#importlibImportModuleFun) =>
+           exceptionSignal(#exception(#token("AttributeError", "Id")))
+       ... </k>
+    requires notBool isStringVal(V)
   rule <k> S:String ~> callApply(#keywordIsKeywordFun) =>
            boolValue(keywordIsKeywordString(S))
        ... </k>
@@ -18059,6 +18110,50 @@ module PYTHON
            exceptionSignal(#exception(#token("TypeError", "Id")))
        ... </k>
     requires notBool callableVal(F)
+  rule <k> argsVal(argValsCons(S:String, #noArgVals)) ~> callApplyArgs(#importlibImportModuleFun) =>
+           importlibImportModule(S)
+       ... </k>
+    requires importlibImportModuleSupported(S)
+  rule <k> argsVal(argValsCons(S:String, argValsCons(_Package:Val, #noArgVals))) ~> callApplyArgs(#importlibImportModuleFun) =>
+           importlibImportModule(S)
+       ... </k>
+    requires importlibImportModuleSupported(S)
+  rule <k> argsVal(argValsCons(S:String, #noArgVals)) ~> callApplyArgs(#importlibImportModuleFun) =>
+           exceptionSignal(#exception(#token("ValueError", "Id")))
+       ... </k>
+    requires lengthString(S) ==Int 0
+  rule <k> argsVal(argValsCons(S:String, argValsCons(_Package:Val, #noArgVals))) ~> callApplyArgs(#importlibImportModuleFun) =>
+           exceptionSignal(#exception(#token("ValueError", "Id")))
+       ... </k>
+    requires lengthString(S) ==Int 0
+  rule <k> argsVal(argValsCons(S:String, #noArgVals)) ~> callApplyArgs(#importlibImportModuleFun) =>
+           exceptionSignal(#exception(#token("TypeError", "Id")))
+       ... </k>
+    requires importlibImportModuleRelativeName(S)
+  rule <k> argsVal(argValsCons(S:String, argValsCons(_Package:Val, #noArgVals))) ~> callApplyArgs(#importlibImportModuleFun) =>
+           exceptionSignal(#exception(#token("TypeError", "Id")))
+       ... </k>
+    requires importlibImportModuleRelativeName(S)
+  rule <k> argsVal(argValsCons(S:String, #noArgVals)) ~> callApplyArgs(#importlibImportModuleFun) =>
+           exceptionSignal(#exception(#token("ModuleNotFoundError", "Id")))
+       ... </k>
+    requires lengthString(S) >Int 0 andBool notBool importlibImportModuleSupported(S) andBool notBool importlibImportModuleRelativeName(S)
+  rule <k> argsVal(argValsCons(S:String, argValsCons(_Package:Val, #noArgVals))) ~> callApplyArgs(#importlibImportModuleFun) =>
+           exceptionSignal(#exception(#token("ModuleNotFoundError", "Id")))
+       ... </k>
+    requires lengthString(S) >Int 0 andBool notBool importlibImportModuleSupported(S) andBool notBool importlibImportModuleRelativeName(S)
+  rule <k> argsVal(argValsCons(V:Val, #noArgVals)) ~> callApplyArgs(#importlibImportModuleFun) =>
+           exceptionSignal(#exception(#token("AttributeError", "Id")))
+       ... </k>
+    requires notBool isStringVal(V)
+  rule <k> argsVal(argValsCons(V:Val, argValsCons(_Package:Val, #noArgVals))) ~> callApplyArgs(#importlibImportModuleFun) =>
+           exceptionSignal(#exception(#token("AttributeError", "Id")))
+       ... </k>
+    requires notBool isStringVal(V)
+  rule <k> argsVal(VS:ArgVals) ~> callApplyArgs(#importlibImportModuleFun) =>
+           exceptionSignal(#exception(#token("TypeError", "Id")))
+       ... </k>
+    requires argValsLen(VS) =/=Int 1 andBool argValsLen(VS) =/=Int 2
   rule <k> argsVal(argValsCons(S:String, #noArgVals)) ~> callApplyArgs(#keywordIsKeywordFun) =>
            boolValue(keywordIsKeywordString(S))
        ... </k>

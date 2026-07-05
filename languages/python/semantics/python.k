@@ -1753,6 +1753,7 @@ module PYTHON
                 | getattrStringSupported(String) [function, symbol(getattrStringSupported)]
                 | classHasAttrString(Val, String) [function, symbol(classHasAttrString)]
                 | classAttrsHasString(ClassAttrs, String) [function, symbol(classAttrsHasString)]
+                | classAttrIdMatchesString(Id, String) [function, symbol(classAttrIdMatchesString)]
                 | bindableUserMethodVal(Val) [function, symbol(bindableUserMethodVal)]
                 | contextManagerSupported(Val) [function, symbol(contextManagerSupported)]
                 | contextManagerSuppressesException(Val, Val) [function, symbol(contextManagerSuppressesException)]
@@ -6506,10 +6507,16 @@ module PYTHON
 
   rule classAttrsHasString(#noRuntimeClassAttrs, _:String) => false
   rule classAttrsHasString(classAttr(A:Id, _:Val, _Rest:ClassAttrs), B:String) => true
-    requires Id2String(A) ==String B
+    requires classAttrIdMatchesString(A, B)
   rule classAttrsHasString(classAttr(A:Id, _:Val, Rest:ClassAttrs), B:String) => classAttrsHasString(Rest, B)
-    requires Id2String(A) =/=String B
+    requires notBool classAttrIdMatchesString(A, B)
   rule classAttrsHasString(classBase(_:Int, Rest:ClassAttrs), B:String) => classAttrsHasString(Rest, B)
+
+  rule classAttrIdMatchesString(#token("kDunderInitName", "Id"), B:String) => B ==String "__init__"
+  rule classAttrIdMatchesString(#token("kDunderDocName", "Id"), B:String) => B ==String "__doc__"
+  rule classAttrIdMatchesString(#token("kDunderModuleName", "Id"), B:String) => B ==String "__module__"
+  rule classAttrIdMatchesString(#token("kDunderQualnameName", "Id"), B:String) => B ==String "__qualname__"
+  rule classAttrIdMatchesString(A:Id, B:String) => Id2String(A) ==String B [owise]
 
   rule classAttrGet(classAttr(A:Id, V:Val, _Rest:ClassAttrs), B:Id) => V
     requires Id2String(A) ==String Id2String(B)
@@ -6518,9 +6525,9 @@ module PYTHON
   rule classAttrGet(classBase(_:Int, Rest:ClassAttrs), B:Id) => classAttrGet(Rest, B)
 
   rule classAttrStringGet(classAttr(A:Id, V:Val, _Rest:ClassAttrs), B:String) => V
-    requires Id2String(A) ==String B
+    requires classAttrIdMatchesString(A, B)
   rule classAttrStringGet(classAttr(A:Id, _V:Val, Rest:ClassAttrs), B:String) => classAttrStringGet(Rest, B)
-    requires Id2String(A) =/=String B
+    requires notBool classAttrIdMatchesString(A, B)
   rule classAttrStringGet(classBase(_:Int, Rest:ClassAttrs), B:String) => classAttrStringGet(Rest, B)
 
   rule classAttrAccess(_Owner:Val, staticMethodVal(F:Val)) => F

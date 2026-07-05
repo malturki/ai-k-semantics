@@ -23,6 +23,9 @@ class UnsupportedPythonSubset(ValueError):
 
 ELLIPSIS_NAME_ID = "kEllipsisName"
 DUNDER_INIT_NAME_ID = "kDunderInitName"
+DUNDER_DOC_NAME_ID = "kDunderDocName"
+DUNDER_MODULE_NAME_ID = "kDunderModuleName"
+DUNDER_QUALNAME_NAME_ID = "kDunderQualnameName"
 JSON_SURROGATE_PAIR_RE = re.compile(r"\\u(d[89ab][0-9a-f]{2})\\u(d[cdef][0-9a-f]{2})")
 SUPPORTED_ZERO_ARG_CLASS_PATTERNS = {
     "bytearray",
@@ -629,6 +632,12 @@ def emit_id(name: str) -> str:
         return ELLIPSIS_NAME_ID
     if name == "__init__":
         return DUNDER_INIT_NAME_ID
+    if name == "__doc__":
+        return DUNDER_DOC_NAME_ID
+    if name == "__module__":
+        return DUNDER_MODULE_NAME_ID
+    if name == "__qualname__":
+        return DUNDER_QUALNAME_NAME_ID
     return name
 
 
@@ -878,7 +887,7 @@ def emit_exp(exp: ast.expr) -> str:
         case ast.Name(id="Ellipsis"):
             return f"#name({ELLIPSIS_NAME_ID})"
         case ast.Name(id=name):
-            return name
+            return emit_id(name)
         case ast.NamedExpr(target=ast.Name(id=name), value=value):
             return f"#namedExpr({emit_id(name)}, {emit_exp(value)})"
         case ast.NamedExpr():
@@ -1203,7 +1212,7 @@ def emit_exp(exp: ast.expr) -> str:
         case ast.Call(func=func, args=args, keywords=[]):
             return f"#call({emit_exp(func)}, {emit_arg_exps(args)})"
         case ast.Attribute(value=value, attr=attr, ctx=ast.Load()):
-            return f"#attr({emit_exp(value)}, {attr})"
+            return f"#attr({emit_exp(value)}, {emit_id(attr)})"
         case ast.ListComp(elt=elt, generators=[generator]):
             return emit_list_comprehension(exp, elt, generator)
         case ast.ListComp(elt=elt, generators=[outer, inner]):
@@ -1957,8 +1966,22 @@ def emit_simple_class_def(
         base_name = bases[0].id
     if getattr(node, "type_params", []):
         raise unsupported(node, "class type parameters are not supported yet")
-    members: list[tuple[str, str, str, str, str]] = []
-    for stmt in body:
+    doc_value = "None"
+    body_items = body
+    if (
+        body
+        and isinstance(body[0], ast.Expr)
+        and isinstance(body[0].value, ast.Constant)
+        and isinstance(body[0].value.value, str)
+    ):
+        doc_value = emit_string(body[0].value.value)
+        body_items = body[1:]
+    members: list[tuple[str, str, str, str, str]] = [
+        ("attr", emit_id("__module__"), emit_string("__main__"), "", ""),
+        ("attr", emit_id("__qualname__"), emit_string(name), "", ""),
+        ("attr", emit_id("__doc__"), doc_value, "", ""),
+    ]
+    for stmt in body_items:
         match stmt:
             case ast.Pass():
                 continue
@@ -2000,8 +2023,6 @@ def emit_simple_class_def(
         return f"#classDecorated({emit_id(name)}, {decorator_exps}, {emit_class_attr_exps(members)})"
     if base_name is not None:
         return f"#classBase({emit_id(name)}, {emit_id(base_name)}, {emit_class_attr_exps(members)})"
-    if not members:
-        return f"#class({emit_id(name)})"
     return f"#classAttrs({emit_id(name)}, {emit_class_attr_exps(members)})"
 
 

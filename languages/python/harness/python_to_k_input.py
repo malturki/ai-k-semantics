@@ -900,6 +900,15 @@ def emit_stmt(stmt: ast.stmt) -> str:
             type_comment=type_comment,
         ):
             return emit_function_def(stmt, name, args, body, decorators, returns, type_comment)
+        case ast.AsyncFunctionDef(
+            name=name,
+            args=args,
+            body=body,
+            decorator_list=decorators,
+            returns=returns,
+            type_comment=type_comment,
+        ):
+            return emit_async_function_def(stmt, name, args, body, decorators, returns, type_comment)
         case ast.ClassDef(
             name=name,
             bases=bases,
@@ -3167,6 +3176,45 @@ def emit_function_def(
     if len(names) == 1:
         return finish(f"#def({name}, {names[0]}, {emit_block(body)})")
     return finish(f"#defArgs({name}, {emit_id_items(names)}, {emit_block(body)})")
+
+
+def emit_async_function_def(
+    node: ast.AST,
+    name: str,
+    args: ast.arguments,
+    body: list[ast.stmt],
+    decorators: list[ast.expr],
+    returns: ast.expr | None,
+    type_comment: str | None,
+) -> str:
+    # Python 3.14 async-function annotations are lazy metadata. The current
+    # async profile preserves the declaration as a distinct value but does not
+    # expose annotation introspection yet.
+    _ = returns
+    if type_comment is not None:
+        raise unsupported(node, "async function type comments are not supported yet")
+    if getattr(node, "type_params", []):
+        raise unsupported(node, "async function type parameters are not supported yet")
+    if decorators:
+        raise unsupported(node, "decorated async functions are not supported yet")
+    if (
+        args.posonlyargs
+        or args.defaults
+        or args.vararg is not None
+        or args.kwonlyargs
+        or any(default is not None for default in args.kw_defaults)
+        or args.kwarg is not None
+    ):
+        raise unsupported(node, "only ordinary positional async functions without defaults are supported yet")
+    doc_value, body_items = split_body_docstring(body)
+    if current_block_contains_yield(body_items):
+        raise unsupported(node, "async generator functions are not supported yet")
+    names = [arg.arg for arg in args.args]
+    stmt = f"#asyncDef({emit_id(name)}, {emit_id_items(names)}, {emit_block(body_items)})"
+    if doc_value == "None":
+        return stmt
+    return f"#functionDoc({emit_id(name)}, {doc_value}, {stmt})"
+
 
 def emit_decorated_function_def(
     node: ast.AST,

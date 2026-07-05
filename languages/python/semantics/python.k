@@ -420,6 +420,7 @@ module PYTHON-SYNTAX
                 | "#defDecorated" "(" Id "," ArgExps "," FunctionSpec ")" [symbol(functionDefDecoratedStmt)]
                 | "#functionDoc" "(" Id "," Val "," Stmt ")" [symbol(functionDocStmt)]
                 | "#genDef" "(" Id "," IdItems "," YieldExps ")" [symbol(generatorFunctionDefStmt)]
+                | "#asyncDef" "(" Id "," IdItems "," Block ")" [symbol(asyncFunctionDefStmt)]
                 | "#class" "(" Id ")" [symbol(classDefStmt)]
                 | "#classAttrs" "(" Id "," ClassAttrExps ")" [symbol(classDefAttrsStmt)]
                 | "#classBase" "(" Id "," Id "," ClassAttrExps ")" [symbol(classDefBaseStmt)]
@@ -817,6 +818,7 @@ module PYTHON
                | functionSetDoc(Id, Val, Val) [function, symbol(functionSetDoc)]
                | functionApplyGlobals(IdItems, Val) [function, symbol(functionApplyGlobals)]
                | generatorFunctionVal(IdItems, YieldExps) [symbol(generatorFunctionVal)]
+               | asyncFunctionVal(IdItems, Block) [symbol(asyncFunctionVal)]
                | moduleVal(Id, ClassAttrs) [symbol(moduleVal)]
                | builtinModule(Id) [function, symbol(builtinModule)]
                | builtinModuleAttr(Id, Id) [function, symbol(builtinModuleAttr)]
@@ -3072,6 +3074,7 @@ module PYTHON
   rule truthy(functionGlobalVal(_:IdItems, _:Val)) => true
   rule truthy(functionMetaVal(_:String, _:String, _:Val, _:String, _:Val)) => true
   rule truthy(generatorFunctionVal(_:IdItems, _:YieldExps)) => true
+  rule truthy(asyncFunctionVal(_:IdItems, _:Block)) => true
   rule truthy(moduleVal(_:Id, _:ClassAttrs)) => true
   rule truthy(classVal(_:Id, _:Int, _:ClassAttrs)) => true
   rule truthy(userObjectVal(_:Id, _:Int, _:Int, _:ClassAttrs)) => true
@@ -3212,6 +3215,7 @@ module PYTHON
   rule callableVal(functionGlobalVal(_:IdItems, F:Val)) => callableVal(F)
   rule callableVal(functionMetaVal(_:String, _:String, _:Val, _:String, F:Val)) => callableVal(F)
   rule callableVal(generatorFunctionVal(_:IdItems, _:YieldExps)) => true
+  rule callableVal(asyncFunctionVal(_:IdItems, _:Block)) => true
   rule callableVal(classVal(_:Id, _:Int, _:ClassAttrs)) => true
   rule callableVal(boundMethodVal(_:Val, _:Val)) => true
   rule callableVal(_:Val) => false [owise]
@@ -4933,6 +4937,7 @@ module PYTHON
   rule isIntLike(functionGlobalVal(_:IdItems, _:Val)) => false
   rule isIntLike(functionMetaVal(_:String, _:String, _:Val, _:String, _:Val)) => false
   rule isIntLike(generatorFunctionVal(_:IdItems, _:YieldExps)) => false
+  rule isIntLike(asyncFunctionVal(_:IdItems, _:Block)) => false
   rule isIntLike(moduleVal(_:Id, _:ClassAttrs)) => false
   rule isIntLike(classVal(_:Id, _:Int, _:ClassAttrs)) => false
   rule isIntLike(userObjectVal(_:Id, _:Int, _:Int, _:ClassAttrs)) => false
@@ -5966,6 +5971,7 @@ module PYTHON
   rule singletonIdentity(functionGlobalVal(_:IdItems, _:Val)) => false
   rule singletonIdentity(functionMetaVal(_:String, _:String, _:Val, _:String, _:Val)) => false
   rule singletonIdentity(generatorFunctionVal(_:IdItems, _:YieldExps)) => false
+  rule singletonIdentity(asyncFunctionVal(_:IdItems, _:Block)) => false
   rule singletonIdentity(moduleVal(_:Id, _:ClassAttrs)) => false
   rule singletonIdentity(classVal(_:Id, _:Int, _:ClassAttrs)) => false
   rule singletonIdentity(userObjectVal(_:Id, _:Int, _:Int, _:ClassAttrs)) => false
@@ -30477,6 +30483,9 @@ module PYTHON
        <result> _ => .K </result>
   rule <k> generatorFunctionDefStmt(F:Id, IDS:IdItems, Yields:YieldExps) => stmtNoResult ... </k>
        <env> Rho => Rho [ F <- functionMeta(F, None, generatorFunctionVal(IDS, Yields)) ] </env>
+       <result> _ => .K </result>
+  rule <k> asyncFunctionDefStmt(F:Id, IDS:IdItems, Body:Block) => stmtNoResult ... </k>
+       <env> Rho => Rho [ F <- functionMeta(F, None, asyncFunctionVal(IDS, Body)) ] </env>
        <result> _ => .K </result>
   rule <k> functionDocStmt(F:Id, Doc:Val, S:Stmt) =>
            S ~> functionDocApply(F, Doc)

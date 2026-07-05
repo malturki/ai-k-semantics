@@ -181,9 +181,9 @@
               "section": "Yield expressions"
             }
           ],
-          "k_coverage": ["semantics/python.k: adapter-backed generatorFunctionVal for undecorated ordinary positional functions whose bodies are only top-level plain yield/yield expr statements; calls evaluate all yielded expressions under the call environment, restore the caller environment, materialize the finite stream, and return a fresh stateful iteratorRef"],
-          "test_coverage": ["tests/adapter/adapter-generator-function-basic.py"],
-          "gaps": ["Need lazy generator execution, suspended frame model, send/throw/close, yield from, StopIteration return values, generator object identity/type/repr/introspection, decorators/defaults/keywords/positional-only/varargs in generator functions, nested control flow around yield, await protocol, coroutine objects, async generators, and async iteration."]
+          "k_coverage": ["semantics/python.k: adapter-backed generatorFunctionVal for undecorated ordinary positional functions whose bodies are only top-level plain yield/yield expr statements; calls evaluate all yielded expressions under the call environment, restore the caller environment, materialize the finite stream, and return a fresh stateful iteratorRef", "semantics/python.k: adapter-backed asyncFunctionVal for undecorated ordinary positional async function declarations, wrapped in current function metadata for callable(), __name__, __qualname__, __module__, and __doc__ observation; the preserved body is not executed yet and calls do not allocate coroutine objects yet"],
+          "test_coverage": ["tests/adapter/adapter-generator-function-basic.py", "tests/adapter/adapter-async-def-metadata.py"],
+          "gaps": ["Need lazy generator execution, suspended frame model, send/throw/close, yield from, StopIteration return values, generator object identity/type/repr/introspection, decorators/defaults/keywords/positional-only/varargs in generator functions, nested control flow around yield, await protocol, coroutine object creation and execution, async generators, and async iteration."]
         }
       ]
     },
@@ -703,7 +703,7 @@
         {
           "id": "compound.async-defs",
           "title": "async def, async for, and async with",
-          "status": "not-started",
+          "status": "partial",
           "references": [
             {
               "title": "Compound statements",
@@ -711,9 +711,9 @@
               "section": "Coroutines"
             }
           ],
-          "k_coverage": [],
-          "test_coverage": [],
-          "gaps": ["Need coroutine objects, await protocol, async iteration, and async context management."]
+          "k_coverage": ["semantics/python.k: #asyncDef binds the name to functionMetaVal(... asyncFunctionVal(...)) for adapter-backed undecorated ordinary-positional async def declarations; async function objects are truthy and callable and expose current function metadata fields through the existing metadata wrapper", "harness/python_to_k_input.py: CPython AST AsyncFunctionDef lowers to #asyncDef for the current undecorated ordinary-positional/no-default profile with docstring preservation and erased annotations; async generator functions, decorators, defaults, positional-only, varargs, keyword-only, kwargs, type comments, and type parameters are rejected explicitly"],
+          "test_coverage": ["tests/adapter/adapter-async-def-metadata.py"],
+          "gaps": ["Need coroutine object allocation when async functions are called, coroutine execution and state transitions, await protocol, async generator functions, async iteration, async context management, decorators, defaults, positional-only, varargs, keyword-only, kwargs, type parameters, annotation metadata/introspection, and exact diagnostics."]
         }
       ]
     },

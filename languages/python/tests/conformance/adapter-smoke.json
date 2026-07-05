@@ -4309,6 +4309,13 @@
       "coverage": ["generator-function", "yield-expression", "simple-yield-statement-profile", "materialized-generator-function-profile", "stateful-iterator-ref", "iterator-consumption-profile", "next-builtin", "next-default", "list-constructor", "tuple-constructor", "for-statement", "callable-builtin", "ordinary-python-source-adapter"]
     },
     {
+      "id": "adapter-async-def-metadata",
+      "source": "../adapter/adapter-async-def-metadata.py",
+      "reference": "Python 3.14.6 Language Reference 8.9.1 Coroutine function definition; Data model coroutine function metadata",
+      "expected_result": "True ~> .K",
+      "coverage": ["async-function-definition", "async-function-metadata", "coroutine-function-callability", "ordinary-python-source-adapter"]
+    },
+    {
       "id": "adapter-comprehension-target-two-for",
       "source": "../adapter/adapter-comprehension-target-two-for.py",
       "reference": "Python Language Reference 6.2.4 Displays for lists, sets and dictionaries; 6.2.5 List displays; 6.2.6 Set displays; 6.2.7 Dictionary displays",

@@ -142,6 +142,7 @@ run_eval_case "adapter-eval-input" "$ROOT/tests/adapter/adapter-eval-input.pyexp
 run_interactive_case "adapter-interactive-input" "$ROOT/tests/adapter/adapter-interactive-input.pysingle" "True ~> .K" "True"
 run_case "adapter-lexical-lines-indentation" "$ROOT/tests/adapter/adapter-lexical-lines-indentation.py" "True ~> .K"
 run_case "adapter-import-math" "$ROOT/tests/adapter/adapter-import-math.py" "True ~> .K"
+run_case "adapter-import-keyword" "$ROOT/tests/adapter/adapter-import-keyword.py" "True ~> .K"
 run_case "adapter-string-repeat" "$ROOT/tests/adapter/adapter-string-repeat.py" "True ~> .K"
 run_case "adapter-string-index" "$ROOT/tests/adapter/adapter-string-index.py" "True ~> .K"
 run_case "adapter-string-membership" "$ROOT/tests/adapter/adapter-string-membership.py" "True ~> .K"

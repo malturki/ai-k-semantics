@@ -200,6 +200,13 @@
       "coverage": ["import-statement", "from-import-statement", "import-as-binding", "builtin-module-object", "module-cache-identity", "builtin-module-attribute-lookup", "ordinary-python-source-adapter"]
     },
     {
+      "id": "adapter-import-keyword",
+      "source": "../adapter/adapter-import-keyword.py",
+      "reference": "Python Language Reference lexical analysis and import statement; CPython 3.14.6 Lib/keyword.py generated from Grammar/python.gram",
+      "expected_result": "True ~> .K",
+      "coverage": ["keyword-module", "keyword-list", "soft-keyword-list", "iskeyword", "issoftkeyword", "import-statement", "from-import-statement", "import-as-binding", "builtin-module-object", "ordinary-python-source-adapter"]
+    },
+    {
       "id": "adapter-string-repeat",
       "source": "../adapter/adapter-string-repeat.py",
       "reference": "Python Language Reference 6.7 Binary arithmetic operations; Standard Library sequence types",

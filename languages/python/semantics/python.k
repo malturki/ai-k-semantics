@@ -819,6 +819,11 @@ module PYTHON
                | functionApplyGlobals(IdItems, Val) [function, symbol(functionApplyGlobals)]
                | generatorFunctionVal(IdItems, YieldExps) [symbol(generatorFunctionVal)]
                | asyncFunctionVal(IdItems, Block) [symbol(asyncFunctionVal)]
+               | "#keywordIsKeywordFun" [symbol(keywordIsKeywordFun)]
+               | "#keywordIsSoftKeywordFun" [symbol(keywordIsSoftKeywordFun)]
+               | keywordAllList() [function, symbol(keywordAllList)]
+               | keywordKwList() [function, symbol(keywordKwList)]
+               | keywordSoftKwList() [function, symbol(keywordSoftKwList)]
                | moduleVal(Id, ClassAttrs) [symbol(moduleVal)]
                | builtinModule(Id) [function, symbol(builtinModule)]
                | builtinModuleAttr(Id, Id) [function, symbol(builtinModuleAttr)]
@@ -1757,6 +1762,8 @@ module PYTHON
                 | valEq(Val, Val) [function, symbol(valEq)]
                 | builtinModuleSupported(Id) [function, symbol(builtinModuleSupported)]
                 | builtinModuleHasAttr(Id, Id) [function, symbol(builtinModuleHasAttr)]
+                | keywordIsKeywordString(String) [function, symbol(keywordIsKeywordString)]
+                | keywordIsSoftKeywordString(String) [function, symbol(keywordIsSoftKeywordString)]
                 | singletonPatternEq(Val, Val) [function, symbol(singletonPatternEq)]
                 | matchBuiltinClass(Val, Id) [function, symbol(matchBuiltinClass)]
                 | builtinClassWholeArg(Id) [function, symbol(builtinClassWholeArg)]
@@ -3075,6 +3082,8 @@ module PYTHON
   rule truthy(functionMetaVal(_:String, _:String, _:Val, _:String, _:Val)) => true
   rule truthy(generatorFunctionVal(_:IdItems, _:YieldExps)) => true
   rule truthy(asyncFunctionVal(_:IdItems, _:Block)) => true
+  rule truthy(#keywordIsKeywordFun) => true
+  rule truthy(#keywordIsSoftKeywordFun) => true
   rule truthy(moduleVal(_:Id, _:ClassAttrs)) => true
   rule truthy(classVal(_:Id, _:Int, _:ClassAttrs)) => true
   rule truthy(userObjectVal(_:Id, _:Int, _:Int, _:ClassAttrs)) => true
@@ -3216,6 +3225,8 @@ module PYTHON
   rule callableVal(functionMetaVal(_:String, _:String, _:Val, _:String, F:Val)) => callableVal(F)
   rule callableVal(generatorFunctionVal(_:IdItems, _:YieldExps)) => true
   rule callableVal(asyncFunctionVal(_:IdItems, _:Block)) => true
+  rule callableVal(#keywordIsKeywordFun) => true
+  rule callableVal(#keywordIsSoftKeywordFun) => true
   rule callableVal(classVal(_:Id, _:Int, _:ClassAttrs)) => true
   rule callableVal(boundMethodVal(_:Val, _:Val)) => true
   rule callableVal(_:Val) => false [owise]
@@ -4938,6 +4949,8 @@ module PYTHON
   rule isIntLike(functionMetaVal(_:String, _:String, _:Val, _:String, _:Val)) => false
   rule isIntLike(generatorFunctionVal(_:IdItems, _:YieldExps)) => false
   rule isIntLike(asyncFunctionVal(_:IdItems, _:Block)) => false
+  rule isIntLike(#keywordIsKeywordFun) => false
+  rule isIntLike(#keywordIsSoftKeywordFun) => false
   rule isIntLike(moduleVal(_:Id, _:ClassAttrs)) => false
   rule isIntLike(classVal(_:Id, _:Int, _:ClassAttrs)) => false
   rule isIntLike(userObjectVal(_:Id, _:Int, _:Int, _:ClassAttrs)) => false
@@ -5972,6 +5985,8 @@ module PYTHON
   rule singletonIdentity(functionMetaVal(_:String, _:String, _:Val, _:String, _:Val)) => false
   rule singletonIdentity(generatorFunctionVal(_:IdItems, _:YieldExps)) => false
   rule singletonIdentity(asyncFunctionVal(_:IdItems, _:Block)) => false
+  rule singletonIdentity(#keywordIsKeywordFun) => false
+  rule singletonIdentity(#keywordIsSoftKeywordFun) => false
   rule singletonIdentity(moduleVal(_:Id, _:ClassAttrs)) => false
   rule singletonIdentity(classVal(_:Id, _:Int, _:ClassAttrs)) => false
   rule singletonIdentity(userObjectVal(_:Id, _:Int, _:Int, _:ClassAttrs)) => false
@@ -6530,7 +6545,8 @@ module PYTHON
   rule classAttrsInherit(Attrs:ClassAttrs, BaseId:Int, BaseAttrs:ClassAttrs) =>
     classBase(BaseId, classAttrsAppend(Attrs, BaseAttrs))
 
-  rule builtinModuleSupported(M:Id) => Id2String(M) ==String "math"
+  rule builtinModuleSupported(M:Id) =>
+    Id2String(M) ==String "math" orBool Id2String(M) ==String "keyword"
 
   rule builtinModule(M:Id) => moduleVal(M, builtinModuleAttrs(M))
     requires builtinModuleSupported(M)
@@ -6542,6 +6558,62 @@ module PYTHON
     classAttr(#token("tau", "Id"), 6.283185307179586,
       #noRuntimeClassAttrs))))
     requires Id2String(M) ==String "math"
+  rule builtinModuleAttrs(M:Id) =>
+    classAttr(#token("kDunderNameName", "Id"), "keyword",
+    classAttr(#token("kDunderAllName", "Id"), keywordAllList(),
+    classAttr(#token("iskeyword", "Id"), #keywordIsKeywordFun,
+    classAttr(#token("issoftkeyword", "Id"), #keywordIsSoftKeywordFun,
+    classAttr(#token("kwlist", "Id"), keywordKwList(),
+    classAttr(#token("softkwlist", "Id"), keywordSoftKwList(),
+      #noRuntimeClassAttrs))))))
+    requires Id2String(M) ==String "keyword"
+
+  rule keywordAllList() => ["iskeyword", "issoftkeyword", "kwlist", "softkwlist",]
+  rule keywordKwList() => ["False", "None", "True", "and", "as", "assert", "async", "await", "break", "class", "continue", "def", "del", "elif", "else", "except", "finally", "for", "from", "global", "if", "import", "in", "is", "lambda", "nonlocal", "not", "or", "pass", "raise", "return", "try", "while", "with", "yield",]
+  rule keywordSoftKwList() => ["_", "case", "match", "type",]
+
+  rule keywordIsKeywordString("False") => true
+  rule keywordIsKeywordString("None") => true
+  rule keywordIsKeywordString("True") => true
+  rule keywordIsKeywordString("and") => true
+  rule keywordIsKeywordString("as") => true
+  rule keywordIsKeywordString("assert") => true
+  rule keywordIsKeywordString("async") => true
+  rule keywordIsKeywordString("await") => true
+  rule keywordIsKeywordString("break") => true
+  rule keywordIsKeywordString("class") => true
+  rule keywordIsKeywordString("continue") => true
+  rule keywordIsKeywordString("def") => true
+  rule keywordIsKeywordString("del") => true
+  rule keywordIsKeywordString("elif") => true
+  rule keywordIsKeywordString("else") => true
+  rule keywordIsKeywordString("except") => true
+  rule keywordIsKeywordString("finally") => true
+  rule keywordIsKeywordString("for") => true
+  rule keywordIsKeywordString("from") => true
+  rule keywordIsKeywordString("global") => true
+  rule keywordIsKeywordString("if") => true
+  rule keywordIsKeywordString("import") => true
+  rule keywordIsKeywordString("in") => true
+  rule keywordIsKeywordString("is") => true
+  rule keywordIsKeywordString("lambda") => true
+  rule keywordIsKeywordString("nonlocal") => true
+  rule keywordIsKeywordString("not") => true
+  rule keywordIsKeywordString("or") => true
+  rule keywordIsKeywordString("pass") => true
+  rule keywordIsKeywordString("raise") => true
+  rule keywordIsKeywordString("return") => true
+  rule keywordIsKeywordString("try") => true
+  rule keywordIsKeywordString("while") => true
+  rule keywordIsKeywordString("with") => true
+  rule keywordIsKeywordString("yield") => true
+  rule keywordIsKeywordString(_:String) => false [owise]
+
+  rule keywordIsSoftKeywordString("_") => true
+  rule keywordIsSoftKeywordString("case") => true
+  rule keywordIsSoftKeywordString("match") => true
+  rule keywordIsSoftKeywordString("type") => true
+  rule keywordIsSoftKeywordString(_:String) => false [owise]
 
   rule builtinModuleHasAttr(M:Id, A:Id) => classAttrsHas(builtinModuleAttrs(M), A)
     requires builtinModuleSupported(M)
@@ -6588,6 +6660,7 @@ module PYTHON
   rule classAttrIdMatchesString(#token("kDunderDocName", "Id"), B:String) => B ==String "__doc__"
   rule classAttrIdMatchesString(#token("kDunderModuleName", "Id"), B:String) => B ==String "__module__"
   rule classAttrIdMatchesString(#token("kDunderQualnameName", "Id"), B:String) => B ==String "__qualname__"
+  rule classAttrIdMatchesString(#token("kDunderAllName", "Id"), B:String) => B ==String "__all__"
   rule classAttrIdMatchesString(A:Id, B:String) => Id2String(A) ==String B [owise]
 
   rule classAttrGet(classAttr(A:Id, V:Val, _Rest:ClassAttrs), B:Id) => V
@@ -7205,6 +7278,12 @@ module PYTHON
   rule valEq(None, None) => true
   rule valEq(Ellipsis, Ellipsis) => true
   rule valEq(#exception(E1:Id), #exception(E2:Id)) => Id2String(E1) ==String Id2String(E2)
+  rule valEq(#keywordIsKeywordFun, #keywordIsKeywordFun) => true
+  rule valEq(#keywordIsSoftKeywordFun, #keywordIsSoftKeywordFun) => true
+  rule valEq(#keywordIsKeywordFun, _V:Val) => false [owise]
+  rule valEq(_V:Val, #keywordIsKeywordFun) => false [owise]
+  rule valEq(#keywordIsSoftKeywordFun, _V:Val) => false [owise]
+  rule valEq(_V:Val, #keywordIsSoftKeywordFun) => false [owise]
   rule valEq(moduleVal(M1:Id, _:ClassAttrs), moduleVal(M2:Id, _:ClassAttrs)) =>
     Id2String(M1) ==String Id2String(M2)
   rule valEq(moduleVal(_:Id, _:ClassAttrs), _V:Val) => false [owise]
@@ -7452,6 +7531,12 @@ module PYTHON
     I1 ==Int I2 andBool ClassId1 ==Int ClassId2 andBool Id2String(C1) ==String Id2String(C2)
   rule valIs(moduleVal(M1:Id, _:ClassAttrs), moduleVal(M2:Id, _:ClassAttrs)) =>
     Id2String(M1) ==String Id2String(M2)
+  rule valIs(#keywordIsKeywordFun, #keywordIsKeywordFun) => true
+  rule valIs(#keywordIsSoftKeywordFun, #keywordIsSoftKeywordFun) => true
+  rule valIs(#keywordIsKeywordFun, _V:Val) => false [owise]
+  rule valIs(_V:Val, #keywordIsKeywordFun) => false [owise]
+  rule valIs(#keywordIsSoftKeywordFun, _V:Val) => false [owise]
+  rule valIs(_V:Val, #keywordIsSoftKeywordFun) => false [owise]
   rule valIs(classVal(_:Id, _:Int, _:ClassAttrs), userObjectVal(_:Id, _:Int, _:Int, _:ClassAttrs)) => false
   rule valIs(userObjectVal(_:Id, _:Int, _:Int, _:ClassAttrs), classVal(_:Id, _:Int, _:ClassAttrs)) => false
   rule valIs(V1:Val, V2:Val) => valEq(V1, V2)
@@ -17310,6 +17395,20 @@ module PYTHON
            exceptionSignal(#exception(#token("TypeError", "Id")))
        ... </k>
     requires notBool callableVal(F)
+  rule <k> S:String ~> callApply(#keywordIsKeywordFun) =>
+           boolValue(keywordIsKeywordString(S))
+       ... </k>
+  rule <k> V:Val ~> callApply(#keywordIsKeywordFun) =>
+           False
+       ... </k>
+    requires notBool isStringVal(V)
+  rule <k> S:String ~> callApply(#keywordIsSoftKeywordFun) =>
+           boolValue(keywordIsSoftKeywordString(S))
+       ... </k>
+  rule <k> V:Val ~> callApply(#keywordIsSoftKeywordFun) =>
+           False
+       ... </k>
+    requires notBool isStringVal(V)
   rule <k> A:Val ~> callApply(functionMetaVal(_:String, _:String, _:Val, _:String, F:Val)) =>
            A ~> callApply(F)
        ... </k>
@@ -17953,6 +18052,28 @@ module PYTHON
            exceptionSignal(#exception(#token("TypeError", "Id")))
        ... </k>
     requires notBool callableVal(F)
+  rule <k> argsVal(argValsCons(S:String, #noArgVals)) ~> callApplyArgs(#keywordIsKeywordFun) =>
+           boolValue(keywordIsKeywordString(S))
+       ... </k>
+  rule <k> argsVal(argValsCons(V:Val, #noArgVals)) ~> callApplyArgs(#keywordIsKeywordFun) =>
+           False
+       ... </k>
+    requires notBool isStringVal(V)
+  rule <k> argsVal(VS:ArgVals) ~> callApplyArgs(#keywordIsKeywordFun) =>
+           exceptionSignal(#exception(#token("TypeError", "Id")))
+       ... </k>
+    requires argValsLen(VS) =/=Int 1
+  rule <k> argsVal(argValsCons(S:String, #noArgVals)) ~> callApplyArgs(#keywordIsSoftKeywordFun) =>
+           boolValue(keywordIsSoftKeywordString(S))
+       ... </k>
+  rule <k> argsVal(argValsCons(V:Val, #noArgVals)) ~> callApplyArgs(#keywordIsSoftKeywordFun) =>
+           False
+       ... </k>
+    requires notBool isStringVal(V)
+  rule <k> argsVal(VS:ArgVals) ~> callApplyArgs(#keywordIsSoftKeywordFun) =>
+           exceptionSignal(#exception(#token("TypeError", "Id")))
+       ... </k>
+    requires argValsLen(VS) =/=Int 1
   rule <k> argsVal(VS:ArgVals) ~> callApplyArgs(functionMetaVal(_:String, _:String, _:Val, _:String, F:Val)) =>
            argsVal(VS) ~> callApplyArgs(F)
        ... </k>

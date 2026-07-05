@@ -27,6 +27,7 @@ DUNDER_NAME_NAME_ID = "kDunderNameName"
 DUNDER_DOC_NAME_ID = "kDunderDocName"
 DUNDER_MODULE_NAME_ID = "kDunderModuleName"
 DUNDER_QUALNAME_NAME_ID = "kDunderQualnameName"
+DUNDER_ALL_NAME_ID = "kDunderAllName"
 JSON_SURROGATE_PAIR_RE = re.compile(r"\\u(d[89ab][0-9a-f]{2})\\u(d[cdef][0-9a-f]{2})")
 SUPPORTED_ZERO_ARG_CLASS_PATTERNS = {
     "bytearray",
@@ -93,9 +94,18 @@ SUPPORTED_BUILTIN_CLASS_NAMES = {
     "tuple",
 }
 SUPPORTED_IMPORT_MODULES = {
+    "keyword",
     "math",
 }
 SUPPORTED_FROM_IMPORT_NAMES = {
+    "keyword": {
+        "__all__",
+        "__name__",
+        "iskeyword",
+        "issoftkeyword",
+        "kwlist",
+        "softkwlist",
+    },
     "math": {
         "__name__",
         "e",
@@ -656,6 +666,8 @@ def emit_id(name: str) -> str:
         return DUNDER_MODULE_NAME_ID
     if name == "__qualname__":
         return DUNDER_QUALNAME_NAME_ID
+    if name == "__all__":
+        return DUNDER_ALL_NAME_ID
     return name
 
 

@@ -282,9 +282,9 @@
               "section": "The module cache"
             }
           ],
-          "k_coverage": ["semantics/python.k: moduleVal runtime value for the supported builtin math module; repeated supported imports bind structurally identical module values so current identity comparisons agree for the supported module-cache slice"],
-          "test_coverage": ["tests/adapter/adapter-import-math.py"],
-          "gaps": ["Need explicit sys.modules table, initialization state, mutation visibility, module object attributes beyond the current math constants/name subset, filesystem/package visibility, failed-import cache behavior, and user module execution."]
+          "k_coverage": ["semantics/python.k: moduleVal runtime values for the supported fixed builtin math and keyword modules; repeated supported imports bind structurally identical module values so current identity comparisons agree for the supported module-cache slice"],
+          "test_coverage": ["tests/adapter/adapter-import-math.py", "tests/adapter/adapter-import-keyword.py"],
+          "gaps": ["Need explicit sys.modules table, initialization state, mutation visibility, module object attributes beyond the current fixed math/keyword subset, filesystem/package visibility, failed-import cache behavior, and user module execution."]
         },
         {
           "id": "imports.find-load-protocol",
@@ -297,8 +297,8 @@
               "section": "Finders and loaders"
             }
           ],
-          "k_coverage": ["semantics/python.k: builtinModuleSupported/builtinModule/builtinModuleAttr model a fixed builtin-module finder/loader profile for math; unsupported modules raise the current ModuleNotFoundError sentinel and missing supported-module names raise ImportError"],
-          "test_coverage": ["tests/adapter/adapter-import-math.py"],
+          "k_coverage": ["semantics/python.k: builtinModuleSupported/builtinModule/builtinModuleAttr model a fixed builtin-module finder/loader profile for math and keyword; unsupported modules raise the current ModuleNotFoundError sentinel and missing supported-module names raise ImportError"],
+          "test_coverage": ["tests/adapter/adapter-import-math.py", "tests/adapter/adapter-import-keyword.py"],
           "gaps": ["Need meta path traversal, ModuleSpec, loader create/exec phases, import lock/reentrancy behavior, importlib integration, extension/frozen/source module distinctions, host/filesystem profile boundaries, and exact diagnostics."]
         },
         {
@@ -558,8 +558,8 @@
               "section": "The import statement"
             }
           ],
-          "k_coverage": ["semantics/python.k: #import, #importAs, #fromImport, and #fromImportAs statements bind supported builtin math module values or supported attributes; harness/python_to_k_input.py: CPython AST Import and ImportFrom adapter support for a single supported builtin math import/from-import alias"],
-          "test_coverage": ["tests/adapter/adapter-import-math.py"],
+          "k_coverage": ["semantics/python.k: #import, #importAs, #fromImport, and #fromImportAs statements bind supported fixed builtin math and keyword module values or supported attributes; harness/python_to_k_input.py: CPython AST Import and ImportFrom adapter support for a single supported fixed builtin math/keyword import/from-import alias"],
+          "test_coverage": ["tests/adapter/adapter-import-math.py", "tests/adapter/adapter-import-keyword.py"],
           "gaps": ["Need multi-alias imports, dotted imports, star imports, relative imports, package binding rules, import-time execution, sys.modules interactions, user modules, import-level name binding edge cases, and exact ImportError/ModuleNotFoundError diagnostics."]
         },
         {
@@ -868,7 +868,7 @@
         {
           "id": "stdlib.ast-tokenize-keyword",
           "title": "ast, tokenize, token, and keyword modules",
-          "status": "not-started",
+          "status": "partial",
           "references": [
             {
               "title": "ast",
@@ -877,11 +877,19 @@
             {
               "title": "tokenize",
               "url": "https://docs.python.org/3/library/tokenize.html"
+            },
+            {
+              "title": "token",
+              "url": "https://docs.python.org/3/library/token.html"
+            },
+            {
+              "title": "keyword",
+              "url": "https://docs.python.org/3/library/keyword.html"
             }
           ],
-          "k_coverage": [],
-          "test_coverage": [],
-          "gaps": ["Need explicit decision whether these are specified as library behavior, parser oracle adapters, or both."]
+          "k_coverage": ["semantics/python.k: fixed builtin keyword module with __name__, __all__, kwlist, softkwlist, callable iskeyword, and callable issoftkeyword values from pinned CPython 3.14.6 Lib/keyword.py generated from Grammar/python.gram; non-string membership probes return False and wrong positional arity raises the current TypeError sentinel", "harness/python_to_k_input.py: CPython AST Import and ImportFrom adapter accepts single-name import/from-import aliases for the supported keyword module attributes"],
+          "test_coverage": ["tests/adapter/adapter-import-keyword.py"],
+          "gaps": ["Need ast module behavior, tokenize/token module behavior, token constants/exact_token_types, tokenizer byte/source stream behavior, parser-oracle adapter boundaries, keyword list regeneration provenance beyond the pinned CPython 3.14.6 profile, keyword function metadata/introspection, keyword import mutation/sys.modules behavior, and exact diagnostics."]
         },
         {
           "id": "stdlib.importlib",

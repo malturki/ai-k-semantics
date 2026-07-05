@@ -740,8 +740,16 @@ module PYTHON
                       | builtinModuleAttrs(Id) [function, symbol(builtinModuleAttrs)]
                       | classAttrSet(ClassAttrs, Id, Val) [function, symbol(classAttrSet)]
                       | classAttrStringSet(ClassAttrs, String, Val) [function, symbol(classAttrStringSet)]
+                      | classAttrOwnSet(ClassAttrs, Id, Val) [function, symbol(classAttrOwnSet)]
+                      | classAttrOwnStringSet(ClassAttrs, String, Val) [function, symbol(classAttrOwnStringSet)]
                       | classAttrDel(ClassAttrs, Id) [function, symbol(classAttrDel)]
                       | classAttrStringDel(ClassAttrs, String) [function, symbol(classAttrStringDel)]
+                      | classAttrOwnDel(ClassAttrs, Id) [function, symbol(classAttrOwnDel)]
+                      | classAttrOwnStringDel(ClassAttrs, String) [function, symbol(classAttrOwnStringDel)]
+                      | classAttrBaseSet(ClassAttrs, Int, Id, Val) [function, symbol(classAttrBaseSet)]
+                      | classAttrBaseStringSet(ClassAttrs, Int, String, Val) [function, symbol(classAttrBaseStringSet)]
+                      | classAttrBaseDel(ClassAttrs, Int, Id) [function, symbol(classAttrBaseDel)]
+                      | classAttrBaseStringDel(ClassAttrs, Int, String) [function, symbol(classAttrBaseStringDel)]
                       | classAttrsAppend(ClassAttrs, ClassAttrs) [function, symbol(classAttrsAppend)]
                       | classAttrsInherit(ClassAttrs, Int, ClassAttrs) [function, symbol(classAttrsInherit)]
 
@@ -1826,9 +1834,12 @@ module PYTHON
                 | classHasMatchAttr(Val, Id) [function, symbol(classHasMatchAttr)]
                 | classAttrsHas(ClassAttrs, Id) [function, symbol(classAttrsHas)]
                 | classAttrsHasBaseId(ClassAttrs, Int) [function, symbol(classAttrsHasBaseId)]
+                | classValueHasBaseId(Val, Int) [function, symbol(classValueHasBaseId)]
+                | classAttrsOwnHas(ClassAttrs, Id) [function, symbol(classAttrsOwnHas)]
                 | getattrStringSupported(String) [function, symbol(getattrStringSupported)]
                 | classHasAttrString(Val, String) [function, symbol(classHasAttrString)]
                 | classAttrsHasString(ClassAttrs, String) [function, symbol(classAttrsHasString)]
+                | classAttrsOwnHasString(ClassAttrs, String) [function, symbol(classAttrsOwnHasString)]
                 | classAttrIdMatchesString(Id, String) [function, symbol(classAttrIdMatchesString)]
                 | typeAliasLazyAttrId(Id) [function, symbol(typeAliasLazyAttrId)]
                 | typeAliasLazyAttrString(String) [function, symbol(typeAliasLazyAttrString)]
@@ -3297,6 +3308,10 @@ module PYTHON
   rule classValueExactClassId(classVal(_:Id, ClassId:Int, _:ClassAttrs), ExpectedClassId:Int) => ClassId ==Int ExpectedClassId
   rule classValueExactClassId(userObjectVal(_:Id, ClassId:Int, _:Int, _:ClassAttrs), ExpectedClassId:Int) => ClassId ==Int ExpectedClassId
   rule classValueExactClassId(_:Val, _:Int) => false [owise]
+
+  rule classValueHasBaseId(classVal(_:Id, _:Int, Attrs:ClassAttrs), BaseId:Int) => classAttrsHasBaseId(Attrs, BaseId)
+  rule classValueHasBaseId(userObjectVal(_:Id, _:Int, _:Int, Attrs:ClassAttrs), BaseId:Int) => classAttrsHasBaseId(Attrs, BaseId)
+  rule classValueHasBaseId(_:Val, _:Int) => false [owise]
 
   rule isTypeAliasVal(typeAliasVal(_:Id, _:Int, _:Exp)) => true
   rule isTypeAliasVal(_:Val) => false [owise]
@@ -6617,6 +6632,38 @@ module PYTHON
   rule classAttrStringSet(classBase(BaseId:Int, Rest:ClassAttrs), B:String, V:Val) =>
     classBase(BaseId, classAttrStringSet(Rest, B, V))
 
+  rule classAttrOwnSet(#noRuntimeClassAttrs, A:Id, V:Val) => classAttr(A, V, #noRuntimeClassAttrs)
+  rule classAttrOwnSet(classAttr(A:Id, _Old:Val, Rest:ClassAttrs), B:Id, V:Val) =>
+    classAttr(A, V, Rest)
+    requires Id2String(A) ==String Id2String(B)
+  rule classAttrOwnSet(classAttr(A:Id, Old:Val, Rest:ClassAttrs), B:Id, V:Val) =>
+    classAttr(A, Old, classAttrOwnSet(Rest, B, V))
+    requires Id2String(A) =/=String Id2String(B)
+  rule classAttrOwnSet(classStringAttr(A:String, _Old:Val, Rest:ClassAttrs), B:Id, V:Val) =>
+    classStringAttr(A, V, Rest)
+    requires A ==String Id2String(B)
+  rule classAttrOwnSet(classStringAttr(A:String, Old:Val, Rest:ClassAttrs), B:Id, V:Val) =>
+    classStringAttr(A, Old, classAttrOwnSet(Rest, B, V))
+    requires A =/=String Id2String(B)
+  rule classAttrOwnSet(classBase(BaseId:Int, Rest:ClassAttrs), B:Id, V:Val) =>
+    classAttr(B, V, classBase(BaseId, Rest))
+
+  rule classAttrOwnStringSet(#noRuntimeClassAttrs, A:String, V:Val) => classStringAttr(A, V, #noRuntimeClassAttrs)
+  rule classAttrOwnStringSet(classAttr(A:Id, _Old:Val, Rest:ClassAttrs), B:String, V:Val) =>
+    classAttr(A, V, Rest)
+    requires classAttrIdMatchesString(A, B)
+  rule classAttrOwnStringSet(classAttr(A:Id, Old:Val, Rest:ClassAttrs), B:String, V:Val) =>
+    classAttr(A, Old, classAttrOwnStringSet(Rest, B, V))
+    requires notBool classAttrIdMatchesString(A, B)
+  rule classAttrOwnStringSet(classStringAttr(A:String, _Old:Val, Rest:ClassAttrs), B:String, V:Val) =>
+    classStringAttr(A, V, Rest)
+    requires A ==String B
+  rule classAttrOwnStringSet(classStringAttr(A:String, Old:Val, Rest:ClassAttrs), B:String, V:Val) =>
+    classStringAttr(A, Old, classAttrOwnStringSet(Rest, B, V))
+    requires A =/=String B
+  rule classAttrOwnStringSet(classBase(BaseId:Int, Rest:ClassAttrs), B:String, V:Val) =>
+    classStringAttr(B, V, classBase(BaseId, Rest))
+
   rule classAttrDel(#noRuntimeClassAttrs, _:Id) => #noRuntimeClassAttrs
   rule classAttrDel(classAttr(A:Id, _V:Val, Rest:ClassAttrs), B:Id) => Rest
     requires Id2String(A) ==String Id2String(B)
@@ -6644,6 +6691,78 @@ module PYTHON
     requires A =/=String B
   rule classAttrStringDel(classBase(BaseId:Int, Rest:ClassAttrs), B:String) =>
     classBase(BaseId, classAttrStringDel(Rest, B))
+
+  rule classAttrOwnDel(#noRuntimeClassAttrs, _:Id) => #noRuntimeClassAttrs
+  rule classAttrOwnDel(classAttr(A:Id, _V:Val, Rest:ClassAttrs), B:Id) => Rest
+    requires Id2String(A) ==String Id2String(B)
+  rule classAttrOwnDel(classAttr(A:Id, V:Val, Rest:ClassAttrs), B:Id) =>
+    classAttr(A, V, classAttrOwnDel(Rest, B))
+    requires Id2String(A) =/=String Id2String(B)
+  rule classAttrOwnDel(classStringAttr(A:String, _V:Val, Rest:ClassAttrs), B:Id) => Rest
+    requires A ==String Id2String(B)
+  rule classAttrOwnDel(classStringAttr(A:String, V:Val, Rest:ClassAttrs), B:Id) =>
+    classStringAttr(A, V, classAttrOwnDel(Rest, B))
+    requires A =/=String Id2String(B)
+  rule classAttrOwnDel(classBase(BaseId:Int, Rest:ClassAttrs), _:Id) =>
+    classBase(BaseId, Rest)
+
+  rule classAttrOwnStringDel(#noRuntimeClassAttrs, _:String) => #noRuntimeClassAttrs
+  rule classAttrOwnStringDel(classAttr(A:Id, _V:Val, Rest:ClassAttrs), B:String) => Rest
+    requires classAttrIdMatchesString(A, B)
+  rule classAttrOwnStringDel(classAttr(A:Id, V:Val, Rest:ClassAttrs), B:String) =>
+    classAttr(A, V, classAttrOwnStringDel(Rest, B))
+    requires notBool classAttrIdMatchesString(A, B)
+  rule classAttrOwnStringDel(classStringAttr(A:String, _V:Val, Rest:ClassAttrs), B:String) => Rest
+    requires A ==String B
+  rule classAttrOwnStringDel(classStringAttr(A:String, V:Val, Rest:ClassAttrs), B:String) =>
+    classStringAttr(A, V, classAttrOwnStringDel(Rest, B))
+    requires A =/=String B
+  rule classAttrOwnStringDel(classBase(BaseId:Int, Rest:ClassAttrs), _:String) =>
+    classBase(BaseId, Rest)
+
+  rule classAttrBaseSet(#noRuntimeClassAttrs, _BaseId:Int, _A:Id, _V:Val) => #noRuntimeClassAttrs
+  rule classAttrBaseSet(classAttr(A:Id, Old:Val, Rest:ClassAttrs), BaseId:Int, B:Id, V:Val) =>
+    classAttr(A, Old, classAttrBaseSet(Rest, BaseId, B, V))
+  rule classAttrBaseSet(classStringAttr(A:String, Old:Val, Rest:ClassAttrs), BaseId:Int, B:Id, V:Val) =>
+    classStringAttr(A, Old, classAttrBaseSet(Rest, BaseId, B, V))
+  rule classAttrBaseSet(classBase(BaseId:Int, Rest:ClassAttrs), BaseId:Int, B:Id, V:Val) =>
+    classBase(BaseId, classAttrOwnSet(Rest, B, V))
+  rule classAttrBaseSet(classBase(OtherId:Int, Rest:ClassAttrs), BaseId:Int, B:Id, V:Val) =>
+    classBase(OtherId, classAttrBaseSet(Rest, BaseId, B, V))
+    requires OtherId =/=Int BaseId
+
+  rule classAttrBaseStringSet(#noRuntimeClassAttrs, _BaseId:Int, _A:String, _V:Val) => #noRuntimeClassAttrs
+  rule classAttrBaseStringSet(classAttr(A:Id, Old:Val, Rest:ClassAttrs), BaseId:Int, B:String, V:Val) =>
+    classAttr(A, Old, classAttrBaseStringSet(Rest, BaseId, B, V))
+  rule classAttrBaseStringSet(classStringAttr(A:String, Old:Val, Rest:ClassAttrs), BaseId:Int, B:String, V:Val) =>
+    classStringAttr(A, Old, classAttrBaseStringSet(Rest, BaseId, B, V))
+  rule classAttrBaseStringSet(classBase(BaseId:Int, Rest:ClassAttrs), BaseId:Int, B:String, V:Val) =>
+    classBase(BaseId, classAttrOwnStringSet(Rest, B, V))
+  rule classAttrBaseStringSet(classBase(OtherId:Int, Rest:ClassAttrs), BaseId:Int, B:String, V:Val) =>
+    classBase(OtherId, classAttrBaseStringSet(Rest, BaseId, B, V))
+    requires OtherId =/=Int BaseId
+
+  rule classAttrBaseDel(#noRuntimeClassAttrs, _BaseId:Int, _A:Id) => #noRuntimeClassAttrs
+  rule classAttrBaseDel(classAttr(A:Id, V:Val, Rest:ClassAttrs), BaseId:Int, B:Id) =>
+    classAttr(A, V, classAttrBaseDel(Rest, BaseId, B))
+  rule classAttrBaseDel(classStringAttr(A:String, V:Val, Rest:ClassAttrs), BaseId:Int, B:Id) =>
+    classStringAttr(A, V, classAttrBaseDel(Rest, BaseId, B))
+  rule classAttrBaseDel(classBase(BaseId:Int, Rest:ClassAttrs), BaseId:Int, B:Id) =>
+    classBase(BaseId, classAttrOwnDel(Rest, B))
+  rule classAttrBaseDel(classBase(OtherId:Int, Rest:ClassAttrs), BaseId:Int, B:Id) =>
+    classBase(OtherId, classAttrBaseDel(Rest, BaseId, B))
+    requires OtherId =/=Int BaseId
+
+  rule classAttrBaseStringDel(#noRuntimeClassAttrs, _BaseId:Int, _A:String) => #noRuntimeClassAttrs
+  rule classAttrBaseStringDel(classAttr(A:Id, V:Val, Rest:ClassAttrs), BaseId:Int, B:String) =>
+    classAttr(A, V, classAttrBaseStringDel(Rest, BaseId, B))
+  rule classAttrBaseStringDel(classStringAttr(A:String, V:Val, Rest:ClassAttrs), BaseId:Int, B:String) =>
+    classStringAttr(A, V, classAttrBaseStringDel(Rest, BaseId, B))
+  rule classAttrBaseStringDel(classBase(BaseId:Int, Rest:ClassAttrs), BaseId:Int, B:String) =>
+    classBase(BaseId, classAttrOwnStringDel(Rest, B))
+  rule classAttrBaseStringDel(classBase(OtherId:Int, Rest:ClassAttrs), BaseId:Int, B:String) =>
+    classBase(OtherId, classAttrBaseStringDel(Rest, BaseId, B))
+    requires OtherId =/=Int BaseId
 
   rule classAttrsAppend(#noRuntimeClassAttrs, Rest:ClassAttrs) => Rest
   rule classAttrsAppend(classAttr(A:Id, V:Val, Attrs:ClassAttrs), Rest:ClassAttrs) =>
@@ -6781,6 +6900,17 @@ module PYTHON
   rule classAttrsHasBaseId(classBase(BaseId:Int, Rest:ClassAttrs), ExpectedBaseId:Int) => classAttrsHasBaseId(Rest, ExpectedBaseId)
     requires BaseId =/=Int ExpectedBaseId
 
+  rule classAttrsOwnHas(#noRuntimeClassAttrs, _:Id) => false
+  rule classAttrsOwnHas(classAttr(A:Id, _:Val, _Rest:ClassAttrs), B:Id) => true
+    requires Id2String(A) ==String Id2String(B)
+  rule classAttrsOwnHas(classAttr(A:Id, _:Val, Rest:ClassAttrs), B:Id) => classAttrsOwnHas(Rest, B)
+    requires Id2String(A) =/=String Id2String(B)
+  rule classAttrsOwnHas(classStringAttr(A:String, _:Val, _Rest:ClassAttrs), B:Id) => true
+    requires A ==String Id2String(B)
+  rule classAttrsOwnHas(classStringAttr(A:String, _:Val, Rest:ClassAttrs), B:Id) => classAttrsOwnHas(Rest, B)
+    requires A =/=String Id2String(B)
+  rule classAttrsOwnHas(classBase(_:Int, _:ClassAttrs), _:Id) => false
+
   rule classAttrsHasString(#noRuntimeClassAttrs, _:String) => false
   rule classAttrsHasString(classAttr(A:Id, _:Val, _Rest:ClassAttrs), B:String) => true
     requires classAttrIdMatchesString(A, B)
@@ -6791,6 +6921,17 @@ module PYTHON
   rule classAttrsHasString(classStringAttr(A:String, _:Val, Rest:ClassAttrs), B:String) => classAttrsHasString(Rest, B)
     requires A =/=String B
   rule classAttrsHasString(classBase(_:Int, Rest:ClassAttrs), B:String) => classAttrsHasString(Rest, B)
+
+  rule classAttrsOwnHasString(#noRuntimeClassAttrs, _:String) => false
+  rule classAttrsOwnHasString(classAttr(A:Id, _:Val, _Rest:ClassAttrs), B:String) => true
+    requires classAttrIdMatchesString(A, B)
+  rule classAttrsOwnHasString(classAttr(A:Id, _:Val, Rest:ClassAttrs), B:String) => classAttrsOwnHasString(Rest, B)
+    requires notBool classAttrIdMatchesString(A, B)
+  rule classAttrsOwnHasString(classStringAttr(A:String, _:Val, _Rest:ClassAttrs), B:String) => true
+    requires A ==String B
+  rule classAttrsOwnHasString(classStringAttr(A:String, _:Val, Rest:ClassAttrs), B:String) => classAttrsOwnHasString(Rest, B)
+    requires A =/=String B
+  rule classAttrsOwnHasString(classBase(_:Int, _:ClassAttrs), _:String) => false
 
   rule classAttrIdMatchesString(#token("kDunderInitName", "Id"), B:String) => B ==String "__init__"
   rule classAttrIdMatchesString(#token("kDunderNameName", "Id"), B:String) => B ==String "__name__"
@@ -9262,39 +9403,67 @@ module PYTHON
 
   rule classValueAttrSet(.Map, _ClassId:Int, _Attr:Id, _V:Val) => .Map
   rule classValueAttrSet((X:Id |-> classVal(C:Id, ClassId:Int, Attrs:ClassAttrs)) Rho:Map, ClassId:Int, Attr:Id, V:Val) =>
-    classValueAttrSet(Rho, ClassId, Attr, V) [ X <- classVal(C, ClassId, classAttrSet(Attrs, Attr, V)) ]
+    classValueAttrSet(Rho, ClassId, Attr, V) [ X <- classVal(C, ClassId, classAttrOwnSet(Attrs, Attr, V)) ]
   rule classValueAttrSet((X:Id |-> userObjectVal(C:Id, ClassId:Int, ObjectId:Int, Attrs:ClassAttrs)) Rho:Map, ClassId:Int, Attr:Id, V:Val) =>
-    classValueAttrSet(Rho, ClassId, Attr, V) [ X <- userObjectVal(C, ClassId, ObjectId, classAttrSet(Attrs, Attr, V)) ]
+    classValueAttrSet(Rho, ClassId, Attr, V) [ X <- userObjectVal(C, ClassId, ObjectId, classAttrOwnSet(Attrs, Attr, V)) ]
+  rule classValueAttrSet((X:Id |-> classVal(C:Id, OtherClassId:Int, Attrs:ClassAttrs)) Rho:Map, ClassId:Int, Attr:Id, V:Val) =>
+    classValueAttrSet(Rho, ClassId, Attr, V) [ X <- classVal(C, OtherClassId, classAttrBaseSet(Attrs, ClassId, Attr, V)) ]
+    requires OtherClassId =/=Int ClassId andBool classAttrsHasBaseId(Attrs, ClassId)
+  rule classValueAttrSet((X:Id |-> userObjectVal(C:Id, OtherClassId:Int, ObjectId:Int, Attrs:ClassAttrs)) Rho:Map, ClassId:Int, Attr:Id, V:Val) =>
+    classValueAttrSet(Rho, ClassId, Attr, V) [ X <- userObjectVal(C, OtherClassId, ObjectId, classAttrBaseSet(Attrs, ClassId, Attr, V)) ]
+    requires OtherClassId =/=Int ClassId andBool classAttrsHasBaseId(Attrs, ClassId)
   rule classValueAttrSet((X:Id |-> V0:Val) Rho:Map, ClassId:Int, Attr:Id, V:Val) =>
     classValueAttrSet(Rho, ClassId, Attr, V) [ X <- V0 ]
     requires notBool classValueExactClassId(V0, ClassId)
+      andBool notBool classValueHasBaseId(V0, ClassId)
 
   rule classValueAttrStringSet(.Map, _ClassId:Int, _Attr:String, _V:Val) => .Map
   rule classValueAttrStringSet((X:Id |-> classVal(C:Id, ClassId:Int, Attrs:ClassAttrs)) Rho:Map, ClassId:Int, Attr:String, V:Val) =>
-    classValueAttrStringSet(Rho, ClassId, Attr, V) [ X <- classVal(C, ClassId, classAttrStringSet(Attrs, Attr, V)) ]
+    classValueAttrStringSet(Rho, ClassId, Attr, V) [ X <- classVal(C, ClassId, classAttrOwnStringSet(Attrs, Attr, V)) ]
   rule classValueAttrStringSet((X:Id |-> userObjectVal(C:Id, ClassId:Int, ObjectId:Int, Attrs:ClassAttrs)) Rho:Map, ClassId:Int, Attr:String, V:Val) =>
-    classValueAttrStringSet(Rho, ClassId, Attr, V) [ X <- userObjectVal(C, ClassId, ObjectId, classAttrStringSet(Attrs, Attr, V)) ]
+    classValueAttrStringSet(Rho, ClassId, Attr, V) [ X <- userObjectVal(C, ClassId, ObjectId, classAttrOwnStringSet(Attrs, Attr, V)) ]
+  rule classValueAttrStringSet((X:Id |-> classVal(C:Id, OtherClassId:Int, Attrs:ClassAttrs)) Rho:Map, ClassId:Int, Attr:String, V:Val) =>
+    classValueAttrStringSet(Rho, ClassId, Attr, V) [ X <- classVal(C, OtherClassId, classAttrBaseStringSet(Attrs, ClassId, Attr, V)) ]
+    requires OtherClassId =/=Int ClassId andBool classAttrsHasBaseId(Attrs, ClassId)
+  rule classValueAttrStringSet((X:Id |-> userObjectVal(C:Id, OtherClassId:Int, ObjectId:Int, Attrs:ClassAttrs)) Rho:Map, ClassId:Int, Attr:String, V:Val) =>
+    classValueAttrStringSet(Rho, ClassId, Attr, V) [ X <- userObjectVal(C, OtherClassId, ObjectId, classAttrBaseStringSet(Attrs, ClassId, Attr, V)) ]
+    requires OtherClassId =/=Int ClassId andBool classAttrsHasBaseId(Attrs, ClassId)
   rule classValueAttrStringSet((X:Id |-> V0:Val) Rho:Map, ClassId:Int, Attr:String, V:Val) =>
     classValueAttrStringSet(Rho, ClassId, Attr, V) [ X <- V0 ]
     requires notBool classValueExactClassId(V0, ClassId)
+      andBool notBool classValueHasBaseId(V0, ClassId)
 
   rule classValueAttrDel(.Map, _ClassId:Int, _Attr:Id) => .Map
   rule classValueAttrDel((X:Id |-> classVal(C:Id, ClassId:Int, Attrs:ClassAttrs)) Rho:Map, ClassId:Int, Attr:Id) =>
-    classValueAttrDel(Rho, ClassId, Attr) [ X <- classVal(C, ClassId, classAttrDel(Attrs, Attr)) ]
+    classValueAttrDel(Rho, ClassId, Attr) [ X <- classVal(C, ClassId, classAttrOwnDel(Attrs, Attr)) ]
   rule classValueAttrDel((X:Id |-> userObjectVal(C:Id, ClassId:Int, ObjectId:Int, Attrs:ClassAttrs)) Rho:Map, ClassId:Int, Attr:Id) =>
-    classValueAttrDel(Rho, ClassId, Attr) [ X <- userObjectVal(C, ClassId, ObjectId, classAttrDel(Attrs, Attr)) ]
+    classValueAttrDel(Rho, ClassId, Attr) [ X <- userObjectVal(C, ClassId, ObjectId, classAttrOwnDel(Attrs, Attr)) ]
+  rule classValueAttrDel((X:Id |-> classVal(C:Id, OtherClassId:Int, Attrs:ClassAttrs)) Rho:Map, ClassId:Int, Attr:Id) =>
+    classValueAttrDel(Rho, ClassId, Attr) [ X <- classVal(C, OtherClassId, classAttrBaseDel(Attrs, ClassId, Attr)) ]
+    requires OtherClassId =/=Int ClassId andBool classAttrsHasBaseId(Attrs, ClassId)
+  rule classValueAttrDel((X:Id |-> userObjectVal(C:Id, OtherClassId:Int, ObjectId:Int, Attrs:ClassAttrs)) Rho:Map, ClassId:Int, Attr:Id) =>
+    classValueAttrDel(Rho, ClassId, Attr) [ X <- userObjectVal(C, OtherClassId, ObjectId, classAttrBaseDel(Attrs, ClassId, Attr)) ]
+    requires OtherClassId =/=Int ClassId andBool classAttrsHasBaseId(Attrs, ClassId)
   rule classValueAttrDel((X:Id |-> V0:Val) Rho:Map, ClassId:Int, Attr:Id) =>
     classValueAttrDel(Rho, ClassId, Attr) [ X <- V0 ]
     requires notBool classValueExactClassId(V0, ClassId)
+      andBool notBool classValueHasBaseId(V0, ClassId)
 
   rule classValueAttrStringDel(.Map, _ClassId:Int, _Attr:String) => .Map
   rule classValueAttrStringDel((X:Id |-> classVal(C:Id, ClassId:Int, Attrs:ClassAttrs)) Rho:Map, ClassId:Int, Attr:String) =>
-    classValueAttrStringDel(Rho, ClassId, Attr) [ X <- classVal(C, ClassId, classAttrStringDel(Attrs, Attr)) ]
+    classValueAttrStringDel(Rho, ClassId, Attr) [ X <- classVal(C, ClassId, classAttrOwnStringDel(Attrs, Attr)) ]
   rule classValueAttrStringDel((X:Id |-> userObjectVal(C:Id, ClassId:Int, ObjectId:Int, Attrs:ClassAttrs)) Rho:Map, ClassId:Int, Attr:String) =>
-    classValueAttrStringDel(Rho, ClassId, Attr) [ X <- userObjectVal(C, ClassId, ObjectId, classAttrStringDel(Attrs, Attr)) ]
+    classValueAttrStringDel(Rho, ClassId, Attr) [ X <- userObjectVal(C, ClassId, ObjectId, classAttrOwnStringDel(Attrs, Attr)) ]
+  rule classValueAttrStringDel((X:Id |-> classVal(C:Id, OtherClassId:Int, Attrs:ClassAttrs)) Rho:Map, ClassId:Int, Attr:String) =>
+    classValueAttrStringDel(Rho, ClassId, Attr) [ X <- classVal(C, OtherClassId, classAttrBaseStringDel(Attrs, ClassId, Attr)) ]
+    requires OtherClassId =/=Int ClassId andBool classAttrsHasBaseId(Attrs, ClassId)
+  rule classValueAttrStringDel((X:Id |-> userObjectVal(C:Id, OtherClassId:Int, ObjectId:Int, Attrs:ClassAttrs)) Rho:Map, ClassId:Int, Attr:String) =>
+    classValueAttrStringDel(Rho, ClassId, Attr) [ X <- userObjectVal(C, OtherClassId, ObjectId, classAttrBaseStringDel(Attrs, ClassId, Attr)) ]
+    requires OtherClassId =/=Int ClassId andBool classAttrsHasBaseId(Attrs, ClassId)
   rule classValueAttrStringDel((X:Id |-> V0:Val) Rho:Map, ClassId:Int, Attr:String) =>
     classValueAttrStringDel(Rho, ClassId, Attr) [ X <- V0 ]
     requires notBool classValueExactClassId(V0, ClassId)
+      andBool notBool classValueHasBaseId(V0, ClassId)
 
   rule argValsToValItems(argValsCons(V:Val, #noArgVals)) => valItemsLast(V)
   rule argValsToValItems(argValsCons(V:Val, VS:ArgVals)) =>
@@ -30638,11 +30807,11 @@ module PYTHON
        ... </k>
        <env> Rho => classValueAttrDel(Rho, ClassId, Attr) </env>
        <result> _ => .K </result>
-    requires classAttrsHas(Attrs, Attr)
+    requires classAttrsOwnHas(Attrs, Attr)
   rule <k> classVal(_:Id, _:Int, Attrs:ClassAttrs) ~> delAttrApply(Attr:Id) =>
            exceptionSignal(#exception(#token("AttributeError", "Id")))
        ... </k>
-    requires notBool classAttrsHas(Attrs, Attr)
+    requires notBool classAttrsOwnHas(Attrs, Attr)
   rule <k> V:Val ~> delAttrApply(_:Id) =>
            exceptionSignal(#exception(#token("AttributeError", "Id")))
        ... </k>
@@ -30716,11 +30885,11 @@ module PYTHON
            None
        ... </k>
        <env> Rho => classValueAttrStringDel(Rho, ClassId, Attr) </env>
-    requires classAttrsHasString(Attrs, Attr)
+    requires classAttrsOwnHasString(Attrs, Attr)
   rule <k> classVal(_:Id, _:Int, Attrs:ClassAttrs) ~> delattrStringApply(Attr:String) =>
            exceptionSignal(#exception(#token("AttributeError", "Id")))
        ... </k>
-    requires notBool classAttrsHasString(Attrs, Attr)
+    requires notBool classAttrsOwnHasString(Attrs, Attr)
   rule <k> V:Val ~> delattrStringApply(_:String) =>
            exceptionSignal(#exception(#token("AttributeError", "Id")))
        ... </k>

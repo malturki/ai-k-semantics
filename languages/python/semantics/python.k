@@ -1815,6 +1815,9 @@ module PYTHON
                 | boolContextTypeError(Val) [function, symbol(boolContextTypeError)]
                 | callableVal(Val) [function, symbol(callableVal)]
                 | isTypeVal(Val) [function, symbol(isTypeVal)]
+                | typeValSupported(Id) [function, symbol(typeValSupported)]
+                | typeValAttrId(Id) [function, symbol(typeValAttrId)]
+                | typeValAttrString(String) [function, symbol(typeValAttrString)]
                 | typeValMatches(Val, Id) [function, symbol(typeValMatches)]
                 | typeValSubclass(Val, Val) [function, symbol(typeValSubclass)]
                 | isClassVal(Val) [function, symbol(isClassVal)]
@@ -2592,6 +2595,8 @@ module PYTHON
                   | bytesDecodeAsciiBackslashString(Val) [function, symbol(bytesDecodeAsciiBackslashString)]
                   | bytesDecodeAsciiBackslashItems(ValItems) [function, symbol(bytesDecodeAsciiBackslashItems)]
                   | bytesDecodeBackslashByte(Val) [function, symbol(bytesDecodeBackslashByte)]
+                  | typeValName(Id) [function, symbol(typeValName)]
+                  | typeValDisplay(Id) [function, symbol(typeValDisplay)]
                   | stringReprQuoteChar(Int) [function, symbol(stringReprQuoteChar)]
                   | stringReprPayload(String, Int, Int) [function, symbol(stringReprPayload)]
                   | stringReprChar(String, Int) [function, symbol(stringReprChar)]
@@ -3111,6 +3116,7 @@ module PYTHON
   syntax Val ::= dictGet(DictItems, Val) [function, symbol(dictGet)]
   syntax Val ::= kwLookup(Id, KwArgVals) [function, symbol(kwLookup)]
   syntax Val ::= boolValue(Bool) [function, symbol(boolValue)]
+               | typeValCtorResult(Id) [function, symbol(typeValCtorResult)]
                | complexMulVal(Val, Val) [function, symbol(complexMulVal)]
                | complexInv(Val) [function, symbol(complexInv)]
                | complexPowNonNeg(Float, Float, Int) [function, symbol(complexPowNonNeg)]
@@ -3389,6 +3395,36 @@ module PYTHON
   rule isTypeVal(#typeVal(_:Id)) => true
   rule isTypeVal(_:Val) => false [owise]
 
+  rule typeValSupported(T:Id) =>
+    Id2String(T) ==String "NoneType"
+      orBool Id2String(T) ==String "EllipsisType"
+      orBool Id2String(T) ==String "NotImplementedType"
+  rule typeValSupported(_:Id) => false [owise]
+
+  rule typeValAttrId(A:Id) =>
+    classAttrIdMatchesString(A, "__name__")
+      orBool classAttrIdMatchesString(A, "__qualname__")
+      orBool classAttrIdMatchesString(A, "__module__")
+  rule typeValAttrString(A:String) =>
+    A ==String "__name__"
+      orBool A ==String "__qualname__"
+      orBool A ==String "__module__"
+
+  rule typeValName(T:Id) => "ellipsis"
+    requires Id2String(T) ==String "EllipsisType"
+  rule typeValName(T:Id) => Id2String(T)
+    requires Id2String(T) =/=String "EllipsisType"
+  rule typeValDisplay(T:Id) => "<class '" +String typeValName(T) +String "'>"
+
+  rule typeValCtorResult(T:Id) => None
+    requires Id2String(T) ==String "NoneType"
+  rule typeValCtorResult(T:Id) => Ellipsis
+    requires Id2String(T) ==String "EllipsisType"
+  rule typeValCtorResult(T:Id) => NotImplemented
+    requires Id2String(T) ==String "NotImplementedType"
+
+  rule typeValMatches(None, T:Id) => Id2String(T) ==String "NoneType"
+  rule typeValMatches(Ellipsis, T:Id) => Id2String(T) ==String "EllipsisType"
   rule typeValMatches(NotImplemented, T:Id) => Id2String(T) ==String "NotImplementedType"
   rule typeValMatches(_:Val, _:Id) => false [owise]
 
@@ -3509,7 +3545,7 @@ module PYTHON
   rule pyFormatStr(None) => "None"
   rule pyFormatStr(Ellipsis) => "Ellipsis"
   rule pyFormatStr(NotImplemented) => "NotImplemented"
-  rule pyFormatStr(#typeVal(T:Id)) => "<class '" +String Id2String(T) +String "'>"
+  rule pyFormatStr(#typeVal(T:Id)) => typeValDisplay(T)
   rule pyFormatStr(S:String) => S
   rule pyFormatStr(F:Float) => pyFloatReprStr(F)
   rule pyFormatStr(#bytes()) => pyReprStr(#bytes())
@@ -3535,7 +3571,7 @@ module PYTHON
   rule pyReprStr(None) => "None"
   rule pyReprStr(Ellipsis) => "Ellipsis"
   rule pyReprStr(NotImplemented) => "NotImplemented"
-  rule pyReprStr(#typeVal(T:Id)) => "<class '" +String Id2String(T) +String "'>"
+  rule pyReprStr(#typeVal(T:Id)) => typeValDisplay(T)
   rule pyReprStr(F:Float) => pyFloatReprStr(F)
   rule pyReprStr(S:String) =>
     stringReprQuoteChar(stringReprQuoteByte(S))
@@ -3587,7 +3623,7 @@ module PYTHON
   rule pyAsciiStr(None) => "None"
   rule pyAsciiStr(Ellipsis) => "Ellipsis"
   rule pyAsciiStr(NotImplemented) => "NotImplemented"
-  rule pyAsciiStr(#typeVal(T:Id)) => "<class '" +String Id2String(T) +String "'>"
+  rule pyAsciiStr(#typeVal(T:Id)) => typeValDisplay(T)
   rule pyAsciiStr(F:Float) => pyFloatReprStr(F)
   rule pyAsciiStr(S:String) =>
     stringReprQuoteChar(stringReprQuoteByte(S))
@@ -6936,8 +6972,10 @@ module PYTHON
     requires Id2String(M) ==String "builtins"
   rule builtinModuleAttrs(M:Id) =>
     classAttr(#token("kDunderNameName", "Id"), "types",
+    classAttr(#token("NoneType", "Id"), #typeVal(#token("NoneType", "Id")),
+    classAttr(#token("EllipsisType", "Id"), #typeVal(#token("EllipsisType", "Id")),
     classAttr(#token("NotImplementedType", "Id"), #typeVal(#token("NotImplementedType", "Id")),
-      #noRuntimeClassAttrs))
+      #noRuntimeClassAttrs))))
     requires Id2String(M) ==String "types"
 
   rule importlibImportModuleSupported("math") => true
@@ -7425,6 +7463,7 @@ module PYTHON
       orBool classAttrIdMatchesString(A, "__qualname__")
       orBool classAttrIdMatchesString(A, "__doc__")
       orBool classAttrIdMatchesString(A, "__module__")
+  rule classHasMatchAttr(#typeVal(_:Id), A:Id) => typeValAttrId(A)
   rule classHasMatchAttr(typeAliasVal(_:Id, _:Int, _:Exp), A:Id) => typeAliasAttrId(A)
   rule classHasMatchAttr(V:Val, A:Id) => true
     requires isIntLike(V)
@@ -7472,6 +7511,7 @@ module PYTHON
       orBool A ==String "__qualname__"
       orBool A ==String "__doc__"
       orBool A ==String "__module__"
+  rule classHasAttrString(#typeVal(_:Id), A:String) => typeValAttrString(A)
   rule classHasAttrString(typeAliasVal(_:Id, _:Int, _:Exp), A:String) => typeAliasAttrString(A)
   rule classHasAttrString(V:Val, A:String) => true
     requires isIntLike(V)
@@ -7564,6 +7604,12 @@ module PYTHON
     requires classAttrIdMatchesString(Attr, "__doc__")
   rule matchClassAttrVal(functionMetaVal(_:String, _:String, _:Val, Module:String, _:Val), Attr:Id) => Module
     requires classAttrIdMatchesString(Attr, "__module__")
+  rule matchClassAttrVal(#typeVal(T:Id), Attr:Id) => typeValName(T)
+    requires classAttrIdMatchesString(Attr, "__name__")
+  rule matchClassAttrVal(#typeVal(T:Id), Attr:Id) => typeValName(T)
+    requires classAttrIdMatchesString(Attr, "__qualname__")
+  rule matchClassAttrVal(#typeVal(_:Id), Attr:Id) => "builtins"
+    requires classAttrIdMatchesString(Attr, "__module__")
   rule matchClassAttrVal(typeAliasVal(Name:Id, _:Int, _:Exp), Attr:Id) => Id2String(Name)
     requires classAttrIdMatchesString(Attr, "__name__")
   rule matchClassAttrVal(typeAliasVal(_:Id, _:Int, _:Exp), Attr:Id) => "__main__"
@@ -7620,6 +7666,9 @@ module PYTHON
   rule matchClassAttrStringVal(functionMetaVal(_:String, Qual:String, _:Val, _:String, _:Val), "__qualname__") => Qual
   rule matchClassAttrStringVal(functionMetaVal(_:String, _:String, Doc:Val, _:String, _:Val), "__doc__") => Doc
   rule matchClassAttrStringVal(functionMetaVal(_:String, _:String, _:Val, Module:String, _:Val), "__module__") => Module
+  rule matchClassAttrStringVal(#typeVal(T:Id), "__name__") => typeValName(T)
+  rule matchClassAttrStringVal(#typeVal(T:Id), "__qualname__") => typeValName(T)
+  rule matchClassAttrStringVal(#typeVal(_:Id), "__module__") => "builtins"
   rule matchClassAttrStringVal(typeAliasVal(Name:Id, _:Int, _:Exp), "__name__") => Id2String(Name)
   rule matchClassAttrStringVal(typeAliasVal(_:Id, _:Int, _:Exp), "__module__") => "__main__"
   rule matchClassAttrStringVal(typeAliasVal(_:Id, _:Int, _:Exp), "__type_params__") => ()
@@ -17637,6 +17686,12 @@ module PYTHON
            exceptionSignal(#exception(#token("AttributeError", "Id")))
        ... </k>
     requires notBool classHasMatchAttr(functionMetaVal(Name, Qual, Doc, Module, Fun), Attr)
+  rule attrExp(#typeVal(T:Id), Attr:Id) => matchClassAttrVal(#typeVal(T), Attr)
+    requires typeValAttrId(Attr)
+  rule <k> attrExp(#typeVal(_T:Id), Attr:Id) =>
+           exceptionSignal(#exception(#token("AttributeError", "Id")))
+       ... </k>
+    requires notBool typeValAttrId(Attr)
   rule attrExp(moduleVal(_:Id, Attrs:ClassAttrs), Attr:Id) => classAttrGet(Attrs, Attr)
     requires classAttrsHas(Attrs, Attr)
   rule attrExp(V:Val, Attr:Id) => intValue(V)
@@ -18917,7 +18972,7 @@ module PYTHON
   rule <k> _A:Val ~> callApply(#typeVal(T:Id)) =>
            exceptionSignal(#exception(#token("TypeError", "Id")))
        ... </k>
-    requires Id2String(T) ==String "NotImplementedType"
+    requires typeValSupported(T)
   rule <k> A:Val ~> callApply(functionMetaVal(_:String, _:String, _:Val, _:String, F:Val)) =>
            A ~> callApply(F)
        ... </k>
@@ -19562,13 +19617,13 @@ module PYTHON
        ... </k>
     requires notBool callableVal(F)
   rule <k> argsVal(#noArgVals) ~> callApplyArgs(#typeVal(T:Id)) =>
-           NotImplemented
+           typeValCtorResult(T)
        ... </k>
-    requires Id2String(T) ==String "NotImplementedType"
+    requires typeValSupported(T)
   rule <k> argsVal(VS:ArgVals) ~> callApplyArgs(#typeVal(T:Id)) =>
            exceptionSignal(#exception(#token("TypeError", "Id")))
        ... </k>
-    requires Id2String(T) ==String "NotImplementedType"
+    requires typeValSupported(T)
       andBool argValsLen(VS) =/=Int 0
   rule <k> argsVal(argValsCons(Name:Val, #noArgVals)) ~> callApplyArgs(#__import__Fun) =>
            importBuiltinName(Name)
@@ -26289,6 +26344,8 @@ module PYTHON
   rule #hash(V:Val) => pyHash(V)
     requires dictLookupKeySupported(V)
   rule #callable(V:Val) => boolValue(callableVal(V))
+  rule #typeCtor(None) => #typeVal(#token("NoneType", "Id"))
+  rule #typeCtor(Ellipsis) => #typeVal(#token("EllipsisType", "Id"))
   rule #typeCtor(NotImplemented) => #typeVal(#token("NotImplementedType", "Id"))
   rule #isinstance(V:Val, C:Id) => boolValue(matchBuiltinClass(V, C))
     requires isinstanceClassSupported(C)

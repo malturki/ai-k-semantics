@@ -186,6 +186,13 @@
       "coverage": ["notimplemented-singleton", "types-module", "notimplemented-type", "type-builtin", "isinstance-builtin", "issubclass-builtin", "singleton-identity", "string-conversion-builtins", "hash-builtin", "importlib-import-module", "ordinary-python-source-adapter"]
     },
     {
+      "id": "adapter-singleton-types",
+      "source": "../adapter/adapter-singleton-types.py",
+      "reference": "Python Standard Library types.NoneType, types.EllipsisType, and types.NotImplementedType; Python Standard Library type, isinstance, issubclass, str, repr, ascii, getattr, hasattr, and importlib.import_module builtins",
+      "expected_result": "True ~> .K",
+      "coverage": ["singleton-type-objects", "none-type", "ellipsis-type", "notimplemented-type", "types-module", "type-builtin", "isinstance-builtin", "issubclass-builtin", "singleton-identity", "string-conversion-builtins", "attribute-access", "getattr-builtin", "hasattr-builtin", "hash-builtin", "importlib-import-module", "ordinary-python-source-adapter"]
+    },
+    {
       "id": "adapter-debug-constant",
       "source": "../adapter/adapter-debug-constant.py",
       "reference": "Python Standard Library Built-in Constants __debug__; Python Language Reference 7.3 The assert statement",

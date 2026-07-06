@@ -225,7 +225,7 @@
       "source": "../adapter/adapter-importlib-import-module.py",
       "reference": "Python Standard Library importlib.import_module; Python Language Reference import system",
       "expected_result": "True ~> .K",
-      "coverage": ["importlib-module", "importlib-import-module", "programmatic-import", "module-cache-identity", "module-not-found-error", "relative-import-package-required", "empty-module-name-value-error", "non-string-import-name-attribute-error", "ordinary-python-source-adapter"]
+      "coverage": ["importlib-module", "importlib-import-module", "programmatic-import", "module-cache-identity", "module-not-found-error", "dotted-import-name", "relative-import-package-required", "empty-module-name-value-error", "non-string-import-name-attribute-error", "ordinary-python-source-adapter"]
     },
     {
       "id": "adapter-module-attribute-mutation",

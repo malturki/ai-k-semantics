@@ -1839,6 +1839,7 @@ module PYTHON
                 | stringStartsWithUnderscore(String) [function, symbol(stringStartsWithUnderscore)]
                 | importlibImportModuleSupported(String) [function, symbol(importlibImportModuleSupported)]
                 | importlibImportModuleRelativeName(String) [function, symbol(importlibImportModuleRelativeName)]
+                | importlibImportModuleDottedName(String) [function, symbol(importlibImportModuleDottedName)]
                 | keywordIsKeywordString(String) [function, symbol(keywordIsKeywordString)]
                 | keywordIsSoftKeywordString(String) [function, symbol(keywordIsSoftKeywordString)]
                 | singletonPatternEq(Val, Val) [function, symbol(singletonPatternEq)]
@@ -6876,6 +6877,10 @@ module PYTHON
 
   rule importlibImportModuleRelativeName(S:String) =>
     lengthString(S) >Int 0 andBool substrString(S, 0, 1) ==String "."
+  rule importlibImportModuleDottedName(S:String) =>
+    lengthString(S) >Int 0
+      andBool notBool importlibImportModuleRelativeName(S)
+      andBool findString(S, ".", 0) >=Int 0
 
   rule importlibImportModule("math") => builtinModule(#token("math", "Id"))
   rule importlibImportModule("keyword") => builtinModule(#token("keyword", "Id"))
@@ -18627,7 +18632,14 @@ module PYTHON
   rule <k> S:String ~> callApply(#importlibImportModuleFun) =>
            exceptionSignal(#exception(#token("ModuleNotFoundError", "Id")))
        ... </k>
-    requires lengthString(S) >Int 0 andBool notBool importlibImportModuleSupported(S) andBool notBool importlibImportModuleRelativeName(S)
+    requires importlibImportModuleDottedName(S)
+  rule <k> S:String ~> callApply(#importlibImportModuleFun) =>
+           exceptionSignal(#exception(#token("ModuleNotFoundError", "Id")))
+       ... </k>
+    requires lengthString(S) >Int 0
+      andBool notBool importlibImportModuleSupported(S)
+      andBool notBool importlibImportModuleRelativeName(S)
+      andBool notBool importlibImportModuleDottedName(S)
   rule <k> V:Val ~> callApply(#importlibImportModuleFun) =>
            exceptionSignal(#exception(#token("AttributeError", "Id")))
        ... </k>
@@ -19332,11 +19344,25 @@ module PYTHON
   rule <k> argsVal(argValsCons(S:String, #noArgVals)) ~> callApplyArgs(#importlibImportModuleFun) =>
            exceptionSignal(#exception(#token("ModuleNotFoundError", "Id")))
        ... </k>
-    requires lengthString(S) >Int 0 andBool notBool importlibImportModuleSupported(S) andBool notBool importlibImportModuleRelativeName(S)
+    requires importlibImportModuleDottedName(S)
   rule <k> argsVal(argValsCons(S:String, argValsCons(_Package:Val, #noArgVals))) ~> callApplyArgs(#importlibImportModuleFun) =>
            exceptionSignal(#exception(#token("ModuleNotFoundError", "Id")))
        ... </k>
-    requires lengthString(S) >Int 0 andBool notBool importlibImportModuleSupported(S) andBool notBool importlibImportModuleRelativeName(S)
+    requires importlibImportModuleDottedName(S)
+  rule <k> argsVal(argValsCons(S:String, #noArgVals)) ~> callApplyArgs(#importlibImportModuleFun) =>
+           exceptionSignal(#exception(#token("ModuleNotFoundError", "Id")))
+       ... </k>
+    requires lengthString(S) >Int 0
+      andBool notBool importlibImportModuleSupported(S)
+      andBool notBool importlibImportModuleRelativeName(S)
+      andBool notBool importlibImportModuleDottedName(S)
+  rule <k> argsVal(argValsCons(S:String, argValsCons(_Package:Val, #noArgVals))) ~> callApplyArgs(#importlibImportModuleFun) =>
+           exceptionSignal(#exception(#token("ModuleNotFoundError", "Id")))
+       ... </k>
+    requires lengthString(S) >Int 0
+      andBool notBool importlibImportModuleSupported(S)
+      andBool notBool importlibImportModuleRelativeName(S)
+      andBool notBool importlibImportModuleDottedName(S)
   rule <k> argsVal(argValsCons(V:Val, #noArgVals)) ~> callApplyArgs(#importlibImportModuleFun) =>
            exceptionSignal(#exception(#token("AttributeError", "Id")))
        ... </k>

@@ -307,8 +307,8 @@
               "section": "Finders and loaders"
             }
           ],
-          "k_coverage": ["semantics/python.k: builtinModuleSupported/builtinModule/builtinModuleAttr model a fixed builtin-module finder/loader profile for math, keyword, and importlib; unsupported modules and current dotted non-package import paths raise the current ModuleNotFoundError sentinel, and missing supported-module names raise ImportError"],
-          "test_coverage": ["tests/adapter/adapter-import-math.py", "tests/adapter/adapter-import-keyword.py", "tests/adapter/adapter-from-import-star-fixed-modules.py", "tests/adapter/adapter-import-multi-clause.py", "tests/adapter/adapter-dotted-import-failures.py"],
+          "k_coverage": ["semantics/python.k: builtinModuleSupported/builtinModule/builtinModuleAttr model a fixed builtin-module finder/loader profile for math, keyword, and importlib; unsupported modules, current dotted non-package import paths, and current dotted importlib.import_module names raise the current ModuleNotFoundError sentinel, and missing supported-module names raise ImportError"],
+          "test_coverage": ["tests/adapter/adapter-import-math.py", "tests/adapter/adapter-import-keyword.py", "tests/adapter/adapter-from-import-star-fixed-modules.py", "tests/adapter/adapter-import-multi-clause.py", "tests/adapter/adapter-dotted-import-failures.py", "tests/adapter/adapter-importlib-import-module.py"],
           "gaps": ["Need meta path traversal, ModuleSpec, loader create/exec phases, import lock/reentrancy behavior, importlib integration, extension/frozen/source module distinctions, host/filesystem profile boundaries, and exact diagnostics."]
         },
         {
@@ -924,7 +924,7 @@
               "url": "https://docs.python.org/3/library/importlib.html"
             }
           ],
-          "k_coverage": ["semantics/python.k: fixed builtin importlib module with __name__ and import_module; import_module returns the current fixed math, keyword, or importlib module values for supported absolute names, reuses current env-reachable fixed moduleVal snapshots after mutation/deletion, accepts an ignored second package argument for absolute names, raises the current ModuleNotFoundError sentinel for unsupported nonempty absolute names, raises ValueError for empty names, raises TypeError for relative names without package resolution, raises AttributeError for the current non-string-name profile, and raises TypeError for wrong positional arity"],
+          "k_coverage": ["semantics/python.k: fixed builtin importlib module with __name__ and import_module; import_module returns the current fixed math, keyword, or importlib module values for supported absolute names, reuses current env-reachable fixed moduleVal snapshots after mutation/deletion, accepts an ignored second package argument for absolute names, raises the current ModuleNotFoundError sentinel for unsupported nonempty absolute names including the explicit dotted-name profile, raises ValueError for empty names, raises TypeError for relative names without package resolution, raises AttributeError for the current non-string-name profile, and raises TypeError for wrong positional arity"],
           "test_coverage": ["tests/adapter/adapter-importlib-import-module.py", "tests/adapter/adapter-module-import-cache-mutation.py", "tests/adapter/adapter-from-import-star-fixed-modules.py", "tests/adapter/adapter-import-multi-clause.py"],
           "gaps": ["Need importlib.__import__, invalidate_caches, reload, abc/machinery/util modules, ModuleSpec, sys.meta_path/path hooks, real sys.modules table, deterministic cache identity independent of current environment reachability, parent-package loading, positive relative import package anchors, filesystem/namespace/package profiles, exact diagnostics, and importlib test-suite extraction."]
         }

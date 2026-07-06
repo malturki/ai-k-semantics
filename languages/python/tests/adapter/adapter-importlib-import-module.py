@@ -10,6 +10,24 @@ try:
 except ModuleNotFoundError:
     missing_module = True
 
+dotted_missing_module = False
+try:
+    im("math.foo")
+except ModuleNotFoundError:
+    dotted_missing_module = True
+
+dotted_missing_module_with_package = False
+try:
+    im("math.foo", None)
+except ModuleNotFoundError:
+    dotted_missing_module_with_package = True
+
+unsupported_dotted_root = False
+try:
+    im("not_a_real_module_for_k_semantics.child")
+except ModuleNotFoundError:
+    unsupported_dotted_root = True
+
 relative_without_package = False
 try:
     im(".keyword")
@@ -50,6 +68,9 @@ result = (
     and im("importlib") is importlib
     and im("math", None) is math
     and missing_module
+    and dotted_missing_module
+    and dotted_missing_module_with_package
+    and unsupported_dotted_root
     and relative_without_package
     and non_string_name
     and non_string_name_with_package

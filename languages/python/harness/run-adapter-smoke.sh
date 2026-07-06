@@ -17,10 +17,15 @@ ADAPTER="$ROOT/harness/python_to_k_input.py"
 
 mkdir -p "$WORK"
 
-kompile "$DEF" \
-  --main-module PYTHON \
-  --syntax-module PYTHON-SYNTAX \
-  --output-definition "$KOMPILED"
+if [[ "${SKIP_KOMPILE:-0}" != "1" ]]; then
+  kompile "$DEF" \
+    --main-module PYTHON \
+    --syntax-module PYTHON-SYNTAX \
+    --output-definition "$KOMPILED"
+elif [[ ! -x "$KOMPILED/interpreter" ]]; then
+  echo "SKIP_KOMPILE=1 but $KOMPILED/interpreter is missing or not executable" >&2
+  exit 1
+fi
 
 run_case() {
   local name="$1"
@@ -144,6 +149,7 @@ run_case "adapter-singleton-types" "$ROOT/tests/adapter/adapter-singleton-types.
 run_case "adapter-singleton-class-attribute" "$ROOT/tests/adapter/adapter-singleton-class-attribute.py" "True ~> .K"
 run_case "adapter-core-type-objects" "$ROOT/tests/adapter/adapter-core-type-objects.py" "True ~> .K"
 run_case "adapter-builtin-type-names" "$ROOT/tests/adapter/adapter-builtin-type-names.py" "True ~> .K"
+run_case "adapter-type-object-constructor-aliases" "$ROOT/tests/adapter/adapter-type-object-constructor-aliases.py" "True ~> .K"
 run_case "adapter-debug-constant" "$ROOT/tests/adapter/adapter-debug-constant.py" "True ~> .K"
 run_eval_case "adapter-eval-input" "$ROOT/tests/adapter/adapter-eval-input.pyexpr" "True ~> .K"
 run_interactive_case "adapter-interactive-input" "$ROOT/tests/adapter/adapter-interactive-input.pysingle" "True ~> .K" "True"

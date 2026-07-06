@@ -1821,6 +1821,10 @@ module PYTHON
                 | builtinTypeName(Id) [function, symbol(builtinTypeName)]
                 | builtinTypeNameString(String) [function, symbol(builtinTypeNameString)]
                 | typeValNoArgConstructible(Id) [function, symbol(typeValNoArgConstructible)]
+                | typeValOneArgConstructible(Id) [function, symbol(typeValOneArgConstructible)]
+                | typeValTwoArgConstructible(Id) [function, symbol(typeValTwoArgConstructible)]
+                | typeValThreeArgConstructible(Id) [function, symbol(typeValThreeArgConstructible)]
+                | typeValPositionalAritySupported(Id, Int) [function, symbol(typeValPositionalAritySupported)]
                 | valueClassTypeSupported(Val) [function, symbol(valueClassTypeSupported)]
                 | typeValAttrId(Id) [function, symbol(typeValAttrId)]
                 | typeValAttrString(String) [function, symbol(typeValAttrString)]
@@ -3475,6 +3479,46 @@ module PYTHON
       orBool Id2String(T) ==String "set"
       orBool Id2String(T) ==String "frozenset"
   rule typeValNoArgConstructible(_:Id) => false [owise]
+
+  rule typeValOneArgConstructible(T:Id) =>
+    Id2String(T) ==String "bool"
+      orBool Id2String(T) ==String "int"
+      orBool Id2String(T) ==String "float"
+      orBool Id2String(T) ==String "complex"
+      orBool Id2String(T) ==String "str"
+      orBool Id2String(T) ==String "bytes"
+      orBool Id2String(T) ==String "bytearray"
+      orBool Id2String(T) ==String "list"
+      orBool Id2String(T) ==String "tuple"
+      orBool Id2String(T) ==String "dict"
+      orBool Id2String(T) ==String "set"
+      orBool Id2String(T) ==String "frozenset"
+      orBool Id2String(T) ==String "range"
+      orBool Id2String(T) ==String "slice"
+      orBool Id2String(T) ==String "memoryview"
+  rule typeValOneArgConstructible(_:Id) => false [owise]
+
+  rule typeValTwoArgConstructible(T:Id) =>
+    Id2String(T) ==String "int"
+      orBool Id2String(T) ==String "complex"
+      orBool Id2String(T) ==String "bytes"
+      orBool Id2String(T) ==String "bytearray"
+      orBool Id2String(T) ==String "range"
+      orBool Id2String(T) ==String "slice"
+  rule typeValTwoArgConstructible(_:Id) => false [owise]
+
+  rule typeValThreeArgConstructible(T:Id) =>
+    Id2String(T) ==String "bytes"
+      orBool Id2String(T) ==String "bytearray"
+      orBool Id2String(T) ==String "range"
+      orBool Id2String(T) ==String "slice"
+  rule typeValThreeArgConstructible(_:Id) => false [owise]
+
+  rule typeValPositionalAritySupported(T:Id, N:Int) =>
+    (N ==Int 0 andBool typeValNoArgConstructible(T))
+      orBool (N ==Int 1 andBool typeValOneArgConstructible(T))
+      orBool (N ==Int 2 andBool typeValTwoArgConstructible(T))
+      orBool (N ==Int 3 andBool typeValThreeArgConstructible(T))
 
   rule typeValAttrId(A:Id) =>
     classAttrIdMatchesString(A, "__name__")
@@ -19229,10 +19273,16 @@ module PYTHON
            False
        ... </k>
     requires notBool isStringVal(V)
+  rule <k> A:Val ~> callApply(#typeVal(T:Id)) =>
+           argsVal(argValsCons(A, #noArgVals)) ~> callApplyArgs(#typeVal(T))
+       ... </k>
+    requires typeValSupported(T)
+      andBool typeValOneArgConstructible(T)
   rule <k> _A:Val ~> callApply(#typeVal(T:Id)) =>
            exceptionSignal(#exception(#token("TypeError", "Id")))
        ... </k>
     requires typeValSupported(T)
+      andBool notBool typeValOneArgConstructible(T)
   rule <k> A:Val ~> callApply(functionMetaVal(_:String, _:String, _:Val, _:String, F:Val)) =>
            A ~> callApply(F)
        ... </k>
@@ -19880,15 +19930,136 @@ module PYTHON
            typeValCtorResult(T)
        ... </k>
     requires typeValSupported(T) andBool typeValNoArgConstructible(T)
-  rule <k> argsVal(#noArgVals) ~> callApplyArgs(#typeVal(T:Id)) =>
-           exceptionSignal(#exception(#token("TypeError", "Id")))
+  rule <k> argsVal(VS:ArgVals) ~> callApplyArgs(#typeVal(T:Id)) =>
+           #boolCtor(argValAt(VS, 0))
        ... </k>
-    requires typeValSupported(T) andBool notBool typeValNoArgConstructible(T)
+    requires Id2String(T) ==String "bool"
+      andBool argValsLen(VS) ==Int 1
+  rule <k> argsVal(VS:ArgVals) ~> callApplyArgs(#typeVal(T:Id)) =>
+           #intCtor(argValAt(VS, 0))
+       ... </k>
+    requires Id2String(T) ==String "int"
+      andBool argValsLen(VS) ==Int 1
+  rule <k> argsVal(VS:ArgVals) ~> callApplyArgs(#typeVal(T:Id)) =>
+           #intCtor(argValAt(VS, 0), argValAt(VS, 1))
+       ... </k>
+    requires Id2String(T) ==String "int"
+      andBool argValsLen(VS) ==Int 2
+  rule <k> argsVal(VS:ArgVals) ~> callApplyArgs(#typeVal(T:Id)) =>
+           #floatCtor(argValAt(VS, 0))
+       ... </k>
+    requires Id2String(T) ==String "float"
+      andBool argValsLen(VS) ==Int 1
+  rule <k> argsVal(VS:ArgVals) ~> callApplyArgs(#typeVal(T:Id)) =>
+           #complexCtor(argValAt(VS, 0))
+       ... </k>
+    requires Id2String(T) ==String "complex"
+      andBool argValsLen(VS) ==Int 1
+  rule <k> argsVal(VS:ArgVals) ~> callApplyArgs(#typeVal(T:Id)) =>
+           #complexCtor(argValAt(VS, 0), argValAt(VS, 1))
+       ... </k>
+    requires Id2String(T) ==String "complex"
+      andBool argValsLen(VS) ==Int 2
+  rule <k> argsVal(VS:ArgVals) ~> callApplyArgs(#typeVal(T:Id)) =>
+           #strCtor(argValAt(VS, 0))
+       ... </k>
+    requires Id2String(T) ==String "str"
+      andBool argValsLen(VS) ==Int 1
+  rule <k> argsVal(VS:ArgVals) ~> callApplyArgs(#typeVal(T:Id)) =>
+           #bytesCtor(argValAt(VS, 0))
+       ... </k>
+    requires Id2String(T) ==String "bytes"
+      andBool argValsLen(VS) ==Int 1
+  rule <k> argsVal(VS:ArgVals) ~> callApplyArgs(#typeVal(T:Id)) =>
+           #bytesCtor(argValAt(VS, 0), argValAt(VS, 1))
+       ... </k>
+    requires Id2String(T) ==String "bytes"
+      andBool argValsLen(VS) ==Int 2
+  rule <k> argsVal(VS:ArgVals) ~> callApplyArgs(#typeVal(T:Id)) =>
+           #bytesCtor(argValAt(VS, 0), argValAt(VS, 1), argValAt(VS, 2))
+       ... </k>
+    requires Id2String(T) ==String "bytes"
+      andBool argValsLen(VS) ==Int 3
+  rule <k> argsVal(VS:ArgVals) ~> callApplyArgs(#typeVal(T:Id)) =>
+           #bytearrayCtor(argValAt(VS, 0))
+       ... </k>
+    requires Id2String(T) ==String "bytearray"
+      andBool argValsLen(VS) ==Int 1
+  rule <k> argsVal(VS:ArgVals) ~> callApplyArgs(#typeVal(T:Id)) =>
+           #bytearrayCtor(argValAt(VS, 0), argValAt(VS, 1))
+       ... </k>
+    requires Id2String(T) ==String "bytearray"
+      andBool argValsLen(VS) ==Int 2
+  rule <k> argsVal(VS:ArgVals) ~> callApplyArgs(#typeVal(T:Id)) =>
+           #bytearrayCtor(argValAt(VS, 0), argValAt(VS, 1), argValAt(VS, 2))
+       ... </k>
+    requires Id2String(T) ==String "bytearray"
+      andBool argValsLen(VS) ==Int 3
+  rule <k> argsVal(VS:ArgVals) ~> callApplyArgs(#typeVal(T:Id)) =>
+           #listCtor(argValAt(VS, 0))
+       ... </k>
+    requires Id2String(T) ==String "list"
+      andBool argValsLen(VS) ==Int 1
+  rule <k> argsVal(VS:ArgVals) ~> callApplyArgs(#typeVal(T:Id)) =>
+           #tupleCtor(argValAt(VS, 0))
+       ... </k>
+    requires Id2String(T) ==String "tuple"
+      andBool argValsLen(VS) ==Int 1
+  rule <k> argsVal(VS:ArgVals) ~> callApplyArgs(#typeVal(T:Id)) =>
+           #dictCtor(argValAt(VS, 0))
+       ... </k>
+    requires Id2String(T) ==String "dict"
+      andBool argValsLen(VS) ==Int 1
+  rule <k> argsVal(VS:ArgVals) ~> callApplyArgs(#typeVal(T:Id)) =>
+           #setCtor(argValAt(VS, 0))
+       ... </k>
+    requires Id2String(T) ==String "set"
+      andBool argValsLen(VS) ==Int 1
+  rule <k> argsVal(VS:ArgVals) ~> callApplyArgs(#typeVal(T:Id)) =>
+           #frozensetCtor(argValAt(VS, 0))
+       ... </k>
+    requires Id2String(T) ==String "frozenset"
+      andBool argValsLen(VS) ==Int 1
+  rule <k> argsVal(VS:ArgVals) ~> callApplyArgs(#typeVal(T:Id)) =>
+           #range(argValAt(VS, 0))
+       ... </k>
+    requires Id2String(T) ==String "range"
+      andBool argValsLen(VS) ==Int 1
+  rule <k> argsVal(VS:ArgVals) ~> callApplyArgs(#typeVal(T:Id)) =>
+           #range(argValAt(VS, 0), argValAt(VS, 1))
+       ... </k>
+    requires Id2String(T) ==String "range"
+      andBool argValsLen(VS) ==Int 2
+  rule <k> argsVal(VS:ArgVals) ~> callApplyArgs(#typeVal(T:Id)) =>
+           #range(argValAt(VS, 0), argValAt(VS, 1), argValAt(VS, 2))
+       ... </k>
+    requires Id2String(T) ==String "range"
+      andBool argValsLen(VS) ==Int 3
+  rule <k> argsVal(VS:ArgVals) ~> callApplyArgs(#typeVal(T:Id)) =>
+           #sliceCtor(argValAt(VS, 0))
+       ... </k>
+    requires Id2String(T) ==String "slice"
+      andBool argValsLen(VS) ==Int 1
+  rule <k> argsVal(VS:ArgVals) ~> callApplyArgs(#typeVal(T:Id)) =>
+           #sliceCtor(argValAt(VS, 0), argValAt(VS, 1))
+       ... </k>
+    requires Id2String(T) ==String "slice"
+      andBool argValsLen(VS) ==Int 2
+  rule <k> argsVal(VS:ArgVals) ~> callApplyArgs(#typeVal(T:Id)) =>
+           #sliceCtor(argValAt(VS, 0), argValAt(VS, 1), argValAt(VS, 2))
+       ... </k>
+    requires Id2String(T) ==String "slice"
+      andBool argValsLen(VS) ==Int 3
+  rule <k> argsVal(VS:ArgVals) ~> callApplyArgs(#typeVal(T:Id)) =>
+           #memoryview(argValAt(VS, 0))
+       ... </k>
+    requires Id2String(T) ==String "memoryview"
+      andBool argValsLen(VS) ==Int 1
   rule <k> argsVal(VS:ArgVals) ~> callApplyArgs(#typeVal(T:Id)) =>
            exceptionSignal(#exception(#token("TypeError", "Id")))
        ... </k>
     requires typeValSupported(T)
-      andBool argValsLen(VS) =/=Int 0
+      andBool notBool typeValPositionalAritySupported(T, argValsLen(VS))
   rule <k> argsVal(argValsCons(Name:Val, #noArgVals)) ~> callApplyArgs(#__import__Fun) =>
            importBuiltinName(Name)
        ... </k>

@@ -214,6 +214,13 @@
       "coverage": ["builtin-type-objects", "builtins-module", "builtin-name-shadowing", "from-import", "from-import-star", "module-all-star-import", "type-object-call", "isinstance-builtin", "issubclass-builtin", "ordinary-python-source-adapter"]
     },
     {
+      "id": "adapter-type-object-constructor-aliases",
+      "source": "../adapter/adapter-type-object-constructor-aliases.py",
+      "reference": "Python Language Reference 6.3.4 Calls and 4.2 name resolution; Python Data Model objects, values, and types; Python Standard Library builtins module and Built-in Types constructors",
+      "expected_result": "True ~> .K",
+      "coverage": ["builtin-type-objects", "type-object-call", "constructor-call", "builtins-module", "from-import", "type-builtin", "numeric-constructor", "container-constructor", "range-constructor", "slice-constructor", "memoryview-constructor", "ordinary-python-source-adapter"]
+    },
+    {
       "id": "adapter-debug-constant",
       "source": "../adapter/adapter-debug-constant.py",
       "reference": "Python Standard Library Built-in Constants __debug__; Python Language Reference 7.3 The assert statement",

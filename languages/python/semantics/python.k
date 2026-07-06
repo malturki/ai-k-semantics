@@ -7077,6 +7077,10 @@ module PYTHON
   rule <k> moduleStarImportAllApply(_M:Val, ()) => stmtNoResult ... </k>
   rule <k> moduleStarImportAllApply(M:Val, listVal(VS:ValItems)) => moduleStarImportAllItemsApply(M, VS) ... </k>
   rule <k> moduleStarImportAllApply(M:Val, tupleVal(VS:ValItems)) => moduleStarImportAllItemsApply(M, VS) ... </k>
+  rule <k> moduleStarImportAllApply(_M:Val, rangeVal(Start:Int, Stop:Int)) => stmtNoResult ... </k>
+    requires Start >=Int Stop
+  rule <k> moduleStarImportAllApply(_M:Val, rangeVal(Start:Int, Stop:Int, Step:Int)) => stmtNoResult ... </k>
+    requires Step =/=Int 0 andBool pyRangeLen(Start, Stop, Step) ==Int 0
   rule <k> moduleStarImportAllApply(_M:Val, S:String) => stmtNoResult ... </k>
     requires lengthString(S) ==Int 0
   rule <k> moduleStarImportAllApply(_M:Val, S:String) => exceptionSignal(#exception(#token("AttributeError", "Id"))) ... </k>

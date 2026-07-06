@@ -65,6 +65,28 @@ from keyword import *
 result = result and dynamic == 77
 
 del dynamic
+keyword.__all__ = range(0)
+from keyword import *
+
+empty_range_all_missing = False
+try:
+    kwlist
+    result = False
+except NameError:
+    empty_range_all_missing = True
+
+result = result and empty_range_all_missing
+
+range_type_error = False
+try:
+    keyword.__all__ = range(1)
+    from keyword import *
+    result = False
+except TypeError:
+    range_type_error = True
+
+result = result and range_type_error
+
 keyword.__all__ = ""
 from keyword import *
 

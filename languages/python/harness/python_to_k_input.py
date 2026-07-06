@@ -22,6 +22,7 @@ class UnsupportedPythonSubset(ValueError):
 
 
 ELLIPSIS_NAME_ID = "kEllipsisName"
+NOT_IMPLEMENTED_NAME_ID = "kNotImplementedName"
 DUNDER_INIT_NAME_ID = "kDunderInitName"
 DUNDER_NAME_NAME_ID = "kDunderNameName"
 DUNDER_DOC_NAME_ID = "kDunderDocName"
@@ -649,6 +650,8 @@ def format_spec_supported(spec: str) -> bool:
 def emit_id(name: str) -> str:
     if name == "Ellipsis":
         return ELLIPSIS_NAME_ID
+    if name == "NotImplemented":
+        return NOT_IMPLEMENTED_NAME_ID
     if name == "__init__":
         return DUNDER_INIT_NAME_ID
     if name == "__name__":
@@ -1013,6 +1016,8 @@ def emit_exp(exp: ast.expr) -> str:
             return "#debug"
         case ast.Name(id="Ellipsis"):
             return f"#name({ELLIPSIS_NAME_ID})"
+        case ast.Name(id="NotImplemented"):
+            return f"#name({NOT_IMPLEMENTED_NAME_ID})"
         case ast.Name(id=name):
             return emit_id(name)
         case ast.NamedExpr(target=ast.Name(id=name), value=value):
@@ -3602,6 +3607,8 @@ def emit_assign(node: ast.AST, targets: list[ast.expr], value: ast.expr) -> str:
         if isinstance(target, ast.Name):
             if target.id == "Ellipsis":
                 return f"#assignName({ELLIPSIS_NAME_ID}, {emit_exp(value)})"
+            if target.id == "NotImplemented":
+                return f"#assignName({NOT_IMPLEMENTED_NAME_ID}, {emit_exp(value)})"
             return f"{emit_id(target.id)} = {emit_exp(value)}"
         if isinstance(target, ast.Attribute) and isinstance(target.ctx, ast.Store):
             return f"#assignAttr({emit_exp(target.value)}, {emit_id(target.attr)}, {emit_exp(value)})"

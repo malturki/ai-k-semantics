@@ -14,6 +14,7 @@ module PYTHON-SYNTAX
                | "False" [symbol(pyFalse)]
                | "None" [symbol(pyNone)]
                | "Ellipsis" [symbol(pyEllipsis)]
+               | "NotImplemented" [symbol(pyNotImplemented)]
                | "#bytes" "(" ")" [symbol(emptyBytesVal)]
                | "#bytes" "(" ValItems ")" [symbol(bytesVal)]
                | "#bytearray" "(" ")" [symbol(emptyBytearrayVal)]
@@ -1809,6 +1810,7 @@ module PYTHON
                  | delSliceStepApply(Id, Val, Val) [symbol(delSliceStepApply)]
 
   syntax Bool ::= truthy(Val) [function, symbol(truthy)]
+                | boolContextTypeError(Val) [function, symbol(boolContextTypeError)]
                 | callableVal(Val) [function, symbol(callableVal)]
                 | isClassVal(Val) [function, symbol(isClassVal)]
                 | isModuleVal(Val) [function, symbol(isModuleVal)]
@@ -3237,6 +3239,9 @@ module PYTHON
   rule truthy(argsVal(_:ArgVals)) => true
   rule truthy(dictArgsVal(_:DictVals)) => true
 
+  rule boolContextTypeError(NotImplemented) => true
+  rule boolContextTypeError(_:Val) => false [owise]
+
   rule intCtorExplicitBaseSource(_:String) => true
   rule intCtorExplicitBaseSource(#bytes()) => true
   rule intCtorExplicitBaseSource(bytesVal(_:ValItems)) => true
@@ -3246,6 +3251,7 @@ module PYTHON
 
   rule floatCtorTypeErrorProfile(None) => true
   rule floatCtorTypeErrorProfile(Ellipsis) => true
+  rule floatCtorTypeErrorProfile(NotImplemented) => true
   rule floatCtorTypeErrorProfile([]) => true
   rule floatCtorTypeErrorProfile(listVal(_:ValItems)) => true
   rule floatCtorTypeErrorProfile(()) => true
@@ -3267,6 +3273,7 @@ module PYTHON
   rule complexCtorTypeErrorProfile(bytearrayVal(_:ValItems)) => true
   rule complexCtorTypeErrorProfile(None) => true
   rule complexCtorTypeErrorProfile(Ellipsis) => true
+  rule complexCtorTypeErrorProfile(NotImplemented) => true
   rule complexCtorTypeErrorProfile([]) => true
   rule complexCtorTypeErrorProfile(listVal(_:ValItems)) => true
   rule complexCtorTypeErrorProfile(()) => true
@@ -3440,6 +3447,7 @@ module PYTHON
   rule pyStringConversionSupported(False) => true
   rule pyStringConversionSupported(None) => true
   rule pyStringConversionSupported(Ellipsis) => true
+  rule pyStringConversionSupported(NotImplemented) => true
   rule pyStringConversionSupported(_:String) => true
   rule pyStringConversionSupported(F:Float) => pyFloatStringConversionSupported(F)
   rule pyStringConversionSupported(#bytes()) => true
@@ -3481,6 +3489,7 @@ module PYTHON
   rule pyFormatStr(False) => "False"
   rule pyFormatStr(None) => "None"
   rule pyFormatStr(Ellipsis) => "Ellipsis"
+  rule pyFormatStr(NotImplemented) => "NotImplemented"
   rule pyFormatStr(S:String) => S
   rule pyFormatStr(F:Float) => pyFloatReprStr(F)
   rule pyFormatStr(#bytes()) => pyReprStr(#bytes())
@@ -3505,6 +3514,7 @@ module PYTHON
   rule pyReprStr(False) => "False"
   rule pyReprStr(None) => "None"
   rule pyReprStr(Ellipsis) => "Ellipsis"
+  rule pyReprStr(NotImplemented) => "NotImplemented"
   rule pyReprStr(F:Float) => pyFloatReprStr(F)
   rule pyReprStr(S:String) =>
     stringReprQuoteChar(stringReprQuoteByte(S))
@@ -3555,6 +3565,7 @@ module PYTHON
   rule pyAsciiStr(False) => "False"
   rule pyAsciiStr(None) => "None"
   rule pyAsciiStr(Ellipsis) => "Ellipsis"
+  rule pyAsciiStr(NotImplemented) => "NotImplemented"
   rule pyAsciiStr(F:Float) => pyFloatReprStr(F)
   rule pyAsciiStr(S:String) =>
     stringReprQuoteChar(stringReprQuoteByte(S))
@@ -5014,6 +5025,7 @@ module PYTHON
   rule isIntLike(False) => true
   rule isIntLike(None) => false
   rule isIntLike(Ellipsis) => false
+  rule isIntLike(NotImplemented) => false
   rule isIntLike([]) => false
   rule isIntLike(listVal(_:ValItems)) => false
   rule isIntLike(()) => false
@@ -6044,6 +6056,7 @@ module PYTHON
   rule singletonIdentity(False) => true
   rule singletonIdentity(None) => true
   rule singletonIdentity(Ellipsis) => true
+  rule singletonIdentity(NotImplemented) => true
   rule singletonIdentity(_:Int) => false
   rule singletonIdentity(_:Float) => false
   rule singletonIdentity(#complex(_:Float, _:Float)) => false
@@ -6202,6 +6215,7 @@ module PYTHON
   rule pyHash(S:String) => pyStringHash(S)
   rule pyHash(None) => 590923713
   rule pyHash(Ellipsis) => 590923759
+  rule pyHash(NotImplemented) => 590923781
   rule pyHash(#bytes()) => 0
   rule pyHash(bytesVal(VS:ValItems)) => pyHashByteItems(VS, 0)
   rule pyHash(()) => pyHashInt(345678)
@@ -6887,11 +6901,12 @@ module PYTHON
     classAttr(#token("kDunderNameName", "Id"), "builtins",
     classStringAttr("__import__", #__import__Fun,
     classAttr(#token("kEllipsisName", "Id"), Ellipsis,
+    classAttr(#token("kNotImplementedName", "Id"), NotImplemented,
     classStringAttr("__debug__", True,
     classStringAttr("None", None,
     classStringAttr("True", True,
     classStringAttr("False", False,
-      #noRuntimeClassAttrs)))))))
+      #noRuntimeClassAttrs))))))))
     requires Id2String(M) ==String "builtins"
 
   rule importlibImportModuleSupported("math") => true
@@ -7092,6 +7107,7 @@ module PYTHON
   rule moduleStarImportAllNameSupported(M:Val, S:String) => classHasAttrString(M, S)
     requires S ==String "e"
       orBool S ==String "Ellipsis"
+      orBool S ==String "NotImplemented"
       orBool S ==String "None"
       orBool S ==String "True"
       orBool S ==String "False"
@@ -7127,6 +7143,8 @@ module PYTHON
     Rho [ #token("dynamic", "Id") <- V ]
   rule moduleStarImportStringAttr(Rho:Map, "Ellipsis", V:Val) =>
     Rho [ #token("kEllipsisName", "Id") <- V ]
+  rule moduleStarImportStringAttr(Rho:Map, "NotImplemented", V:Val) =>
+    Rho [ #token("kNotImplementedName", "Id") <- V ]
   rule moduleStarImportStringAttr(Rho:Map, "None", V:Val) =>
     Rho [ #token("None", "Id") <- V ]
   rule moduleStarImportStringAttr(Rho:Map, "True", V:Val) =>
@@ -7149,6 +7167,8 @@ module PYTHON
     Rho [ #token("e", "Id") <- matchClassAttrStringVal(M, "e") ]
   rule moduleStarImportAllName(Rho:Map, M:Val, "Ellipsis") =>
     Rho [ #token("kEllipsisName", "Id") <- matchClassAttrStringVal(M, "Ellipsis") ]
+  rule moduleStarImportAllName(Rho:Map, M:Val, "NotImplemented") =>
+    Rho [ #token("kNotImplementedName", "Id") <- matchClassAttrStringVal(M, "NotImplemented") ]
   rule moduleStarImportAllName(Rho:Map, M:Val, "None") =>
     Rho [ #token("None", "Id") <- matchClassAttrStringVal(M, "None") ]
   rule moduleStarImportAllName(Rho:Map, M:Val, "True") =>
@@ -7288,6 +7308,7 @@ module PYTHON
   rule classAttrIdMatchesString(#token("kDunderTypeParamsName", "Id"), B:String) => B ==String "__type_params__"
   rule classAttrIdMatchesString(#token("kDunderParametersName", "Id"), B:String) => B ==String "__parameters__"
   rule classAttrIdMatchesString(#token("kEllipsisName", "Id"), B:String) => B ==String "Ellipsis"
+  rule classAttrIdMatchesString(#token("kNotImplementedName", "Id"), B:String) => B ==String "NotImplemented"
   rule classAttrIdMatchesString(A:Id, B:String) => Id2String(A) ==String B [owise]
 
   rule typeAliasLazyAttrId(A:Id) => classAttrIdMatchesString(A, "__value__")
@@ -7944,6 +7965,7 @@ module PYTHON
   rule valEq(False, False) => true
   rule valEq(None, None) => true
   rule valEq(Ellipsis, Ellipsis) => true
+  rule valEq(NotImplemented, NotImplemented) => true
   rule valEq(#exception(E1:Id), #exception(E2:Id)) => Id2String(E1) ==String Id2String(E2)
   rule valEq(#__import__Fun, #__import__Fun) => true
   rule valEq(#importlibImportModuleFun, #importlibImportModuleFun) => true
@@ -7975,16 +7997,30 @@ module PYTHON
   rule valEq(False, None) => false
   rule valEq(Ellipsis, None) => false
   rule valEq(None, Ellipsis) => false
+  rule valEq(NotImplemented, None) => false
+  rule valEq(None, NotImplemented) => false
   rule valEq(Ellipsis, True) => false
   rule valEq(Ellipsis, False) => false
   rule valEq(True, Ellipsis) => false
   rule valEq(False, Ellipsis) => false
+  rule valEq(NotImplemented, True) => false
+  rule valEq(NotImplemented, False) => false
+  rule valEq(True, NotImplemented) => false
+  rule valEq(False, NotImplemented) => false
+  rule valEq(NotImplemented, Ellipsis) => false
+  rule valEq(Ellipsis, NotImplemented) => false
   rule valEq(Ellipsis, _:Int) => false
   rule valEq(_:Int, Ellipsis) => false
   rule valEq(Ellipsis, _:Float) => false
   rule valEq(_:Float, Ellipsis) => false
   rule valEq(Ellipsis, _:String) => false
   rule valEq(_:String, Ellipsis) => false
+  rule valEq(NotImplemented, _:Int) => false
+  rule valEq(_:Int, NotImplemented) => false
+  rule valEq(NotImplemented, _:Float) => false
+  rule valEq(_:Float, NotImplemented) => false
+  rule valEq(NotImplemented, _:String) => false
+  rule valEq(_:String, NotImplemented) => false
   rule valEq(classVal(C1:Id, I1:Int, _:ClassAttrs), classVal(C2:Id, I2:Int, _:ClassAttrs)) =>
     I1 ==Int I2 andBool Id2String(C1) ==String Id2String(C2)
   rule valEq(classVal(_:Id, _:Int, _:ClassAttrs), V:Val) => false
@@ -16449,6 +16485,9 @@ module PYTHON
   rule <k> #name(#token("kEllipsisName", "Id")) => Ellipsis ... </k>
        <env> Rho </env>
     requires notBool (#token("kEllipsisName", "Id") in_keys(Rho))
+  rule <k> #name(#token("kNotImplementedName", "Id")) => NotImplemented ... </k>
+       <env> Rho </env>
+    requires notBool (#token("kNotImplementedName", "Id") in_keys(Rho))
 
   rule <k> namedExprExp(X:Id, V:Val) => V ... </k>
        <env> Rho => Rho [ X <- V ] </env>
@@ -18513,25 +18552,34 @@ module PYTHON
     requires dictLookupKeySupported(K)
       andBool notBool containsKey(K, DS)
 
+  rule <k> not V:Val => exceptionSignal(#exception(#token("TypeError", "Id"))) ... </k>
+    requires boolContextTypeError(V)
   rule not V:Val => boolValue(notBool truthy(V))
+    requires notBool boolContextTypeError(V)
 
   rule <k> E1:Exp and E2:Exp => E1 ~> andThen(E2) ... </k>
+  rule <k> V:Val ~> andThen(_:Exp) => exceptionSignal(#exception(#token("TypeError", "Id"))) ... </k>
+    requires boolContextTypeError(V)
   rule <k> V:Val ~> andThen(E:Exp) => E ... </k>
-    requires truthy(V)
+    requires notBool boolContextTypeError(V) andBool truthy(V)
   rule <k> V:Val ~> andThen(_:Exp) => V ... </k>
-    requires notBool truthy(V)
+    requires notBool boolContextTypeError(V) andBool notBool truthy(V)
 
   rule <k> E1:Exp or E2:Exp => E1 ~> orElse(E2) ... </k>
+  rule <k> V:Val ~> orElse(_:Exp) => exceptionSignal(#exception(#token("TypeError", "Id"))) ... </k>
+    requires boolContextTypeError(V)
   rule <k> V:Val ~> orElse(_:Exp) => V ... </k>
-    requires truthy(V)
+    requires notBool boolContextTypeError(V) andBool truthy(V)
   rule <k> V:Val ~> orElse(E:Exp) => E ... </k>
-    requires notBool truthy(V)
+    requires notBool boolContextTypeError(V) andBool notBool truthy(V)
 
   rule <k> E1:Exp if C:Exp else E2:Exp => C ~> ifThenElse(E1, E2) ... </k>
+  rule <k> V:Val ~> ifThenElse(_:Exp, _:Exp) => exceptionSignal(#exception(#token("TypeError", "Id"))) ... </k>
+    requires boolContextTypeError(V)
   rule <k> V:Val ~> ifThenElse(E1:Exp, _:Exp) => E1 ... </k>
-    requires truthy(V)
+    requires notBool boolContextTypeError(V) andBool truthy(V)
   rule <k> V:Val ~> ifThenElse(_:Exp, E2:Exp) => E2 ... </k>
-    requires notBool truthy(V)
+    requires notBool boolContextTypeError(V) andBool notBool truthy(V)
 
   rule <k> lambdaExp(X:Id, Body:Exp) => closure(X, Body) ... </k>
   rule <k> lambdaArgsExp(IDS:IdItems, Body:Exp) => closureArgs(IDS, Body) ... </k>
@@ -25760,7 +25808,10 @@ module PYTHON
        ... </k>
     requires notBool exceptionMatches(E, #token("StopIteration", "Id"))
   rule #boolCtor() => False
+  rule <k> #boolCtor(V:Val) => exceptionSignal(#exception(#token("TypeError", "Id"))) ... </k>
+    requires boolContextTypeError(V)
   rule #boolCtor(V:Val) => boolValue(truthy(V))
+    requires notBool boolContextTypeError(V)
   rule #strCtor() => ""
   rule #strCtor(V:Val) => pyFormatStr(V)
     requires pyStringConversionSupported(V)
@@ -35159,22 +35210,26 @@ module PYTHON
   rule <k> ifStmt(C:Exp, Then:Block, Else:Block) =>
            C ~> ifStmtBranch(Then, Else)
        ... </k>
+  rule <k> V:Val ~> ifStmtBranch(_:Block, _:Block) =>
+           exceptionSignal(#exception(#token("TypeError", "Id")))
+       ... </k>
+    requires boolContextTypeError(V)
   rule <k> V:Val ~> ifStmtBranch(block(SS:Stmts), _:Block) =>
            SS ~> ifStmtDone
        ... </k>
-    requires truthy(V)
+    requires notBool boolContextTypeError(V) andBool truthy(V)
   rule <k> V:Val ~> ifStmtBranch({}, _:Block) =>
            stmtNoResult
        ... </k>
-    requires truthy(V)
+    requires notBool boolContextTypeError(V) andBool truthy(V)
   rule <k> V:Val ~> ifStmtBranch(_:Block, block(SS:Stmts)) =>
            SS ~> ifStmtDone
        ... </k>
-    requires notBool truthy(V)
+    requires notBool boolContextTypeError(V) andBool notBool truthy(V)
   rule <k> V:Val ~> ifStmtBranch(_:Block, {}) =>
            stmtNoResult
        ... </k>
-    requires notBool truthy(V)
+    requires notBool boolContextTypeError(V) andBool notBool truthy(V)
   rule <k> ifStmtDone => stmtNoResult ... </k>
 
   rule <k> matchStmt(Subject:Exp, Cases:MatchCases) =>
@@ -35718,18 +35773,22 @@ module PYTHON
   rule <k> whileStmt(C:Exp, Body:Block) =>
            C ~> whileStmtBranch(C, Body)
        ... </k>
+  rule <k> V:Val ~> whileStmtBranch(_:Exp, _:Block) =>
+           exceptionSignal(#exception(#token("TypeError", "Id")))
+       ... </k>
+    requires boolContextTypeError(V)
   rule <k> V:Val ~> whileStmtBranch(C:Exp, block(SS:Stmts)) =>
            SS ~> whileStmtAgain(C, block(SS))
        ... </k>
-    requires truthy(V)
+    requires notBool boolContextTypeError(V) andBool truthy(V)
   rule <k> V:Val ~> whileStmtBranch(C:Exp, {}) =>
            whileStmt(C, {})
        ... </k>
-    requires truthy(V)
+    requires notBool boolContextTypeError(V) andBool truthy(V)
   rule <k> V:Val ~> whileStmtBranch(_:Exp, _:Block) =>
            stmtNoResult
        ... </k>
-    requires notBool truthy(V)
+    requires notBool boolContextTypeError(V) andBool notBool truthy(V)
   rule <k> whileStmtAgain(C:Exp, Body:Block) =>
            whileStmt(C, Body)
        ... </k>
@@ -38802,14 +38861,18 @@ module PYTHON
     requires isIntLike(Step) andBool intValue(Step) =/=Int 0
 
   rule <k> pass => stmtNoResult ... </k>
+  rule <k> assertStmt(V:Val) => exceptionSignal(#exception(#token("TypeError", "Id"))) ... </k>
+    requires boolContextTypeError(V)
   rule <k> assertStmt(V:Val) => stmtNoResult ... </k>
-    requires truthy(V)
+    requires notBool boolContextTypeError(V) andBool truthy(V)
   rule <k> assertStmt(V:Val) => exceptionSignal(#exception(#token("AssertionError", "Id"))) ... </k>
-    requires notBool truthy(V)
+    requires notBool boolContextTypeError(V) andBool notBool truthy(V)
+  rule <k> assertMsgStmt(V:Val, _Msg:Exp) => exceptionSignal(#exception(#token("TypeError", "Id"))) ... </k>
+    requires boolContextTypeError(V)
   rule <k> assertMsgStmt(V:Val, _Msg:Exp) => stmtNoResult ... </k>
-    requires truthy(V)
+    requires notBool boolContextTypeError(V) andBool truthy(V)
   rule <k> assertMsgStmt(V:Val, Msg:Exp) => Msg ~> assertMsgRaise ... </k>
-    requires notBool truthy(V)
+    requires notBool boolContextTypeError(V) andBool notBool truthy(V)
   rule <k> _Msg:Val ~> assertMsgRaise => exceptionSignal(#exception(#token("AssertionError", "Id"))) ... </k>
   rule <k> exceptionSignal(E:Val) ~> assertMsgRaise => exceptionSignal(E) ... </k>
   rule <k> globalStmt(_:Id) => stmtNoResult ... </k>

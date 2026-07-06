@@ -137,6 +137,7 @@ run_case "adapter-numeric-conjugate" "$ROOT/tests/adapter/adapter-numeric-conjug
 run_case "adapter-complex-power" "$ROOT/tests/adapter/adapter-complex-power.py" "True ~> .K"
 run_case "adapter-ellipsis" "$ROOT/tests/adapter/adapter-ellipsis.py" "True ~> .K"
 run_case "adapter-ellipsis-name" "$ROOT/tests/adapter/adapter-ellipsis-name.py" "True ~> .K"
+run_case "adapter-notimplemented-singleton" "$ROOT/tests/adapter/adapter-notimplemented-singleton.py" "True ~> .K"
 run_case "adapter-debug-constant" "$ROOT/tests/adapter/adapter-debug-constant.py" "True ~> .K"
 run_eval_case "adapter-eval-input" "$ROOT/tests/adapter/adapter-eval-input.pyexpr" "True ~> .K"
 run_interactive_case "adapter-interactive-input" "$ROOT/tests/adapter/adapter-interactive-input.pysingle" "True ~> .K" "True"

@@ -165,6 +165,13 @@
       "coverage": ["ellipsis-builtin-name", "ellipsis-atom", "builtin-name-shadowing", "delete-name-fallback", "singleton-identity", "ordinary-python-source-adapter"]
     },
     {
+      "id": "adapter-notimplemented-singleton",
+      "source": "../adapter/adapter-notimplemented-singleton.py",
+      "reference": "Python Standard Library Built-in Constants NotImplemented; Python Language Reference truth value testing, boolean operations, conditional expressions, if, while, and assert statements; Python Standard Library builtins module",
+      "expected_result": "True ~> .K",
+      "coverage": ["notimplemented-singleton", "builtins-constants", "builtin-name-shadowing", "from-import-star", "truth-value-testing-type-error", "string-conversion-builtins", "numeric-constructor-type-errors", "singleton-identity", "ordinary-python-source-adapter"]
+    },
+    {
       "id": "adapter-debug-constant",
       "source": "../adapter/adapter-debug-constant.py",
       "reference": "Python Standard Library Built-in Constants __debug__; Python Language Reference 7.3 The assert statement",

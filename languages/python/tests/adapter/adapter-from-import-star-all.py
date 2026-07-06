@@ -59,6 +59,12 @@ result = result and partial_type_error
 result = result and "False" in kwlist
 
 del kwlist
+setattr(keyword, "dynamic", 77)
+keyword.__all__ = ["dynamic"]
+from keyword import *
+result = result and dynamic == 77
+
+del dynamic
 keyword.__all__ = ""
 from keyword import *
 

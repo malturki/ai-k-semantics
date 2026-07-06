@@ -2783,6 +2783,7 @@ module PYTHON
                | moduleValueAttrStringDel(Map, Id, String) [function, symbol(moduleValueAttrStringDel)]
                | moduleStarImport(Map, Val) [function, symbol(moduleStarImport)]
                | moduleStarImportAttrs(Map, ClassAttrs) [function, symbol(moduleStarImportAttrs)]
+               | moduleStarImportStringAttr(Map, String, Val) [function, symbol(moduleStarImportStringAttr)]
                | moduleStarImportAll(Map, Val, Val) [function, symbol(moduleStarImportAll)]
                | moduleStarImportAllItems(Map, Val, ValItems) [function, symbol(moduleStarImportAllItems)]
                | moduleStarImportAllName(Map, Val, String) [function, symbol(moduleStarImportAllName)]
@@ -7013,6 +7014,7 @@ module PYTHON
       orBool S ==String "pi"
       orBool S ==String "tau"
       orBool S ==String "answer"
+      orBool S ==String "dynamic"
       orBool S ==String "import_module"
       orBool S ==String "iskeyword"
       orBool S ==String "issoftkeyword"
@@ -7029,10 +7031,16 @@ module PYTHON
   rule moduleStarImportAttrs(Rho:Map, classAttr(A:Id, _V:Val, Rest:ClassAttrs)) =>
     moduleStarImportAttrs(Rho, Rest)
     requires notBool moduleStarImportPublicId(A)
-  rule moduleStarImportAttrs(Rho:Map, classStringAttr(_A:String, _V:Val, Rest:ClassAttrs)) =>
-    moduleStarImportAttrs(Rho, Rest)
+  rule moduleStarImportAttrs(Rho:Map, classStringAttr(A:String, V:Val, Rest:ClassAttrs)) =>
+    moduleStarImportAttrs(moduleStarImportStringAttr(Rho, A, V), Rest)
   rule moduleStarImportAttrs(Rho:Map, classBase(_BaseId:Int, Rest:ClassAttrs)) =>
     moduleStarImportAttrs(Rho, Rest)
+
+  rule moduleStarImportStringAttr(Rho:Map, "answer", V:Val) =>
+    Rho [ #token("answer", "Id") <- V ]
+  rule moduleStarImportStringAttr(Rho:Map, "dynamic", V:Val) =>
+    Rho [ #token("dynamic", "Id") <- V ]
+  rule moduleStarImportStringAttr(Rho:Map, _A:String, _V:Val) => Rho [owise]
 
   rule moduleStarImportAll(Rho:Map, _M:Val, []) => Rho
   rule moduleStarImportAll(Rho:Map, M:Val, listVal(VS:ValItems)) => moduleStarImportAllItems(Rho, M, VS)
@@ -7052,6 +7060,8 @@ module PYTHON
     Rho [ #token("tau", "Id") <- matchClassAttrStringVal(M, "tau") ]
   rule moduleStarImportAllName(Rho:Map, M:Val, "answer") =>
     Rho [ #token("answer", "Id") <- matchClassAttrStringVal(M, "answer") ]
+  rule moduleStarImportAllName(Rho:Map, M:Val, "dynamic") =>
+    Rho [ #token("dynamic", "Id") <- matchClassAttrStringVal(M, "dynamic") ]
   rule moduleStarImportAllName(Rho:Map, M:Val, "import_module") =>
     Rho [ #token("import_module", "Id") <- matchClassAttrStringVal(M, "import_module") ]
   rule moduleStarImportAllName(Rho:Map, M:Val, "iskeyword") =>

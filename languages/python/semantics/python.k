@@ -2312,6 +2312,8 @@ module PYTHON
                 | kwNoDuplicates(KwArgVals) [function, symbol(kwNoDuplicates)]
                 | kwAllInIds(KwArgVals, IdItems) [function, symbol(kwAllInIds)]
                 | kwAllInEitherIds(KwArgVals, IdItems, IdItems) [function, symbol(kwAllInEitherIds)]
+                | complexCtorKwOk(KwArgVals) [function, symbol(complexCtorKwOk)]
+                | complexCtorMixedOk(Val, KwArgVals) [function, symbol(complexCtorMixedOk)]
                 | stringIdContains(String, IdItems) [function, symbol(stringIdContains)]
                 | kwRequiredPresent(IdItems, KwArgVals, ArgVals) [function, symbol(kwRequiredPresent)]
                 | kwRequiredAlignedPresent(IdItems, KwArgVals, ArgVals) [function, symbol(kwRequiredAlignedPresent)]
@@ -9876,14 +9878,27 @@ module PYTHON
   rule complexCtorImagArg(KWS:KwArgVals) => 0
     requires notBool kwContains(#token("imag", "Id"), KWS)
 
+  rule complexCtorKwOk(KWS:KwArgVals) =>
+    kwNoDuplicates(KWS)
+      andBool kwAllInIds(KWS, idItemsCons(#token("real", "Id"), idItemsLast(#token("imag", "Id"))))
+      andBool isComplexLike(complexCtorRealArg(KWS))
+      andBool isComplexLike(complexCtorImagArg(KWS))
+
+  rule complexCtorMixedOk(Base:Val, KWS:KwArgVals) =>
+    (emptyKwArgVals(KWS) andBool isComplexLike(Base))
+      orBool (
+        notBool emptyKwArgVals(KWS)
+          andBool kwNoDuplicates(KWS)
+          andBool kwAllInIds(KWS, idItemsLast(#token("imag", "Id")))
+          andBool isComplexLike(Base)
+          andBool isComplexLike(complexCtorImagArg(KWS))
+      )
+
   rule complexCtorFromKwArgs(KWS:KwArgVals) =>
     #complex(
       complexReal(complexCtorRealArg(KWS)) -Float complexImag(complexCtorImagArg(KWS)),
       complexImag(complexCtorRealArg(KWS)) +Float complexReal(complexCtorImagArg(KWS)))
-    requires kwNoDuplicates(KWS)
-      andBool kwAllInIds(KWS, idItemsCons(#token("real", "Id"), idItemsLast(#token("imag", "Id"))))
-      andBool isComplexLike(complexCtorRealArg(KWS))
-      andBool isComplexLike(complexCtorImagArg(KWS))
+    requires complexCtorKwOk(KWS)
 
   rule complexCtorMergeKw(Base:Val, #noKwArgVals) =>
     #complex(complexReal(Base), complexImag(Base))
@@ -9892,11 +9907,8 @@ module PYTHON
     #complex(
       complexReal(Base) -Float complexImag(complexCtorImagArg(KWS)),
       complexImag(Base) +Float complexReal(complexCtorImagArg(KWS)))
-    requires notBool emptyKwArgVals(KWS)
-      andBool kwNoDuplicates(KWS)
-      andBool kwAllInIds(KWS, idItemsLast(#token("imag", "Id")))
-      andBool isComplexLike(Base)
-      andBool isComplexLike(complexCtorImagArg(KWS))
+    requires complexCtorMixedOk(Base, KWS)
+      andBool notBool emptyKwArgVals(KWS)
 
   rule appendKwDictVals(DVS:DictVals, #noKwArgVals) => DVS
   rule appendKwDictVals(DVS:DictVals, kwArgValsCons(X:Id, V:Val, KWS:KwArgVals)) =>
@@ -20833,6 +20845,26 @@ module PYTHON
            exceptionSignal(#exception(#token("TypeError", "Id")))
        ... </k>
     requires notBool callableVal(F)
+  rule <k> kwArgsVal(KWS:KwArgVals) ~> callApplyKwArgs(#typeVal(T:Id)) =>
+           dictCtorFromKwArgs(KWS)
+       ... </k>
+    requires Id2String(T) ==String "dict"
+      andBool kwNoDuplicates(KWS)
+  rule <k> kwArgsVal(KWS:KwArgVals) ~> callApplyKwArgs(#typeVal(T:Id)) =>
+           exceptionSignal(#exception(#token("TypeError", "Id")))
+       ... </k>
+    requires Id2String(T) ==String "dict"
+      andBool notBool kwNoDuplicates(KWS)
+  rule <k> kwArgsVal(KWS:KwArgVals) ~> callApplyKwArgs(#typeVal(T:Id)) =>
+           complexCtorFromKwArgs(KWS)
+       ... </k>
+    requires Id2String(T) ==String "complex"
+      andBool complexCtorKwOk(KWS)
+  rule <k> kwArgsVal(KWS:KwArgVals) ~> callApplyKwArgs(#typeVal(T:Id)) =>
+           exceptionSignal(#exception(#token("TypeError", "Id")))
+       ... </k>
+    requires Id2String(T) ==String "complex"
+      andBool notBool complexCtorKwOk(KWS)
   rule <k> kwArgsVal(KWS:KwArgVals) ~> callApplyKwArgs(#__import__Fun) =>
            exceptionSignal(#exception(#token("TypeError", "Id")))
        ... </k>
@@ -21606,6 +21638,40 @@ module PYTHON
   rule <k> kwArgsVal(_:KwArgVals) ~> callApplyMixedArgs(generatorFunctionVal(_:IdItems, _:YieldExps), _:ArgVals) =>
            exceptionSignal(#exception(#token("TypeError", "Id")))
        ... </k>
+  rule <k> kwArgsVal(KWS:KwArgVals) ~> callApplyMixedArgs(#typeVal(T:Id), #noArgVals) =>
+           kwArgsVal(KWS) ~> callApplyKwArgs(#typeVal(T))
+       ... </k>
+    requires Id2String(T) ==String "dict"
+      orBool Id2String(T) ==String "complex"
+  rule <k> kwArgsVal(KWS:KwArgVals) ~> callApplyMixedArgs(#typeVal(T:Id), VS:ArgVals) =>
+           dictCtorMergeKw(argValAt(VS, 0), KWS)
+       ... </k>
+    requires Id2String(T) ==String "dict"
+      andBool argValsLen(VS) ==Int 1
+      andBool kwNoDuplicates(KWS)
+  rule <k> kwArgsVal(KWS:KwArgVals) ~> callApplyMixedArgs(#typeVal(T:Id), VS:ArgVals) =>
+           exceptionSignal(#exception(#token("TypeError", "Id")))
+       ... </k>
+    requires Id2String(T) ==String "dict"
+      andBool argValsLen(VS) >Int 0
+      andBool (argValsLen(VS) =/=Int 1 orBool notBool kwNoDuplicates(KWS))
+  rule <k> kwArgsVal(KWS:KwArgVals) ~> callApplyMixedArgs(#typeVal(T:Id), VS:ArgVals) =>
+           complexCtorMergeKw(argValAt(VS, 0), KWS)
+       ... </k>
+    requires Id2String(T) ==String "complex"
+      andBool argValsLen(VS) ==Int 1
+      andBool complexCtorMixedOk(argValAt(VS, 0), KWS)
+  rule <k> kwArgsVal(KWS:KwArgVals) ~> callApplyMixedArgs(#typeVal(T:Id), VS:ArgVals) =>
+           exceptionSignal(#exception(#token("TypeError", "Id")))
+       ... </k>
+    requires Id2String(T) ==String "complex"
+      andBool argValsLen(VS) ==Int 1
+      andBool notBool complexCtorMixedOk(argValAt(VS, 0), KWS)
+  rule <k> kwArgsVal(_:KwArgVals) ~> callApplyMixedArgs(#typeVal(T:Id), VS:ArgVals) =>
+           exceptionSignal(#exception(#token("TypeError", "Id")))
+       ... </k>
+    requires Id2String(T) ==String "complex"
+      andBool argValsLen(VS) >Int 1
   rule <k> kwArgsVal(KWS:KwArgVals) ~> callApplyMixedArgs(#__import__Fun, VS:ArgVals) =>
            exceptionSignal(#exception(#token("TypeError", "Id")))
        ... </k>
@@ -25345,12 +25411,22 @@ module PYTHON
   rule <k> kwArgsVal(KWS:KwArgVals) ~> buildComplexCtorKw =>
            complexCtorFromKwArgs(KWS)
        ... </k>
+    requires complexCtorKwOk(KWS)
+  rule <k> kwArgsVal(KWS:KwArgVals) ~> buildComplexCtorKw =>
+           exceptionSignal(#exception(#token("TypeError", "Id")))
+       ... </k>
+    requires notBool complexCtorKwOk(KWS)
   rule <k> complexCtorMixedExp(Base:Val, KWS:KwArgExps) =>
            evalKwArgs(KWS, #noKwArgVals) ~> buildComplexCtorMixed(Base)
        ... </k>
   rule <k> kwArgsVal(KWS:KwArgVals) ~> buildComplexCtorMixed(Base:Val) =>
            complexCtorMergeKw(Base, KWS)
        ... </k>
+    requires complexCtorMixedOk(Base, KWS)
+  rule <k> kwArgsVal(KWS:KwArgVals) ~> buildComplexCtorMixed(Base:Val) =>
+           exceptionSignal(#exception(#token("TypeError", "Id")))
+       ... </k>
+    requires notBool complexCtorMixedOk(Base, KWS)
 
   rule #listCtor() => []
   rule #tupleCtor() => ()

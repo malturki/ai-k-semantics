@@ -101,6 +101,7 @@ SUPPORTED_BUILTIN_CLASS_NAMES = {
     "tuple",
 }
 SUPPORTED_IMPORT_MODULES = {
+    "builtins",
     "importlib",
     "keyword",
     "math",

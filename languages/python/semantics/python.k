@@ -6853,7 +6853,10 @@ module PYTHON
     classBase(BaseId, classAttrsAppend(Attrs, BaseAttrs))
 
   rule builtinModuleSupported(M:Id) =>
-    Id2String(M) ==String "math" orBool Id2String(M) ==String "keyword" orBool Id2String(M) ==String "importlib"
+    Id2String(M) ==String "builtins"
+      orBool Id2String(M) ==String "math"
+      orBool Id2String(M) ==String "keyword"
+      orBool Id2String(M) ==String "importlib"
 
   rule builtinModule(M:Id) => moduleVal(M, builtinModuleAttrs(M))
     requires builtinModuleSupported(M)
@@ -6880,10 +6883,21 @@ module PYTHON
     classAttr(#token("import_module", "Id"), #importlibImportModuleFun,
       #noRuntimeClassAttrs)))
     requires Id2String(M) ==String "importlib"
+  rule builtinModuleAttrs(M:Id) =>
+    classAttr(#token("kDunderNameName", "Id"), "builtins",
+    classStringAttr("__import__", #__import__Fun,
+    classAttr(#token("kEllipsisName", "Id"), Ellipsis,
+    classStringAttr("__debug__", True,
+    classStringAttr("None", None,
+    classStringAttr("True", True,
+    classStringAttr("False", False,
+      #noRuntimeClassAttrs)))))))
+    requires Id2String(M) ==String "builtins"
 
   rule importlibImportModuleSupported("math") => true
   rule importlibImportModuleSupported("keyword") => true
   rule importlibImportModuleSupported("importlib") => true
+  rule importlibImportModuleSupported("builtins") => true
   rule importlibImportModuleSupported(_:String) => false [owise]
 
   rule importlibImportModuleRelativeName(S:String) =>
@@ -6936,6 +6950,7 @@ module PYTHON
   rule importlibImportModule("math") => builtinModule(#token("math", "Id"))
   rule importlibImportModule("keyword") => builtinModule(#token("keyword", "Id"))
   rule importlibImportModule("importlib") => builtinModule(#token("importlib", "Id"))
+  rule importlibImportModule("builtins") => builtinModule(#token("builtins", "Id"))
 
   rule keywordAllList() => ["iskeyword", "issoftkeyword", "kwlist", "softkwlist",]
   rule keywordKwList() => ["False", "None", "True", "and", "as", "assert", "async", "await", "break", "class", "continue", "def", "del", "elif", "else", "except", "finally", "for", "from", "global", "if", "import", "in", "is", "lambda", "nonlocal", "not", "or", "pass", "raise", "return", "try", "while", "with", "yield",]
@@ -7076,6 +7091,10 @@ module PYTHON
 
   rule moduleStarImportAllNameSupported(M:Val, S:String) => classHasAttrString(M, S)
     requires S ==String "e"
+      orBool S ==String "Ellipsis"
+      orBool S ==String "None"
+      orBool S ==String "True"
+      orBool S ==String "False"
       orBool S ==String "pi"
       orBool S ==String "tau"
       orBool S ==String "answer"
@@ -7106,6 +7125,14 @@ module PYTHON
     Rho [ #token("answer", "Id") <- V ]
   rule moduleStarImportStringAttr(Rho:Map, "dynamic", V:Val) =>
     Rho [ #token("dynamic", "Id") <- V ]
+  rule moduleStarImportStringAttr(Rho:Map, "Ellipsis", V:Val) =>
+    Rho [ #token("kEllipsisName", "Id") <- V ]
+  rule moduleStarImportStringAttr(Rho:Map, "None", V:Val) =>
+    Rho [ #token("None", "Id") <- V ]
+  rule moduleStarImportStringAttr(Rho:Map, "True", V:Val) =>
+    Rho [ #token("True", "Id") <- V ]
+  rule moduleStarImportStringAttr(Rho:Map, "False", V:Val) =>
+    Rho [ #token("False", "Id") <- V ]
   rule moduleStarImportStringAttr(Rho:Map, _A:String, _V:Val) => Rho [owise]
 
   rule moduleStarImportAll(Rho:Map, _M:Val, []) => Rho
@@ -7120,6 +7147,14 @@ module PYTHON
 
   rule moduleStarImportAllName(Rho:Map, M:Val, "e") =>
     Rho [ #token("e", "Id") <- matchClassAttrStringVal(M, "e") ]
+  rule moduleStarImportAllName(Rho:Map, M:Val, "Ellipsis") =>
+    Rho [ #token("kEllipsisName", "Id") <- matchClassAttrStringVal(M, "Ellipsis") ]
+  rule moduleStarImportAllName(Rho:Map, M:Val, "None") =>
+    Rho [ #token("None", "Id") <- matchClassAttrStringVal(M, "None") ]
+  rule moduleStarImportAllName(Rho:Map, M:Val, "True") =>
+    Rho [ #token("True", "Id") <- matchClassAttrStringVal(M, "True") ]
+  rule moduleStarImportAllName(Rho:Map, M:Val, "False") =>
+    Rho [ #token("False", "Id") <- matchClassAttrStringVal(M, "False") ]
   rule moduleStarImportAllName(Rho:Map, M:Val, "pi") =>
     Rho [ #token("pi", "Id") <- matchClassAttrStringVal(M, "pi") ]
   rule moduleStarImportAllName(Rho:Map, M:Val, "tau") =>
@@ -7252,6 +7287,7 @@ module PYTHON
   rule classAttrIdMatchesString(#token("kDunderValueName", "Id"), B:String) => B ==String "__value__"
   rule classAttrIdMatchesString(#token("kDunderTypeParamsName", "Id"), B:String) => B ==String "__type_params__"
   rule classAttrIdMatchesString(#token("kDunderParametersName", "Id"), B:String) => B ==String "__parameters__"
+  rule classAttrIdMatchesString(#token("kEllipsisName", "Id"), B:String) => B ==String "Ellipsis"
   rule classAttrIdMatchesString(A:Id, B:String) => Id2String(A) ==String B [owise]
 
   rule typeAliasLazyAttrId(A:Id) => classAttrIdMatchesString(A, "__value__")

@@ -336,9 +336,14 @@ module PYTHON-SYNTAX
                 | "continue" [symbol(continueStmt)]
                 | "#import" "(" Id ")" [symbol(importStmt)]
                 | "#importAs" "(" Id "," Id ")" [symbol(importAsStmt)]
+                | "#importDotted" "(" String ")" [symbol(importDottedStmt)]
+                | "#importDottedAs" "(" String "," Id ")" [symbol(importDottedAsStmt)]
                 | "#fromImport" "(" Id "," Id ")" [symbol(fromImportStmt)]
                 | "#fromImportAs" "(" Id "," Id "," Id ")" [symbol(fromImportAsStmt)]
                 | "#fromImportStar" "(" Id ")" [symbol(fromImportStarStmt)]
+                | "#fromDottedImport" "(" String "," Id ")" [symbol(fromDottedImportStmt)]
+                | "#fromDottedImportAs" "(" String "," Id "," Id ")" [symbol(fromDottedImportAsStmt)]
+                | "#fromDottedImportStar" "(" String ")" [symbol(fromDottedImportStarStmt)]
                 | "#fromRelativeImport" "(" Int "," Id "," Id ")" [symbol(fromRelativeImportStmt)]
                 | "#fromRelativeImportAs" "(" Int "," Id "," Id "," Id ")" [symbol(fromRelativeImportAsStmt)]
                 | "#fromRelativeImportStar" "(" Int "," Id ")" [symbol(fromRelativeImportStarStmt)]
@@ -16392,12 +16397,17 @@ module PYTHON
     requires notBool builtinModuleSupported(M)
   rule <k> #importAs(M:Id, _Alias:Id) => exceptionSignal(#exception(#token("ModuleNotFoundError", "Id"))) ... </k>
     requires notBool builtinModuleSupported(M)
+  rule <k> #importDotted(_Path:String) => exceptionSignal(#exception(#token("ModuleNotFoundError", "Id"))) ... </k>
+  rule <k> #importDottedAs(_Path:String, _Alias:Id) => exceptionSignal(#exception(#token("ModuleNotFoundError", "Id"))) ... </k>
   rule <k> #fromImport(M:Id, _A:Id) => exceptionSignal(#exception(#token("ModuleNotFoundError", "Id"))) ... </k>
     requires notBool builtinModuleSupported(M)
   rule <k> #fromImportAs(M:Id, _A:Id, _Alias:Id) => exceptionSignal(#exception(#token("ModuleNotFoundError", "Id"))) ... </k>
     requires notBool builtinModuleSupported(M)
   rule <k> #fromImportStar(M:Id) => exceptionSignal(#exception(#token("ModuleNotFoundError", "Id"))) ... </k>
     requires notBool builtinModuleSupported(M)
+  rule <k> #fromDottedImport(_Path:String, _A:Id) => exceptionSignal(#exception(#token("ModuleNotFoundError", "Id"))) ... </k>
+  rule <k> #fromDottedImportAs(_Path:String, _A:Id, _Alias:Id) => exceptionSignal(#exception(#token("ModuleNotFoundError", "Id"))) ... </k>
+  rule <k> #fromDottedImportStar(_Path:String) => exceptionSignal(#exception(#token("ModuleNotFoundError", "Id"))) ... </k>
   rule <k> #fromImport(M:Id, A:Id) => exceptionSignal(#exception(#token("ImportError", "Id"))) ... </k>
        <env> Rho </env>
     requires builtinModuleSupported(M)

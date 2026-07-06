@@ -812,10 +812,15 @@ def emit_exception_expr(exp: ast.expr) -> str:
 def emit_import_stmt(stmt: ast.Import, names: list[ast.alias]) -> str:
     emitted: list[str] = []
     for alias in names:
+        if "." in alias.name:
+            path = emit_string(alias.name)
+            if alias.asname is None:
+                emitted.append(f"#importDotted({path})")
+            else:
+                emitted.append(f"#importDottedAs({path}, {emit_id(alias.asname)})")
+            continue
         if alias.name not in SUPPORTED_IMPORT_MODULES:
             raise unsupported(stmt, "only supported builtin-module imports are accepted")
-        if "." in alias.name:
-            raise unsupported(stmt, "dotted imports are not supported")
         module = emit_id(alias.name)
         if alias.asname is None:
             emitted.append(f"#import({module})")
@@ -852,6 +857,20 @@ def emit_import_from_stmt(stmt: ast.ImportFrom, module: str | None, names: list[
         return ";\n".join(emitted)
     if module is None:
         raise unsupported(stmt, "absolute from-import statements require a module name")
+    if "." in module:
+        module_path = emit_string(module)
+        if len(names) == 1 and names[0].name == "*":
+            return f"#fromDottedImportStar({module_path})"
+        emitted: list[str] = []
+        for alias in names:
+            if alias.name == "*":
+                raise unsupported(stmt, "from-import star cannot be combined with named imports")
+            imported = emit_id(alias.name)
+            if alias.asname is None:
+                emitted.append(f"#fromDottedImport({module_path}, {imported})")
+            else:
+                emitted.append(f"#fromDottedImportAs({module_path}, {imported}, {emit_id(alias.asname)})")
+        return ";\n".join(emitted)
     if module not in SUPPORTED_IMPORT_MODULES:
         raise unsupported(stmt, "only supported builtin-module from-import statements are accepted")
     module_id = emit_id(module)

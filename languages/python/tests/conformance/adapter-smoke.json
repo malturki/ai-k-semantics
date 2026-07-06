@@ -270,6 +270,13 @@
       "coverage": ["import-statement", "from-import-statement", "multi-clause-import", "import-as-binding", "module-cache-identity", "builtin-module-object", "dynamic-module-attributes", "module-attribute-assignment", "import-error", "ordinary-python-source-adapter"]
     },
     {
+      "id": "adapter-dotted-import-failures",
+      "source": "../adapter/adapter-dotted-import-failures.py",
+      "reference": "Python 3.14.6 Language Reference 5 The import system and 7.11 The import statement; CPython non-package dotted import ModuleNotFoundError behavior",
+      "expected_result": "True ~> .K",
+      "coverage": ["import-statement", "from-import-statement", "dotted-import", "dotted-from-import", "module-not-found-error", "no-partial-binding", "ordinary-python-source-adapter"]
+    },
+    {
       "id": "adapter-string-repeat",
       "source": "../adapter/adapter-string-repeat.py",
       "reference": "Python Language Reference 6.7 Binary arithmetic operations; Standard Library sequence types",

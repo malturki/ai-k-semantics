@@ -832,7 +832,8 @@ def emit_import_from_stmt(stmt: ast.ImportFrom, module: str | None, names: list[
         emitted: list[str] = []
         for alias in names:
             if alias.name == "*":
-                raise unsupported(stmt, "relative from-import star is not supported")
+                emitted.append(f"#fromRelativeImportStar({level}, {module_name})")
+                continue
             imported = emit_id(alias.name)
             if alias.asname is None:
                 emitted.append(f"#fromRelativeImport({level}, {module_name}, {imported})")

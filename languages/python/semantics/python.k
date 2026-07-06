@@ -341,6 +341,7 @@ module PYTHON-SYNTAX
                 | "#fromImportStar" "(" Id ")" [symbol(fromImportStarStmt)]
                 | "#fromRelativeImport" "(" Int "," Id "," Id ")" [symbol(fromRelativeImportStmt)]
                 | "#fromRelativeImportAs" "(" Int "," Id "," Id "," Id ")" [symbol(fromRelativeImportAsStmt)]
+                | "#fromRelativeImportStar" "(" Int "," Id ")" [symbol(fromRelativeImportStarStmt)]
                 | "assert" Exp [symbol(assertStmt), strict]
                 | "#assertMsg" "(" Exp "," Exp ")" [symbol(assertMsgStmt), strict(1)]
                 | "global" Id [symbol(globalStmt)]
@@ -16413,6 +16414,8 @@ module PYTHON
   rule <k> #fromRelativeImport(Level:Int, _Module:Id, _A:Id) => exceptionSignal(#exception(#token("ImportError", "Id"))) ... </k>
     requires Level >Int 0
   rule <k> #fromRelativeImportAs(Level:Int, _Module:Id, _A:Id, _Alias:Id) => exceptionSignal(#exception(#token("ImportError", "Id"))) ... </k>
+    requires Level >Int 0
+  rule <k> #fromRelativeImportStar(Level:Int, _Module:Id) => exceptionSignal(#exception(#token("ImportError", "Id"))) ... </k>
     requires Level >Int 0
 
   rule <k> fstringExp(Parts:FStringParts) => fStringEval(Parts, "") ... </k>

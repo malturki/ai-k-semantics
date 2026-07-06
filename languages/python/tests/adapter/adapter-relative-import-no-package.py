@@ -34,6 +34,18 @@ try:
 except ImportError:
     relative_module_multi = True
 
+relative_star = False
+try:
+    from . import *
+except ImportError:
+    relative_star = True
+
+relative_module_star = False
+try:
+    from .keyword import *
+except ImportError:
+    relative_module_star = True
+
 result = (
     relative_bare
     and relative_alias
@@ -41,6 +53,8 @@ result = (
     and relative_parent
     and relative_multi
     and relative_module_multi
+    and relative_star
+    and relative_module_star
 )
 assert result
 result

@@ -2361,6 +2361,7 @@ module PYTHON
                 | rangeEq(Int, Int, Int, Int, Int, Int) [function, symbol(rangeEq)]
                | allValItems(ValItems) [function, symbol(allValItems)]
                | anyValItems(ValItems) [function, symbol(anyValItems)]
+               | valItemsBoolContextTypeError(ValItems) [function, symbol(valItemsBoolContextTypeError)]
                | numericComparableVal(Val) [function, symbol(numericComparableVal)]
                | valItemsAllIntLike(ValItems) [function, symbol(valItemsAllIntLike)]
                | valItemsAllNumericComparable(ValItems) [function, symbol(valItemsAllNumericComparable)]
@@ -15086,6 +15087,9 @@ module PYTHON
   rule allValItems(valItemsCons(V:Val, VS:ValItems)) => truthy(V) andBool allValItems(VS)
   rule anyValItems(valItemsLast(V:Val)) => truthy(V)
   rule anyValItems(valItemsCons(V:Val, VS:ValItems)) => truthy(V) orBool anyValItems(VS)
+  rule valItemsBoolContextTypeError(valItemsLast(V:Val)) => boolContextTypeError(V)
+  rule valItemsBoolContextTypeError(valItemsCons(V:Val, VS:ValItems)) =>
+    boolContextTypeError(V) orBool valItemsBoolContextTypeError(VS)
   rule numericComparableVal(_:Float) => true
   rule numericComparableVal(V:Val) => isIntLike(V) [owise]
   rule valItemsAllIntLike(valItemsLast(V:Val)) => isIntLike(V)
@@ -21864,19 +21868,27 @@ module PYTHON
   rule <k> V:Val ~> listCompTargetIfsFilterNext(T:Target, Filters:CompFilters, RestFilters:CompFilters, Elem:Exp, Rest:ArgVals, Acc:ArgVals, Rho:Map) =>
            listCompTargetIfsFilter(T, Filters, RestFilters, Elem, Rest, Acc, Rho)
        ... </k>
-    requires truthy(V)
+    requires notBool boolContextTypeError(V) andBool truthy(V)
   rule <k> V:Val ~> listCompTargetIfsFilterNext(T:Target, Filters:CompFilters, _:CompFilters, Elem:Exp, Rest:ArgVals, Acc:ArgVals, Rho:Map) =>
            listCompTargetIfsIter(T, Filters, Elem, Rest, Acc, Rho)
        ... </k>
-    requires notBool truthy(V)
+    requires notBool boolContextTypeError(V) andBool notBool truthy(V)
+  rule <k> V:Val ~> listCompTargetIfsFilterNext(_T:Target, _Filters:CompFilters, _RestFilters:CompFilters, _Elem:Exp, _Rest:ArgVals, _Acc:ArgVals, _Rho:Map) =>
+           exceptionSignal(#exception(#token("TypeError", "Id")))
+       ... </k>
+    requires boolContextTypeError(V)
   rule <k> V:Val ~> listCompTargetIfsFilterLast(T:Target, Filters:CompFilters, Elem:Exp, Rest:ArgVals, Acc:ArgVals, Rho:Map) =>
            Elem ~> listCompTargetIfsNext(T, Filters, Elem, Rest, Acc, Rho)
        ... </k>
-    requires truthy(V)
+    requires notBool boolContextTypeError(V) andBool truthy(V)
   rule <k> V:Val ~> listCompTargetIfsFilterLast(T:Target, Filters:CompFilters, Elem:Exp, Rest:ArgVals, Acc:ArgVals, Rho:Map) =>
            listCompTargetIfsIter(T, Filters, Elem, Rest, Acc, Rho)
        ... </k>
-    requires notBool truthy(V)
+    requires notBool boolContextTypeError(V) andBool notBool truthy(V)
+  rule <k> V:Val ~> listCompTargetIfsFilterLast(_T:Target, _Filters:CompFilters, _Elem:Exp, _Rest:ArgVals, _Acc:ArgVals, _Rho:Map) =>
+           exceptionSignal(#exception(#token("TypeError", "Id")))
+       ... </k>
+    requires boolContextTypeError(V)
   rule <k> V:Val ~> listCompTargetIfsNext(T:Target, Filters:CompFilters, Elem:Exp, Rest:ArgVals, Acc:ArgVals, Rho:Map) =>
            listCompTargetIfsIter(T, Filters, Elem, Rest, appendArgVal(Acc, V), Rho)
        ... </k>
@@ -21903,11 +21915,15 @@ module PYTHON
   rule <k> V:Val ~> listCompIfFilter(X:Id, Filter:Exp, Elem:Exp, Rest:ArgVals, Acc:ArgVals, Rho:Map) =>
            Elem ~> listCompIfNext(X, Filter, Elem, Rest, Acc, Rho)
        ... </k>
-    requires truthy(V)
+    requires notBool boolContextTypeError(V) andBool truthy(V)
   rule <k> V:Val ~> listCompIfFilter(X:Id, Filter:Exp, Elem:Exp, Rest:ArgVals, Acc:ArgVals, Rho:Map) =>
            listCompIfIter(X, Filter, Elem, Rest, Acc, Rho)
        ... </k>
-    requires notBool truthy(V)
+    requires notBool boolContextTypeError(V) andBool notBool truthy(V)
+  rule <k> V:Val ~> listCompIfFilter(_X:Id, _Filter:Exp, _Elem:Exp, _Rest:ArgVals, _Acc:ArgVals, _Rho:Map) =>
+           exceptionSignal(#exception(#token("TypeError", "Id")))
+       ... </k>
+    requires boolContextTypeError(V)
   rule <k> V:Val ~> listCompIfNext(X:Id, Filter:Exp, Elem:Exp, Rest:ArgVals, Acc:ArgVals, Rho:Map) =>
            listCompIfIter(X, Filter, Elem, Rest, appendArgVal(Acc, V), Rho)
        ... </k>
@@ -22176,19 +22192,27 @@ module PYTHON
   rule <k> V:Val ~> listCompIfsFilterNext(X:Id, Filters:CompFilters, RestFilters:CompFilters, Elem:Exp, Rest:ArgVals, Acc:ArgVals, Rho:Map) =>
            listCompIfsFilter(X, Filters, RestFilters, Elem, Rest, Acc, Rho)
        ... </k>
-    requires truthy(V)
+    requires notBool boolContextTypeError(V) andBool truthy(V)
   rule <k> V:Val ~> listCompIfsFilterNext(X:Id, Filters:CompFilters, _:CompFilters, Elem:Exp, Rest:ArgVals, Acc:ArgVals, Rho:Map) =>
            listCompIfsIter(X, Filters, Elem, Rest, Acc, Rho)
        ... </k>
-    requires notBool truthy(V)
+    requires notBool boolContextTypeError(V) andBool notBool truthy(V)
+  rule <k> V:Val ~> listCompIfsFilterNext(_X:Id, _Filters:CompFilters, _RestFilters:CompFilters, _Elem:Exp, _Rest:ArgVals, _Acc:ArgVals, _Rho:Map) =>
+           exceptionSignal(#exception(#token("TypeError", "Id")))
+       ... </k>
+    requires boolContextTypeError(V)
   rule <k> V:Val ~> listCompIfsFilterLast(X:Id, Filters:CompFilters, Elem:Exp, Rest:ArgVals, Acc:ArgVals, Rho:Map) =>
            Elem ~> listCompIfsNext(X, Filters, Elem, Rest, Acc, Rho)
        ... </k>
-    requires truthy(V)
+    requires notBool boolContextTypeError(V) andBool truthy(V)
   rule <k> V:Val ~> listCompIfsFilterLast(X:Id, Filters:CompFilters, Elem:Exp, Rest:ArgVals, Acc:ArgVals, Rho:Map) =>
            listCompIfsIter(X, Filters, Elem, Rest, Acc, Rho)
        ... </k>
-    requires notBool truthy(V)
+    requires notBool boolContextTypeError(V) andBool notBool truthy(V)
+  rule <k> V:Val ~> listCompIfsFilterLast(_X:Id, _Filters:CompFilters, _Elem:Exp, _Rest:ArgVals, _Acc:ArgVals, _Rho:Map) =>
+           exceptionSignal(#exception(#token("TypeError", "Id")))
+       ... </k>
+    requires boolContextTypeError(V)
   rule <k> V:Val ~> listCompIfsNext(X:Id, Filters:CompFilters, Elem:Exp, Rest:ArgVals, Acc:ArgVals, Rho:Map) =>
            listCompIfsIter(X, Filters, Elem, Rest, appendArgVal(Acc, V), Rho)
        ... </k>
@@ -22968,19 +22992,27 @@ module PYTHON
   rule <k> V:Val ~> setCompTargetIfsFilterNext(T:Target, Filters:CompFilters, RestFilters:CompFilters, Elem:Exp, Rest:ArgVals, Acc:ArgVals, Rho:Map) =>
            setCompTargetIfsFilter(T, Filters, RestFilters, Elem, Rest, Acc, Rho)
        ... </k>
-    requires truthy(V)
+    requires notBool boolContextTypeError(V) andBool truthy(V)
   rule <k> V:Val ~> setCompTargetIfsFilterNext(T:Target, Filters:CompFilters, _:CompFilters, Elem:Exp, Rest:ArgVals, Acc:ArgVals, Rho:Map) =>
            setCompTargetIfsIter(T, Filters, Elem, Rest, Acc, Rho)
        ... </k>
-    requires notBool truthy(V)
+    requires notBool boolContextTypeError(V) andBool notBool truthy(V)
+  rule <k> V:Val ~> setCompTargetIfsFilterNext(_T:Target, _Filters:CompFilters, _RestFilters:CompFilters, _Elem:Exp, _Rest:ArgVals, _Acc:ArgVals, _Rho:Map) =>
+           exceptionSignal(#exception(#token("TypeError", "Id")))
+       ... </k>
+    requires boolContextTypeError(V)
   rule <k> V:Val ~> setCompTargetIfsFilterLast(T:Target, Filters:CompFilters, Elem:Exp, Rest:ArgVals, Acc:ArgVals, Rho:Map) =>
            Elem ~> setCompTargetIfsNext(T, Filters, Elem, Rest, Acc, Rho)
        ... </k>
-    requires truthy(V)
+    requires notBool boolContextTypeError(V) andBool truthy(V)
   rule <k> V:Val ~> setCompTargetIfsFilterLast(T:Target, Filters:CompFilters, Elem:Exp, Rest:ArgVals, Acc:ArgVals, Rho:Map) =>
            setCompTargetIfsIter(T, Filters, Elem, Rest, Acc, Rho)
        ... </k>
-    requires notBool truthy(V)
+    requires notBool boolContextTypeError(V) andBool notBool truthy(V)
+  rule <k> V:Val ~> setCompTargetIfsFilterLast(_T:Target, _Filters:CompFilters, _Elem:Exp, _Rest:ArgVals, _Acc:ArgVals, _Rho:Map) =>
+           exceptionSignal(#exception(#token("TypeError", "Id")))
+       ... </k>
+    requires boolContextTypeError(V)
   rule <k> V:Val ~> setCompTargetIfsNext(T:Target, Filters:CompFilters, Elem:Exp, Rest:ArgVals, Acc:ArgVals, Rho:Map) =>
            setCompTargetIfsIter(T, Filters, Elem, Rest, appendArgVal(Acc, V), Rho)
        ... </k>
@@ -23007,11 +23039,15 @@ module PYTHON
   rule <k> V:Val ~> setCompIfFilter(X:Id, Filter:Exp, Elem:Exp, Rest:ArgVals, Acc:ArgVals, Rho:Map) =>
            Elem ~> setCompIfNext(X, Filter, Elem, Rest, Acc, Rho)
        ... </k>
-    requires truthy(V)
+    requires notBool boolContextTypeError(V) andBool truthy(V)
   rule <k> V:Val ~> setCompIfFilter(X:Id, Filter:Exp, Elem:Exp, Rest:ArgVals, Acc:ArgVals, Rho:Map) =>
            setCompIfIter(X, Filter, Elem, Rest, Acc, Rho)
        ... </k>
-    requires notBool truthy(V)
+    requires notBool boolContextTypeError(V) andBool notBool truthy(V)
+  rule <k> V:Val ~> setCompIfFilter(_X:Id, _Filter:Exp, _Elem:Exp, _Rest:ArgVals, _Acc:ArgVals, _Rho:Map) =>
+           exceptionSignal(#exception(#token("TypeError", "Id")))
+       ... </k>
+    requires boolContextTypeError(V)
   rule <k> V:Val ~> setCompIfNext(X:Id, Filter:Exp, Elem:Exp, Rest:ArgVals, Acc:ArgVals, Rho:Map) =>
            setCompIfIter(X, Filter, Elem, Rest, appendArgVal(Acc, V), Rho)
        ... </k>
@@ -23044,19 +23080,27 @@ module PYTHON
   rule <k> V:Val ~> setCompIfsFilterNext(X:Id, Filters:CompFilters, RestFilters:CompFilters, Elem:Exp, Rest:ArgVals, Acc:ArgVals, Rho:Map) =>
            setCompIfsFilter(X, Filters, RestFilters, Elem, Rest, Acc, Rho)
        ... </k>
-    requires truthy(V)
+    requires notBool boolContextTypeError(V) andBool truthy(V)
   rule <k> V:Val ~> setCompIfsFilterNext(X:Id, Filters:CompFilters, _:CompFilters, Elem:Exp, Rest:ArgVals, Acc:ArgVals, Rho:Map) =>
            setCompIfsIter(X, Filters, Elem, Rest, Acc, Rho)
        ... </k>
-    requires notBool truthy(V)
+    requires notBool boolContextTypeError(V) andBool notBool truthy(V)
+  rule <k> V:Val ~> setCompIfsFilterNext(_X:Id, _Filters:CompFilters, _RestFilters:CompFilters, _Elem:Exp, _Rest:ArgVals, _Acc:ArgVals, _Rho:Map) =>
+           exceptionSignal(#exception(#token("TypeError", "Id")))
+       ... </k>
+    requires boolContextTypeError(V)
   rule <k> V:Val ~> setCompIfsFilterLast(X:Id, Filters:CompFilters, Elem:Exp, Rest:ArgVals, Acc:ArgVals, Rho:Map) =>
            Elem ~> setCompIfsNext(X, Filters, Elem, Rest, Acc, Rho)
        ... </k>
-    requires truthy(V)
+    requires notBool boolContextTypeError(V) andBool truthy(V)
   rule <k> V:Val ~> setCompIfsFilterLast(X:Id, Filters:CompFilters, Elem:Exp, Rest:ArgVals, Acc:ArgVals, Rho:Map) =>
            setCompIfsIter(X, Filters, Elem, Rest, Acc, Rho)
        ... </k>
-    requires notBool truthy(V)
+    requires notBool boolContextTypeError(V) andBool notBool truthy(V)
+  rule <k> V:Val ~> setCompIfsFilterLast(_X:Id, _Filters:CompFilters, _Elem:Exp, _Rest:ArgVals, _Acc:ArgVals, _Rho:Map) =>
+           exceptionSignal(#exception(#token("TypeError", "Id")))
+       ... </k>
+    requires boolContextTypeError(V)
   rule <k> V:Val ~> setCompIfsNext(X:Id, Filters:CompFilters, Elem:Exp, Rest:ArgVals, Acc:ArgVals, Rho:Map) =>
            setCompIfsIter(X, Filters, Elem, Rest, appendArgVal(Acc, V), Rho)
        ... </k>
@@ -23879,19 +23923,27 @@ module PYTHON
   rule <k> V:Val ~> dictCompTargetIfsFilterNext(T:Target, Filters:CompFilters, RestFilters:CompFilters, Key:Exp, Value:Exp, Rest:ArgVals, Acc:DictVals, Rho:Map) =>
            dictCompTargetIfsFilter(T, Filters, RestFilters, Key, Value, Rest, Acc, Rho)
        ... </k>
-    requires truthy(V)
+    requires notBool boolContextTypeError(V) andBool truthy(V)
   rule <k> V:Val ~> dictCompTargetIfsFilterNext(T:Target, Filters:CompFilters, _:CompFilters, Key:Exp, Value:Exp, Rest:ArgVals, Acc:DictVals, Rho:Map) =>
            dictCompTargetIfsIter(T, Filters, Key, Value, Rest, Acc, Rho)
        ... </k>
-    requires notBool truthy(V)
+    requires notBool boolContextTypeError(V) andBool notBool truthy(V)
+  rule <k> V:Val ~> dictCompTargetIfsFilterNext(_T:Target, _Filters:CompFilters, _RestFilters:CompFilters, _Key:Exp, _Value:Exp, _Rest:ArgVals, _Acc:DictVals, _Rho:Map) =>
+           exceptionSignal(#exception(#token("TypeError", "Id")))
+       ... </k>
+    requires boolContextTypeError(V)
   rule <k> V:Val ~> dictCompTargetIfsFilterLast(T:Target, Filters:CompFilters, Key:Exp, Value:Exp, Rest:ArgVals, Acc:DictVals, Rho:Map) =>
            Key ~> dictCompTargetIfsKey(T, Filters, Key, Value, Rest, Acc, Rho)
        ... </k>
-    requires truthy(V)
+    requires notBool boolContextTypeError(V) andBool truthy(V)
   rule <k> V:Val ~> dictCompTargetIfsFilterLast(T:Target, Filters:CompFilters, Key:Exp, Value:Exp, Rest:ArgVals, Acc:DictVals, Rho:Map) =>
            dictCompTargetIfsIter(T, Filters, Key, Value, Rest, Acc, Rho)
        ... </k>
-    requires notBool truthy(V)
+    requires notBool boolContextTypeError(V) andBool notBool truthy(V)
+  rule <k> V:Val ~> dictCompTargetIfsFilterLast(_T:Target, _Filters:CompFilters, _Key:Exp, _Value:Exp, _Rest:ArgVals, _Acc:DictVals, _Rho:Map) =>
+           exceptionSignal(#exception(#token("TypeError", "Id")))
+       ... </k>
+    requires boolContextTypeError(V)
   rule <k> K:Val ~> dictCompTargetIfsKey(T:Target, Filters:CompFilters, Key:Exp, Value:Exp, Rest:ArgVals, Acc:DictVals, Rho:Map) =>
            Value ~> dictCompTargetIfsValue(T, Filters, Key, Value, Rest, Acc, Rho, K)
        ... </k>
@@ -23921,11 +23973,15 @@ module PYTHON
   rule <k> V:Val ~> dictCompIfFilter(X:Id, Filter:Exp, Key:Exp, Value:Exp, Rest:ArgVals, Acc:DictVals, Rho:Map) =>
            Key ~> dictCompIfKey(X, Filter, Key, Value, Rest, Acc, Rho)
        ... </k>
-    requires truthy(V)
+    requires notBool boolContextTypeError(V) andBool truthy(V)
   rule <k> V:Val ~> dictCompIfFilter(X:Id, Filter:Exp, Key:Exp, Value:Exp, Rest:ArgVals, Acc:DictVals, Rho:Map) =>
            dictCompIfIter(X, Filter, Key, Value, Rest, Acc, Rho)
        ... </k>
-    requires notBool truthy(V)
+    requires notBool boolContextTypeError(V) andBool notBool truthy(V)
+  rule <k> V:Val ~> dictCompIfFilter(_X:Id, _Filter:Exp, _Key:Exp, _Value:Exp, _Rest:ArgVals, _Acc:DictVals, _Rho:Map) =>
+           exceptionSignal(#exception(#token("TypeError", "Id")))
+       ... </k>
+    requires boolContextTypeError(V)
   rule <k> K:Val ~> dictCompIfKey(X:Id, Filter:Exp, Key:Exp, Value:Exp, Rest:ArgVals, Acc:DictVals, Rho:Map) =>
            Value ~> dictCompIfValue(X, Filter, Key, Value, Rest, Acc, Rho, K)
        ... </k>
@@ -23961,19 +24017,27 @@ module PYTHON
   rule <k> V:Val ~> dictCompIfsFilterNext(X:Id, Filters:CompFilters, RestFilters:CompFilters, Key:Exp, Value:Exp, Rest:ArgVals, Acc:DictVals, Rho:Map) =>
            dictCompIfsFilter(X, Filters, RestFilters, Key, Value, Rest, Acc, Rho)
        ... </k>
-    requires truthy(V)
+    requires notBool boolContextTypeError(V) andBool truthy(V)
   rule <k> V:Val ~> dictCompIfsFilterNext(X:Id, Filters:CompFilters, _:CompFilters, Key:Exp, Value:Exp, Rest:ArgVals, Acc:DictVals, Rho:Map) =>
            dictCompIfsIter(X, Filters, Key, Value, Rest, Acc, Rho)
        ... </k>
-    requires notBool truthy(V)
+    requires notBool boolContextTypeError(V) andBool notBool truthy(V)
+  rule <k> V:Val ~> dictCompIfsFilterNext(_X:Id, _Filters:CompFilters, _RestFilters:CompFilters, _Key:Exp, _Value:Exp, _Rest:ArgVals, _Acc:DictVals, _Rho:Map) =>
+           exceptionSignal(#exception(#token("TypeError", "Id")))
+       ... </k>
+    requires boolContextTypeError(V)
   rule <k> V:Val ~> dictCompIfsFilterLast(X:Id, Filters:CompFilters, Key:Exp, Value:Exp, Rest:ArgVals, Acc:DictVals, Rho:Map) =>
            Key ~> dictCompIfsKey(X, Filters, Key, Value, Rest, Acc, Rho)
        ... </k>
-    requires truthy(V)
+    requires notBool boolContextTypeError(V) andBool truthy(V)
   rule <k> V:Val ~> dictCompIfsFilterLast(X:Id, Filters:CompFilters, Key:Exp, Value:Exp, Rest:ArgVals, Acc:DictVals, Rho:Map) =>
            dictCompIfsIter(X, Filters, Key, Value, Rest, Acc, Rho)
        ... </k>
-    requires notBool truthy(V)
+    requires notBool boolContextTypeError(V) andBool notBool truthy(V)
+  rule <k> V:Val ~> dictCompIfsFilterLast(_X:Id, _Filters:CompFilters, _Key:Exp, _Value:Exp, _Rest:ArgVals, _Acc:DictVals, _Rho:Map) =>
+           exceptionSignal(#exception(#token("TypeError", "Id")))
+       ... </k>
+    requires boolContextTypeError(V)
   rule <k> K:Val ~> dictCompIfsKey(X:Id, Filters:CompFilters, Key:Exp, Value:Exp, Rest:ArgVals, Acc:DictVals, Rho:Map) =>
            Value ~> dictCompIfsValue(X, Filters, Key, Value, Rest, Acc, Rho, K)
        ... </k>
@@ -24850,21 +24914,29 @@ module PYTHON
            Reverse ~> sortedReverseApply(Iter)
        ... </k>
   rule <k> Reverse:Val ~> sortedReverseApply(Iter:Val) =>
+           exceptionSignal(#exception(#token("TypeError", "Id")))
+       ... </k>
+    requires sortedIterableSupported(Iter)
+      andBool boolContextTypeError(Reverse)
+  rule <k> Reverse:Val ~> sortedReverseApply(Iter:Val) =>
            argValsToListVal(reverseArgVals(sortedArgVals(iterableArgVals(Iter))))
        ... </k>
     requires sortedIterableSupported(Iter)
       andBool argValsAllOrderComparable(iterableArgVals(Iter))
+      andBool notBool boolContextTypeError(Reverse)
       andBool truthy(Reverse)
   rule <k> Reverse:Val ~> sortedReverseApply(Iter:Val) =>
            sortedListVal(iterableArgVals(Iter))
        ... </k>
     requires sortedIterableSupported(Iter)
       andBool argValsAllOrderComparable(iterableArgVals(Iter))
+      andBool notBool boolContextTypeError(Reverse)
       andBool notBool truthy(Reverse)
-  rule <k> _Reverse:Val ~> sortedReverseApply(Iter:Val) =>
+  rule <k> Reverse:Val ~> sortedReverseApply(Iter:Val) =>
            exceptionSignal(#exception(#token("TypeError", "Id")))
        ... </k>
     requires sortedIterableSupported(Iter)
+      andBool notBool boolContextTypeError(Reverse)
       andBool notBool argValsAllOrderComparable(iterableArgVals(Iter))
   rule <k> _Reverse:Val ~> sortedReverseApply(Iter:Val) =>
            exceptionSignal(#exception(#token("TypeError", "Id")))
@@ -24935,11 +25007,25 @@ module PYTHON
            sortedKeyCollectReverse(iterableArgVals(Iter), #noKeyedVals, Key, Reverse)
        ... </k>
     requires sortedIterableSupported(Iter)
+      andBool notBool boolContextTypeError(Reverse)
       andBool notBool isNoneVal(Key)
   rule <k> Key:Val ~> sortedKeyApplyReverse(Iter:Val, Reverse:Val) =>
            sortedKeyCollectReverse(iterableArgVals(Iter), #noKeyedVals, Key, Reverse)
        ... </k>
     requires sortedIterableSupported(Iter)
+      andBool notBool boolContextTypeError(Reverse)
+      andBool notBool isNoneVal(Key)
+  rule <k> Reverse:Val ~> sortedKeyReverseApply(Iter:Val, Key:Val) =>
+           exceptionSignal(#exception(#token("TypeError", "Id")))
+       ... </k>
+    requires sortedIterableSupported(Iter)
+      andBool boolContextTypeError(Reverse)
+      andBool notBool isNoneVal(Key)
+  rule <k> Key:Val ~> sortedKeyApplyReverse(Iter:Val, Reverse:Val) =>
+           exceptionSignal(#exception(#token("TypeError", "Id")))
+       ... </k>
+    requires sortedIterableSupported(Iter)
+      andBool boolContextTypeError(Reverse)
       andBool notBool isNoneVal(Key)
   rule <k> _Reverse:Val ~> sortedKeyReverseApply(Iter:Val, Key:Val) =>
            exceptionSignal(#exception(#token("TypeError", "Id")))
@@ -26202,30 +26288,51 @@ module PYTHON
   rule <k> #issubclassAny(C:Id, IS:IdItems) => exceptionSignal(#exception(#token("TypeError", "Id"))) ... </k>
     requires notBool (isinstanceClassSupported(C) andBool isinstanceClassesSupported(IS))
   rule #all([]) => True
+  rule <k> #all(listVal(VS:ValItems)) => exceptionSignal(#exception(#token("TypeError", "Id"))) ... </k>
+    requires valItemsBoolContextTypeError(VS)
   rule #all(listVal(VS:ValItems)) => boolValue(allValItems(VS))
+    requires notBool valItemsBoolContextTypeError(VS)
   rule #all(()) => True
+  rule <k> #all(tupleVal(VS:ValItems)) => exceptionSignal(#exception(#token("TypeError", "Id"))) ... </k>
+    requires valItemsBoolContextTypeError(VS)
   rule #all(tupleVal(VS:ValItems)) => boolValue(allValItems(VS))
+    requires notBool valItemsBoolContextTypeError(VS)
   rule #all(_:String) => True
   rule #all(#bytes()) => True
+  rule <k> #all(bytesVal(VS:ValItems)) => exceptionSignal(#exception(#token("TypeError", "Id"))) ... </k>
+    requires valItemsBoolContextTypeError(VS)
   rule #all(bytesVal(VS:ValItems)) => boolValue(allValItems(VS))
+    requires notBool valItemsBoolContextTypeError(VS)
   rule #all(#memoryviewVal(V:Val)) => #all(V)
   rule #all(({}):Val) => True
+  rule <k> #all(dictVal(DS:DictItems)) => exceptionSignal(#exception(#token("TypeError", "Id"))) ... </k>
+    requires valItemsBoolContextTypeError(dictKeysToValItems(DS))
   rule #all(dictVal(DS:DictItems)) => boolValue(allValItems(dictKeysToValItems(DS)))
+    requires notBool valItemsBoolContextTypeError(dictKeysToValItems(DS))
   rule #all(set()) => True
+  rule <k> #all(setVal(VS:ValItems)) => exceptionSignal(#exception(#token("TypeError", "Id"))) ... </k>
+    requires valItemsBoolContextTypeError(VS)
   rule #all(setVal(VS:ValItems)) => boolValue(allValItems(VS))
+    requires notBool valItemsBoolContextTypeError(VS)
   rule #all(frozenset()) => True
+  rule <k> #all(frozensetVal(VS:ValItems)) => exceptionSignal(#exception(#token("TypeError", "Id"))) ... </k>
+    requires valItemsBoolContextTypeError(VS)
   rule #all(frozensetVal(VS:ValItems)) => boolValue(allValItems(VS))
+    requires notBool valItemsBoolContextTypeError(VS)
   rule #all(rangeVal(Start:Int, Stop:Int)) => boolValue(rangeAllTruthy(Start, Stop, 1))
   rule #all(rangeVal(Start:Int, Stop:Int, Step:Int)) => boolValue(rangeAllTruthy(Start, Stop, Step))
     requires Step =/=Int 0
   rule <k> #all(iteratorRef(I:Int)) => True ... </k>
        <iterators> ... I |-> #noArgVals ... </iterators>
+  rule <k> #all(iteratorRef(I:Int)) => exceptionSignal(#exception(#token("TypeError", "Id"))) ... </k>
+       <iterators> ... I |-> (argValsCons(V:Val, Rest:ArgVals) => Rest) ... </iterators>
+    requires boolContextTypeError(V)
   rule <k> #all(iteratorRef(I:Int)) => False ... </k>
        <iterators> ... I |-> (argValsCons(V:Val, Rest:ArgVals) => Rest) ... </iterators>
-    requires notBool truthy(V)
+    requires notBool boolContextTypeError(V) andBool notBool truthy(V)
   rule <k> #all(iteratorRef(I:Int)) => #all(iteratorRef(I)) ... </k>
        <iterators> ... I |-> (argValsCons(V:Val, Rest:ArgVals) => Rest) ... </iterators>
-    requires truthy(V)
+    requires notBool boolContextTypeError(V) andBool truthy(V)
   rule <k> #all(iteratorRef(I:Int)) =>
            argsVal(#noArgVals) ~> callApplyArgs(F) ~> callableIteratorAllNext(I, Sentinel)
        ... </k>
@@ -26244,12 +26351,20 @@ module PYTHON
        ... </k>
        <iterators> ... I |-> callableIterator(_:Val, Sentinel) ... </iterators>
     requires notBool valEq(V, Sentinel)
+      andBool notBool boolContextTypeError(V)
       andBool notBool truthy(V)
+  rule <k> V:Val ~> callableIteratorAllNext(I:Int, Sentinel:Val) =>
+           exceptionSignal(#exception(#token("TypeError", "Id")))
+       ... </k>
+       <iterators> ... I |-> callableIterator(_:Val, Sentinel) ... </iterators>
+    requires notBool valEq(V, Sentinel)
+      andBool boolContextTypeError(V)
   rule <k> V:Val ~> callableIteratorAllNext(I:Int, Sentinel:Val) =>
            #all(iteratorRef(I))
        ... </k>
        <iterators> ... I |-> callableIterator(_:Val, Sentinel) ... </iterators>
     requires notBool valEq(V, Sentinel)
+      andBool notBool boolContextTypeError(V)
       andBool truthy(V)
   rule <k> exceptionSignal(E:Val) ~> callableIteratorAllNext(I:Int, Sentinel:Val) =>
            True
@@ -26266,30 +26381,51 @@ module PYTHON
        ... </k>
     requires notBool exceptionMatches(E, #token("StopIteration", "Id"))
   rule #any([]) => False
+  rule <k> #any(listVal(VS:ValItems)) => exceptionSignal(#exception(#token("TypeError", "Id"))) ... </k>
+    requires valItemsBoolContextTypeError(VS)
   rule #any(listVal(VS:ValItems)) => boolValue(anyValItems(VS))
+    requires notBool valItemsBoolContextTypeError(VS)
   rule #any(()) => False
+  rule <k> #any(tupleVal(VS:ValItems)) => exceptionSignal(#exception(#token("TypeError", "Id"))) ... </k>
+    requires valItemsBoolContextTypeError(VS)
   rule #any(tupleVal(VS:ValItems)) => boolValue(anyValItems(VS))
+    requires notBool valItemsBoolContextTypeError(VS)
   rule #any(S:String) => boolValue(lengthString(S) >Int 0)
   rule #any(#bytes()) => False
+  rule <k> #any(bytesVal(VS:ValItems)) => exceptionSignal(#exception(#token("TypeError", "Id"))) ... </k>
+    requires valItemsBoolContextTypeError(VS)
   rule #any(bytesVal(VS:ValItems)) => boolValue(anyValItems(VS))
+    requires notBool valItemsBoolContextTypeError(VS)
   rule #any(#memoryviewVal(V:Val)) => #any(V)
   rule #any(({}):Val) => False
+  rule <k> #any(dictVal(DS:DictItems)) => exceptionSignal(#exception(#token("TypeError", "Id"))) ... </k>
+    requires valItemsBoolContextTypeError(dictKeysToValItems(DS))
   rule #any(dictVal(DS:DictItems)) => boolValue(anyValItems(dictKeysToValItems(DS)))
+    requires notBool valItemsBoolContextTypeError(dictKeysToValItems(DS))
   rule #any(set()) => False
+  rule <k> #any(setVal(VS:ValItems)) => exceptionSignal(#exception(#token("TypeError", "Id"))) ... </k>
+    requires valItemsBoolContextTypeError(VS)
   rule #any(setVal(VS:ValItems)) => boolValue(anyValItems(VS))
+    requires notBool valItemsBoolContextTypeError(VS)
   rule #any(frozenset()) => False
+  rule <k> #any(frozensetVal(VS:ValItems)) => exceptionSignal(#exception(#token("TypeError", "Id"))) ... </k>
+    requires valItemsBoolContextTypeError(VS)
   rule #any(frozensetVal(VS:ValItems)) => boolValue(anyValItems(VS))
+    requires notBool valItemsBoolContextTypeError(VS)
   rule #any(rangeVal(Start:Int, Stop:Int)) => boolValue(rangeAnyTruthy(Start, Stop, 1))
   rule #any(rangeVal(Start:Int, Stop:Int, Step:Int)) => boolValue(rangeAnyTruthy(Start, Stop, Step))
     requires Step =/=Int 0
   rule <k> #any(iteratorRef(I:Int)) => False ... </k>
        <iterators> ... I |-> #noArgVals ... </iterators>
+  rule <k> #any(iteratorRef(I:Int)) => exceptionSignal(#exception(#token("TypeError", "Id"))) ... </k>
+       <iterators> ... I |-> (argValsCons(V:Val, Rest:ArgVals) => Rest) ... </iterators>
+    requires boolContextTypeError(V)
   rule <k> #any(iteratorRef(I:Int)) => True ... </k>
        <iterators> ... I |-> (argValsCons(V:Val, Rest:ArgVals) => Rest) ... </iterators>
-    requires truthy(V)
+    requires notBool boolContextTypeError(V) andBool truthy(V)
   rule <k> #any(iteratorRef(I:Int)) => #any(iteratorRef(I)) ... </k>
        <iterators> ... I |-> (argValsCons(V:Val, Rest:ArgVals) => Rest) ... </iterators>
-    requires notBool truthy(V)
+    requires notBool boolContextTypeError(V) andBool notBool truthy(V)
   rule <k> #any(iteratorRef(I:Int)) =>
            argsVal(#noArgVals) ~> callApplyArgs(F) ~> callableIteratorAnyNext(I, Sentinel)
        ... </k>
@@ -26308,12 +26444,20 @@ module PYTHON
        ... </k>
        <iterators> ... I |-> callableIterator(_:Val, Sentinel) ... </iterators>
     requires notBool valEq(V, Sentinel)
+      andBool notBool boolContextTypeError(V)
       andBool truthy(V)
+  rule <k> V:Val ~> callableIteratorAnyNext(I:Int, Sentinel:Val) =>
+           exceptionSignal(#exception(#token("TypeError", "Id")))
+       ... </k>
+       <iterators> ... I |-> callableIterator(_:Val, Sentinel) ... </iterators>
+    requires notBool valEq(V, Sentinel)
+      andBool boolContextTypeError(V)
   rule <k> V:Val ~> callableIteratorAnyNext(I:Int, Sentinel:Val) =>
            #any(iteratorRef(I))
        ... </k>
        <iterators> ... I |-> callableIterator(_:Val, Sentinel) ... </iterators>
     requires notBool valEq(V, Sentinel)
+      andBool notBool boolContextTypeError(V)
       andBool notBool truthy(V)
   rule <k> exceptionSignal(E:Val) ~> callableIteratorAnyNext(I:Int, Sentinel:Val) =>
            False
@@ -26509,20 +26653,27 @@ module PYTHON
            Strict ~> zipStrictResult(VS)
        ... </k>
   rule <k> Strict:Val ~> zipStrictResult(VS:ArgVals) =>
+           exceptionSignal(#exception(#token("TypeError", "Id")))
+       ... </k>
+    requires boolContextTypeError(Strict)
+  rule <k> Strict:Val ~> zipStrictResult(VS:ArgVals) =>
            #zipVal(zipArgVals(VS))
        ... </k>
     requires zipArgsSupported(VS)
+      andBool notBool boolContextTypeError(Strict)
       andBool notBool truthy(Strict)
   rule <k> Strict:Val ~> zipStrictResult(VS:ArgVals) =>
            #zipVal(zipArgVals(VS))
        ... </k>
     requires zipArgsSupported(VS)
+      andBool notBool boolContextTypeError(Strict)
       andBool truthy(Strict)
       andBool zipStrictEqualLengths(VS)
   rule <k> Strict:Val ~> zipStrictResult(VS:ArgVals) =>
            exceptionSignal(#exception(#token("ValueError", "Id")))
        ... </k>
     requires zipArgsSupported(VS)
+      andBool notBool boolContextTypeError(Strict)
       andBool truthy(Strict)
       andBool notBool zipStrictEqualLengths(VS)
   rule <k> _Strict:Val ~> zipStrictResult(VS:ArgVals) =>
@@ -26559,8 +26710,13 @@ module PYTHON
            Strict ~> mapStrictResult(VS)
        ... </k>
   rule <k> Strict:Val ~> mapStrictResult(VS:ArgVals) =>
+           exceptionSignal(#exception(#token("TypeError", "Id")))
+       ... </k>
+    requires boolContextTypeError(Strict)
+  rule <k> Strict:Val ~> mapStrictResult(VS:ArgVals) =>
            argsVal(VS) ~> mapArgsResult(Strict)
        ... </k>
+    requires notBool boolContextTypeError(Strict)
   rule <k> mapCollect(_F:Val, #noArgVals, Strict:Val, Iters:ArgVals, Acc:ArgVals) =>
            argsVal(Acc)
        ... </k>
@@ -26652,15 +26808,22 @@ module PYTHON
   rule <k> filterCollect(_F:Val, #noArgVals, Acc:ArgVals) =>
            argsVal(Acc)
        ... </k>
+  rule <k> filterCollect(F:Val, argValsCons(V:Val, _Rest:ArgVals), _Acc:ArgVals) =>
+           exceptionSignal(#exception(#token("TypeError", "Id")))
+       ... </k>
+    requires isNoneVal(F)
+      andBool boolContextTypeError(V)
   rule <k> filterCollect(F:Val, argValsCons(V:Val, Rest:ArgVals), Acc:ArgVals) =>
            filterCollect(F, Rest, appendArgVal(Acc, V))
        ... </k>
     requires isNoneVal(F)
+      andBool notBool boolContextTypeError(V)
       andBool truthy(V)
   rule <k> filterCollect(F:Val, argValsCons(V:Val, Rest:ArgVals), Acc:ArgVals) =>
            filterCollect(F, Rest, Acc)
        ... </k>
     requires isNoneVal(F)
+      andBool notBool boolContextTypeError(V)
       andBool notBool truthy(V)
   rule <k> filterCollect(F:Val, argValsCons(V:Val, Rest:ArgVals), Acc:ArgVals) =>
            argsVal(argValsCons(V, #noArgVals)) ~> callApplyArgs(F) ~> filterCollectNext(F, V, Rest, Acc)
@@ -26669,11 +26832,17 @@ module PYTHON
   rule <k> Result:Val ~> filterCollectNext(F:Val, V:Val, Rest:ArgVals, Acc:ArgVals) =>
            filterCollect(F, Rest, appendArgVal(Acc, V))
        ... </k>
-    requires truthy(Result)
+    requires notBool boolContextTypeError(Result)
+      andBool truthy(Result)
+  rule <k> Result:Val ~> filterCollectNext(_F:Val, _V:Val, _Rest:ArgVals, _Acc:ArgVals) =>
+           exceptionSignal(#exception(#token("TypeError", "Id")))
+       ... </k>
+    requires boolContextTypeError(Result)
   rule <k> Result:Val ~> filterCollectNext(F:Val, _V:Val, Rest:ArgVals, Acc:ArgVals) =>
            filterCollect(F, Rest, Acc)
        ... </k>
-    requires notBool truthy(Result)
+    requires notBool boolContextTypeError(Result)
+      andBool notBool truthy(Result)
   rule <k> argsVal(#noArgVals) ~> filterForIter(_:Id, _:Block) =>
            stmtNoResult
        ... </k>

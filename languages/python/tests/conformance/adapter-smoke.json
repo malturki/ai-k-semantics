@@ -172,6 +172,13 @@
       "coverage": ["notimplemented-singleton", "builtins-constants", "builtin-name-shadowing", "from-import-star", "truth-value-testing-type-error", "string-conversion-builtins", "numeric-constructor-type-errors", "singleton-identity", "ordinary-python-source-adapter"]
     },
     {
+      "id": "adapter-notimplemented-truth-consumers",
+      "source": "../adapter/adapter-notimplemented-truth-consumers.py",
+      "reference": "Python Standard Library Built-in Constants NotImplemented; Python Language Reference truth value testing and comprehensions; Python Standard Library all, any, filter, sorted, zip, and map builtins",
+      "expected_result": "True ~> .K",
+      "coverage": ["notimplemented-singleton", "truth-value-testing-type-error", "all-any-builtins", "filter-builtin", "sorted-builtin", "strict-argument", "zip-builtin", "map-builtin", "list-comprehension", "set-comprehension", "dict-comprehension", "generator-expression", "ordinary-python-source-adapter"]
+    },
+    {
       "id": "adapter-debug-constant",
       "source": "../adapter/adapter-debug-constant.py",
       "reference": "Python Standard Library Built-in Constants __debug__; Python Language Reference 7.3 The assert statement",

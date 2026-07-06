@@ -146,6 +146,7 @@ run_case "adapter-import-math" "$ROOT/tests/adapter/adapter-import-math.py" "Tru
 run_case "adapter-import-keyword" "$ROOT/tests/adapter/adapter-import-keyword.py" "True ~> .K"
 run_case "adapter-relative-import-no-package" "$ROOT/tests/adapter/adapter-relative-import-no-package.py" "True ~> .K"
 run_case "adapter-importlib-import-module" "$ROOT/tests/adapter/adapter-importlib-import-module.py" "True ~> .K"
+run_case "adapter-import-builtin-dunder" "$ROOT/tests/adapter/adapter-import-builtin-dunder.py" "True ~> .K"
 run_case "adapter-module-attribute-mutation" "$ROOT/tests/adapter/adapter-module-attribute-mutation.py" "True ~> .K"
 run_case "adapter-module-import-cache-mutation" "$ROOT/tests/adapter/adapter-module-import-cache-mutation.py" "True ~> .K"
 run_case "adapter-from-import-dynamic-module-attrs" "$ROOT/tests/adapter/adapter-from-import-dynamic-module-attrs.py" "True ~> .K"

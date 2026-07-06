@@ -228,6 +228,13 @@
       "coverage": ["importlib-module", "importlib-import-module", "programmatic-import", "module-cache-identity", "module-not-found-error", "dotted-import-name", "relative-import-package-required", "empty-module-name-value-error", "non-string-import-name-attribute-error", "ordinary-python-source-adapter"]
     },
     {
+      "id": "adapter-import-builtin-dunder",
+      "source": "../adapter/adapter-import-builtin-dunder.py",
+      "reference": "Python Built-in Functions __import__; Python Language Reference import system; Python Standard Library importlib",
+      "expected_result": "True ~> .K",
+      "coverage": ["builtins-__import__", "importlib-__import__", "programmatic-import", "module-cache-identity", "module-not-found-error", "dotted-import-name", "relative-import-value-error", "empty-module-name-value-error", "non-string-import-name-type-error", "import-level-diagnostics", "ordinary-python-source-adapter"]
+    },
+    {
       "id": "adapter-module-attribute-mutation",
       "source": "../adapter/adapter-module-attribute-mutation.py",
       "reference": "Python 3.14.6 Language Reference 5 The import system; 6.3.1 Attribute references; 7.2 Assignment statements; 7.5 The del statement; Python Data Model modules; Built-in Functions getattr, hasattr, setattr, delattr",

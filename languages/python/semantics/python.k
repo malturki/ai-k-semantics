@@ -849,6 +849,7 @@ module PYTHON
                | generatorFunctionVal(IdItems, YieldExps) [symbol(generatorFunctionVal)]
                | asyncFunctionVal(IdItems, Block) [symbol(asyncFunctionVal)]
                | typeAliasVal(Id, Int, Exp) [symbol(typeAliasVal)]
+               | "#__import__Fun" [symbol(importBuiltinFun)]
                | "#importlibImportModuleFun" [symbol(importlibImportModuleFun)]
                | "#keywordIsKeywordFun" [symbol(keywordIsKeywordFun)]
                | "#keywordIsSoftKeywordFun" [symbol(keywordIsSoftKeywordFun)]
@@ -918,6 +919,8 @@ module PYTHON
                  | bytesPercentMappingExecEmptyKey(ValItems, Int) [symbol(bytesPercentMappingExecEmptyKey)]
                  | callArg(Exp) [symbol(callArg)]
                  | callApply(Val) [symbol(callApply)]
+                 | importBuiltinName(Val) [symbol(importBuiltinName)]
+                 | importBuiltinLevel(Val, Val) [symbol(importBuiltinLevel)]
                  | setMethodAttrCallOne(Val, Id) [symbol(setMethodAttrCallOne)]
                  | setMethodAttrCallArgs(Val, Id) [symbol(setMethodAttrCallArgs)]
                  | setMutatingAttrCallOne(Val, Id) [symbol(setMutatingAttrCallOne)]
@@ -1840,6 +1843,9 @@ module PYTHON
                 | importlibImportModuleSupported(String) [function, symbol(importlibImportModuleSupported)]
                 | importlibImportModuleRelativeName(String) [function, symbol(importlibImportModuleRelativeName)]
                 | importlibImportModuleDottedName(String) [function, symbol(importlibImportModuleDottedName)]
+                | importBuiltinKwAllowed(KwArgVals) [function, symbol(importBuiltinKwAllowed)]
+                | importBuiltinKwName(String) [function, symbol(importBuiltinKwName)]
+                | importBuiltinMixedKwOk(ArgVals, KwArgVals) [function, symbol(importBuiltinMixedKwOk)]
                 | keywordIsKeywordString(String) [function, symbol(keywordIsKeywordString)]
                 | keywordIsSoftKeywordString(String) [function, symbol(keywordIsSoftKeywordString)]
                 | singletonPatternEq(Val, Val) [function, symbol(singletonPatternEq)]
@@ -3212,6 +3218,7 @@ module PYTHON
   rule truthy(generatorFunctionVal(_:IdItems, _:YieldExps)) => true
   rule truthy(asyncFunctionVal(_:IdItems, _:Block)) => true
   rule truthy(typeAliasVal(_:Id, _:Int, _:Exp)) => true
+  rule truthy(#__import__Fun) => true
   rule truthy(#importlibImportModuleFun) => true
   rule truthy(#keywordIsKeywordFun) => true
   rule truthy(#keywordIsSoftKeywordFun) => true
@@ -3356,6 +3363,7 @@ module PYTHON
   rule callableVal(functionMetaVal(_:String, _:String, _:Val, _:String, F:Val)) => callableVal(F)
   rule callableVal(generatorFunctionVal(_:IdItems, _:YieldExps)) => true
   rule callableVal(asyncFunctionVal(_:IdItems, _:Block)) => true
+  rule callableVal(#__import__Fun) => true
   rule callableVal(#importlibImportModuleFun) => true
   rule callableVal(#keywordIsKeywordFun) => true
   rule callableVal(#keywordIsSoftKeywordFun) => true
@@ -5096,6 +5104,7 @@ module PYTHON
   rule isIntLike(generatorFunctionVal(_:IdItems, _:YieldExps)) => false
   rule isIntLike(asyncFunctionVal(_:IdItems, _:Block)) => false
   rule isIntLike(typeAliasVal(_:Id, _:Int, _:Exp)) => false
+  rule isIntLike(#__import__Fun) => false
   rule isIntLike(#importlibImportModuleFun) => false
   rule isIntLike(#keywordIsKeywordFun) => false
   rule isIntLike(#keywordIsSoftKeywordFun) => false
@@ -6134,6 +6143,7 @@ module PYTHON
   rule singletonIdentity(generatorFunctionVal(_:IdItems, _:YieldExps)) => false
   rule singletonIdentity(asyncFunctionVal(_:IdItems, _:Block)) => false
   rule singletonIdentity(typeAliasVal(_:Id, _:Int, _:Exp)) => false
+  rule singletonIdentity(#__import__Fun) => false
   rule singletonIdentity(#importlibImportModuleFun) => false
   rule singletonIdentity(#keywordIsKeywordFun) => false
   rule singletonIdentity(#keywordIsSoftKeywordFun) => false
@@ -6866,8 +6876,9 @@ module PYTHON
     requires Id2String(M) ==String "keyword"
   rule builtinModuleAttrs(M:Id) =>
     classAttr(#token("kDunderNameName", "Id"), "importlib",
+    classStringAttr("__import__", #__import__Fun,
     classAttr(#token("import_module", "Id"), #importlibImportModuleFun,
-      #noRuntimeClassAttrs))
+      #noRuntimeClassAttrs)))
     requires Id2String(M) ==String "importlib"
 
   rule importlibImportModuleSupported("math") => true
@@ -6881,6 +6892,46 @@ module PYTHON
     lengthString(S) >Int 0
       andBool notBool importlibImportModuleRelativeName(S)
       andBool findString(S, ".", 0) >=Int 0
+
+  rule importBuiltinKwName("name") => true
+  rule importBuiltinKwName("globals") => true
+  rule importBuiltinKwName("locals") => true
+  rule importBuiltinKwName("fromlist") => true
+  rule importBuiltinKwName("level") => true
+  rule importBuiltinKwName(_:String) => false [owise]
+
+  rule importBuiltinKwAllowed(#noKwArgVals) => true
+  rule importBuiltinKwAllowed(kwArgValsCons(K:Id, _V:Val, KWS:KwArgVals)) =>
+    importBuiltinKwName(Id2String(K)) andBool importBuiltinKwAllowed(KWS)
+  rule importBuiltinKwAllowed(kwArgStringValsCons(K:String, _V:Val, KWS:KwArgVals)) =>
+    importBuiltinKwName(K) andBool importBuiltinKwAllowed(KWS)
+
+  rule importBuiltinMixedKwOk(#noArgVals, KWS:KwArgVals) => importBuiltinKwAllowed(KWS)
+  rule importBuiltinMixedKwOk(argValsCons(_Name:Val, #noArgVals), KWS:KwArgVals) =>
+    importBuiltinKwAllowed(KWS) andBool notBool kwContains(#token("name", "Id"), KWS)
+  rule importBuiltinMixedKwOk(argValsCons(_Name:Val, argValsCons(_Globals:Val, #noArgVals)), KWS:KwArgVals) =>
+    importBuiltinKwAllowed(KWS)
+      andBool notBool kwContains(#token("name", "Id"), KWS)
+      andBool notBool kwContains(#token("globals", "Id"), KWS)
+  rule importBuiltinMixedKwOk(argValsCons(_Name:Val, argValsCons(_Globals:Val, argValsCons(_Locals:Val, #noArgVals))), KWS:KwArgVals) =>
+    importBuiltinKwAllowed(KWS)
+      andBool notBool kwContains(#token("name", "Id"), KWS)
+      andBool notBool kwContains(#token("globals", "Id"), KWS)
+      andBool notBool kwContains(#token("locals", "Id"), KWS)
+  rule importBuiltinMixedKwOk(argValsCons(_Name:Val, argValsCons(_Globals:Val, argValsCons(_Locals:Val, argValsCons(_FromList:Val, #noArgVals)))), KWS:KwArgVals) =>
+    importBuiltinKwAllowed(KWS)
+      andBool notBool kwContains(#token("name", "Id"), KWS)
+      andBool notBool kwContains(#token("globals", "Id"), KWS)
+      andBool notBool kwContains(#token("locals", "Id"), KWS)
+      andBool notBool kwContains(#token("fromlist", "Id"), KWS)
+  rule importBuiltinMixedKwOk(argValsCons(_Name:Val, argValsCons(_Globals:Val, argValsCons(_Locals:Val, argValsCons(_FromList:Val, argValsCons(_Level:Val, #noArgVals))))), KWS:KwArgVals) =>
+    importBuiltinKwAllowed(KWS)
+      andBool notBool kwContains(#token("name", "Id"), KWS)
+      andBool notBool kwContains(#token("globals", "Id"), KWS)
+      andBool notBool kwContains(#token("locals", "Id"), KWS)
+      andBool notBool kwContains(#token("fromlist", "Id"), KWS)
+      andBool notBool kwContains(#token("level", "Id"), KWS)
+  rule importBuiltinMixedKwOk(_VS:ArgVals, _KWS:KwArgVals) => false [owise]
 
   rule importlibImportModule("math") => builtinModule(#token("math", "Id"))
   rule importlibImportModule("keyword") => builtinModule(#token("keyword", "Id"))
@@ -7029,6 +7080,7 @@ module PYTHON
       orBool S ==String "tau"
       orBool S ==String "answer"
       orBool S ==String "dynamic"
+      orBool S ==String "__import__"
       orBool S ==String "import_module"
       orBool S ==String "iskeyword"
       orBool S ==String "issoftkeyword"
@@ -7076,6 +7128,8 @@ module PYTHON
     Rho [ #token("answer", "Id") <- matchClassAttrStringVal(M, "answer") ]
   rule moduleStarImportAllName(Rho:Map, M:Val, "dynamic") =>
     Rho [ #token("dynamic", "Id") <- matchClassAttrStringVal(M, "dynamic") ]
+  rule moduleStarImportAllName(Rho:Map, M:Val, "__import__") =>
+    Rho [ #token("__import__", "Id") <- matchClassAttrStringVal(M, "__import__") ]
   rule moduleStarImportAllName(Rho:Map, M:Val, "import_module") =>
     Rho [ #token("import_module", "Id") <- matchClassAttrStringVal(M, "import_module") ]
   rule moduleStarImportAllName(Rho:Map, M:Val, "iskeyword") =>
@@ -7855,9 +7909,12 @@ module PYTHON
   rule valEq(None, None) => true
   rule valEq(Ellipsis, Ellipsis) => true
   rule valEq(#exception(E1:Id), #exception(E2:Id)) => Id2String(E1) ==String Id2String(E2)
+  rule valEq(#__import__Fun, #__import__Fun) => true
   rule valEq(#importlibImportModuleFun, #importlibImportModuleFun) => true
   rule valEq(#keywordIsKeywordFun, #keywordIsKeywordFun) => true
   rule valEq(#keywordIsSoftKeywordFun, #keywordIsSoftKeywordFun) => true
+  rule valEq(#__import__Fun, _V:Val) => false [owise]
+  rule valEq(_V:Val, #__import__Fun) => false [owise]
   rule valEq(#importlibImportModuleFun, _V:Val) => false [owise]
   rule valEq(_V:Val, #importlibImportModuleFun) => false [owise]
   rule valEq(#keywordIsKeywordFun, _V:Val) => false [owise]
@@ -8123,9 +8180,12 @@ module PYTHON
     requires notBool isTypeAliasVal(V)
   rule valIs(V:Val, typeAliasVal(_:Id, _:Int, _:Exp)) => false
     requires notBool isTypeAliasVal(V)
+  rule valIs(#__import__Fun, #__import__Fun) => true
   rule valIs(#importlibImportModuleFun, #importlibImportModuleFun) => true
   rule valIs(#keywordIsKeywordFun, #keywordIsKeywordFun) => true
   rule valIs(#keywordIsSoftKeywordFun, #keywordIsSoftKeywordFun) => true
+  rule valIs(#__import__Fun, _V:Val) => false [owise]
+  rule valIs(_V:Val, #__import__Fun) => false [owise]
   rule valIs(#importlibImportModuleFun, _V:Val) => false [owise]
   rule valIs(_V:Val, #importlibImportModuleFun) => false [owise]
   rule valIs(#keywordIsKeywordFun, _V:Val) => false [owise]
@@ -16337,12 +16397,19 @@ module PYTHON
 
   rule <k> X:Id => V ... </k>
        <env> ... X |-> V:Val ... </env>
+  rule <k> X:Id => #__import__Fun ... </k>
+       <env> Rho </env>
+    requires Id2String(X) ==String "__import__" andBool notBool (X in_keys(Rho))
   rule <k> X:Id => exceptionSignal(#exception(#token("NameError", "Id"))) ... </k>
        <env> Rho </env>
     requires notBool (X in_keys(Rho))
+      andBool Id2String(X) =/=String "__import__"
 
   rule <k> #name(X:Id) => V ... </k>
        <env> ... X |-> V:Val ... </env>
+  rule <k> #name(X:Id) => #__import__Fun ... </k>
+       <env> Rho </env>
+    requires Id2String(X) ==String "__import__" andBool notBool (X in_keys(Rho))
   rule <k> #name(#token("kEllipsisName", "Id")) => Ellipsis ... </k>
        <env> Rho </env>
     requires notBool (#token("kEllipsisName", "Id") in_keys(Rho))
@@ -18609,6 +18676,64 @@ module PYTHON
            exceptionSignal(#exception(#token("TypeError", "Id")))
        ... </k>
     requires notBool callableVal(F)
+  rule <k> importBuiltinName(V:Val) =>
+           exceptionSignal(#exception(#token("TypeError", "Id")))
+       ... </k>
+    requires notBool isStringVal(V)
+  rule <k> importBuiltinName(S:String) =>
+           envModuleStringGet(Rho, S)
+       ... </k>
+       <env> Rho </env>
+    requires importlibImportModuleSupported(S)
+      andBool envModuleStringHas(Rho, S)
+  rule <k> importBuiltinName(S:String) =>
+           importlibImportModule(S)
+       ... </k>
+       <env> Rho </env>
+    requires importlibImportModuleSupported(S)
+      andBool notBool envModuleStringHas(Rho, S)
+  rule <k> importBuiltinName(S:String) =>
+           exceptionSignal(#exception(#token("ValueError", "Id")))
+       ... </k>
+    requires lengthString(S) ==Int 0 orBool importlibImportModuleRelativeName(S)
+  rule <k> importBuiltinName(S:String) =>
+           exceptionSignal(#exception(#token("ModuleNotFoundError", "Id")))
+       ... </k>
+    requires importlibImportModuleDottedName(S)
+  rule <k> importBuiltinName(S:String) =>
+           exceptionSignal(#exception(#token("ModuleNotFoundError", "Id")))
+       ... </k>
+    requires lengthString(S) >Int 0
+      andBool notBool importlibImportModuleSupported(S)
+      andBool notBool importlibImportModuleRelativeName(S)
+      andBool notBool importlibImportModuleDottedName(S)
+  rule <k> importBuiltinLevel(V:Val, _Level:Val) =>
+           exceptionSignal(#exception(#token("TypeError", "Id")))
+       ... </k>
+    requires notBool isStringVal(V)
+  rule <k> importBuiltinLevel(S:String, Level:Val) =>
+           importBuiltinName(S)
+       ... </k>
+    requires isIntLike(Level) andBool intValue(Level) ==Int 0
+  rule <k> importBuiltinLevel(_S:String, Level:Val) =>
+           exceptionSignal(#exception(#token("ValueError", "Id")))
+       ... </k>
+    requires isIntLike(Level) andBool intValue(Level) <Int 0
+  rule <k> importBuiltinLevel(_S:String, Level:Val) =>
+           exceptionSignal(#exception(#token("ImportError", "Id")))
+       ... </k>
+    requires isIntLike(Level) andBool intValue(Level) >Int 0
+  rule <k> importBuiltinLevel(_S:String, Level:Val) =>
+           exceptionSignal(#exception(#token("TypeError", "Id")))
+       ... </k>
+    requires notBool isIntLike(Level)
+  rule <k> S:String ~> callApply(#__import__Fun) =>
+           importBuiltinName(S)
+       ... </k>
+  rule <k> V:Val ~> callApply(#__import__Fun) =>
+           exceptionSignal(#exception(#token("TypeError", "Id")))
+       ... </k>
+    requires notBool isStringVal(V)
   rule <k> S:String ~> callApply(#importlibImportModuleFun) =>
            envModuleStringGet(Rho, S)
        ... </k>
@@ -19301,6 +19426,25 @@ module PYTHON
            exceptionSignal(#exception(#token("TypeError", "Id")))
        ... </k>
     requires notBool callableVal(F)
+  rule <k> argsVal(argValsCons(Name:Val, #noArgVals)) ~> callApplyArgs(#__import__Fun) =>
+           importBuiltinName(Name)
+       ... </k>
+  rule <k> argsVal(argValsCons(Name:Val, argValsCons(_Globals:Val, #noArgVals))) ~> callApplyArgs(#__import__Fun) =>
+           importBuiltinName(Name)
+       ... </k>
+  rule <k> argsVal(argValsCons(Name:Val, argValsCons(_Globals:Val, argValsCons(_Locals:Val, #noArgVals)))) ~> callApplyArgs(#__import__Fun) =>
+           importBuiltinName(Name)
+       ... </k>
+  rule <k> argsVal(argValsCons(Name:Val, argValsCons(_Globals:Val, argValsCons(_Locals:Val, argValsCons(_FromList:Val, #noArgVals))))) ~> callApplyArgs(#__import__Fun) =>
+           importBuiltinName(Name)
+       ... </k>
+  rule <k> argsVal(argValsCons(Name:Val, argValsCons(_Globals:Val, argValsCons(_Locals:Val, argValsCons(_FromList:Val, argValsCons(Level:Val, #noArgVals)))))) ~> callApplyArgs(#__import__Fun) =>
+           importBuiltinLevel(Name, Level)
+       ... </k>
+  rule <k> argsVal(VS:ArgVals) ~> callApplyArgs(#__import__Fun) =>
+           exceptionSignal(#exception(#token("TypeError", "Id")))
+       ... </k>
+    requires argValsLen(VS) ==Int 0 orBool argValsLen(VS) >Int 5
   rule <k> argsVal(argValsCons(S:String, #noArgVals)) ~> callApplyArgs(#importlibImportModuleFun) =>
            envModuleStringGet(Rho, S)
        ... </k>
@@ -20055,6 +20199,26 @@ module PYTHON
            exceptionSignal(#exception(#token("TypeError", "Id")))
        ... </k>
     requires notBool callableVal(F)
+  rule <k> kwArgsVal(KWS:KwArgVals) ~> callApplyKwArgs(#__import__Fun) =>
+           exceptionSignal(#exception(#token("TypeError", "Id")))
+       ... </k>
+    requires notBool kwNoDuplicates(KWS)
+      orBool notBool importBuiltinKwAllowed(KWS)
+      orBool notBool kwContains(#token("name", "Id"), KWS)
+  rule <k> kwArgsVal(KWS:KwArgVals) ~> callApplyKwArgs(#__import__Fun) =>
+           importBuiltinName(kwLookup(#token("name", "Id"), KWS))
+       ... </k>
+    requires kwNoDuplicates(KWS)
+      andBool importBuiltinKwAllowed(KWS)
+      andBool kwContains(#token("name", "Id"), KWS)
+      andBool notBool kwContains(#token("level", "Id"), KWS)
+  rule <k> kwArgsVal(KWS:KwArgVals) ~> callApplyKwArgs(#__import__Fun) =>
+           importBuiltinLevel(kwLookup(#token("name", "Id"), KWS), kwLookup(#token("level", "Id"), KWS))
+       ... </k>
+    requires kwNoDuplicates(KWS)
+      andBool importBuiltinKwAllowed(KWS)
+      andBool kwContains(#token("name", "Id"), KWS)
+      andBool kwContains(#token("level", "Id"), KWS)
   rule <k> kwArgsVal(KWS:KwArgVals) ~> callApplyKwArgs(functionMetaVal(_:String, _:String, _:Val, _:String, F:Val)) =>
            kwArgsVal(KWS) ~> callApplyKwArgs(F)
        ... </k>
@@ -20808,6 +20972,38 @@ module PYTHON
   rule <k> kwArgsVal(_:KwArgVals) ~> callApplyMixedArgs(generatorFunctionVal(_:IdItems, _:YieldExps), _:ArgVals) =>
            exceptionSignal(#exception(#token("TypeError", "Id")))
        ... </k>
+  rule <k> kwArgsVal(KWS:KwArgVals) ~> callApplyMixedArgs(#__import__Fun, VS:ArgVals) =>
+           exceptionSignal(#exception(#token("TypeError", "Id")))
+       ... </k>
+    requires notBool kwNoDuplicates(KWS)
+      orBool notBool importBuiltinMixedKwOk(VS, KWS)
+  rule <k> kwArgsVal(KWS:KwArgVals) ~> callApplyMixedArgs(#__import__Fun, #noArgVals) =>
+           kwArgsVal(KWS) ~> callApplyKwArgs(#__import__Fun)
+       ... </k>
+    requires kwNoDuplicates(KWS)
+      andBool importBuiltinMixedKwOk(#noArgVals, KWS)
+  rule <k> kwArgsVal(KWS:KwArgVals) ~> callApplyMixedArgs(#__import__Fun, VS:ArgVals) =>
+           importBuiltinName(argValAt(VS, 0))
+       ... </k>
+    requires kwNoDuplicates(KWS)
+      andBool importBuiltinMixedKwOk(VS, KWS)
+      andBool argValsLen(VS) >=Int 1
+      andBool argValsLen(VS) <=Int 4
+      andBool notBool kwContains(#token("level", "Id"), KWS)
+  rule <k> kwArgsVal(KWS:KwArgVals) ~> callApplyMixedArgs(#__import__Fun, VS:ArgVals) =>
+           importBuiltinLevel(argValAt(VS, 0), kwLookup(#token("level", "Id"), KWS))
+       ... </k>
+    requires kwNoDuplicates(KWS)
+      andBool importBuiltinMixedKwOk(VS, KWS)
+      andBool argValsLen(VS) >=Int 1
+      andBool argValsLen(VS) <=Int 4
+      andBool kwContains(#token("level", "Id"), KWS)
+  rule <k> kwArgsVal(KWS:KwArgVals) ~> callApplyMixedArgs(#__import__Fun, VS:ArgVals) =>
+           importBuiltinLevel(argValAt(VS, 0), argValAt(VS, 4))
+       ... </k>
+    requires kwNoDuplicates(KWS)
+      andBool importBuiltinMixedKwOk(VS, KWS)
+      andBool argValsLen(VS) ==Int 5
   rule <k> kwArgsVal(KWS:KwArgVals) ~> callApplyMixedArgs(functionMetaVal(_:String, _:String, _:Val, _:String, F:Val), VS:ArgVals) =>
            kwArgsVal(KWS) ~> callApplyMixedArgs(F, VS)
        ... </k>

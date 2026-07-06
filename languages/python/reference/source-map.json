@@ -328,11 +328,11 @@
             }
           ],
           "k_coverage": [
-            "semantics/python.k: internal #fromRelativeImport/#fromRelativeImportAs statement forms preserve explicit relative-import level, optional simple module identifier, imported name, and alias, and the current top-level script profile raises the ImportError sentinel for explicit relative imports"
+            "semantics/python.k: internal #fromRelativeImport/#fromRelativeImportAs statement forms preserve explicit relative-import level, optional simple module identifier, imported name, and alias, and the current top-level script profile raises the ImportError sentinel for explicit relative imports; harness/python_to_k_input.py lowers comma-separated non-star relative from-import clauses to left-to-right clause-level relative import statements"
           ],
           "test_coverage": ["tests/adapter/adapter-relative-import-no-package.py"],
           "gaps": [
-            "Need real package namespace model, __path__, __package__, __spec__, parent-package imports, positive relative resolution, regular-package __init__.py execution, namespace package portions, filesystem/import-path profile, sys.modules cache interaction, star relative imports, multi-name relative imports, dotted absolute package imports, and exact diagnostics."
+            "Need real package namespace model, __path__, __package__, __spec__, parent-package imports, positive relative resolution, regular-package __init__.py execution, namespace package portions, filesystem/import-path profile, sys.modules cache interaction, star relative imports, dotted relative modules, dotted absolute package imports, and exact diagnostics."
           ]
         }
       ]

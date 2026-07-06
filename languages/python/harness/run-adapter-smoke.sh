@@ -143,6 +143,7 @@ run_case "adapter-notimplemented-type" "$ROOT/tests/adapter/adapter-notimplement
 run_case "adapter-singleton-types" "$ROOT/tests/adapter/adapter-singleton-types.py" "True ~> .K"
 run_case "adapter-singleton-class-attribute" "$ROOT/tests/adapter/adapter-singleton-class-attribute.py" "True ~> .K"
 run_case "adapter-core-type-objects" "$ROOT/tests/adapter/adapter-core-type-objects.py" "True ~> .K"
+run_case "adapter-builtin-type-names" "$ROOT/tests/adapter/adapter-builtin-type-names.py" "True ~> .K"
 run_case "adapter-debug-constant" "$ROOT/tests/adapter/adapter-debug-constant.py" "True ~> .K"
 run_eval_case "adapter-eval-input" "$ROOT/tests/adapter/adapter-eval-input.pyexpr" "True ~> .K"
 run_interactive_case "adapter-interactive-input" "$ROOT/tests/adapter/adapter-interactive-input.pysingle" "True ~> .K" "True"

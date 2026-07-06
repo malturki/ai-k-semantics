@@ -751,6 +751,7 @@ module PYTHON
                       | classStringAttr(String, Val, ClassAttrs) [symbol(runtimeClassStringAttr)]
                       | classBase(Int, ClassAttrs) [symbol(runtimeClassBase)]
                       | builtinModuleAttrs(Id) [function, symbol(builtinModuleAttrs)]
+                      | builtinTypeClassAttrs() [function, symbol(builtinTypeClassAttrs)]
                       | classAttrSet(ClassAttrs, Id, Val) [function, symbol(classAttrSet)]
                       | classAttrStringSet(ClassAttrs, String, Val) [function, symbol(classAttrStringSet)]
                       | classAttrOwnSet(ClassAttrs, Id, Val) [function, symbol(classAttrOwnSet)]
@@ -1817,6 +1818,8 @@ module PYTHON
                 | callableVal(Val) [function, symbol(callableVal)]
                 | isTypeVal(Val) [function, symbol(isTypeVal)]
                 | typeValSupported(Id) [function, symbol(typeValSupported)]
+                | builtinTypeName(Id) [function, symbol(builtinTypeName)]
+                | builtinTypeNameString(String) [function, symbol(builtinTypeNameString)]
                 | typeValNoArgConstructible(Id) [function, symbol(typeValNoArgConstructible)]
                 | valueClassTypeSupported(Val) [function, symbol(valueClassTypeSupported)]
                 | typeValAttrId(Id) [function, symbol(typeValAttrId)]
@@ -3120,6 +3123,7 @@ module PYTHON
   syntax Val ::= kwLookup(Id, KwArgVals) [function, symbol(kwLookup)]
   syntax Val ::= boolValue(Bool) [function, symbol(boolValue)]
                | typeValCtorResult(Id) [function, symbol(typeValCtorResult)]
+               | builtinTypeNameVal(Id) [function, symbol(builtinTypeNameVal)]
                | valueClassTypeVal(Val) [function, symbol(valueClassTypeVal)]
                | complexMulVal(Val, Val) [function, symbol(complexMulVal)]
                | complexInv(Val) [function, symbol(complexInv)]
@@ -3419,6 +3423,40 @@ module PYTHON
       orBool Id2String(T) ==String "slice"
       orBool Id2String(T) ==String "memoryview"
   rule typeValSupported(_:Id) => false [owise]
+
+  rule builtinTypeName(T:Id) => true
+    requires Id2String(T) ==String "kSetName"
+      orBool Id2String(T) ==String "kFrozenSetName"
+  rule builtinTypeName(T:Id) => builtinTypeNameString(Id2String(T))
+    requires Id2String(T) =/=String "kSetName"
+      andBool Id2String(T) =/=String "kFrozenSetName"
+
+  rule builtinTypeNameVal(T:Id) => #typeVal(#token("set", "Id"))
+    requires Id2String(T) ==String "kSetName"
+  rule builtinTypeNameVal(T:Id) => #typeVal(#token("frozenset", "Id"))
+    requires Id2String(T) ==String "kFrozenSetName"
+  rule builtinTypeNameVal(T:Id) => #typeVal(T)
+    requires Id2String(T) =/=String "kSetName"
+      andBool Id2String(T) =/=String "kFrozenSetName"
+      andBool builtinTypeName(T)
+
+  rule builtinTypeNameString(S:String) =>
+    S ==String "bool"
+      orBool S ==String "int"
+      orBool S ==String "float"
+      orBool S ==String "complex"
+      orBool S ==String "str"
+      orBool S ==String "bytes"
+      orBool S ==String "bytearray"
+      orBool S ==String "memoryview"
+      orBool S ==String "list"
+      orBool S ==String "tuple"
+      orBool S ==String "dict"
+      orBool S ==String "set"
+      orBool S ==String "frozenset"
+      orBool S ==String "range"
+      orBool S ==String "slice"
+  rule builtinTypeNameString(_:String) => false [owise]
 
   rule typeValNoArgConstructible(T:Id) =>
     Id2String(T) ==String "NoneType"
@@ -7055,6 +7093,24 @@ module PYTHON
   rule builtinModule(M:Id) => moduleVal(M, builtinModuleAttrs(M))
     requires builtinModuleSupported(M)
 
+  rule builtinTypeClassAttrs() =>
+    classAttr(#token("bool", "Id"), #typeVal(#token("bool", "Id")),
+    classAttr(#token("int", "Id"), #typeVal(#token("int", "Id")),
+    classAttr(#token("float", "Id"), #typeVal(#token("float", "Id")),
+    classAttr(#token("complex", "Id"), #typeVal(#token("complex", "Id")),
+    classAttr(#token("str", "Id"), #typeVal(#token("str", "Id")),
+    classAttr(#token("bytes", "Id"), #typeVal(#token("bytes", "Id")),
+    classAttr(#token("bytearray", "Id"), #typeVal(#token("bytearray", "Id")),
+    classAttr(#token("memoryview", "Id"), #typeVal(#token("memoryview", "Id")),
+    classAttr(#token("list", "Id"), #typeVal(#token("list", "Id")),
+    classAttr(#token("tuple", "Id"), #typeVal(#token("tuple", "Id")),
+    classAttr(#token("dict", "Id"), #typeVal(#token("dict", "Id")),
+    classAttr(#token("kSetName", "Id"), #typeVal(#token("set", "Id")),
+    classAttr(#token("kFrozenSetName", "Id"), #typeVal(#token("frozenset", "Id")),
+    classAttr(#token("range", "Id"), #typeVal(#token("range", "Id")),
+    classAttr(#token("slice", "Id"), #typeVal(#token("slice", "Id")),
+      #noRuntimeClassAttrs)))))))))))))))
+
   rule builtinModuleAttrs(M:Id) =>
     classAttr(#token("kDunderNameName", "Id"), "math",
     classAttr(#token("e", "Id"), 2.718281828459045,
@@ -7079,14 +7135,15 @@ module PYTHON
     requires Id2String(M) ==String "importlib"
   rule builtinModuleAttrs(M:Id) =>
     classAttr(#token("kDunderNameName", "Id"), "builtins",
-    classStringAttr("__import__", #__import__Fun,
-    classAttr(#token("kEllipsisName", "Id"), Ellipsis,
-    classAttr(#token("kNotImplementedName", "Id"), NotImplemented,
-    classStringAttr("__debug__", True,
-    classStringAttr("None", None,
-    classStringAttr("True", True,
-    classStringAttr("False", False,
-      #noRuntimeClassAttrs))))))))
+      classAttrsAppend(builtinTypeClassAttrs(),
+        classStringAttr("__import__", #__import__Fun,
+        classAttr(#token("kEllipsisName", "Id"), Ellipsis,
+        classAttr(#token("kNotImplementedName", "Id"), NotImplemented,
+        classStringAttr("__debug__", True,
+        classStringAttr("None", None,
+        classStringAttr("True", True,
+        classStringAttr("False", False,
+          #noRuntimeClassAttrs)))))))))
     requires Id2String(M) ==String "builtins"
   rule builtinModuleAttrs(M:Id) =>
     classAttr(#token("kDunderNameName", "Id"), "types",
@@ -7309,6 +7366,7 @@ module PYTHON
       orBool S ==String "issoftkeyword"
       orBool S ==String "kwlist"
       orBool S ==String "softkwlist"
+      orBool builtinTypeNameString(S)
   rule moduleStarImportAllNameSupported(_M:Val, _S:String) => false [owise]
 
   rule moduleStarImport(Rho:Map, moduleVal(_:Id, Attrs:ClassAttrs)) => moduleStarImportAttrs(Rho, Attrs)
@@ -7363,6 +7421,36 @@ module PYTHON
     Rho [ #token("True", "Id") <- matchClassAttrStringVal(M, "True") ]
   rule moduleStarImportAllName(Rho:Map, M:Val, "False") =>
     Rho [ #token("False", "Id") <- matchClassAttrStringVal(M, "False") ]
+  rule moduleStarImportAllName(Rho:Map, M:Val, "bool") =>
+    Rho [ #token("bool", "Id") <- matchClassAttrStringVal(M, "bool") ]
+  rule moduleStarImportAllName(Rho:Map, M:Val, "int") =>
+    Rho [ #token("int", "Id") <- matchClassAttrStringVal(M, "int") ]
+  rule moduleStarImportAllName(Rho:Map, M:Val, "float") =>
+    Rho [ #token("float", "Id") <- matchClassAttrStringVal(M, "float") ]
+  rule moduleStarImportAllName(Rho:Map, M:Val, "complex") =>
+    Rho [ #token("complex", "Id") <- matchClassAttrStringVal(M, "complex") ]
+  rule moduleStarImportAllName(Rho:Map, M:Val, "str") =>
+    Rho [ #token("str", "Id") <- matchClassAttrStringVal(M, "str") ]
+  rule moduleStarImportAllName(Rho:Map, M:Val, "bytes") =>
+    Rho [ #token("bytes", "Id") <- matchClassAttrStringVal(M, "bytes") ]
+  rule moduleStarImportAllName(Rho:Map, M:Val, "bytearray") =>
+    Rho [ #token("bytearray", "Id") <- matchClassAttrStringVal(M, "bytearray") ]
+  rule moduleStarImportAllName(Rho:Map, M:Val, "memoryview") =>
+    Rho [ #token("memoryview", "Id") <- matchClassAttrStringVal(M, "memoryview") ]
+  rule moduleStarImportAllName(Rho:Map, M:Val, "list") =>
+    Rho [ #token("list", "Id") <- matchClassAttrStringVal(M, "list") ]
+  rule moduleStarImportAllName(Rho:Map, M:Val, "tuple") =>
+    Rho [ #token("tuple", "Id") <- matchClassAttrStringVal(M, "tuple") ]
+  rule moduleStarImportAllName(Rho:Map, M:Val, "dict") =>
+    Rho [ #token("dict", "Id") <- matchClassAttrStringVal(M, "dict") ]
+  rule moduleStarImportAllName(Rho:Map, M:Val, "set") =>
+    Rho [ #token("kSetName", "Id") <- matchClassAttrStringVal(M, "set") ]
+  rule moduleStarImportAllName(Rho:Map, M:Val, "frozenset") =>
+    Rho [ #token("kFrozenSetName", "Id") <- matchClassAttrStringVal(M, "frozenset") ]
+  rule moduleStarImportAllName(Rho:Map, M:Val, "range") =>
+    Rho [ #token("range", "Id") <- matchClassAttrStringVal(M, "range") ]
+  rule moduleStarImportAllName(Rho:Map, M:Val, "slice") =>
+    Rho [ #token("slice", "Id") <- matchClassAttrStringVal(M, "slice") ]
   rule moduleStarImportAllName(Rho:Map, M:Val, "pi") =>
     Rho [ #token("pi", "Id") <- matchClassAttrStringVal(M, "pi") ]
   rule moduleStarImportAllName(Rho:Map, M:Val, "tau") =>
@@ -7498,6 +7586,8 @@ module PYTHON
   rule classAttrIdMatchesString(#token("kDunderParametersName", "Id"), B:String) => B ==String "__parameters__"
   rule classAttrIdMatchesString(#token("kEllipsisName", "Id"), B:String) => B ==String "Ellipsis"
   rule classAttrIdMatchesString(#token("kNotImplementedName", "Id"), B:String) => B ==String "NotImplemented"
+  rule classAttrIdMatchesString(#token("kSetName", "Id"), B:String) => B ==String "set"
+  rule classAttrIdMatchesString(#token("kFrozenSetName", "Id"), B:String) => B ==String "frozenset"
   rule classAttrIdMatchesString(A:Id, B:String) => Id2String(A) ==String B [owise]
 
   rule typeAliasLazyAttrId(A:Id) => classAttrIdMatchesString(A, "__value__")
@@ -16716,16 +16806,23 @@ module PYTHON
   rule <k> X:Id => #__import__Fun ... </k>
        <env> Rho </env>
     requires Id2String(X) ==String "__import__" andBool notBool (X in_keys(Rho))
+  rule <k> X:Id => builtinTypeNameVal(X) ... </k>
+       <env> Rho </env>
+    requires builtinTypeName(X) andBool notBool (X in_keys(Rho))
   rule <k> X:Id => exceptionSignal(#exception(#token("NameError", "Id"))) ... </k>
        <env> Rho </env>
     requires notBool (X in_keys(Rho))
       andBool Id2String(X) =/=String "__import__"
+      andBool notBool builtinTypeName(X)
 
   rule <k> #name(X:Id) => V ... </k>
        <env> ... X |-> V:Val ... </env>
   rule <k> #name(X:Id) => #__import__Fun ... </k>
        <env> Rho </env>
     requires Id2String(X) ==String "__import__" andBool notBool (X in_keys(Rho))
+  rule <k> #name(X:Id) => builtinTypeNameVal(X) ... </k>
+       <env> Rho </env>
+    requires builtinTypeName(X) andBool notBool (X in_keys(Rho))
   rule <k> #name(#token("kEllipsisName", "Id")) => Ellipsis ... </k>
        <env> Rho </env>
     requires notBool (#token("kEllipsisName", "Id") in_keys(Rho))

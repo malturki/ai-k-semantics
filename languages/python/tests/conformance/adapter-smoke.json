@@ -207,6 +207,13 @@
       "coverage": ["builtin-type-objects", "dunder-class-attribute", "type-builtin", "isinstance-builtin", "issubclass-builtin", "bool-int-subclass", "type-object-metadata", "zero-argument-constructors", "attribute-access", "getattr-builtin", "hasattr-builtin", "ordinary-python-source-adapter"]
     },
     {
+      "id": "adapter-builtin-type-names",
+      "source": "../adapter/adapter-builtin-type-names.py",
+      "reference": "Python Standard Library builtins module and Built-in Functions; Python Language Reference naming, imports, calls, isinstance, and issubclass",
+      "expected_result": "True ~> .K",
+      "coverage": ["builtin-type-objects", "builtins-module", "builtin-name-shadowing", "from-import", "from-import-star", "module-all-star-import", "type-object-call", "isinstance-builtin", "issubclass-builtin", "ordinary-python-source-adapter"]
+    },
+    {
       "id": "adapter-debug-constant",
       "source": "../adapter/adapter-debug-constant.py",
       "reference": "Python Standard Library Built-in Constants __debug__; Python Language Reference 7.3 The assert statement",

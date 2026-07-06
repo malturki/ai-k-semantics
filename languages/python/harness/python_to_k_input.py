@@ -23,6 +23,8 @@ class UnsupportedPythonSubset(ValueError):
 
 ELLIPSIS_NAME_ID = "kEllipsisName"
 NOT_IMPLEMENTED_NAME_ID = "kNotImplementedName"
+SET_NAME_ID = "kSetName"
+FROZENSET_NAME_ID = "kFrozenSetName"
 DUNDER_INIT_NAME_ID = "kDunderInitName"
 DUNDER_CLASS_NAME_ID = "kDunderClassName"
 DUNDER_NAME_NAME_ID = "kDunderNameName"
@@ -655,6 +657,10 @@ def emit_id(name: str) -> str:
         return ELLIPSIS_NAME_ID
     if name == "NotImplemented":
         return NOT_IMPLEMENTED_NAME_ID
+    if name == "set":
+        return SET_NAME_ID
+    if name == "frozenset":
+        return FROZENSET_NAME_ID
     if name == "__init__":
         return DUNDER_INIT_NAME_ID
     if name == "__class__":

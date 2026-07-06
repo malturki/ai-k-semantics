@@ -194,6 +194,7 @@ run_case "adapter-class-basic" "$ROOT/tests/adapter/adapter-class-basic.py" "Tru
 run_case "adapter-class-attributes" "$ROOT/tests/adapter/adapter-class-attributes.py" "True ~> .K"
 run_case "adapter-class-attribute-mutation" "$ROOT/tests/adapter/adapter-class-attribute-mutation.py" "True ~> .K"
 run_case "adapter-class-inherited-attribute-mutation" "$ROOT/tests/adapter/adapter-class-inherited-attribute-mutation.py" "True ~> .K"
+run_case "adapter-class-container-attribute-mutation" "$ROOT/tests/adapter/adapter-class-container-attribute-mutation.py" "True ~> .K"
 run_case "adapter-class-metadata" "$ROOT/tests/adapter/adapter-class-metadata.py" "True ~> .K"
 run_case "adapter-class-methods-instance-attrs" "$ROOT/tests/adapter/adapter-class-methods-instance-attrs.py" "True ~> .K"
 run_case "adapter-class-method-defaults" "$ROOT/tests/adapter/adapter-class-method-defaults.py" "True ~> .K"

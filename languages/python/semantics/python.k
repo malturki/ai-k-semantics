@@ -2762,10 +2762,18 @@ module PYTHON
                | classValueAttrStringSet(Map, Int, String, Val) [function, symbol(classValueAttrStringSet)]
                | classValueAttrDel(Map, Int, Id) [function, symbol(classValueAttrDel)]
                | classValueAttrStringDel(Map, Int, String) [function, symbol(classValueAttrStringDel)]
+  syntax Val ::= classValueAttrSetVal(Val, Int, Id, Val) [function, symbol(classValueAttrSetVal)]
+               | classValueAttrStringSetVal(Val, Int, String, Val) [function, symbol(classValueAttrStringSetVal)]
+               | classValueAttrDelVal(Val, Int, Id) [function, symbol(classValueAttrDelVal)]
+               | classValueAttrStringDelVal(Val, Int, String) [function, symbol(classValueAttrStringDelVal)]
   syntax ValItems ::= argValsToValItems(ArgVals) [function, symbol(argValsToValItems)]
   syntax ValItems ::= dictPairItems(Val) [function, symbol(dictPairItems)]
   syntax ValItems ::= argValsToSetItems(ArgVals) [function, symbol(argValsToSetItems)]
   syntax ValItems ::= setUnionItems(ValItems, ValItems) [function, symbol(setUnionItems)]
+  syntax ValItems ::= classValueAttrSetItems(ValItems, Int, Id, Val) [function, symbol(classValueAttrSetItems)]
+                    | classValueAttrStringSetItems(ValItems, Int, String, Val) [function, symbol(classValueAttrStringSetItems)]
+                    | classValueAttrDelItems(ValItems, Int, Id) [function, symbol(classValueAttrDelItems)]
+                    | classValueAttrStringDelItems(ValItems, Int, String) [function, symbol(classValueAttrStringDelItems)]
   syntax ValItems ::= concreteIterableExtraItems(Val) [function, symbol(concreteIterableExtraItems)]
   syntax ValItems ::= stringToValItems(String, Int, Int) [function, symbol(stringToValItems)]
   syntax ValItems ::= stringBytesToValItems(String, Int, Int) [function, symbol(stringBytesToValItems)]
@@ -2827,6 +2835,10 @@ module PYTHON
                     | listSliceStepSet(ValItems, Int, Int, Int, ValItems) [function, symbol(listSliceStepSet)]
   syntax DictItems ::= dictValsToDictItems(DictVals) [function, symbol(dictValsToDictItems)]
   syntax DictItems ::= dictSet(DictItems, Val, Val) [function, symbol(dictSet)]
+                     | classValueAttrSetDictItems(DictItems, Int, Id, Val) [function, symbol(classValueAttrSetDictItems)]
+                     | classValueAttrStringSetDictItems(DictItems, Int, String, Val) [function, symbol(classValueAttrStringSetDictItems)]
+                     | classValueAttrDelDictItems(DictItems, Int, Id) [function, symbol(classValueAttrDelDictItems)]
+                     | classValueAttrStringDelDictItems(DictItems, Int, String) [function, symbol(classValueAttrStringDelDictItems)]
   syntax Val ::= listDel(ValItems, Int) [function, symbol(listDel)]
                | listPrepend(Val, Val) [function, symbol(listPrepend)]
                | listAppendItem(Val, Val) [function, symbol(listAppendItem)]
@@ -9402,68 +9414,132 @@ module PYTHON
       valItemsLen(VS))
 
   rule classValueAttrSet(.Map, _ClassId:Int, _Attr:Id, _V:Val) => .Map
-  rule classValueAttrSet((X:Id |-> classVal(C:Id, ClassId:Int, Attrs:ClassAttrs)) Rho:Map, ClassId:Int, Attr:Id, V:Val) =>
-    classValueAttrSet(Rho, ClassId, Attr, V) [ X <- classVal(C, ClassId, classAttrOwnSet(Attrs, Attr, V)) ]
-  rule classValueAttrSet((X:Id |-> userObjectVal(C:Id, ClassId:Int, ObjectId:Int, Attrs:ClassAttrs)) Rho:Map, ClassId:Int, Attr:Id, V:Val) =>
-    classValueAttrSet(Rho, ClassId, Attr, V) [ X <- userObjectVal(C, ClassId, ObjectId, classAttrOwnSet(Attrs, Attr, V)) ]
-  rule classValueAttrSet((X:Id |-> classVal(C:Id, OtherClassId:Int, Attrs:ClassAttrs)) Rho:Map, ClassId:Int, Attr:Id, V:Val) =>
-    classValueAttrSet(Rho, ClassId, Attr, V) [ X <- classVal(C, OtherClassId, classAttrBaseSet(Attrs, ClassId, Attr, V)) ]
-    requires OtherClassId =/=Int ClassId andBool classAttrsHasBaseId(Attrs, ClassId)
-  rule classValueAttrSet((X:Id |-> userObjectVal(C:Id, OtherClassId:Int, ObjectId:Int, Attrs:ClassAttrs)) Rho:Map, ClassId:Int, Attr:Id, V:Val) =>
-    classValueAttrSet(Rho, ClassId, Attr, V) [ X <- userObjectVal(C, OtherClassId, ObjectId, classAttrBaseSet(Attrs, ClassId, Attr, V)) ]
-    requires OtherClassId =/=Int ClassId andBool classAttrsHasBaseId(Attrs, ClassId)
   rule classValueAttrSet((X:Id |-> V0:Val) Rho:Map, ClassId:Int, Attr:Id, V:Val) =>
-    classValueAttrSet(Rho, ClassId, Attr, V) [ X <- V0 ]
-    requires notBool classValueExactClassId(V0, ClassId)
-      andBool notBool classValueHasBaseId(V0, ClassId)
+    classValueAttrSet(Rho, ClassId, Attr, V) [ X <- classValueAttrSetVal(V0, ClassId, Attr, V) ]
 
   rule classValueAttrStringSet(.Map, _ClassId:Int, _Attr:String, _V:Val) => .Map
-  rule classValueAttrStringSet((X:Id |-> classVal(C:Id, ClassId:Int, Attrs:ClassAttrs)) Rho:Map, ClassId:Int, Attr:String, V:Val) =>
-    classValueAttrStringSet(Rho, ClassId, Attr, V) [ X <- classVal(C, ClassId, classAttrOwnStringSet(Attrs, Attr, V)) ]
-  rule classValueAttrStringSet((X:Id |-> userObjectVal(C:Id, ClassId:Int, ObjectId:Int, Attrs:ClassAttrs)) Rho:Map, ClassId:Int, Attr:String, V:Val) =>
-    classValueAttrStringSet(Rho, ClassId, Attr, V) [ X <- userObjectVal(C, ClassId, ObjectId, classAttrOwnStringSet(Attrs, Attr, V)) ]
-  rule classValueAttrStringSet((X:Id |-> classVal(C:Id, OtherClassId:Int, Attrs:ClassAttrs)) Rho:Map, ClassId:Int, Attr:String, V:Val) =>
-    classValueAttrStringSet(Rho, ClassId, Attr, V) [ X <- classVal(C, OtherClassId, classAttrBaseStringSet(Attrs, ClassId, Attr, V)) ]
-    requires OtherClassId =/=Int ClassId andBool classAttrsHasBaseId(Attrs, ClassId)
-  rule classValueAttrStringSet((X:Id |-> userObjectVal(C:Id, OtherClassId:Int, ObjectId:Int, Attrs:ClassAttrs)) Rho:Map, ClassId:Int, Attr:String, V:Val) =>
-    classValueAttrStringSet(Rho, ClassId, Attr, V) [ X <- userObjectVal(C, OtherClassId, ObjectId, classAttrBaseStringSet(Attrs, ClassId, Attr, V)) ]
-    requires OtherClassId =/=Int ClassId andBool classAttrsHasBaseId(Attrs, ClassId)
   rule classValueAttrStringSet((X:Id |-> V0:Val) Rho:Map, ClassId:Int, Attr:String, V:Val) =>
-    classValueAttrStringSet(Rho, ClassId, Attr, V) [ X <- V0 ]
-    requires notBool classValueExactClassId(V0, ClassId)
-      andBool notBool classValueHasBaseId(V0, ClassId)
+    classValueAttrStringSet(Rho, ClassId, Attr, V) [ X <- classValueAttrStringSetVal(V0, ClassId, Attr, V) ]
 
   rule classValueAttrDel(.Map, _ClassId:Int, _Attr:Id) => .Map
-  rule classValueAttrDel((X:Id |-> classVal(C:Id, ClassId:Int, Attrs:ClassAttrs)) Rho:Map, ClassId:Int, Attr:Id) =>
-    classValueAttrDel(Rho, ClassId, Attr) [ X <- classVal(C, ClassId, classAttrOwnDel(Attrs, Attr)) ]
-  rule classValueAttrDel((X:Id |-> userObjectVal(C:Id, ClassId:Int, ObjectId:Int, Attrs:ClassAttrs)) Rho:Map, ClassId:Int, Attr:Id) =>
-    classValueAttrDel(Rho, ClassId, Attr) [ X <- userObjectVal(C, ClassId, ObjectId, classAttrOwnDel(Attrs, Attr)) ]
-  rule classValueAttrDel((X:Id |-> classVal(C:Id, OtherClassId:Int, Attrs:ClassAttrs)) Rho:Map, ClassId:Int, Attr:Id) =>
-    classValueAttrDel(Rho, ClassId, Attr) [ X <- classVal(C, OtherClassId, classAttrBaseDel(Attrs, ClassId, Attr)) ]
-    requires OtherClassId =/=Int ClassId andBool classAttrsHasBaseId(Attrs, ClassId)
-  rule classValueAttrDel((X:Id |-> userObjectVal(C:Id, OtherClassId:Int, ObjectId:Int, Attrs:ClassAttrs)) Rho:Map, ClassId:Int, Attr:Id) =>
-    classValueAttrDel(Rho, ClassId, Attr) [ X <- userObjectVal(C, OtherClassId, ObjectId, classAttrBaseDel(Attrs, ClassId, Attr)) ]
-    requires OtherClassId =/=Int ClassId andBool classAttrsHasBaseId(Attrs, ClassId)
   rule classValueAttrDel((X:Id |-> V0:Val) Rho:Map, ClassId:Int, Attr:Id) =>
-    classValueAttrDel(Rho, ClassId, Attr) [ X <- V0 ]
-    requires notBool classValueExactClassId(V0, ClassId)
-      andBool notBool classValueHasBaseId(V0, ClassId)
+    classValueAttrDel(Rho, ClassId, Attr) [ X <- classValueAttrDelVal(V0, ClassId, Attr) ]
 
   rule classValueAttrStringDel(.Map, _ClassId:Int, _Attr:String) => .Map
-  rule classValueAttrStringDel((X:Id |-> classVal(C:Id, ClassId:Int, Attrs:ClassAttrs)) Rho:Map, ClassId:Int, Attr:String) =>
-    classValueAttrStringDel(Rho, ClassId, Attr) [ X <- classVal(C, ClassId, classAttrOwnStringDel(Attrs, Attr)) ]
-  rule classValueAttrStringDel((X:Id |-> userObjectVal(C:Id, ClassId:Int, ObjectId:Int, Attrs:ClassAttrs)) Rho:Map, ClassId:Int, Attr:String) =>
-    classValueAttrStringDel(Rho, ClassId, Attr) [ X <- userObjectVal(C, ClassId, ObjectId, classAttrOwnStringDel(Attrs, Attr)) ]
-  rule classValueAttrStringDel((X:Id |-> classVal(C:Id, OtherClassId:Int, Attrs:ClassAttrs)) Rho:Map, ClassId:Int, Attr:String) =>
-    classValueAttrStringDel(Rho, ClassId, Attr) [ X <- classVal(C, OtherClassId, classAttrBaseStringDel(Attrs, ClassId, Attr)) ]
-    requires OtherClassId =/=Int ClassId andBool classAttrsHasBaseId(Attrs, ClassId)
-  rule classValueAttrStringDel((X:Id |-> userObjectVal(C:Id, OtherClassId:Int, ObjectId:Int, Attrs:ClassAttrs)) Rho:Map, ClassId:Int, Attr:String) =>
-    classValueAttrStringDel(Rho, ClassId, Attr) [ X <- userObjectVal(C, OtherClassId, ObjectId, classAttrBaseStringDel(Attrs, ClassId, Attr)) ]
-    requires OtherClassId =/=Int ClassId andBool classAttrsHasBaseId(Attrs, ClassId)
   rule classValueAttrStringDel((X:Id |-> V0:Val) Rho:Map, ClassId:Int, Attr:String) =>
-    classValueAttrStringDel(Rho, ClassId, Attr) [ X <- V0 ]
-    requires notBool classValueExactClassId(V0, ClassId)
-      andBool notBool classValueHasBaseId(V0, ClassId)
+    classValueAttrStringDel(Rho, ClassId, Attr) [ X <- classValueAttrStringDelVal(V0, ClassId, Attr) ]
+
+  rule classValueAttrSetVal(classVal(C:Id, ClassId:Int, Attrs:ClassAttrs), ClassId:Int, Attr:Id, V:Val) =>
+    classVal(C, ClassId, classAttrOwnSet(Attrs, Attr, V))
+  rule classValueAttrSetVal(userObjectVal(C:Id, ClassId:Int, ObjectId:Int, Attrs:ClassAttrs), ClassId:Int, Attr:Id, V:Val) =>
+    userObjectVal(C, ClassId, ObjectId, classAttrOwnSet(Attrs, Attr, V))
+  rule classValueAttrSetVal(classVal(C:Id, OtherClassId:Int, Attrs:ClassAttrs), ClassId:Int, Attr:Id, V:Val) =>
+    classVal(C, OtherClassId, classAttrBaseSet(Attrs, ClassId, Attr, V))
+    requires OtherClassId =/=Int ClassId andBool classAttrsHasBaseId(Attrs, ClassId)
+  rule classValueAttrSetVal(userObjectVal(C:Id, OtherClassId:Int, ObjectId:Int, Attrs:ClassAttrs), ClassId:Int, Attr:Id, V:Val) =>
+    userObjectVal(C, OtherClassId, ObjectId, classAttrBaseSet(Attrs, ClassId, Attr, V))
+    requires OtherClassId =/=Int ClassId andBool classAttrsHasBaseId(Attrs, ClassId)
+  rule classValueAttrSetVal(listVal(VS:ValItems), ClassId:Int, Attr:Id, V:Val) =>
+    listVal(classValueAttrSetItems(VS, ClassId, Attr, V))
+  rule classValueAttrSetVal(tupleVal(VS:ValItems), ClassId:Int, Attr:Id, V:Val) =>
+    tupleVal(classValueAttrSetItems(VS, ClassId, Attr, V))
+  rule classValueAttrSetVal(dictVal(DS:DictItems), ClassId:Int, Attr:Id, V:Val) =>
+    dictVal(classValueAttrSetDictItems(DS, ClassId, Attr, V))
+  rule classValueAttrSetVal(V0:Val, _ClassId:Int, _Attr:Id, _V:Val) => V0 [owise]
+
+  rule classValueAttrStringSetVal(classVal(C:Id, ClassId:Int, Attrs:ClassAttrs), ClassId:Int, Attr:String, V:Val) =>
+    classVal(C, ClassId, classAttrOwnStringSet(Attrs, Attr, V))
+  rule classValueAttrStringSetVal(userObjectVal(C:Id, ClassId:Int, ObjectId:Int, Attrs:ClassAttrs), ClassId:Int, Attr:String, V:Val) =>
+    userObjectVal(C, ClassId, ObjectId, classAttrOwnStringSet(Attrs, Attr, V))
+  rule classValueAttrStringSetVal(classVal(C:Id, OtherClassId:Int, Attrs:ClassAttrs), ClassId:Int, Attr:String, V:Val) =>
+    classVal(C, OtherClassId, classAttrBaseStringSet(Attrs, ClassId, Attr, V))
+    requires OtherClassId =/=Int ClassId andBool classAttrsHasBaseId(Attrs, ClassId)
+  rule classValueAttrStringSetVal(userObjectVal(C:Id, OtherClassId:Int, ObjectId:Int, Attrs:ClassAttrs), ClassId:Int, Attr:String, V:Val) =>
+    userObjectVal(C, OtherClassId, ObjectId, classAttrBaseStringSet(Attrs, ClassId, Attr, V))
+    requires OtherClassId =/=Int ClassId andBool classAttrsHasBaseId(Attrs, ClassId)
+  rule classValueAttrStringSetVal(listVal(VS:ValItems), ClassId:Int, Attr:String, V:Val) =>
+    listVal(classValueAttrStringSetItems(VS, ClassId, Attr, V))
+  rule classValueAttrStringSetVal(tupleVal(VS:ValItems), ClassId:Int, Attr:String, V:Val) =>
+    tupleVal(classValueAttrStringSetItems(VS, ClassId, Attr, V))
+  rule classValueAttrStringSetVal(dictVal(DS:DictItems), ClassId:Int, Attr:String, V:Val) =>
+    dictVal(classValueAttrStringSetDictItems(DS, ClassId, Attr, V))
+  rule classValueAttrStringSetVal(V0:Val, _ClassId:Int, _Attr:String, _V:Val) => V0 [owise]
+
+  rule classValueAttrDelVal(classVal(C:Id, ClassId:Int, Attrs:ClassAttrs), ClassId:Int, Attr:Id) =>
+    classVal(C, ClassId, classAttrOwnDel(Attrs, Attr))
+  rule classValueAttrDelVal(userObjectVal(C:Id, ClassId:Int, ObjectId:Int, Attrs:ClassAttrs), ClassId:Int, Attr:Id) =>
+    userObjectVal(C, ClassId, ObjectId, classAttrOwnDel(Attrs, Attr))
+  rule classValueAttrDelVal(classVal(C:Id, OtherClassId:Int, Attrs:ClassAttrs), ClassId:Int, Attr:Id) =>
+    classVal(C, OtherClassId, classAttrBaseDel(Attrs, ClassId, Attr))
+    requires OtherClassId =/=Int ClassId andBool classAttrsHasBaseId(Attrs, ClassId)
+  rule classValueAttrDelVal(userObjectVal(C:Id, OtherClassId:Int, ObjectId:Int, Attrs:ClassAttrs), ClassId:Int, Attr:Id) =>
+    userObjectVal(C, OtherClassId, ObjectId, classAttrBaseDel(Attrs, ClassId, Attr))
+    requires OtherClassId =/=Int ClassId andBool classAttrsHasBaseId(Attrs, ClassId)
+  rule classValueAttrDelVal(listVal(VS:ValItems), ClassId:Int, Attr:Id) =>
+    listVal(classValueAttrDelItems(VS, ClassId, Attr))
+  rule classValueAttrDelVal(tupleVal(VS:ValItems), ClassId:Int, Attr:Id) =>
+    tupleVal(classValueAttrDelItems(VS, ClassId, Attr))
+  rule classValueAttrDelVal(dictVal(DS:DictItems), ClassId:Int, Attr:Id) =>
+    dictVal(classValueAttrDelDictItems(DS, ClassId, Attr))
+  rule classValueAttrDelVal(V0:Val, _ClassId:Int, _Attr:Id) => V0 [owise]
+
+  rule classValueAttrStringDelVal(classVal(C:Id, ClassId:Int, Attrs:ClassAttrs), ClassId:Int, Attr:String) =>
+    classVal(C, ClassId, classAttrOwnStringDel(Attrs, Attr))
+  rule classValueAttrStringDelVal(userObjectVal(C:Id, ClassId:Int, ObjectId:Int, Attrs:ClassAttrs), ClassId:Int, Attr:String) =>
+    userObjectVal(C, ClassId, ObjectId, classAttrOwnStringDel(Attrs, Attr))
+  rule classValueAttrStringDelVal(classVal(C:Id, OtherClassId:Int, Attrs:ClassAttrs), ClassId:Int, Attr:String) =>
+    classVal(C, OtherClassId, classAttrBaseStringDel(Attrs, ClassId, Attr))
+    requires OtherClassId =/=Int ClassId andBool classAttrsHasBaseId(Attrs, ClassId)
+  rule classValueAttrStringDelVal(userObjectVal(C:Id, OtherClassId:Int, ObjectId:Int, Attrs:ClassAttrs), ClassId:Int, Attr:String) =>
+    userObjectVal(C, OtherClassId, ObjectId, classAttrBaseStringDel(Attrs, ClassId, Attr))
+    requires OtherClassId =/=Int ClassId andBool classAttrsHasBaseId(Attrs, ClassId)
+  rule classValueAttrStringDelVal(listVal(VS:ValItems), ClassId:Int, Attr:String) =>
+    listVal(classValueAttrStringDelItems(VS, ClassId, Attr))
+  rule classValueAttrStringDelVal(tupleVal(VS:ValItems), ClassId:Int, Attr:String) =>
+    tupleVal(classValueAttrStringDelItems(VS, ClassId, Attr))
+  rule classValueAttrStringDelVal(dictVal(DS:DictItems), ClassId:Int, Attr:String) =>
+    dictVal(classValueAttrStringDelDictItems(DS, ClassId, Attr))
+  rule classValueAttrStringDelVal(V0:Val, _ClassId:Int, _Attr:String) => V0 [owise]
+
+  rule classValueAttrSetItems(valItemsLast(V0:Val), ClassId:Int, Attr:Id, V:Val) =>
+    valItemsLast(classValueAttrSetVal(V0, ClassId, Attr, V))
+  rule classValueAttrSetItems(valItemsCons(V0:Val, VS:ValItems), ClassId:Int, Attr:Id, V:Val) =>
+    valItemsCons(classValueAttrSetVal(V0, ClassId, Attr, V), classValueAttrSetItems(VS, ClassId, Attr, V))
+
+  rule classValueAttrStringSetItems(valItemsLast(V0:Val), ClassId:Int, Attr:String, V:Val) =>
+    valItemsLast(classValueAttrStringSetVal(V0, ClassId, Attr, V))
+  rule classValueAttrStringSetItems(valItemsCons(V0:Val, VS:ValItems), ClassId:Int, Attr:String, V:Val) =>
+    valItemsCons(classValueAttrStringSetVal(V0, ClassId, Attr, V), classValueAttrStringSetItems(VS, ClassId, Attr, V))
+
+  rule classValueAttrDelItems(valItemsLast(V0:Val), ClassId:Int, Attr:Id) =>
+    valItemsLast(classValueAttrDelVal(V0, ClassId, Attr))
+  rule classValueAttrDelItems(valItemsCons(V0:Val, VS:ValItems), ClassId:Int, Attr:Id) =>
+    valItemsCons(classValueAttrDelVal(V0, ClassId, Attr), classValueAttrDelItems(VS, ClassId, Attr))
+
+  rule classValueAttrStringDelItems(valItemsLast(V0:Val), ClassId:Int, Attr:String) =>
+    valItemsLast(classValueAttrStringDelVal(V0, ClassId, Attr))
+  rule classValueAttrStringDelItems(valItemsCons(V0:Val, VS:ValItems), ClassId:Int, Attr:String) =>
+    valItemsCons(classValueAttrStringDelVal(V0, ClassId, Attr), classValueAttrStringDelItems(VS, ClassId, Attr))
+
+  rule classValueAttrSetDictItems(dictItemsLast(K:Val, V0:Val), ClassId:Int, Attr:Id, V:Val) =>
+    dictItemsLast(K, classValueAttrSetVal(V0, ClassId, Attr, V))
+  rule classValueAttrSetDictItems(dictItemsCons(K:Val, V0:Val, DS:DictItems), ClassId:Int, Attr:Id, V:Val) =>
+    dictItemsCons(K, classValueAttrSetVal(V0, ClassId, Attr, V), classValueAttrSetDictItems(DS, ClassId, Attr, V))
+
+  rule classValueAttrStringSetDictItems(dictItemsLast(K:Val, V0:Val), ClassId:Int, Attr:String, V:Val) =>
+    dictItemsLast(K, classValueAttrStringSetVal(V0, ClassId, Attr, V))
+  rule classValueAttrStringSetDictItems(dictItemsCons(K:Val, V0:Val, DS:DictItems), ClassId:Int, Attr:String, V:Val) =>
+    dictItemsCons(K, classValueAttrStringSetVal(V0, ClassId, Attr, V), classValueAttrStringSetDictItems(DS, ClassId, Attr, V))
+
+  rule classValueAttrDelDictItems(dictItemsLast(K:Val, V0:Val), ClassId:Int, Attr:Id) =>
+    dictItemsLast(K, classValueAttrDelVal(V0, ClassId, Attr))
+  rule classValueAttrDelDictItems(dictItemsCons(K:Val, V0:Val, DS:DictItems), ClassId:Int, Attr:Id) =>
+    dictItemsCons(K, classValueAttrDelVal(V0, ClassId, Attr), classValueAttrDelDictItems(DS, ClassId, Attr))
+
+  rule classValueAttrStringDelDictItems(dictItemsLast(K:Val, V0:Val), ClassId:Int, Attr:String) =>
+    dictItemsLast(K, classValueAttrStringDelVal(V0, ClassId, Attr))
+  rule classValueAttrStringDelDictItems(dictItemsCons(K:Val, V0:Val, DS:DictItems), ClassId:Int, Attr:String) =>
+    dictItemsCons(K, classValueAttrStringDelVal(V0, ClassId, Attr), classValueAttrStringDelDictItems(DS, ClassId, Attr))
 
   rule argValsToValItems(argValsCons(V:Val, #noArgVals)) => valItemsLast(V)
   rule argValsToValItems(argValsCons(V:Val, VS:ArgVals)) =>

@@ -1789,6 +1789,13 @@
       "coverage": ["class-definition", "class-inheritance", "single-base-user-class-profile", "class-attribute-assignment", "class-attribute-deletion", "class-attribute-rebinding", "inherited-class-attribute-propagation", "subclass-attribute-shadowing", "instance-class-attribute-fallback", "getattr-builtin", "hasattr-builtin", "setattr-builtin", "delattr-builtin", "attribute-error", "ordinary-python-source-adapter"]
     },
     {
+      "id": "adapter-class-container-attribute-mutation",
+      "source": "../adapter/adapter-class-container-attribute-mutation.py",
+      "reference": "Python 3.14.6 Language Reference 7.2 Assignment statements; 7.5 The del statement; 8.8 Class definitions; Python Data Model object identity and attribute lookup, assignment, deletion; Built-in Functions getattr, hasattr, setattr, delattr",
+      "expected_result": "True ~> .K",
+      "coverage": ["class-definition", "class-inheritance", "class-attribute-assignment", "class-attribute-deletion", "class-attribute-rebinding", "container-held-class-values", "container-held-user-object-values", "nested-container-values", "dict-value-class-alias-profile", "instance-class-attribute-fallback", "inherited-class-attribute-propagation", "subclass-attribute-shadowing", "getattr-builtin", "hasattr-builtin", "setattr-builtin", "delattr-builtin", "ordinary-python-source-adapter"]
+    },
+    {
       "id": "adapter-class-metadata",
       "source": "../adapter/adapter-class-metadata.py",
       "reference": "Python 3.14.6 Language Reference 8.8 Class definitions: class namespace execution initializes __module__, __qualname__, and __doc__; Built-in Functions getattr, hasattr",

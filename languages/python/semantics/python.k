@@ -15,6 +15,7 @@ module PYTHON-SYNTAX
                | "None" [symbol(pyNone)]
                | "Ellipsis" [symbol(pyEllipsis)]
                | "NotImplemented" [symbol(pyNotImplemented)]
+               | "#typeVal" "(" Id ")" [symbol(typeVal)]
                | "#bytes" "(" ")" [symbol(emptyBytesVal)]
                | "#bytes" "(" ValItems ")" [symbol(bytesVal)]
                | "#bytearray" "(" ")" [symbol(emptyBytearrayVal)]
@@ -590,6 +591,7 @@ module PYTHON-SYNTAX
                | "#hex" "(" Exp ")" [symbol(hexExp), strict]
                | "#hash" "(" Exp ")" [symbol(hashExp), strict]
                | "#callable" "(" Exp ")" [symbol(callableExp), strict]
+               | "#typeCtor" "(" Exp ")" [symbol(typeCtorExp), strict]
                | "#isinstance" "(" Exp "," Id ")" [symbol(isinstanceExp), strict(1)]
                | "#isinstanceDynamic" "(" Exp "," Exp ")" [symbol(isinstanceDynamicExp), seqstrict]
                | "#isinstanceAny" "(" Exp "," IdItems ")" [symbol(isinstanceAnyExp), strict(1)]
@@ -1812,6 +1814,9 @@ module PYTHON
   syntax Bool ::= truthy(Val) [function, symbol(truthy)]
                 | boolContextTypeError(Val) [function, symbol(boolContextTypeError)]
                 | callableVal(Val) [function, symbol(callableVal)]
+                | isTypeVal(Val) [function, symbol(isTypeVal)]
+                | typeValMatches(Val, Id) [function, symbol(typeValMatches)]
+                | typeValSubclass(Val, Val) [function, symbol(typeValSubclass)]
                 | isClassVal(Val) [function, symbol(isClassVal)]
                 | isModuleVal(Val) [function, symbol(isModuleVal)]
                 | isUserObjectVal(Val) [function, symbol(isUserObjectVal)]
@@ -3225,6 +3230,7 @@ module PYTHON
   rule truthy(#importlibImportModuleFun) => true
   rule truthy(#keywordIsKeywordFun) => true
   rule truthy(#keywordIsSoftKeywordFun) => true
+  rule truthy(#typeVal(_:Id)) => true
   rule truthy(moduleVal(_:Id, _:ClassAttrs)) => true
   rule truthy(classVal(_:Id, _:Int, _:ClassAttrs)) => true
   rule truthy(userObjectVal(_:Id, _:Int, _:Int, _:ClassAttrs)) => true
@@ -3375,9 +3381,20 @@ module PYTHON
   rule callableVal(#importlibImportModuleFun) => true
   rule callableVal(#keywordIsKeywordFun) => true
   rule callableVal(#keywordIsSoftKeywordFun) => true
+  rule callableVal(#typeVal(_:Id)) => true
   rule callableVal(classVal(_:Id, _:Int, _:ClassAttrs)) => true
   rule callableVal(boundMethodVal(_:Val, _:Val)) => true
   rule callableVal(_:Val) => false [owise]
+
+  rule isTypeVal(#typeVal(_:Id)) => true
+  rule isTypeVal(_:Val) => false [owise]
+
+  rule typeValMatches(NotImplemented, T:Id) => Id2String(T) ==String "NotImplementedType"
+  rule typeValMatches(_:Val, _:Id) => false [owise]
+
+  rule typeValSubclass(#typeVal(C:Id), #typeVal(I:Id)) =>
+    Id2String(C) ==String Id2String(I)
+  rule typeValSubclass(_:Val, _:Val) => false [owise]
 
   rule isClassVal(classVal(_:Id, _:Int, _:ClassAttrs)) => true
   rule isClassVal(_:Val) => false [owise]
@@ -3449,6 +3466,7 @@ module PYTHON
   rule pyStringConversionSupported(None) => true
   rule pyStringConversionSupported(Ellipsis) => true
   rule pyStringConversionSupported(NotImplemented) => true
+  rule pyStringConversionSupported(#typeVal(_:Id)) => true
   rule pyStringConversionSupported(_:String) => true
   rule pyStringConversionSupported(F:Float) => pyFloatStringConversionSupported(F)
   rule pyStringConversionSupported(#bytes()) => true
@@ -3491,6 +3509,7 @@ module PYTHON
   rule pyFormatStr(None) => "None"
   rule pyFormatStr(Ellipsis) => "Ellipsis"
   rule pyFormatStr(NotImplemented) => "NotImplemented"
+  rule pyFormatStr(#typeVal(T:Id)) => "<class '" +String Id2String(T) +String "'>"
   rule pyFormatStr(S:String) => S
   rule pyFormatStr(F:Float) => pyFloatReprStr(F)
   rule pyFormatStr(#bytes()) => pyReprStr(#bytes())
@@ -3516,6 +3535,7 @@ module PYTHON
   rule pyReprStr(None) => "None"
   rule pyReprStr(Ellipsis) => "Ellipsis"
   rule pyReprStr(NotImplemented) => "NotImplemented"
+  rule pyReprStr(#typeVal(T:Id)) => "<class '" +String Id2String(T) +String "'>"
   rule pyReprStr(F:Float) => pyFloatReprStr(F)
   rule pyReprStr(S:String) =>
     stringReprQuoteChar(stringReprQuoteByte(S))
@@ -3567,6 +3587,7 @@ module PYTHON
   rule pyAsciiStr(None) => "None"
   rule pyAsciiStr(Ellipsis) => "Ellipsis"
   rule pyAsciiStr(NotImplemented) => "NotImplemented"
+  rule pyAsciiStr(#typeVal(T:Id)) => "<class '" +String Id2String(T) +String "'>"
   rule pyAsciiStr(F:Float) => pyFloatReprStr(F)
   rule pyAsciiStr(S:String) =>
     stringReprQuoteChar(stringReprQuoteByte(S))
@@ -5027,6 +5048,7 @@ module PYTHON
   rule isIntLike(None) => false
   rule isIntLike(Ellipsis) => false
   rule isIntLike(NotImplemented) => false
+  rule isIntLike(#typeVal(_:Id)) => false
   rule isIntLike([]) => false
   rule isIntLike(listVal(_:ValItems)) => false
   rule isIntLike(()) => false
@@ -6058,6 +6080,7 @@ module PYTHON
   rule singletonIdentity(None) => true
   rule singletonIdentity(Ellipsis) => true
   rule singletonIdentity(NotImplemented) => true
+  rule singletonIdentity(#typeVal(_:Id)) => false
   rule singletonIdentity(_:Int) => false
   rule singletonIdentity(_:Float) => false
   rule singletonIdentity(#complex(_:Float, _:Float)) => false
@@ -6217,6 +6240,7 @@ module PYTHON
   rule pyHash(None) => 590923713
   rule pyHash(Ellipsis) => 590923759
   rule pyHash(NotImplemented) => 590923781
+  rule pyHash(#typeVal(T:Id)) => pyStringHash(Id2String(T))
   rule pyHash(#bytes()) => 0
   rule pyHash(bytesVal(VS:ValItems)) => pyHashByteItems(VS, 0)
   rule pyHash(()) => pyHashInt(345678)
@@ -6872,6 +6896,7 @@ module PYTHON
       orBool Id2String(M) ==String "math"
       orBool Id2String(M) ==String "keyword"
       orBool Id2String(M) ==String "importlib"
+      orBool Id2String(M) ==String "types"
 
   rule builtinModule(M:Id) => moduleVal(M, builtinModuleAttrs(M))
     requires builtinModuleSupported(M)
@@ -6909,11 +6934,17 @@ module PYTHON
     classStringAttr("False", False,
       #noRuntimeClassAttrs))))))))
     requires Id2String(M) ==String "builtins"
+  rule builtinModuleAttrs(M:Id) =>
+    classAttr(#token("kDunderNameName", "Id"), "types",
+    classAttr(#token("NotImplementedType", "Id"), #typeVal(#token("NotImplementedType", "Id")),
+      #noRuntimeClassAttrs))
+    requires Id2String(M) ==String "types"
 
   rule importlibImportModuleSupported("math") => true
   rule importlibImportModuleSupported("keyword") => true
   rule importlibImportModuleSupported("importlib") => true
   rule importlibImportModuleSupported("builtins") => true
+  rule importlibImportModuleSupported("types") => true
   rule importlibImportModuleSupported(_:String) => false [owise]
 
   rule importlibImportModuleRelativeName(S:String) =>
@@ -7990,6 +8021,11 @@ module PYTHON
     requires notBool isTypeAliasVal(V)
   rule valEq(V:Val, typeAliasVal(_:Id, _:Int, _:Exp)) => false
     requires notBool isTypeAliasVal(V)
+  rule valEq(#typeVal(T1:Id), #typeVal(T2:Id)) => Id2String(T1) ==String Id2String(T2)
+  rule valEq(#typeVal(_:Id), V:Val) => false
+    requires notBool isTypeVal(V)
+  rule valEq(V:Val, #typeVal(_:Id)) => false
+    requires notBool isTypeVal(V)
   rule valEq(None, _:Int) => false
   rule valEq(_:Int, None) => false
   rule valEq(None, True) => false
@@ -8253,6 +8289,11 @@ module PYTHON
     requires notBool isTypeAliasVal(V)
   rule valIs(V:Val, typeAliasVal(_:Id, _:Int, _:Exp)) => false
     requires notBool isTypeAliasVal(V)
+  rule valIs(#typeVal(T1:Id), #typeVal(T2:Id)) => Id2String(T1) ==String Id2String(T2)
+  rule valIs(#typeVal(_:Id), V:Val) => false
+    requires notBool isTypeVal(V)
+  rule valIs(V:Val, #typeVal(_:Id)) => false
+    requires notBool isTypeVal(V)
   rule valIs(#__import__Fun, #__import__Fun) => true
   rule valIs(#importlibImportModuleFun, #importlibImportModuleFun) => true
   rule valIs(#keywordIsKeywordFun, #keywordIsKeywordFun) => true
@@ -16294,6 +16335,8 @@ module PYTHON
   rule dictLookupKeySupported(_:String) => true
   rule dictLookupKeySupported(None) => true
   rule dictLookupKeySupported(Ellipsis) => true
+  rule dictLookupKeySupported(NotImplemented) => true
+  rule dictLookupKeySupported(#typeVal(_:Id)) => true
   rule dictLookupKeySupported(#bytes()) => true
   rule dictLookupKeySupported(bytesVal(_:ValItems)) => true
   rule dictLookupKeySupported(#complex(_:Float, _:Float)) => true
@@ -18871,6 +18914,10 @@ module PYTHON
            False
        ... </k>
     requires notBool isStringVal(V)
+  rule <k> _A:Val ~> callApply(#typeVal(T:Id)) =>
+           exceptionSignal(#exception(#token("TypeError", "Id")))
+       ... </k>
+    requires Id2String(T) ==String "NotImplementedType"
   rule <k> A:Val ~> callApply(functionMetaVal(_:String, _:String, _:Val, _:String, F:Val)) =>
            A ~> callApply(F)
        ... </k>
@@ -19514,6 +19561,15 @@ module PYTHON
            exceptionSignal(#exception(#token("TypeError", "Id")))
        ... </k>
     requires notBool callableVal(F)
+  rule <k> argsVal(#noArgVals) ~> callApplyArgs(#typeVal(T:Id)) =>
+           NotImplemented
+       ... </k>
+    requires Id2String(T) ==String "NotImplementedType"
+  rule <k> argsVal(VS:ArgVals) ~> callApplyArgs(#typeVal(T:Id)) =>
+           exceptionSignal(#exception(#token("TypeError", "Id")))
+       ... </k>
+    requires Id2String(T) ==String "NotImplementedType"
+      andBool argValsLen(VS) =/=Int 0
   rule <k> argsVal(argValsCons(Name:Val, #noArgVals)) ~> callApplyArgs(#__import__Fun) =>
            importBuiltinName(Name)
        ... </k>
@@ -26233,14 +26289,18 @@ module PYTHON
   rule #hash(V:Val) => pyHash(V)
     requires dictLookupKeySupported(V)
   rule #callable(V:Val) => boolValue(callableVal(V))
+  rule #typeCtor(NotImplemented) => #typeVal(#token("NotImplementedType", "Id"))
   rule #isinstance(V:Val, C:Id) => boolValue(matchBuiltinClass(V, C))
     requires isinstanceClassSupported(C)
   rule #isinstanceDynamic(V:Val, classVal(C:Id, ClassId:Int, _:ClassAttrs)) => boolValue(userInstanceOf(V, C, ClassId))
+  rule #isinstanceDynamic(V:Val, #typeVal(T:Id)) => boolValue(typeValMatches(V, T))
   rule #isinstanceAny(V:Val, CS:IdItems) => boolValue(isinstanceAny(V, CS))
     requires isinstanceClassesSupported(CS)
   rule #issubclass(C:Id, I:Id) => boolValue(builtinSubclass(C, I))
     requires isinstanceClassSupported(C) andBool isinstanceClassSupported(I)
   rule #issubclassDynamic(V:Val, classVal(C:Id, ClassId:Int, _:ClassAttrs)) => boolValue(userSubclassOf(V, C, ClassId))
+  rule #issubclassDynamic(C:Val, I:Val) => boolValue(typeValSubclass(C, I))
+    requires isTypeVal(C) andBool isTypeVal(I)
   rule #issubclassAny(C:Id, IS:IdItems) => boolValue(builtinSubclassAny(C, IS))
     requires isinstanceClassSupported(C) andBool isinstanceClassesSupported(IS)
   rule <k> #strCtor(V:Val) => exceptionSignal(#exception(#token("TypeError", "Id"))) ... </k>
@@ -26275,16 +26335,18 @@ module PYTHON
     requires notBool isIntLike(V)
   rule <k> #hash(V:Val) => exceptionSignal(#exception(#token("TypeError", "Id"))) ... </k>
     requires notBool dictLookupKeySupported(V)
+  rule <k> #typeCtor(V:Val) => exceptionSignal(#exception(#token("NotImplementedError", "Id"))) ... </k>
+    requires notBool valEq(V, NotImplemented)
   rule <k> #isinstance(_V:Val, C:Id) => exceptionSignal(#exception(#token("TypeError", "Id"))) ... </k>
     requires notBool isinstanceClassSupported(C)
   rule <k> #isinstanceDynamic(_V:Val, C:Val) => exceptionSignal(#exception(#token("TypeError", "Id"))) ... </k>
-    requires notBool isClassVal(C)
+    requires notBool isClassVal(C) andBool notBool isTypeVal(C)
   rule <k> #isinstanceAny(_V:Val, CS:IdItems) => exceptionSignal(#exception(#token("TypeError", "Id"))) ... </k>
     requires notBool isinstanceClassesSupported(CS)
   rule <k> #issubclass(C:Id, I:Id) => exceptionSignal(#exception(#token("TypeError", "Id"))) ... </k>
     requires notBool (isinstanceClassSupported(C) andBool isinstanceClassSupported(I))
   rule <k> #issubclassDynamic(C:Val, I:Val) => exceptionSignal(#exception(#token("TypeError", "Id"))) ... </k>
-    requires notBool (isClassVal(C) andBool isClassVal(I))
+    requires notBool ((isClassVal(C) andBool isClassVal(I)) orBool (isTypeVal(C) andBool isTypeVal(I)))
   rule <k> #issubclassAny(C:Id, IS:IdItems) => exceptionSignal(#exception(#token("TypeError", "Id"))) ... </k>
     requires notBool (isinstanceClassSupported(C) andBool isinstanceClassesSupported(IS))
   rule #all([]) => True

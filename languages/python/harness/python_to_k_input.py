@@ -106,6 +106,7 @@ SUPPORTED_IMPORT_MODULES = {
     "importlib",
     "keyword",
     "math",
+    "types",
 }
 SET_MUTATING_METHOD_NAMES = {
     "add",
@@ -1187,6 +1188,8 @@ def emit_exp(exp: ast.expr) -> str:
             return f"#hash({emit_exp(arg)})"
         case ast.Call(func=ast.Name(id="callable"), args=[arg], keywords=[]):
             return f"#callable({emit_exp(arg)})"
+        case ast.Call(func=ast.Name(id="type"), args=[arg], keywords=[]):
+            return f"#typeCtor({emit_exp(arg)})"
         case ast.Call(func=ast.Name(id="isinstance"), args=[obj, classinfo], keywords=[]):
             if isinstance(classinfo, ast.Name) and classinfo.id not in SUPPORTED_BUILTIN_CLASS_NAMES:
                 return f"#isinstanceDynamic({emit_exp(obj)}, {emit_exp(classinfo)})"

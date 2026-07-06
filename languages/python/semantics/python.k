@@ -1796,6 +1796,7 @@ module PYTHON
   syntax Bool ::= truthy(Val) [function, symbol(truthy)]
                 | callableVal(Val) [function, symbol(callableVal)]
                 | isClassVal(Val) [function, symbol(isClassVal)]
+                | isModuleVal(Val) [function, symbol(isModuleVal)]
                 | isUserObjectVal(Val) [function, symbol(isUserObjectVal)]
                 | classValueExactClassId(Val, Int) [function, symbol(classValueExactClassId)]
                 | isTypeAliasVal(Val) [function, symbol(isTypeAliasVal)]
@@ -2762,10 +2763,18 @@ module PYTHON
                | classValueAttrStringSet(Map, Int, String, Val) [function, symbol(classValueAttrStringSet)]
                | classValueAttrDel(Map, Int, Id) [function, symbol(classValueAttrDel)]
                | classValueAttrStringDel(Map, Int, String) [function, symbol(classValueAttrStringDel)]
+               | moduleValueAttrSet(Map, Id, Id, Val) [function, symbol(moduleValueAttrSet)]
+               | moduleValueAttrStringSet(Map, Id, String, Val) [function, symbol(moduleValueAttrStringSet)]
+               | moduleValueAttrDel(Map, Id, Id) [function, symbol(moduleValueAttrDel)]
+               | moduleValueAttrStringDel(Map, Id, String) [function, symbol(moduleValueAttrStringDel)]
   syntax Val ::= classValueAttrSetVal(Val, Int, Id, Val) [function, symbol(classValueAttrSetVal)]
                | classValueAttrStringSetVal(Val, Int, String, Val) [function, symbol(classValueAttrStringSetVal)]
                | classValueAttrDelVal(Val, Int, Id) [function, symbol(classValueAttrDelVal)]
                | classValueAttrStringDelVal(Val, Int, String) [function, symbol(classValueAttrStringDelVal)]
+               | moduleValueAttrSetVal(Val, Id, Id, Val) [function, symbol(moduleValueAttrSetVal)]
+               | moduleValueAttrStringSetVal(Val, Id, String, Val) [function, symbol(moduleValueAttrStringSetVal)]
+               | moduleValueAttrDelVal(Val, Id, Id) [function, symbol(moduleValueAttrDelVal)]
+               | moduleValueAttrStringDelVal(Val, Id, String) [function, symbol(moduleValueAttrStringDelVal)]
   syntax ValItems ::= argValsToValItems(ArgVals) [function, symbol(argValsToValItems)]
   syntax ValItems ::= dictPairItems(Val) [function, symbol(dictPairItems)]
   syntax ValItems ::= argValsToSetItems(ArgVals) [function, symbol(argValsToSetItems)]
@@ -2774,6 +2783,10 @@ module PYTHON
                     | classValueAttrStringSetItems(ValItems, Int, String, Val) [function, symbol(classValueAttrStringSetItems)]
                     | classValueAttrDelItems(ValItems, Int, Id) [function, symbol(classValueAttrDelItems)]
                     | classValueAttrStringDelItems(ValItems, Int, String) [function, symbol(classValueAttrStringDelItems)]
+                    | moduleValueAttrSetItems(ValItems, Id, Id, Val) [function, symbol(moduleValueAttrSetItems)]
+                    | moduleValueAttrStringSetItems(ValItems, Id, String, Val) [function, symbol(moduleValueAttrStringSetItems)]
+                    | moduleValueAttrDelItems(ValItems, Id, Id) [function, symbol(moduleValueAttrDelItems)]
+                    | moduleValueAttrStringDelItems(ValItems, Id, String) [function, symbol(moduleValueAttrStringDelItems)]
   syntax ValItems ::= concreteIterableExtraItems(Val) [function, symbol(concreteIterableExtraItems)]
   syntax ValItems ::= stringToValItems(String, Int, Int) [function, symbol(stringToValItems)]
   syntax ValItems ::= stringBytesToValItems(String, Int, Int) [function, symbol(stringBytesToValItems)]
@@ -2839,6 +2852,10 @@ module PYTHON
                      | classValueAttrStringSetDictItems(DictItems, Int, String, Val) [function, symbol(classValueAttrStringSetDictItems)]
                      | classValueAttrDelDictItems(DictItems, Int, Id) [function, symbol(classValueAttrDelDictItems)]
                      | classValueAttrStringDelDictItems(DictItems, Int, String) [function, symbol(classValueAttrStringDelDictItems)]
+                     | moduleValueAttrSetDictItems(DictItems, Id, Id, Val) [function, symbol(moduleValueAttrSetDictItems)]
+                     | moduleValueAttrStringSetDictItems(DictItems, Id, String, Val) [function, symbol(moduleValueAttrStringSetDictItems)]
+                     | moduleValueAttrDelDictItems(DictItems, Id, Id) [function, symbol(moduleValueAttrDelDictItems)]
+                     | moduleValueAttrStringDelDictItems(DictItems, Id, String) [function, symbol(moduleValueAttrStringDelDictItems)]
   syntax Val ::= listDel(ValItems, Int) [function, symbol(listDel)]
                | listPrepend(Val, Val) [function, symbol(listPrepend)]
                | listAppendItem(Val, Val) [function, symbol(listAppendItem)]
@@ -3313,6 +3330,9 @@ module PYTHON
 
   rule isClassVal(classVal(_:Id, _:Int, _:ClassAttrs)) => true
   rule isClassVal(_:Val) => false [owise]
+
+  rule isModuleVal(moduleVal(_:Id, _:ClassAttrs)) => true
+  rule isModuleVal(_:Val) => false [owise]
 
   rule isUserObjectVal(userObjectVal(_:Id, _:Int, _:Int, _:ClassAttrs)) => true
   rule isUserObjectVal(_:Val) => false [owise]
@@ -9540,6 +9560,106 @@ module PYTHON
     dictItemsLast(K, classValueAttrStringDelVal(V0, ClassId, Attr))
   rule classValueAttrStringDelDictItems(dictItemsCons(K:Val, V0:Val, DS:DictItems), ClassId:Int, Attr:String) =>
     dictItemsCons(K, classValueAttrStringDelVal(V0, ClassId, Attr), classValueAttrStringDelDictItems(DS, ClassId, Attr))
+
+  rule moduleValueAttrSet(.Map, _Module:Id, _Attr:Id, _V:Val) => .Map
+  rule moduleValueAttrSet((X:Id |-> V0:Val) Rho:Map, Module:Id, Attr:Id, V:Val) =>
+    moduleValueAttrSet(Rho, Module, Attr, V) [ X <- moduleValueAttrSetVal(V0, Module, Attr, V) ]
+
+  rule moduleValueAttrStringSet(.Map, _Module:Id, _Attr:String, _V:Val) => .Map
+  rule moduleValueAttrStringSet((X:Id |-> V0:Val) Rho:Map, Module:Id, Attr:String, V:Val) =>
+    moduleValueAttrStringSet(Rho, Module, Attr, V) [ X <- moduleValueAttrStringSetVal(V0, Module, Attr, V) ]
+
+  rule moduleValueAttrDel(.Map, _Module:Id, _Attr:Id) => .Map
+  rule moduleValueAttrDel((X:Id |-> V0:Val) Rho:Map, Module:Id, Attr:Id) =>
+    moduleValueAttrDel(Rho, Module, Attr) [ X <- moduleValueAttrDelVal(V0, Module, Attr) ]
+
+  rule moduleValueAttrStringDel(.Map, _Module:Id, _Attr:String) => .Map
+  rule moduleValueAttrStringDel((X:Id |-> V0:Val) Rho:Map, Module:Id, Attr:String) =>
+    moduleValueAttrStringDel(Rho, Module, Attr) [ X <- moduleValueAttrStringDelVal(V0, Module, Attr) ]
+
+  rule moduleValueAttrSetVal(moduleVal(M:Id, Attrs:ClassAttrs), Module:Id, Attr:Id, V:Val) =>
+    moduleVal(M, classAttrSet(Attrs, Attr, V))
+    requires Id2String(M) ==String Id2String(Module)
+  rule moduleValueAttrSetVal(listVal(VS:ValItems), Module:Id, Attr:Id, V:Val) =>
+    listVal(moduleValueAttrSetItems(VS, Module, Attr, V))
+  rule moduleValueAttrSetVal(tupleVal(VS:ValItems), Module:Id, Attr:Id, V:Val) =>
+    tupleVal(moduleValueAttrSetItems(VS, Module, Attr, V))
+  rule moduleValueAttrSetVal(dictVal(DS:DictItems), Module:Id, Attr:Id, V:Val) =>
+    dictVal(moduleValueAttrSetDictItems(DS, Module, Attr, V))
+  rule moduleValueAttrSetVal(V0:Val, _Module:Id, _Attr:Id, _V:Val) => V0 [owise]
+
+  rule moduleValueAttrStringSetVal(moduleVal(M:Id, Attrs:ClassAttrs), Module:Id, Attr:String, V:Val) =>
+    moduleVal(M, classAttrStringSet(Attrs, Attr, V))
+    requires Id2String(M) ==String Id2String(Module)
+  rule moduleValueAttrStringSetVal(listVal(VS:ValItems), Module:Id, Attr:String, V:Val) =>
+    listVal(moduleValueAttrStringSetItems(VS, Module, Attr, V))
+  rule moduleValueAttrStringSetVal(tupleVal(VS:ValItems), Module:Id, Attr:String, V:Val) =>
+    tupleVal(moduleValueAttrStringSetItems(VS, Module, Attr, V))
+  rule moduleValueAttrStringSetVal(dictVal(DS:DictItems), Module:Id, Attr:String, V:Val) =>
+    dictVal(moduleValueAttrStringSetDictItems(DS, Module, Attr, V))
+  rule moduleValueAttrStringSetVal(V0:Val, _Module:Id, _Attr:String, _V:Val) => V0 [owise]
+
+  rule moduleValueAttrDelVal(moduleVal(M:Id, Attrs:ClassAttrs), Module:Id, Attr:Id) =>
+    moduleVal(M, classAttrDel(Attrs, Attr))
+    requires Id2String(M) ==String Id2String(Module)
+  rule moduleValueAttrDelVal(listVal(VS:ValItems), Module:Id, Attr:Id) =>
+    listVal(moduleValueAttrDelItems(VS, Module, Attr))
+  rule moduleValueAttrDelVal(tupleVal(VS:ValItems), Module:Id, Attr:Id) =>
+    tupleVal(moduleValueAttrDelItems(VS, Module, Attr))
+  rule moduleValueAttrDelVal(dictVal(DS:DictItems), Module:Id, Attr:Id) =>
+    dictVal(moduleValueAttrDelDictItems(DS, Module, Attr))
+  rule moduleValueAttrDelVal(V0:Val, _Module:Id, _Attr:Id) => V0 [owise]
+
+  rule moduleValueAttrStringDelVal(moduleVal(M:Id, Attrs:ClassAttrs), Module:Id, Attr:String) =>
+    moduleVal(M, classAttrStringDel(Attrs, Attr))
+    requires Id2String(M) ==String Id2String(Module)
+  rule moduleValueAttrStringDelVal(listVal(VS:ValItems), Module:Id, Attr:String) =>
+    listVal(moduleValueAttrStringDelItems(VS, Module, Attr))
+  rule moduleValueAttrStringDelVal(tupleVal(VS:ValItems), Module:Id, Attr:String) =>
+    tupleVal(moduleValueAttrStringDelItems(VS, Module, Attr))
+  rule moduleValueAttrStringDelVal(dictVal(DS:DictItems), Module:Id, Attr:String) =>
+    dictVal(moduleValueAttrStringDelDictItems(DS, Module, Attr))
+  rule moduleValueAttrStringDelVal(V0:Val, _Module:Id, _Attr:String) => V0 [owise]
+
+  rule moduleValueAttrSetItems(valItemsLast(V0:Val), Module:Id, Attr:Id, V:Val) =>
+    valItemsLast(moduleValueAttrSetVal(V0, Module, Attr, V))
+  rule moduleValueAttrSetItems(valItemsCons(V0:Val, VS:ValItems), Module:Id, Attr:Id, V:Val) =>
+    valItemsCons(moduleValueAttrSetVal(V0, Module, Attr, V), moduleValueAttrSetItems(VS, Module, Attr, V))
+
+  rule moduleValueAttrStringSetItems(valItemsLast(V0:Val), Module:Id, Attr:String, V:Val) =>
+    valItemsLast(moduleValueAttrStringSetVal(V0, Module, Attr, V))
+  rule moduleValueAttrStringSetItems(valItemsCons(V0:Val, VS:ValItems), Module:Id, Attr:String, V:Val) =>
+    valItemsCons(moduleValueAttrStringSetVal(V0, Module, Attr, V), moduleValueAttrStringSetItems(VS, Module, Attr, V))
+
+  rule moduleValueAttrDelItems(valItemsLast(V0:Val), Module:Id, Attr:Id) =>
+    valItemsLast(moduleValueAttrDelVal(V0, Module, Attr))
+  rule moduleValueAttrDelItems(valItemsCons(V0:Val, VS:ValItems), Module:Id, Attr:Id) =>
+    valItemsCons(moduleValueAttrDelVal(V0, Module, Attr), moduleValueAttrDelItems(VS, Module, Attr))
+
+  rule moduleValueAttrStringDelItems(valItemsLast(V0:Val), Module:Id, Attr:String) =>
+    valItemsLast(moduleValueAttrStringDelVal(V0, Module, Attr))
+  rule moduleValueAttrStringDelItems(valItemsCons(V0:Val, VS:ValItems), Module:Id, Attr:String) =>
+    valItemsCons(moduleValueAttrStringDelVal(V0, Module, Attr), moduleValueAttrStringDelItems(VS, Module, Attr))
+
+  rule moduleValueAttrSetDictItems(dictItemsLast(K:Val, V0:Val), Module:Id, Attr:Id, V:Val) =>
+    dictItemsLast(K, moduleValueAttrSetVal(V0, Module, Attr, V))
+  rule moduleValueAttrSetDictItems(dictItemsCons(K:Val, V0:Val, DS:DictItems), Module:Id, Attr:Id, V:Val) =>
+    dictItemsCons(K, moduleValueAttrSetVal(V0, Module, Attr, V), moduleValueAttrSetDictItems(DS, Module, Attr, V))
+
+  rule moduleValueAttrStringSetDictItems(dictItemsLast(K:Val, V0:Val), Module:Id, Attr:String, V:Val) =>
+    dictItemsLast(K, moduleValueAttrStringSetVal(V0, Module, Attr, V))
+  rule moduleValueAttrStringSetDictItems(dictItemsCons(K:Val, V0:Val, DS:DictItems), Module:Id, Attr:String, V:Val) =>
+    dictItemsCons(K, moduleValueAttrStringSetVal(V0, Module, Attr, V), moduleValueAttrStringSetDictItems(DS, Module, Attr, V))
+
+  rule moduleValueAttrDelDictItems(dictItemsLast(K:Val, V0:Val), Module:Id, Attr:Id) =>
+    dictItemsLast(K, moduleValueAttrDelVal(V0, Module, Attr))
+  rule moduleValueAttrDelDictItems(dictItemsCons(K:Val, V0:Val, DS:DictItems), Module:Id, Attr:Id) =>
+    dictItemsCons(K, moduleValueAttrDelVal(V0, Module, Attr), moduleValueAttrDelDictItems(DS, Module, Attr))
+
+  rule moduleValueAttrStringDelDictItems(dictItemsLast(K:Val, V0:Val), Module:Id, Attr:String) =>
+    dictItemsLast(K, moduleValueAttrStringDelVal(V0, Module, Attr))
+  rule moduleValueAttrStringDelDictItems(dictItemsCons(K:Val, V0:Val, DS:DictItems), Module:Id, Attr:String) =>
+    dictItemsCons(K, moduleValueAttrStringDelVal(V0, Module, Attr), moduleValueAttrStringDelDictItems(DS, Module, Attr))
 
   rule argValsToValItems(argValsCons(V:Val, #noArgVals)) => valItemsLast(V)
   rule argValsToValItems(argValsCons(V:Val, VS:ArgVals)) =>
@@ -16977,6 +17097,8 @@ module PYTHON
       andBool notBool classAttrsHasString(Attrs, "__getattribute__")
   rule <k> attrExp(V:Val, Attr:Id) => exceptionSignal(#exception(#token("AttributeError", "Id"))) ... </k>
     requires isClassVal(V) andBool notBool classHasMatchAttr(V, Attr)
+  rule <k> attrExp(V:Val, Attr:Id) => exceptionSignal(#exception(#token("AttributeError", "Id"))) ... </k>
+    requires isModuleVal(V) andBool notBool classHasMatchAttr(V, Attr)
   rule attrExp(rangeVal(Start:Int, _:Int), Attr:Id) => Start
     requires Id2String(Attr) ==String "start"
   rule attrExp(rangeVal(_:Int, Stop:Int), Attr:Id) => Stop
@@ -17381,9 +17503,14 @@ module PYTHON
       andBool notBool classHasAttrString(V, Attr)
       andBool notBool isUserObjectVal(V)
   rule <k> Attr:String ~> getattrDynApply(V:Val)
+        => exceptionSignal(#exception(#token("AttributeError", "Id"))) ... </k>
+    requires isModuleVal(V)
+      andBool notBool classHasAttrString(V, Attr)
+      andBool notBool getattrStringSupported(Attr)
+  rule <k> Attr:String ~> getattrDynApply(V:Val)
         => exceptionSignal(#exception(#token("NotImplementedError", "Id"))) ... </k>
     requires notBool getattrStringSupported(Attr)
-      andBool notBool (isClassVal(V) orBool isUserObjectVal(V))
+      andBool notBool (isClassVal(V) orBool isUserObjectVal(V) orBool isModuleVal(V))
   rule <k> Attr:Val ~> getattrDynApply(_V:Val)
         => exceptionSignal(#exception(#token("TypeError", "Id"))) ... </k>
     requires notBool isStringVal(Attr)
@@ -17468,10 +17595,15 @@ module PYTHON
     requires getattrStringSupported(Attr)
       andBool notBool classHasAttrString(V, Attr)
       andBool notBool isUserObjectVal(V)
+  rule <k> Default:Val ~> getattrDefaultDynApply(V:Val, Attr:String)
+        => Default ... </k>
+    requires isModuleVal(V)
+      andBool notBool classHasAttrString(V, Attr)
+      andBool notBool getattrStringSupported(Attr)
   rule <k> _Default:Val ~> getattrDefaultDynApply(V:Val, Attr:String)
         => exceptionSignal(#exception(#token("NotImplementedError", "Id"))) ... </k>
     requires notBool getattrStringSupported(Attr)
-      andBool notBool (isClassVal(V) orBool isUserObjectVal(V))
+      andBool notBool (isClassVal(V) orBool isUserObjectVal(V) orBool isModuleVal(V))
   rule <k> #hasattrDyn(Obj:Exp, Attr:Exp)
         => Obj ~> hasattrDynName(Attr) ... </k>
   rule <k> V:Val ~> hasattrDynName(Attr:Exp)
@@ -17521,9 +17653,13 @@ module PYTHON
       andBool notBool getattrStringSupported(Attr)
       andBool notBool isUserObjectVal(V)
   rule <k> Attr:String ~> hasattrDynApply(V:Val)
+        => boolValue(classHasAttrString(V, Attr)) ... </k>
+    requires isModuleVal(V)
+      andBool notBool getattrStringSupported(Attr)
+  rule <k> Attr:String ~> hasattrDynApply(V:Val)
         => exceptionSignal(#exception(#token("NotImplementedError", "Id"))) ... </k>
     requires notBool getattrStringSupported(Attr)
-      andBool notBool (isClassVal(V) orBool isUserObjectVal(V))
+      andBool notBool (isClassVal(V) orBool isUserObjectVal(V) orBool isModuleVal(V))
   rule <k> Attr:Val ~> hasattrDynApply(_V:Val)
         => exceptionSignal(#exception(#token("TypeError", "Id"))) ... </k>
     requires notBool isStringVal(Attr)
@@ -30711,10 +30847,15 @@ module PYTHON
        ... </k>
        <env> Rho => classValueAttrSet(Rho, ClassId, Attr, V) </env>
        <result> _ => .K </result>
+  rule <k> moduleVal(M:Id, _:ClassAttrs) ~> assignAttrApply(V:Val, Attr:Id) =>
+           stmtNoResult
+       ... </k>
+       <env> Rho => moduleValueAttrSet(Rho, M, Attr, V) </env>
+       <result> _ => .K </result>
   rule <k> V:Val ~> assignAttrApply(_:Val, _:Id) =>
            exceptionSignal(#exception(#token("AttributeError", "Id")))
        ... </k>
-    requires notBool isUserObjectVal(V) andBool notBool isClassVal(V)
+    requires notBool isUserObjectVal(V) andBool notBool isClassVal(V) andBool notBool isModuleVal(V)
 
   rule <k> #setattr(Obj:Exp, Attr:Exp, Value:Exp) =>
            Obj ~> setattrName(Attr, Value)
@@ -30770,10 +30911,14 @@ module PYTHON
            None
        ... </k>
        <env> Rho => classValueAttrStringSet(Rho, ClassId, Attr, V) </env>
+  rule <k> moduleVal(M:Id, _:ClassAttrs) ~> setattrStringApply(Attr:String, V:Val) =>
+           None
+       ... </k>
+       <env> Rho => moduleValueAttrStringSet(Rho, M, Attr, V) </env>
   rule <k> V:Val ~> setattrStringApply(_:String, _:Val) =>
            exceptionSignal(#exception(#token("AttributeError", "Id")))
        ... </k>
-    requires notBool isUserObjectVal(V) andBool notBool isClassVal(V)
+    requires notBool isUserObjectVal(V) andBool notBool isClassVal(V) andBool notBool isModuleVal(V)
 
   rule <k> #objectSetattr(Obj:Exp, Attr:Exp, Value:Exp) =>
            Obj ~> objectSetattrName(Attr, Value)
@@ -30888,10 +31033,20 @@ module PYTHON
            exceptionSignal(#exception(#token("AttributeError", "Id")))
        ... </k>
     requires notBool classAttrsOwnHas(Attrs, Attr)
+  rule <k> moduleVal(M:Id, Attrs:ClassAttrs) ~> delAttrApply(Attr:Id) =>
+           stmtNoResult
+       ... </k>
+       <env> Rho => moduleValueAttrDel(Rho, M, Attr) </env>
+       <result> _ => .K </result>
+    requires classAttrsHas(Attrs, Attr)
+  rule <k> moduleVal(_:Id, Attrs:ClassAttrs) ~> delAttrApply(Attr:Id) =>
+           exceptionSignal(#exception(#token("AttributeError", "Id")))
+       ... </k>
+    requires notBool classAttrsHas(Attrs, Attr)
   rule <k> V:Val ~> delAttrApply(_:Id) =>
            exceptionSignal(#exception(#token("AttributeError", "Id")))
        ... </k>
-    requires notBool isUserObjectVal(V) andBool notBool isClassVal(V)
+    requires notBool isUserObjectVal(V) andBool notBool isClassVal(V) andBool notBool isModuleVal(V)
 
   rule <k> #delattr(Obj:Exp, Attr:Exp) =>
            Obj ~> delattrName(Attr)
@@ -30966,10 +31121,19 @@ module PYTHON
            exceptionSignal(#exception(#token("AttributeError", "Id")))
        ... </k>
     requires notBool classAttrsOwnHasString(Attrs, Attr)
+  rule <k> moduleVal(M:Id, Attrs:ClassAttrs) ~> delattrStringApply(Attr:String) =>
+           None
+       ... </k>
+       <env> Rho => moduleValueAttrStringDel(Rho, M, Attr) </env>
+    requires classAttrsHasString(Attrs, Attr)
+  rule <k> moduleVal(_:Id, Attrs:ClassAttrs) ~> delattrStringApply(Attr:String) =>
+           exceptionSignal(#exception(#token("AttributeError", "Id")))
+       ... </k>
+    requires notBool classAttrsHasString(Attrs, Attr)
   rule <k> V:Val ~> delattrStringApply(_:String) =>
            exceptionSignal(#exception(#token("AttributeError", "Id")))
        ... </k>
-    requires notBool isUserObjectVal(V) andBool notBool isClassVal(V)
+    requires notBool isUserObjectVal(V) andBool notBool isClassVal(V) andBool notBool isModuleVal(V)
 
   rule <k> #objectDelattr(Obj:Exp, Attr:Exp) =>
            Obj ~> objectDelattrName(Attr)

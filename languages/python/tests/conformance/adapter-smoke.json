@@ -235,6 +235,13 @@
       "coverage": ["import-statement", "module-value", "module-attribute-assignment", "module-attribute-deletion", "module-attribute-rebinding", "container-held-module-values", "nested-container-values", "getattr-builtin", "hasattr-builtin", "setattr-builtin", "delattr-builtin", "attribute-error", "ordinary-python-source-adapter"]
     },
     {
+      "id": "adapter-module-import-cache-mutation",
+      "source": "../adapter/adapter-module-import-cache-mutation.py",
+      "reference": "Python 3.14.6 Language Reference 5 The import system; 6.3.1 Attribute references; 7.2 Assignment statements; 7.5 The del statement; Python Data Model modules; Standard Library importlib.import_module",
+      "expected_result": "True ~> .K",
+      "coverage": ["import-statement", "from-import-statement", "import-as-binding", "importlib-import-module", "module-cache-identity", "module-attribute-assignment", "module-attribute-deletion", "module-attribute-rebinding", "future-import-mutation-visibility", "import-error", "ordinary-python-source-adapter"]
+    },
+    {
       "id": "adapter-string-repeat",
       "source": "../adapter/adapter-string-repeat.py",
       "reference": "Python Language Reference 6.7 Binary arithmetic operations; Standard Library sequence types",

@@ -1814,6 +1814,11 @@ module PYTHON
                 | valEq(Val, Val) [function, symbol(valEq)]
                 | builtinModuleSupported(Id) [function, symbol(builtinModuleSupported)]
                 | builtinModuleHasAttr(Id, Id) [function, symbol(builtinModuleHasAttr)]
+                | envModuleHas(Map, Id) [function, symbol(envModuleHas)]
+                | envModuleStringHas(Map, String) [function, symbol(envModuleStringHas)]
+                | valContainsModuleString(Val, String) [function, symbol(valContainsModuleString)]
+                | valItemsContainModuleString(ValItems, String) [function, symbol(valItemsContainModuleString)]
+                | dictItemsContainModuleString(DictItems, String) [function, symbol(dictItemsContainModuleString)]
                 | importlibImportModuleSupported(String) [function, symbol(importlibImportModuleSupported)]
                 | importlibImportModuleRelativeName(String) [function, symbol(importlibImportModuleRelativeName)]
                 | keywordIsKeywordString(String) [function, symbol(keywordIsKeywordString)]
@@ -2775,6 +2780,11 @@ module PYTHON
                | moduleValueAttrStringSetVal(Val, Id, String, Val) [function, symbol(moduleValueAttrStringSetVal)]
                | moduleValueAttrDelVal(Val, Id, Id) [function, symbol(moduleValueAttrDelVal)]
                | moduleValueAttrStringDelVal(Val, Id, String) [function, symbol(moduleValueAttrStringDelVal)]
+               | envModuleGet(Map, Id) [function, symbol(envModuleGet)]
+               | envModuleStringGet(Map, String) [function, symbol(envModuleStringGet)]
+               | valModuleStringGet(Val, String) [function, symbol(valModuleStringGet)]
+               | valItemsModuleStringGet(ValItems, String) [function, symbol(valItemsModuleStringGet)]
+               | dictItemsModuleStringGet(DictItems, String) [function, symbol(dictItemsModuleStringGet)]
   syntax ValItems ::= argValsToValItems(ArgVals) [function, symbol(argValsToValItems)]
   syntax ValItems ::= dictPairItems(Val) [function, symbol(dictPairItems)]
   syntax ValItems ::= argValsToSetItems(ArgVals) [function, symbol(argValsToSetItems)]
@@ -6901,6 +6911,61 @@ module PYTHON
 
   rule builtinModuleAttr(M:Id, A:Id) => classAttrGet(builtinModuleAttrs(M), A)
     requires builtinModuleSupported(M) andBool builtinModuleHasAttr(M, A)
+
+  rule envModuleHas(Rho:Map, M:Id) => envModuleStringHas(Rho, Id2String(M))
+
+  rule envModuleStringHas(.Map, _M:String) => false
+  rule envModuleStringHas((_:Id |-> V:Val) _Rho:Map, M:String) => true
+    requires valContainsModuleString(V, M)
+  rule envModuleStringHas((_:Id |-> V:Val) Rho:Map, M:String) => envModuleStringHas(Rho, M)
+    requires notBool valContainsModuleString(V, M)
+
+  rule envModuleGet(Rho:Map, M:Id) => envModuleStringGet(Rho, Id2String(M))
+
+  rule envModuleStringGet((_:Id |-> V:Val) _Rho:Map, M:String) => valModuleStringGet(V, M)
+    requires valContainsModuleString(V, M)
+  rule envModuleStringGet((_:Id |-> V:Val) Rho:Map, M:String) => envModuleStringGet(Rho, M)
+    requires notBool valContainsModuleString(V, M)
+
+  rule valContainsModuleString(moduleVal(M:Id, _:ClassAttrs), Expected:String) => Id2String(M) ==String Expected
+  rule valContainsModuleString(listVal(VS:ValItems), Expected:String) => valItemsContainModuleString(VS, Expected)
+  rule valContainsModuleString(tupleVal(VS:ValItems), Expected:String) => valItemsContainModuleString(VS, Expected)
+  rule valContainsModuleString(dictVal(DS:DictItems), Expected:String) => dictItemsContainModuleString(DS, Expected)
+  rule valContainsModuleString(_:Val, _Expected:String) => false [owise]
+
+  rule valItemsContainModuleString(valItemsLast(V:Val), Expected:String) => valContainsModuleString(V, Expected)
+  rule valItemsContainModuleString(valItemsCons(V:Val, VS:ValItems), Expected:String) =>
+    valContainsModuleString(V, Expected) orBool valItemsContainModuleString(VS, Expected)
+
+  rule dictItemsContainModuleString(dictItemsLast(_K:Val, V:Val), Expected:String) =>
+    valContainsModuleString(V, Expected)
+  rule dictItemsContainModuleString(dictItemsCons(_K:Val, V:Val, DS:DictItems), Expected:String) =>
+    valContainsModuleString(V, Expected) orBool dictItemsContainModuleString(DS, Expected)
+
+  rule valModuleStringGet(moduleVal(M:Id, Attrs:ClassAttrs), Expected:String) => moduleVal(M, Attrs)
+    requires Id2String(M) ==String Expected
+  rule valModuleStringGet(listVal(VS:ValItems), Expected:String) => valItemsModuleStringGet(VS, Expected)
+    requires valItemsContainModuleString(VS, Expected)
+  rule valModuleStringGet(tupleVal(VS:ValItems), Expected:String) => valItemsModuleStringGet(VS, Expected)
+    requires valItemsContainModuleString(VS, Expected)
+  rule valModuleStringGet(dictVal(DS:DictItems), Expected:String) => dictItemsModuleStringGet(DS, Expected)
+    requires dictItemsContainModuleString(DS, Expected)
+
+  rule valItemsModuleStringGet(valItemsLast(V:Val), Expected:String) => valModuleStringGet(V, Expected)
+    requires valContainsModuleString(V, Expected)
+  rule valItemsModuleStringGet(valItemsCons(V:Val, _VS:ValItems), Expected:String) => valModuleStringGet(V, Expected)
+    requires valContainsModuleString(V, Expected)
+  rule valItemsModuleStringGet(valItemsCons(V:Val, VS:ValItems), Expected:String) => valItemsModuleStringGet(VS, Expected)
+    requires notBool valContainsModuleString(V, Expected)
+      andBool valItemsContainModuleString(VS, Expected)
+
+  rule dictItemsModuleStringGet(dictItemsLast(_K:Val, V:Val), Expected:String) => valModuleStringGet(V, Expected)
+    requires valContainsModuleString(V, Expected)
+  rule dictItemsModuleStringGet(dictItemsCons(_K:Val, V:Val, _DS:DictItems), Expected:String) => valModuleStringGet(V, Expected)
+    requires valContainsModuleString(V, Expected)
+  rule dictItemsModuleStringGet(dictItemsCons(_K:Val, V:Val, DS:DictItems), Expected:String) => dictItemsModuleStringGet(DS, Expected)
+    requires notBool valContainsModuleString(V, Expected)
+      andBool dictItemsContainModuleString(DS, Expected)
 
   rule functionMeta(F:Id, Doc:Val, Fun:Val) =>
     functionMetaVal(Id2String(F), Id2String(F), Doc, "__main__", Fun)
@@ -16127,17 +16192,33 @@ module PYTHON
        <env> Rho => Rho [ X <- V ] </env>
 
   rule <k> #import(M:Id) => stmtNoResult ... </k>
+       <env> Rho => Rho [ M <- envModuleGet(Rho, M) ] </env>
+    requires builtinModuleSupported(M) andBool envModuleHas(Rho, M)
+  rule <k> #import(M:Id) => stmtNoResult ... </k>
        <env> Rho => Rho [ M <- builtinModule(M) ] </env>
-    requires builtinModuleSupported(M)
+    requires builtinModuleSupported(M) andBool notBool envModuleHas(Rho, M)
+  rule <k> #importAs(M:Id, Alias:Id) => stmtNoResult ... </k>
+       <env> Rho => Rho [ Alias <- envModuleGet(Rho, M) ] </env>
+    requires builtinModuleSupported(M) andBool envModuleHas(Rho, M)
   rule <k> #importAs(M:Id, Alias:Id) => stmtNoResult ... </k>
        <env> Rho => Rho [ Alias <- builtinModule(M) ] </env>
+    requires builtinModuleSupported(M) andBool notBool envModuleHas(Rho, M)
+  rule <k> #fromImport(M:Id, A:Id) => stmtNoResult ... </k>
+       <env> Rho => Rho [ A <- matchClassAttrVal(envModuleGet(Rho, M), A) ] </env>
     requires builtinModuleSupported(M)
+      andBool envModuleHas(Rho, M)
+      andBool classHasMatchAttr(envModuleGet(Rho, M), A)
   rule <k> #fromImport(M:Id, A:Id) => stmtNoResult ... </k>
        <env> Rho => Rho [ A <- builtinModuleAttr(M, A) ] </env>
-    requires builtinModuleSupported(M) andBool builtinModuleHasAttr(M, A)
+    requires builtinModuleSupported(M) andBool notBool envModuleHas(Rho, M) andBool builtinModuleHasAttr(M, A)
+  rule <k> #fromImportAs(M:Id, A:Id, Alias:Id) => stmtNoResult ... </k>
+       <env> Rho => Rho [ Alias <- matchClassAttrVal(envModuleGet(Rho, M), A) ] </env>
+    requires builtinModuleSupported(M)
+      andBool envModuleHas(Rho, M)
+      andBool classHasMatchAttr(envModuleGet(Rho, M), A)
   rule <k> #fromImportAs(M:Id, A:Id, Alias:Id) => stmtNoResult ... </k>
        <env> Rho => Rho [ Alias <- builtinModuleAttr(M, A) ] </env>
-    requires builtinModuleSupported(M) andBool builtinModuleHasAttr(M, A)
+    requires builtinModuleSupported(M) andBool notBool envModuleHas(Rho, M) andBool builtinModuleHasAttr(M, A)
   rule <k> #import(M:Id) => exceptionSignal(#exception(#token("ModuleNotFoundError", "Id"))) ... </k>
     requires notBool builtinModuleSupported(M)
   rule <k> #importAs(M:Id, _Alias:Id) => exceptionSignal(#exception(#token("ModuleNotFoundError", "Id"))) ... </k>
@@ -16147,9 +16228,21 @@ module PYTHON
   rule <k> #fromImportAs(M:Id, _A:Id, _Alias:Id) => exceptionSignal(#exception(#token("ModuleNotFoundError", "Id"))) ... </k>
     requires notBool builtinModuleSupported(M)
   rule <k> #fromImport(M:Id, A:Id) => exceptionSignal(#exception(#token("ImportError", "Id"))) ... </k>
-    requires builtinModuleSupported(M) andBool notBool builtinModuleHasAttr(M, A)
+       <env> Rho </env>
+    requires builtinModuleSupported(M)
+      andBool envModuleHas(Rho, M)
+      andBool notBool classHasMatchAttr(envModuleGet(Rho, M), A)
+  rule <k> #fromImport(M:Id, A:Id) => exceptionSignal(#exception(#token("ImportError", "Id"))) ... </k>
+       <env> Rho </env>
+    requires builtinModuleSupported(M) andBool notBool envModuleHas(Rho, M) andBool notBool builtinModuleHasAttr(M, A)
   rule <k> #fromImportAs(M:Id, A:Id, _Alias:Id) => exceptionSignal(#exception(#token("ImportError", "Id"))) ... </k>
-    requires builtinModuleSupported(M) andBool notBool builtinModuleHasAttr(M, A)
+       <env> Rho </env>
+    requires builtinModuleSupported(M)
+      andBool envModuleHas(Rho, M)
+      andBool notBool classHasMatchAttr(envModuleGet(Rho, M), A)
+  rule <k> #fromImportAs(M:Id, A:Id, _Alias:Id) => exceptionSignal(#exception(#token("ImportError", "Id"))) ... </k>
+       <env> Rho </env>
+    requires builtinModuleSupported(M) andBool notBool envModuleHas(Rho, M) andBool notBool builtinModuleHasAttr(M, A)
   rule <k> #fromRelativeImport(Level:Int, _Module:Id, _A:Id) => exceptionSignal(#exception(#token("ImportError", "Id"))) ... </k>
     requires Level >Int 0
   rule <k> #fromRelativeImportAs(Level:Int, _Module:Id, _A:Id, _Alias:Id) => exceptionSignal(#exception(#token("ImportError", "Id"))) ... </k>
@@ -18323,9 +18416,17 @@ module PYTHON
        ... </k>
     requires notBool callableVal(F)
   rule <k> S:String ~> callApply(#importlibImportModuleFun) =>
+           envModuleStringGet(Rho, S)
+       ... </k>
+       <env> Rho </env>
+    requires importlibImportModuleSupported(S)
+      andBool envModuleStringHas(Rho, S)
+  rule <k> S:String ~> callApply(#importlibImportModuleFun) =>
            importlibImportModule(S)
        ... </k>
+       <env> Rho </env>
     requires importlibImportModuleSupported(S)
+      andBool notBool envModuleStringHas(Rho, S)
   rule <k> S:String ~> callApply(#importlibImportModuleFun) =>
            exceptionSignal(#exception(#token("ValueError", "Id")))
        ... </k>
@@ -19000,13 +19101,29 @@ module PYTHON
        ... </k>
     requires notBool callableVal(F)
   rule <k> argsVal(argValsCons(S:String, #noArgVals)) ~> callApplyArgs(#importlibImportModuleFun) =>
+           envModuleStringGet(Rho, S)
+       ... </k>
+       <env> Rho </env>
+    requires importlibImportModuleSupported(S)
+      andBool envModuleStringHas(Rho, S)
+  rule <k> argsVal(argValsCons(S:String, #noArgVals)) ~> callApplyArgs(#importlibImportModuleFun) =>
            importlibImportModule(S)
        ... </k>
+       <env> Rho </env>
     requires importlibImportModuleSupported(S)
+      andBool notBool envModuleStringHas(Rho, S)
+  rule <k> argsVal(argValsCons(S:String, argValsCons(_Package:Val, #noArgVals))) ~> callApplyArgs(#importlibImportModuleFun) =>
+           envModuleStringGet(Rho, S)
+       ... </k>
+       <env> Rho </env>
+    requires importlibImportModuleSupported(S)
+      andBool envModuleStringHas(Rho, S)
   rule <k> argsVal(argValsCons(S:String, argValsCons(_Package:Val, #noArgVals))) ~> callApplyArgs(#importlibImportModuleFun) =>
            importlibImportModule(S)
        ... </k>
+       <env> Rho </env>
     requires importlibImportModuleSupported(S)
+      andBool notBool envModuleStringHas(Rho, S)
   rule <k> argsVal(argValsCons(S:String, #noArgVals)) ~> callApplyArgs(#importlibImportModuleFun) =>
            exceptionSignal(#exception(#token("ValueError", "Id")))
        ... </k>

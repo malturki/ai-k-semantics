@@ -20846,6 +20846,16 @@ module PYTHON
        ... </k>
     requires notBool callableVal(F)
   rule <k> kwArgsVal(KWS:KwArgVals) ~> callApplyKwArgs(#typeVal(T:Id)) =>
+           #intCtor()
+       ... </k>
+    requires Id2String(T) ==String "int"
+      andBool emptyKwArgVals(KWS)
+  rule <k> kwArgsVal(KWS:KwArgVals) ~> callApplyKwArgs(#typeVal(T:Id)) =>
+           exceptionSignal(#exception(#token("TypeError", "Id")))
+       ... </k>
+    requires Id2String(T) ==String "int"
+      andBool notBool emptyKwArgVals(KWS)
+  rule <k> kwArgsVal(KWS:KwArgVals) ~> callApplyKwArgs(#typeVal(T:Id)) =>
            dictCtorFromKwArgs(KWS)
        ... </k>
     requires Id2String(T) ==String "dict"
@@ -21641,8 +21651,32 @@ module PYTHON
   rule <k> kwArgsVal(KWS:KwArgVals) ~> callApplyMixedArgs(#typeVal(T:Id), #noArgVals) =>
            kwArgsVal(KWS) ~> callApplyKwArgs(#typeVal(T))
        ... </k>
-    requires Id2String(T) ==String "dict"
+    requires Id2String(T) ==String "int"
+      orBool Id2String(T) ==String "dict"
       orBool Id2String(T) ==String "complex"
+  rule <k> kwArgsVal(KWS:KwArgVals) ~> callApplyMixedArgs(#typeVal(T:Id), VS:ArgVals) =>
+           argsVal(VS) ~> callApplyArgs(#typeVal(T))
+       ... </k>
+    requires Id2String(T) ==String "int"
+      andBool argValsLen(VS) >Int 0
+      andBool emptyKwArgVals(KWS)
+  rule <k> kwArgsVal(KWS:KwArgVals) ~> callApplyMixedArgs(#typeVal(T:Id), VS:ArgVals) =>
+           #intCtor(argValAt(VS, 0), kwLookup(#token("base", "Id"), KWS))
+       ... </k>
+    requires Id2String(T) ==String "int"
+      andBool argValsLen(VS) ==Int 1
+      andBool notBool emptyKwArgVals(KWS)
+      andBool kwNoDuplicates(KWS)
+      andBool kwAllInIds(KWS, idItemsLast(#token("base", "Id")))
+  rule <k> kwArgsVal(KWS:KwArgVals) ~> callApplyMixedArgs(#typeVal(T:Id), VS:ArgVals) =>
+           exceptionSignal(#exception(#token("TypeError", "Id")))
+       ... </k>
+    requires Id2String(T) ==String "int"
+      andBool argValsLen(VS) >Int 0
+      andBool notBool emptyKwArgVals(KWS)
+      andBool (argValsLen(VS) =/=Int 1
+        orBool notBool kwNoDuplicates(KWS)
+        orBool notBool kwAllInIds(KWS, idItemsLast(#token("base", "Id"))))
   rule <k> kwArgsVal(KWS:KwArgVals) ~> callApplyMixedArgs(#typeVal(T:Id), VS:ArgVals) =>
            dictCtorMergeKw(argValAt(VS, 0), KWS)
        ... </k>

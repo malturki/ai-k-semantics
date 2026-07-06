@@ -541,7 +541,7 @@ module PYTHON-SYNTAX
                | "#setCompMany" "(" Exp "," Target "," MaybeCompFilters "," MaybeCompClauses "," Exp ")" [symbol(setCompManyExp), strict(1)]
                | "#genExp" "(" Exp ")" [symbol(genExpExp)]
                | "#listCtor" "(" ")" [symbol(listCtorExp)]
-               | "#listCtor" "(" Exp ")" [symbol(listCtor1Exp), strict]
+               | "#listCtor" "(" Exp ")" [symbol(listCtor1Exp)]
                | "#tupleCtor" "(" ")" [symbol(tupleCtorExp)]
                | "#tupleCtor" "(" Exp ")" [symbol(tupleCtor1Exp), strict]
                | "#sorted" "(" Exp ")" [symbol(sortedExp), strict]
@@ -1162,6 +1162,7 @@ module PYTHON
                  | listCompManyIteratorApply(Target, MaybeCompFilters, MaybeCompClauses, Exp, ArgVals, CompArgStack, Map, Map) [symbol(listCompManyIteratorApply)]
                  | setCompManyIteratorApply(Target, MaybeCompFilters, MaybeCompClauses, Exp, ArgVals, CompArgStack, Map, Map) [symbol(setCompManyIteratorApply)]
                  | dictCompManyIteratorApply(Target, MaybeCompFilters, MaybeCompClauses, Exp, Exp, DictVals, CompDictStack, Map, Map) [symbol(dictCompManyIteratorApply)]
+                 | "listCtorApply" [symbol(listCtorApply)]
                  | "setIteratorApply" [symbol(setIteratorApply)]
                  | "frozensetIteratorApply" [symbol(frozensetIteratorApply)]
                  | sortedReverseFlag(Exp) [symbol(sortedReverseFlag)]
@@ -1816,6 +1817,8 @@ module PYTHON
                 | callableVal(Val) [function, symbol(callableVal)]
                 | isTypeVal(Val) [function, symbol(isTypeVal)]
                 | typeValSupported(Id) [function, symbol(typeValSupported)]
+                | typeValNoArgConstructible(Id) [function, symbol(typeValNoArgConstructible)]
+                | valueClassTypeSupported(Val) [function, symbol(valueClassTypeSupported)]
                 | typeValAttrId(Id) [function, symbol(typeValAttrId)]
                 | typeValAttrString(String) [function, symbol(typeValAttrString)]
                 | typeValMatches(Val, Id) [function, symbol(typeValMatches)]
@@ -3117,6 +3120,7 @@ module PYTHON
   syntax Val ::= kwLookup(Id, KwArgVals) [function, symbol(kwLookup)]
   syntax Val ::= boolValue(Bool) [function, symbol(boolValue)]
                | typeValCtorResult(Id) [function, symbol(typeValCtorResult)]
+               | valueClassTypeVal(Val) [function, symbol(valueClassTypeVal)]
                | complexMulVal(Val, Val) [function, symbol(complexMulVal)]
                | complexInv(Val) [function, symbol(complexInv)]
                | complexPowNonNeg(Float, Float, Int) [function, symbol(complexPowNonNeg)]
@@ -3399,7 +3403,40 @@ module PYTHON
     Id2String(T) ==String "NoneType"
       orBool Id2String(T) ==String "EllipsisType"
       orBool Id2String(T) ==String "NotImplementedType"
+      orBool Id2String(T) ==String "bool"
+      orBool Id2String(T) ==String "int"
+      orBool Id2String(T) ==String "float"
+      orBool Id2String(T) ==String "complex"
+      orBool Id2String(T) ==String "str"
+      orBool Id2String(T) ==String "bytes"
+      orBool Id2String(T) ==String "bytearray"
+      orBool Id2String(T) ==String "list"
+      orBool Id2String(T) ==String "tuple"
+      orBool Id2String(T) ==String "dict"
+      orBool Id2String(T) ==String "set"
+      orBool Id2String(T) ==String "frozenset"
+      orBool Id2String(T) ==String "range"
+      orBool Id2String(T) ==String "slice"
+      orBool Id2String(T) ==String "memoryview"
   rule typeValSupported(_:Id) => false [owise]
+
+  rule typeValNoArgConstructible(T:Id) =>
+    Id2String(T) ==String "NoneType"
+      orBool Id2String(T) ==String "EllipsisType"
+      orBool Id2String(T) ==String "NotImplementedType"
+      orBool Id2String(T) ==String "bool"
+      orBool Id2String(T) ==String "int"
+      orBool Id2String(T) ==String "float"
+      orBool Id2String(T) ==String "complex"
+      orBool Id2String(T) ==String "str"
+      orBool Id2String(T) ==String "bytes"
+      orBool Id2String(T) ==String "bytearray"
+      orBool Id2String(T) ==String "list"
+      orBool Id2String(T) ==String "tuple"
+      orBool Id2String(T) ==String "dict"
+      orBool Id2String(T) ==String "set"
+      orBool Id2String(T) ==String "frozenset"
+  rule typeValNoArgConstructible(_:Id) => false [owise]
 
   rule typeValAttrId(A:Id) =>
     classAttrIdMatchesString(A, "__name__")
@@ -3422,14 +3459,95 @@ module PYTHON
     requires Id2String(T) ==String "EllipsisType"
   rule typeValCtorResult(T:Id) => NotImplemented
     requires Id2String(T) ==String "NotImplementedType"
+  rule typeValCtorResult(T:Id) => False
+    requires Id2String(T) ==String "bool"
+  rule typeValCtorResult(T:Id) => 0
+    requires Id2String(T) ==String "int"
+  rule typeValCtorResult(T:Id) => 0.0
+    requires Id2String(T) ==String "float"
+  rule typeValCtorResult(T:Id) => #complex(0.0, 0.0)
+    requires Id2String(T) ==String "complex"
+  rule typeValCtorResult(T:Id) => ""
+    requires Id2String(T) ==String "str"
+  rule typeValCtorResult(T:Id) => #bytes()
+    requires Id2String(T) ==String "bytes"
+  rule typeValCtorResult(T:Id) => #bytearray()
+    requires Id2String(T) ==String "bytearray"
+  rule typeValCtorResult(T:Id) => []
+    requires Id2String(T) ==String "list"
+  rule typeValCtorResult(T:Id) => ()
+    requires Id2String(T) ==String "tuple"
+  rule typeValCtorResult(T:Id) => ({}):Val
+    requires Id2String(T) ==String "dict"
+  rule typeValCtorResult(T:Id) => set()
+    requires Id2String(T) ==String "set"
+  rule typeValCtorResult(T:Id) => frozenset()
+    requires Id2String(T) ==String "frozenset"
+
+  rule valueClassTypeSupported(True) => true
+  rule valueClassTypeSupported(False) => true
+  rule valueClassTypeSupported(_:Int) => true
+  rule valueClassTypeSupported(_:Float) => true
+  rule valueClassTypeSupported(#complex(_:Float, _:Float)) => true
+  rule valueClassTypeSupported(_:String) => true
+  rule valueClassTypeSupported(#bytes()) => true
+  rule valueClassTypeSupported(bytesVal(_:ValItems)) => true
+  rule valueClassTypeSupported(#bytearray()) => true
+  rule valueClassTypeSupported(bytearrayVal(_:ValItems)) => true
+  rule valueClassTypeSupported(#memoryviewVal(_:Val)) => true
+  rule valueClassTypeSupported([]) => true
+  rule valueClassTypeSupported(listVal(_:ValItems)) => true
+  rule valueClassTypeSupported(()) => true
+  rule valueClassTypeSupported(tupleVal(_:ValItems)) => true
+  rule valueClassTypeSupported(({}):Val) => true
+  rule valueClassTypeSupported(dictVal(_:DictItems)) => true
+  rule valueClassTypeSupported(set()) => true
+  rule valueClassTypeSupported(setVal(_:ValItems)) => true
+  rule valueClassTypeSupported(frozenset()) => true
+  rule valueClassTypeSupported(frozensetVal(_:ValItems)) => true
+  rule valueClassTypeSupported(rangeVal(_:Int, _:Int)) => true
+  rule valueClassTypeSupported(rangeVal(_:Int, _:Int, _:Int)) => true
+  rule valueClassTypeSupported(sliceVal(_:Val, _:Val, _:Val)) => true
+  rule valueClassTypeSupported(_:Val) => false [owise]
+
+  rule valueClassTypeVal(True) => #typeVal(#token("bool", "Id"))
+  rule valueClassTypeVal(False) => #typeVal(#token("bool", "Id"))
+  rule valueClassTypeVal(_:Int) => #typeVal(#token("int", "Id"))
+  rule valueClassTypeVal(_:Float) => #typeVal(#token("float", "Id"))
+  rule valueClassTypeVal(#complex(_:Float, _:Float)) => #typeVal(#token("complex", "Id"))
+  rule valueClassTypeVal(_:String) => #typeVal(#token("str", "Id"))
+  rule valueClassTypeVal(#bytes()) => #typeVal(#token("bytes", "Id"))
+  rule valueClassTypeVal(bytesVal(_:ValItems)) => #typeVal(#token("bytes", "Id"))
+  rule valueClassTypeVal(#bytearray()) => #typeVal(#token("bytearray", "Id"))
+  rule valueClassTypeVal(bytearrayVal(_:ValItems)) => #typeVal(#token("bytearray", "Id"))
+  rule valueClassTypeVal(#memoryviewVal(_:Val)) => #typeVal(#token("memoryview", "Id"))
+  rule valueClassTypeVal([]) => #typeVal(#token("list", "Id"))
+  rule valueClassTypeVal(listVal(_:ValItems)) => #typeVal(#token("list", "Id"))
+  rule valueClassTypeVal(()) => #typeVal(#token("tuple", "Id"))
+  rule valueClassTypeVal(tupleVal(_:ValItems)) => #typeVal(#token("tuple", "Id"))
+  rule valueClassTypeVal(({}):Val) => #typeVal(#token("dict", "Id"))
+  rule valueClassTypeVal(dictVal(_:DictItems)) => #typeVal(#token("dict", "Id"))
+  rule valueClassTypeVal(set()) => #typeVal(#token("set", "Id"))
+  rule valueClassTypeVal(setVal(_:ValItems)) => #typeVal(#token("set", "Id"))
+  rule valueClassTypeVal(frozenset()) => #typeVal(#token("frozenset", "Id"))
+  rule valueClassTypeVal(frozensetVal(_:ValItems)) => #typeVal(#token("frozenset", "Id"))
+  rule valueClassTypeVal(rangeVal(_:Int, _:Int)) => #typeVal(#token("range", "Id"))
+  rule valueClassTypeVal(rangeVal(_:Int, _:Int, _:Int)) => #typeVal(#token("range", "Id"))
+  rule valueClassTypeVal(sliceVal(_:Val, _:Val, _:Val)) => #typeVal(#token("slice", "Id"))
 
   rule typeValMatches(None, T:Id) => Id2String(T) ==String "NoneType"
   rule typeValMatches(Ellipsis, T:Id) => Id2String(T) ==String "EllipsisType"
   rule typeValMatches(NotImplemented, T:Id) => Id2String(T) ==String "NotImplementedType"
+  rule typeValMatches(True, T:Id) => Id2String(T) ==String "bool" orBool Id2String(T) ==String "int"
+  rule typeValMatches(False, T:Id) => Id2String(T) ==String "bool" orBool Id2String(T) ==String "int"
+  rule typeValMatches(V:Val, T:Id) => valIs(valueClassTypeVal(V), #typeVal(T))
+    requires valueClassTypeSupported(V)
+      andBool notBool valIs(valueClassTypeVal(V), #typeVal(#token("bool", "Id")))
   rule typeValMatches(_:Val, _:Id) => false [owise]
 
   rule typeValSubclass(#typeVal(C:Id), #typeVal(I:Id)) =>
-    Id2String(C) ==String Id2String(I)
+    (Id2String(C) ==String Id2String(I))
+      orBool (Id2String(C) ==String "bool" andBool Id2String(I) ==String "int")
   rule typeValSubclass(_:Val, _:Val) => false [owise]
 
   rule isClassVal(classVal(_:Id, _:Int, _:ClassAttrs)) => true
@@ -7455,6 +7573,9 @@ module PYTHON
     requires classAttrIdMatchesString(A, "__class__")
   rule classHasMatchAttr(NotImplemented, A:Id) => true
     requires classAttrIdMatchesString(A, "__class__")
+  rule classHasMatchAttr(V:Val, A:Id) => true
+    requires valueClassTypeSupported(V)
+      andBool classAttrIdMatchesString(A, "__class__")
   rule classHasMatchAttr(rangeVal(_:Int, _:Int), A:Id) => true
     requires Id2String(A) ==String "start" orBool Id2String(A) ==String "stop" orBool Id2String(A) ==String "step"
   rule classHasMatchAttr(rangeVal(_:Int, _:Int, _:Int), A:Id) => true
@@ -7507,6 +7628,8 @@ module PYTHON
   rule classHasAttrString(None, "__class__") => true
   rule classHasAttrString(Ellipsis, "__class__") => true
   rule classHasAttrString(NotImplemented, "__class__") => true
+  rule classHasAttrString(V:Val, "__class__") => true
+    requires valueClassTypeSupported(V)
   rule classHasAttrString(rangeVal(_:Int, _:Int), A:String) => true
     requires A ==String "start" orBool A ==String "stop" orBool A ==String "step"
   rule classHasAttrString(rangeVal(_:Int, _:Int, _:Int), A:String) => true
@@ -7587,6 +7710,9 @@ module PYTHON
     requires classAttrIdMatchesString(Attr, "__class__")
   rule matchClassAttrVal(NotImplemented, Attr:Id) => #typeVal(#token("NotImplementedType", "Id"))
     requires classAttrIdMatchesString(Attr, "__class__")
+  rule matchClassAttrVal(V:Val, Attr:Id) => valueClassTypeVal(V)
+    requires valueClassTypeSupported(V)
+      andBool classAttrIdMatchesString(Attr, "__class__")
   rule matchClassAttrVal(rangeVal(Start:Int, _:Int), Attr:Id) => Start
     requires Id2String(Attr) ==String "start"
   rule matchClassAttrVal(rangeVal(_:Int, Stop:Int), Attr:Id) => Stop
@@ -7656,6 +7782,8 @@ module PYTHON
   rule matchClassAttrStringVal(None, "__class__") => #typeVal(#token("NoneType", "Id"))
   rule matchClassAttrStringVal(Ellipsis, "__class__") => #typeVal(#token("EllipsisType", "Id"))
   rule matchClassAttrStringVal(NotImplemented, "__class__") => #typeVal(#token("NotImplementedType", "Id"))
+  rule matchClassAttrStringVal(V:Val, "__class__") => valueClassTypeVal(V)
+    requires valueClassTypeSupported(V)
   rule matchClassAttrStringVal(rangeVal(Start:Int, _:Int), Attr:String) => Start
     requires Attr ==String "start"
   rule matchClassAttrStringVal(rangeVal(_:Int, Stop:Int), Attr:String) => Stop
@@ -17650,6 +17778,9 @@ module PYTHON
     requires classAttrIdMatchesString(Attr, "__class__")
   rule attrExp(NotImplemented, Attr:Id) => #typeVal(#token("NotImplementedType", "Id"))
     requires classAttrIdMatchesString(Attr, "__class__")
+  rule attrExp(V:Val, Attr:Id) => valueClassTypeVal(V)
+    requires valueClassTypeSupported(V)
+      andBool classAttrIdMatchesString(Attr, "__class__")
   rule <k> attrExp(None, Attr:Id) => exceptionSignal(#exception(#token("AttributeError", "Id"))) ... </k>
     requires notBool classAttrIdMatchesString(Attr, "__class__")
   rule <k> attrExp(Ellipsis, Attr:Id) => exceptionSignal(#exception(#token("AttributeError", "Id"))) ... </k>
@@ -19651,7 +19782,11 @@ module PYTHON
   rule <k> argsVal(#noArgVals) ~> callApplyArgs(#typeVal(T:Id)) =>
            typeValCtorResult(T)
        ... </k>
-    requires typeValSupported(T)
+    requires typeValSupported(T) andBool typeValNoArgConstructible(T)
+  rule <k> argsVal(#noArgVals) ~> callApplyArgs(#typeVal(T:Id)) =>
+           exceptionSignal(#exception(#token("TypeError", "Id")))
+       ... </k>
+    requires typeValSupported(T) andBool notBool typeValNoArgConstructible(T)
   rule <k> argsVal(VS:ArgVals) ~> callApplyArgs(#typeVal(T:Id)) =>
            exceptionSignal(#exception(#token("TypeError", "Id")))
        ... </k>
@@ -25913,6 +26048,9 @@ module PYTHON
   rule #listCtor(rangeVal(Start:Int, Stop:Int, Step:Int)) =>
     listVal(rangeToValItems(Start, Stop, Step, 0, pyRangeLen(Start, Stop, Step)))
     requires Step =/=Int 0 andBool pyRangeLen(Start, Stop, Step) >Int 0
+  rule <k> #listCtor(E:Exp) => E ~> listCtorApply ... </k>
+    requires notBool isKResult(E)
+  rule <k> V:Val ~> listCtorApply => #listCtor(V) ... </k>
   rule #tupleCtor([]) => ()
   rule #tupleCtor(listVal(VS:ValItems)) => tupleVal(VS)
   rule #tupleCtor(()) => ()
@@ -26379,6 +26517,8 @@ module PYTHON
   rule #typeCtor(None) => #typeVal(#token("NoneType", "Id"))
   rule #typeCtor(Ellipsis) => #typeVal(#token("EllipsisType", "Id"))
   rule #typeCtor(NotImplemented) => #typeVal(#token("NotImplementedType", "Id"))
+  rule #typeCtor(V:Val) => valueClassTypeVal(V)
+    requires valueClassTypeSupported(V)
   rule #isinstance(V:Val, C:Id) => boolValue(matchBuiltinClass(V, C))
     requires isinstanceClassSupported(C)
   rule #isinstanceDynamic(V:Val, classVal(C:Id, ClassId:Int, _:ClassAttrs)) => boolValue(userInstanceOf(V, C, ClassId))
@@ -26425,7 +26565,10 @@ module PYTHON
   rule <k> #hash(V:Val) => exceptionSignal(#exception(#token("TypeError", "Id"))) ... </k>
     requires notBool dictLookupKeySupported(V)
   rule <k> #typeCtor(V:Val) => exceptionSignal(#exception(#token("NotImplementedError", "Id"))) ... </k>
-    requires notBool valEq(V, NotImplemented)
+    requires notBool valIs(V, None)
+      andBool notBool valIs(V, Ellipsis)
+      andBool notBool valIs(V, NotImplemented)
+      andBool notBool valueClassTypeSupported(V)
   rule <k> #isinstance(_V:Val, C:Id) => exceptionSignal(#exception(#token("TypeError", "Id"))) ... </k>
     requires notBool isinstanceClassSupported(C)
   rule <k> #isinstanceDynamic(_V:Val, C:Val) => exceptionSignal(#exception(#token("TypeError", "Id"))) ... </k>
@@ -38748,6 +38891,7 @@ module PYTHON
   rule <k> exceptionSignal(V:Val) ~> callMixedArgs(_:ArgExps, _:KwArgExps) => exceptionSignal(V) ... </k>
   rule <k> exceptionSignal(V:Val) ~> evalMixedKwArgs(_:KwArgExps, _:Val) => exceptionSignal(V) ... </k>
   rule <k> exceptionSignal(V:Val) ~> callApplyMixedArgs(_:Val, _:ArgVals) => exceptionSignal(V) ... </k>
+  rule <k> exceptionSignal(V:Val) ~> listCtorApply => exceptionSignal(V) ... </k>
   rule <k> exceptionSignal(V:Val) ~> buildList => exceptionSignal(V) ... </k>
   rule <k> exceptionSignal(V:Val) ~> buildGeneratorIterator => exceptionSignal(V) ... </k>
   rule <k> exceptionSignal(V:Val) ~> collectGeneratorYieldNext(_:YieldExps, _:ArgVals, Rho:Map) =>

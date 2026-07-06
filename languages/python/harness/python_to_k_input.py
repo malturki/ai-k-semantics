@@ -810,47 +810,52 @@ def emit_exception_expr(exp: ast.expr) -> str:
 
 
 def emit_import_stmt(stmt: ast.Import, names: list[ast.alias]) -> str:
-    if len(names) != 1:
-        raise unsupported(stmt, "only single-module import statements are supported")
-    alias = names[0]
-    if alias.name not in SUPPORTED_IMPORT_MODULES:
-        raise unsupported(stmt, "only supported builtin-module imports are accepted")
-    if "." in alias.name:
-        raise unsupported(stmt, "dotted imports are not supported")
-    module = emit_id(alias.name)
-    if alias.asname is None:
-        return f"#import({module})"
-    return f"#importAs({module}, {emit_id(alias.asname)})"
+    emitted: list[str] = []
+    for alias in names:
+        if alias.name not in SUPPORTED_IMPORT_MODULES:
+            raise unsupported(stmt, "only supported builtin-module imports are accepted")
+        if "." in alias.name:
+            raise unsupported(stmt, "dotted imports are not supported")
+        module = emit_id(alias.name)
+        if alias.asname is None:
+            emitted.append(f"#import({module})")
+        else:
+            emitted.append(f"#importAs({module}, {emit_id(alias.asname)})")
+    return ";\n".join(emitted)
 
 
 def emit_import_from_stmt(stmt: ast.ImportFrom, module: str | None, names: list[ast.alias], level: int) -> str:
     if level != 0:
-        if len(names) != 1:
-            raise unsupported(stmt, "only single-name relative from-import statements are supported")
-        alias = names[0]
-        if alias.name == "*":
-            raise unsupported(stmt, "relative from-import star is not supported")
         if module is not None and "." in module:
             raise unsupported(stmt, "dotted relative from-import modules are not supported")
         module_name = NO_RELATIVE_MODULE_ID if module is None else emit_id(module)
-        imported = emit_id(alias.name)
-        if alias.asname is None:
-            return f"#fromRelativeImport({level}, {module_name}, {imported})"
-        return f"#fromRelativeImportAs({level}, {module_name}, {imported}, {emit_id(alias.asname)})"
+        emitted: list[str] = []
+        for alias in names:
+            if alias.name == "*":
+                raise unsupported(stmt, "relative from-import star is not supported")
+            imported = emit_id(alias.name)
+            if alias.asname is None:
+                emitted.append(f"#fromRelativeImport({level}, {module_name}, {imported})")
+            else:
+                emitted.append(f"#fromRelativeImportAs({level}, {module_name}, {imported}, {emit_id(alias.asname)})")
+        return ";\n".join(emitted)
     if module is None:
         raise unsupported(stmt, "absolute from-import statements require a module name")
     if module not in SUPPORTED_IMPORT_MODULES:
         raise unsupported(stmt, "only supported builtin-module from-import statements are accepted")
-    if len(names) != 1:
-        raise unsupported(stmt, "only single-name from-import statements are supported")
-    alias = names[0]
-    if alias.name == "*":
-        return f"#fromImportStar({emit_id(module)})"
     module_id = emit_id(module)
-    imported = emit_id(alias.name)
-    if alias.asname is None:
-        return f"#fromImport({module_id}, {imported})"
-    return f"#fromImportAs({module_id}, {imported}, {emit_id(alias.asname)})"
+    if len(names) == 1 and names[0].name == "*":
+        return f"#fromImportStar({module_id})"
+    emitted: list[str] = []
+    for alias in names:
+        if alias.name == "*":
+            raise unsupported(stmt, "from-import star cannot be combined with named imports")
+        imported = emit_id(alias.name)
+        if alias.asname is None:
+            emitted.append(f"#fromImport({module_id}, {imported})")
+        else:
+            emitted.append(f"#fromImportAs({module_id}, {imported}, {emit_id(alias.asname)})")
+    return ";\n".join(emitted)
 
 
 def emit_stmt(stmt: ast.stmt) -> str:

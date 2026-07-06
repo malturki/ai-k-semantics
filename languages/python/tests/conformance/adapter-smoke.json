@@ -256,6 +256,13 @@
       "coverage": ["from-import-star", "from-import-statement", "module-cache-identity", "builtin-module-object", "dynamic-module-attributes", "module-attribute-assignment", "star-import-public-name-filter", "keyword-module", "importlib-module", "ordinary-python-source-adapter"]
     },
     {
+      "id": "adapter-import-multi-clause",
+      "source": "../adapter/adapter-import-multi-clause.py",
+      "reference": "Python 3.14.6 Language Reference 7.11 The import statement, including comma-separated import clauses; Python Standard Library math, keyword, and importlib modules",
+      "expected_result": "True ~> .K",
+      "coverage": ["import-statement", "from-import-statement", "multi-clause-import", "import-as-binding", "module-cache-identity", "builtin-module-object", "dynamic-module-attributes", "module-attribute-assignment", "import-error", "ordinary-python-source-adapter"]
+    },
+    {
       "id": "adapter-string-repeat",
       "source": "../adapter/adapter-string-repeat.py",
       "reference": "Python Language Reference 6.7 Binary arithmetic operations; Standard Library sequence types",

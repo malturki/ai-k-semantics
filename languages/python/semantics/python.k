@@ -1822,6 +1822,9 @@ module PYTHON
                 | dictItemsContainModuleString(DictItems, String) [function, symbol(dictItemsContainModuleString)]
                 | moduleStarImportPublicId(Id) [function, symbol(moduleStarImportPublicId)]
                 | moduleStarImportInternalId(Id) [function, symbol(moduleStarImportInternalId)]
+                | moduleStarImportAllSupported(Val, Val) [function, symbol(moduleStarImportAllSupported)]
+                | moduleStarImportAllItemsSupported(Val, ValItems) [function, symbol(moduleStarImportAllItemsSupported)]
+                | moduleStarImportAllNameSupported(Val, String) [function, symbol(moduleStarImportAllNameSupported)]
                 | stringStartsWithUnderscore(String) [function, symbol(stringStartsWithUnderscore)]
                 | importlibImportModuleSupported(String) [function, symbol(importlibImportModuleSupported)]
                 | importlibImportModuleRelativeName(String) [function, symbol(importlibImportModuleRelativeName)]
@@ -2778,6 +2781,9 @@ module PYTHON
                | moduleValueAttrStringDel(Map, Id, String) [function, symbol(moduleValueAttrStringDel)]
                | moduleStarImport(Map, Val) [function, symbol(moduleStarImport)]
                | moduleStarImportAttrs(Map, ClassAttrs) [function, symbol(moduleStarImportAttrs)]
+               | moduleStarImportAll(Map, Val, Val) [function, symbol(moduleStarImportAll)]
+               | moduleStarImportAllItems(Map, Val, ValItems) [function, symbol(moduleStarImportAllItems)]
+               | moduleStarImportAllName(Map, Val, String) [function, symbol(moduleStarImportAllName)]
   syntax Val ::= classValueAttrSetVal(Val, Int, Id, Val) [function, symbol(classValueAttrSetVal)]
                | classValueAttrStringSetVal(Val, Int, String, Val) [function, symbol(classValueAttrStringSetVal)]
                | classValueAttrDelVal(Val, Int, Id) [function, symbol(classValueAttrDelVal)]
@@ -6989,7 +6995,38 @@ module PYTHON
   rule moduleStarImportPublicId(A:Id) =>
     notBool moduleStarImportInternalId(A) andBool notBool stringStartsWithUnderscore(Id2String(A))
 
+  rule moduleStarImportAllSupported(_M:Val, []) => true
+  rule moduleStarImportAllSupported(M:Val, listVal(VS:ValItems)) => moduleStarImportAllItemsSupported(M, VS)
+  rule moduleStarImportAllSupported(_M:Val, _All:Val) => false [owise]
+
+  rule moduleStarImportAllItemsSupported(M:Val, valItemsLast(S:String)) =>
+    moduleStarImportAllNameSupported(M, S)
+  rule moduleStarImportAllItemsSupported(_M:Val, valItemsLast(_V:Val)) => false [owise]
+  rule moduleStarImportAllItemsSupported(M:Val, valItemsCons(S:String, Rest:ValItems)) =>
+    moduleStarImportAllNameSupported(M, S) andBool moduleStarImportAllItemsSupported(M, Rest)
+  rule moduleStarImportAllItemsSupported(_M:Val, valItemsCons(_V:Val, _Rest:ValItems)) => false [owise]
+
+  rule moduleStarImportAllNameSupported(M:Val, S:String) => classHasAttrString(M, S)
+    requires S ==String "e"
+      orBool S ==String "pi"
+      orBool S ==String "tau"
+      orBool S ==String "answer"
+      orBool S ==String "import_module"
+      orBool S ==String "iskeyword"
+      orBool S ==String "issoftkeyword"
+      orBool S ==String "kwlist"
+      orBool S ==String "softkwlist"
+  rule moduleStarImportAllNameSupported(_M:Val, _S:String) => false [owise]
+
+  rule moduleStarImport(Rho:Map, M:Val) => moduleStarImportAll(Rho, M, matchClassAttrStringVal(M, "__all__"))
+    requires isModuleVal(M)
+      andBool classHasAttrString(M, "__all__")
+      andBool moduleStarImportAllSupported(M, matchClassAttrStringVal(M, "__all__"))
   rule moduleStarImport(Rho:Map, moduleVal(_:Id, Attrs:ClassAttrs)) => moduleStarImportAttrs(Rho, Attrs)
+    requires notBool classAttrsHasString(Attrs, "__all__")
+  rule moduleStarImport(Rho:Map, moduleVal(_:Id, Attrs:ClassAttrs)) => moduleStarImportAttrs(Rho, Attrs)
+    requires classAttrsHasString(Attrs, "__all__")
+      andBool notBool moduleStarImportAllSupported(moduleVal(#token("kStarImportFallbackModule", "Id"), Attrs), classAttrStringGet(Attrs, "__all__"))
 
   rule moduleStarImportAttrs(Rho:Map, #noRuntimeClassAttrs) => Rho
   rule moduleStarImportAttrs(Rho:Map, classAttr(A:Id, V:Val, Rest:ClassAttrs)) =>
@@ -7002,6 +7039,35 @@ module PYTHON
     moduleStarImportAttrs(Rho, Rest)
   rule moduleStarImportAttrs(Rho:Map, classBase(_BaseId:Int, Rest:ClassAttrs)) =>
     moduleStarImportAttrs(Rho, Rest)
+
+  rule moduleStarImportAll(Rho:Map, _M:Val, []) => Rho
+  rule moduleStarImportAll(Rho:Map, M:Val, listVal(VS:ValItems)) => moduleStarImportAllItems(Rho, M, VS)
+
+  rule moduleStarImportAllItems(Rho:Map, M:Val, valItemsLast(S:String)) =>
+    moduleStarImportAllName(Rho, M, S)
+    requires moduleStarImportAllNameSupported(M, S)
+  rule moduleStarImportAllItems(Rho:Map, M:Val, valItemsCons(S:String, Rest:ValItems)) =>
+    moduleStarImportAllItems(moduleStarImportAllName(Rho, M, S), M, Rest)
+    requires moduleStarImportAllNameSupported(M, S)
+
+  rule moduleStarImportAllName(Rho:Map, M:Val, "e") =>
+    Rho [ #token("e", "Id") <- matchClassAttrStringVal(M, "e") ]
+  rule moduleStarImportAllName(Rho:Map, M:Val, "pi") =>
+    Rho [ #token("pi", "Id") <- matchClassAttrStringVal(M, "pi") ]
+  rule moduleStarImportAllName(Rho:Map, M:Val, "tau") =>
+    Rho [ #token("tau", "Id") <- matchClassAttrStringVal(M, "tau") ]
+  rule moduleStarImportAllName(Rho:Map, M:Val, "answer") =>
+    Rho [ #token("answer", "Id") <- matchClassAttrStringVal(M, "answer") ]
+  rule moduleStarImportAllName(Rho:Map, M:Val, "import_module") =>
+    Rho [ #token("import_module", "Id") <- matchClassAttrStringVal(M, "import_module") ]
+  rule moduleStarImportAllName(Rho:Map, M:Val, "iskeyword") =>
+    Rho [ #token("iskeyword", "Id") <- matchClassAttrStringVal(M, "iskeyword") ]
+  rule moduleStarImportAllName(Rho:Map, M:Val, "issoftkeyword") =>
+    Rho [ #token("issoftkeyword", "Id") <- matchClassAttrStringVal(M, "issoftkeyword") ]
+  rule moduleStarImportAllName(Rho:Map, M:Val, "kwlist") =>
+    Rho [ #token("kwlist", "Id") <- matchClassAttrStringVal(M, "kwlist") ]
+  rule moduleStarImportAllName(Rho:Map, M:Val, "softkwlist") =>
+    Rho [ #token("softkwlist", "Id") <- matchClassAttrStringVal(M, "softkwlist") ]
 
   rule functionMeta(F:Id, Doc:Val, Fun:Val) =>
     functionMetaVal(Id2String(F), Id2String(F), Doc, "__main__", Fun)

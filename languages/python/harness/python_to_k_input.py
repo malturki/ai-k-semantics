@@ -105,26 +105,6 @@ SUPPORTED_IMPORT_MODULES = {
     "keyword",
     "math",
 }
-SUPPORTED_FROM_IMPORT_NAMES = {
-    "importlib": {
-        "__name__",
-        "import_module",
-    },
-    "keyword": {
-        "__all__",
-        "__name__",
-        "iskeyword",
-        "issoftkeyword",
-        "kwlist",
-        "softkwlist",
-    },
-    "math": {
-        "__name__",
-        "e",
-        "pi",
-        "tau",
-    },
-}
 SET_MUTATING_METHOD_NAMES = {
     "add",
     "clear",
@@ -866,8 +846,6 @@ def emit_import_from_stmt(stmt: ast.ImportFrom, module: str | None, names: list[
     alias = names[0]
     if alias.name == "*":
         raise unsupported(stmt, "from-import star is not supported")
-    if alias.name not in SUPPORTED_FROM_IMPORT_NAMES[module]:
-        raise unsupported(stmt, "from-import name is not supported for this module")
     module_id = emit_id(module)
     imported = emit_id(alias.name)
     if alias.asname is None:

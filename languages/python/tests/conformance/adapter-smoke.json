@@ -242,6 +242,13 @@
       "coverage": ["import-statement", "from-import-statement", "import-as-binding", "importlib-import-module", "module-cache-identity", "module-attribute-assignment", "module-attribute-deletion", "module-attribute-rebinding", "future-import-mutation-visibility", "import-error", "ordinary-python-source-adapter"]
     },
     {
+      "id": "adapter-from-import-dynamic-module-attrs",
+      "source": "../adapter/adapter-from-import-dynamic-module-attrs.py",
+      "reference": "Python 3.14.6 Language Reference 5 The import system; 7.11 The import statement; Python Data Model modules",
+      "expected_result": "True ~> .K",
+      "coverage": ["from-import-statement", "module-cache-identity", "dynamic-module-attributes", "module-attribute-assignment", "module-attribute-deletion", "import-error", "ordinary-python-source-adapter"]
+    },
+    {
       "id": "adapter-string-repeat",
       "source": "../adapter/adapter-string-repeat.py",
       "reference": "Python Language Reference 6.7 Binary arithmetic operations; Standard Library sequence types",

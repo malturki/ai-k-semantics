@@ -148,6 +148,7 @@ run_case "adapter-relative-import-no-package" "$ROOT/tests/adapter/adapter-relat
 run_case "adapter-importlib-import-module" "$ROOT/tests/adapter/adapter-importlib-import-module.py" "True ~> .K"
 run_case "adapter-module-attribute-mutation" "$ROOT/tests/adapter/adapter-module-attribute-mutation.py" "True ~> .K"
 run_case "adapter-module-import-cache-mutation" "$ROOT/tests/adapter/adapter-module-import-cache-mutation.py" "True ~> .K"
+run_case "adapter-from-import-dynamic-module-attrs" "$ROOT/tests/adapter/adapter-from-import-dynamic-module-attrs.py" "True ~> .K"
 run_case "adapter-string-repeat" "$ROOT/tests/adapter/adapter-string-repeat.py" "True ~> .K"
 run_case "adapter-string-index" "$ROOT/tests/adapter/adapter-string-index.py" "True ~> .K"
 run_case "adapter-string-membership" "$ROOT/tests/adapter/adapter-string-membership.py" "True ~> .K"

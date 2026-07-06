@@ -29,4 +29,46 @@ except NameError:
 
 result = result and iskeyword_missing and issoftkeyword_missing
 
+del kwlist
+keyword.__all__ = ("kwlist",)
+from keyword import *
+result = result and "False" in kwlist
+
+del kwlist
+partial_attribute_error = False
+try:
+    keyword.__all__ = ["kwlist", "never_there"]
+    from keyword import *
+    result = False
+except AttributeError:
+    partial_attribute_error = True
+
+result = result and partial_attribute_error
+result = result and "False" in kwlist
+
+del kwlist
+partial_type_error = False
+try:
+    keyword.__all__ = ["kwlist", 1]
+    from keyword import *
+    result = False
+except TypeError:
+    partial_type_error = True
+
+result = result and partial_type_error
+result = result and "False" in kwlist
+
+del kwlist
+keyword.__all__ = ""
+from keyword import *
+
+empty_string_all_missing = False
+try:
+    kwlist
+    result = False
+except NameError:
+    empty_string_all_missing = True
+
+result = result and empty_string_all_missing
+
 result

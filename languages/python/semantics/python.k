@@ -1720,6 +1720,8 @@ module PYTHON
                  | returnValue() [symbol(returnValue)]
                  | returnSignal(Val) [symbol(returnSignal)]
                  | exceptionSignal(Val) [symbol(exceptionSignal)]
+                 | moduleStarImportAllApply(Val, Val) [symbol(moduleStarImportAllApply)]
+                 | moduleStarImportAllItemsApply(Val, ValItems) [symbol(moduleStarImportAllItemsApply)]
                  | functionDone(Map) [symbol(functionDone)]
                  | functionGlobalDone(IdItems, Map) [symbol(functionGlobalDone)]
                  | restoreGlobalEnv(IdItems, Map) [symbol(restoreGlobalEnv)]
@@ -7018,15 +7020,7 @@ module PYTHON
       orBool S ==String "softkwlist"
   rule moduleStarImportAllNameSupported(_M:Val, _S:String) => false [owise]
 
-  rule moduleStarImport(Rho:Map, M:Val) => moduleStarImportAll(Rho, M, matchClassAttrStringVal(M, "__all__"))
-    requires isModuleVal(M)
-      andBool classHasAttrString(M, "__all__")
-      andBool moduleStarImportAllSupported(M, matchClassAttrStringVal(M, "__all__"))
   rule moduleStarImport(Rho:Map, moduleVal(_:Id, Attrs:ClassAttrs)) => moduleStarImportAttrs(Rho, Attrs)
-    requires notBool classAttrsHasString(Attrs, "__all__")
-  rule moduleStarImport(Rho:Map, moduleVal(_:Id, Attrs:ClassAttrs)) => moduleStarImportAttrs(Rho, Attrs)
-    requires classAttrsHasString(Attrs, "__all__")
-      andBool notBool moduleStarImportAllSupported(moduleVal(#token("kStarImportFallbackModule", "Id"), Attrs), classAttrStringGet(Attrs, "__all__"))
 
   rule moduleStarImportAttrs(Rho:Map, #noRuntimeClassAttrs) => Rho
   rule moduleStarImportAttrs(Rho:Map, classAttr(A:Id, V:Val, Rest:ClassAttrs)) =>
@@ -7068,6 +7062,41 @@ module PYTHON
     Rho [ #token("kwlist", "Id") <- matchClassAttrStringVal(M, "kwlist") ]
   rule moduleStarImportAllName(Rho:Map, M:Val, "softkwlist") =>
     Rho [ #token("softkwlist", "Id") <- matchClassAttrStringVal(M, "softkwlist") ]
+
+  rule <k> moduleStarImportAllApply(_M:Val, []) => stmtNoResult ... </k>
+  rule <k> moduleStarImportAllApply(_M:Val, ()) => stmtNoResult ... </k>
+  rule <k> moduleStarImportAllApply(M:Val, listVal(VS:ValItems)) => moduleStarImportAllItemsApply(M, VS) ... </k>
+  rule <k> moduleStarImportAllApply(M:Val, tupleVal(VS:ValItems)) => moduleStarImportAllItemsApply(M, VS) ... </k>
+  rule <k> moduleStarImportAllApply(_M:Val, S:String) => stmtNoResult ... </k>
+    requires lengthString(S) ==Int 0
+  rule <k> moduleStarImportAllApply(_M:Val, S:String) => exceptionSignal(#exception(#token("AttributeError", "Id"))) ... </k>
+    requires lengthString(S) >Int 0
+  rule <k> moduleStarImportAllApply(_M:Val, _All:Val) => exceptionSignal(#exception(#token("TypeError", "Id"))) ... </k> [owise]
+
+  rule <k> moduleStarImportAllItemsApply(M:Val, valItemsLast(S:String)) => stmtNoResult ... </k>
+       <env> Rho => moduleStarImportAllName(Rho, M, S) </env>
+    requires moduleStarImportAllNameSupported(M, S)
+  rule <k> moduleStarImportAllItemsApply(M:Val, valItemsLast(S:String)) =>
+           exceptionSignal(#exception(#token("AttributeError", "Id")))
+       ... </k>
+    requires notBool moduleStarImportAllNameSupported(M, S)
+  rule <k> moduleStarImportAllItemsApply(_M:Val, valItemsLast(V:Val)) =>
+           exceptionSignal(#exception(#token("TypeError", "Id")))
+       ... </k>
+    requires notBool isStringVal(V)
+  rule <k> moduleStarImportAllItemsApply(M:Val, valItemsCons(S:String, Rest:ValItems)) =>
+           moduleStarImportAllItemsApply(M, Rest)
+       ... </k>
+       <env> Rho => moduleStarImportAllName(Rho, M, S) </env>
+    requires moduleStarImportAllNameSupported(M, S)
+  rule <k> moduleStarImportAllItemsApply(M:Val, valItemsCons(S:String, _Rest:ValItems)) =>
+           exceptionSignal(#exception(#token("AttributeError", "Id")))
+       ... </k>
+    requires notBool moduleStarImportAllNameSupported(M, S)
+  rule <k> moduleStarImportAllItemsApply(_M:Val, valItemsCons(V:Val, _Rest:ValItems)) =>
+           exceptionSignal(#exception(#token("TypeError", "Id")))
+       ... </k>
+    requires notBool isStringVal(V)
 
   rule functionMeta(F:Id, Doc:Val, Fun:Val) =>
     functionMetaVal(Id2String(F), Id2String(F), Doc, "__main__", Fun)
@@ -16321,12 +16350,26 @@ module PYTHON
   rule <k> #fromImportAs(M:Id, A:Id, Alias:Id) => stmtNoResult ... </k>
        <env> Rho => Rho [ Alias <- builtinModuleAttr(M, A) ] </env>
     requires builtinModuleSupported(M) andBool notBool envModuleHas(Rho, M) andBool builtinModuleHasAttr(M, A)
+  rule <k> #fromImportStar(M:Id) => moduleStarImportAllApply(envModuleGet(Rho, M), matchClassAttrStringVal(envModuleGet(Rho, M), "__all__")) ... </k>
+       <env> Rho </env>
+    requires builtinModuleSupported(M)
+      andBool envModuleHas(Rho, M)
+      andBool classHasAttrString(envModuleGet(Rho, M), "__all__")
   rule <k> #fromImportStar(M:Id) => stmtNoResult ... </k>
        <env> Rho => moduleStarImport(Rho, envModuleGet(Rho, M)) </env>
-    requires builtinModuleSupported(M) andBool envModuleHas(Rho, M)
+    requires builtinModuleSupported(M)
+      andBool envModuleHas(Rho, M)
+      andBool notBool classHasAttrString(envModuleGet(Rho, M), "__all__")
+  rule <k> #fromImportStar(M:Id) => moduleStarImportAllApply(builtinModule(M), matchClassAttrStringVal(builtinModule(M), "__all__")) ... </k>
+       <env> Rho </env>
+    requires builtinModuleSupported(M)
+      andBool notBool envModuleHas(Rho, M)
+      andBool classHasAttrString(builtinModule(M), "__all__")
   rule <k> #fromImportStar(M:Id) => stmtNoResult ... </k>
        <env> Rho => moduleStarImport(Rho, builtinModule(M)) </env>
-    requires builtinModuleSupported(M) andBool notBool envModuleHas(Rho, M)
+    requires builtinModuleSupported(M)
+      andBool notBool envModuleHas(Rho, M)
+      andBool notBool classHasAttrString(builtinModule(M), "__all__")
   rule <k> #import(M:Id) => exceptionSignal(#exception(#token("ModuleNotFoundError", "Id"))) ... </k>
     requires notBool builtinModuleSupported(M)
   rule <k> #importAs(M:Id, _Alias:Id) => exceptionSignal(#exception(#token("ModuleNotFoundError", "Id"))) ... </k>

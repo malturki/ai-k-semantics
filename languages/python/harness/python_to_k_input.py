@@ -4077,7 +4077,7 @@ def main(argv: list[str]) -> int:
         print(f"usage: {argv[0]} [--mode exec|eval|single|interactive] SOURCE.py", file=sys.stderr)
         return 2
     path = Path(args[0])
-    source = path.read_text(encoding="utf-8")
+    source = path.read_bytes()
     try:
         parse_mode = "single" if mode == "interactive" else mode
         parsed = ast.parse(source, filename=str(path), mode=parse_mode)

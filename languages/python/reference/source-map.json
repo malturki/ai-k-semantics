@@ -28,9 +28,9 @@
               "section": "Encoding declarations"
             }
           ],
-          "k_coverage": [],
-          "test_coverage": [],
-          "gaps": ["Need tokenizer-level model for UTF-8 default, coding comments, invalid encodings, and BOM behavior."]
+          "k_coverage": ["harness/python_to_k_input.py: adapter-backed source-file frontend reads raw source bytes and delegates decoding to CPython ast.parse/compile so documented encoding declarations participate before AST-to-K lowering in exec/eval/single/interactive modes"],
+          "test_coverage": ["tests/adapter/adapter-source-encoding-cookie.py"],
+          "gaps": ["Need native K tokenizer-level model for UTF-8 default, full coding-comment detection, BOM behavior and BOM/cookie conflicts, invalid encodings, exact SyntaxError diagnostics, and non-adapter source-span preservation."]
         },
         {
           "id": "lexical.physical-logical-lines",

@@ -193,6 +193,13 @@
       "coverage": ["complete-python-program", "file-input", "exec-input-start-symbol", "comments", "blank-lines", "compound-statement", "semicolon-separated-simple-statements", "endmodule-framing", "ordinary-python-source-adapter"]
     },
     {
+      "id": "adapter-source-encoding-cookie",
+      "source": "../adapter/adapter-source-encoding-cookie.py",
+      "reference": "Python Language Reference 2.1.4 Encoding declarations; Python Standard Library ast.parse accepts bytes through compile() source decoding",
+      "expected_result": "True ~> .K",
+      "coverage": ["source-encoding", "encoding-declaration", "latin-1-cookie", "ordinary-python-source-adapter"]
+    },
+    {
       "id": "adapter-lexical-lines-indentation",
       "source": "../adapter/adapter-lexical-lines-indentation.py",
       "reference": "Python Language Reference 2.1 Lexical analysis: physical lines, logical lines, comments, explicit line joining, implicit line joining, indentation",

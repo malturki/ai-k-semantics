@@ -141,6 +141,7 @@ run_case "adapter-debug-constant" "$ROOT/tests/adapter/adapter-debug-constant.py
 run_eval_case "adapter-eval-input" "$ROOT/tests/adapter/adapter-eval-input.pyexpr" "True ~> .K"
 run_interactive_case "adapter-interactive-input" "$ROOT/tests/adapter/adapter-interactive-input.pysingle" "True ~> .K" "True"
 run_case "adapter-file-input-framing" "$ROOT/tests/adapter/adapter-file-input-framing.py" "True ~> .K"
+run_case "adapter-source-encoding-cookie" "$ROOT/tests/adapter/adapter-source-encoding-cookie.py" "True ~> .K"
 run_case "adapter-lexical-lines-indentation" "$ROOT/tests/adapter/adapter-lexical-lines-indentation.py" "True ~> .K"
 run_case "adapter-import-math" "$ROOT/tests/adapter/adapter-import-math.py" "True ~> .K"
 run_case "adapter-import-keyword" "$ROOT/tests/adapter/adapter-import-keyword.py" "True ~> .K"

@@ -209,9 +209,9 @@
               "section": "Structure of a program"
             }
           ],
-          "k_coverage": [],
-          "test_coverage": [],
-          "gaps": ["Need module/function/class/comprehension frames and execution context."]
+          "k_coverage": ["semantics/python.k: current execution context is represented by the <env> cell plus restoreEnv continuations for supported function/lambda/method calls; current class-body construction evaluates supported class attributes and methods in a temporary namespace that can see globals and prior class bindings before restoring the outer environment; current comprehension iterators carry the saved environment to restore target bindings after supported list/dict/set comprehension execution"],
+          "test_coverage": ["tests/adapter/adapter-execution-context-frames.py"],
+          "gaps": ["Need full module/function/class/comprehension frame objects and execution context: locals/globals/builtins mappings, closures/cells/free variables, nested code-object metadata, frame introspection/traceback integration, exact UnboundLocalError behavior, annotation scopes, generator/coroutine suspended frames, exec/eval locals semantics, and CPython frame-profile tests."]
         },
         {
           "id": "execution.naming-binding-scopes",

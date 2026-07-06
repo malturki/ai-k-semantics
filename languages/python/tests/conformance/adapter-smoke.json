@@ -207,6 +207,13 @@
       "coverage": ["physical-lines", "logical-lines", "comments", "explicit-line-joining", "implicit-line-joining", "indentation", "ordinary-python-source-adapter"]
     },
     {
+      "id": "adapter-execution-context-frames",
+      "source": "../adapter/adapter-execution-context-frames.py",
+      "reference": "Python Language Reference 4 Execution model: structure of a program, binding of names, and interaction with function, class, and comprehension code blocks",
+      "expected_result": "True ~> .K",
+      "coverage": ["execution-context", "code-blocks", "function-frame", "class-namespace", "comprehension-scope", "ordinary-python-source-adapter"]
+    },
+    {
       "id": "adapter-import-math",
       "source": "../adapter/adapter-import-math.py",
       "reference": "Python Language Reference import statement and import system; Python Standard Library math module",

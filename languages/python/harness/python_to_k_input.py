@@ -24,6 +24,7 @@ class UnsupportedPythonSubset(ValueError):
 ELLIPSIS_NAME_ID = "kEllipsisName"
 NOT_IMPLEMENTED_NAME_ID = "kNotImplementedName"
 DUNDER_INIT_NAME_ID = "kDunderInitName"
+DUNDER_CLASS_NAME_ID = "kDunderClassName"
 DUNDER_NAME_NAME_ID = "kDunderNameName"
 DUNDER_DOC_NAME_ID = "kDunderDocName"
 DUNDER_MODULE_NAME_ID = "kDunderModuleName"
@@ -68,6 +69,7 @@ CLASS_PATTERN_ID_ALIASES = {
     "set": "kSetClassName",
 }
 SUPPORTED_GETATTR_NAMES = {
+    "__class__",
     "__doc__",
     "__module__",
     "__name__",
@@ -655,6 +657,8 @@ def emit_id(name: str) -> str:
         return NOT_IMPLEMENTED_NAME_ID
     if name == "__init__":
         return DUNDER_INIT_NAME_ID
+    if name == "__class__":
+        return DUNDER_CLASS_NAME_ID
     if name == "__name__":
         return DUNDER_NAME_NAME_ID
     if name == "__doc__":

@@ -193,6 +193,13 @@
       "coverage": ["singleton-type-objects", "none-type", "ellipsis-type", "notimplemented-type", "types-module", "type-builtin", "isinstance-builtin", "issubclass-builtin", "singleton-identity", "string-conversion-builtins", "attribute-access", "getattr-builtin", "hasattr-builtin", "hash-builtin", "importlib-import-module", "ordinary-python-source-adapter"]
     },
     {
+      "id": "adapter-singleton-class-attribute",
+      "source": "../adapter/adapter-singleton-class-attribute.py",
+      "reference": "Python Data Model objects, values, and types; Python Standard Library singleton type objects; __class__ attribute behavior for None, Ellipsis, and NotImplemented",
+      "expected_result": "True ~> .K",
+      "coverage": ["singleton-type-objects", "none-type", "ellipsis-type", "notimplemented-type", "dunder-class-attribute", "type-builtin", "attribute-access", "getattr-builtin", "hasattr-builtin", "ordinary-python-source-adapter"]
+    },
+    {
       "id": "adapter-debug-constant",
       "source": "../adapter/adapter-debug-constant.py",
       "reference": "Python Standard Library Built-in Constants __debug__; Python Language Reference 7.3 The assert statement",

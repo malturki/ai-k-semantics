@@ -7369,6 +7369,7 @@ module PYTHON
   rule classAttrsOwnHasString(classBase(_:Int, _:ClassAttrs), _:String) => false
 
   rule classAttrIdMatchesString(#token("kDunderInitName", "Id"), B:String) => B ==String "__init__"
+  rule classAttrIdMatchesString(#token("kDunderClassName", "Id"), B:String) => B ==String "__class__"
   rule classAttrIdMatchesString(#token("kDunderNameName", "Id"), B:String) => B ==String "__name__"
   rule classAttrIdMatchesString(#token("kDunderDocName", "Id"), B:String) => B ==String "__doc__"
   rule classAttrIdMatchesString(#token("kDunderModuleName", "Id"), B:String) => B ==String "__module__"
@@ -7448,6 +7449,12 @@ module PYTHON
     requires classAttrsHas(Attrs, A)
   rule classHasMatchAttr(moduleVal(_:Id, Attrs:ClassAttrs), A:Id) => true
     requires classAttrsHas(Attrs, A)
+  rule classHasMatchAttr(None, A:Id) => true
+    requires classAttrIdMatchesString(A, "__class__")
+  rule classHasMatchAttr(Ellipsis, A:Id) => true
+    requires classAttrIdMatchesString(A, "__class__")
+  rule classHasMatchAttr(NotImplemented, A:Id) => true
+    requires classAttrIdMatchesString(A, "__class__")
   rule classHasMatchAttr(rangeVal(_:Int, _:Int), A:Id) => true
     requires Id2String(A) ==String "start" orBool Id2String(A) ==String "stop" orBool Id2String(A) ==String "step"
   rule classHasMatchAttr(rangeVal(_:Int, _:Int, _:Int), A:Id) => true
@@ -7481,6 +7488,7 @@ module PYTHON
   rule getattrStringSupported("numerator") => true
   rule getattrStringSupported("denominator") => true
   rule getattrStringSupported("missing") => true
+  rule getattrStringSupported("__class__") => true
   rule getattrStringSupported("__name__") => true
   rule getattrStringSupported("__qualname__") => true
   rule getattrStringSupported("__doc__") => true
@@ -7496,6 +7504,9 @@ module PYTHON
     requires classAttrsHasString(Attrs, A)
   rule classHasAttrString(moduleVal(_:Id, Attrs:ClassAttrs), A:String) => true
     requires classAttrsHasString(Attrs, A)
+  rule classHasAttrString(None, "__class__") => true
+  rule classHasAttrString(Ellipsis, "__class__") => true
+  rule classHasAttrString(NotImplemented, "__class__") => true
   rule classHasAttrString(rangeVal(_:Int, _:Int), A:String) => true
     requires A ==String "start" orBool A ==String "stop" orBool A ==String "step"
   rule classHasAttrString(rangeVal(_:Int, _:Int, _:Int), A:String) => true
@@ -7570,6 +7581,12 @@ module PYTHON
   rule matchClassAttrVal(moduleVal(_:Id, Attrs:ClassAttrs), Attr:Id) =>
     classAttrGet(Attrs, Attr)
     requires classAttrsHas(Attrs, Attr)
+  rule matchClassAttrVal(None, Attr:Id) => #typeVal(#token("NoneType", "Id"))
+    requires classAttrIdMatchesString(Attr, "__class__")
+  rule matchClassAttrVal(Ellipsis, Attr:Id) => #typeVal(#token("EllipsisType", "Id"))
+    requires classAttrIdMatchesString(Attr, "__class__")
+  rule matchClassAttrVal(NotImplemented, Attr:Id) => #typeVal(#token("NotImplementedType", "Id"))
+    requires classAttrIdMatchesString(Attr, "__class__")
   rule matchClassAttrVal(rangeVal(Start:Int, _:Int), Attr:Id) => Start
     requires Id2String(Attr) ==String "start"
   rule matchClassAttrVal(rangeVal(_:Int, Stop:Int), Attr:Id) => Stop
@@ -7636,6 +7653,9 @@ module PYTHON
   rule matchClassAttrStringVal(moduleVal(_:Id, Attrs:ClassAttrs), Attr:String) =>
     classAttrStringGet(Attrs, Attr)
     requires classAttrsHasString(Attrs, Attr)
+  rule matchClassAttrStringVal(None, "__class__") => #typeVal(#token("NoneType", "Id"))
+  rule matchClassAttrStringVal(Ellipsis, "__class__") => #typeVal(#token("EllipsisType", "Id"))
+  rule matchClassAttrStringVal(NotImplemented, "__class__") => #typeVal(#token("NotImplementedType", "Id"))
   rule matchClassAttrStringVal(rangeVal(Start:Int, _:Int), Attr:String) => Start
     requires Attr ==String "start"
   rule matchClassAttrStringVal(rangeVal(_:Int, Stop:Int), Attr:String) => Stop
@@ -17624,6 +17644,18 @@ module PYTHON
     requires isClassVal(V) andBool notBool classHasMatchAttr(V, Attr)
   rule <k> attrExp(V:Val, Attr:Id) => exceptionSignal(#exception(#token("AttributeError", "Id"))) ... </k>
     requires isModuleVal(V) andBool notBool classHasMatchAttr(V, Attr)
+  rule attrExp(None, Attr:Id) => #typeVal(#token("NoneType", "Id"))
+    requires classAttrIdMatchesString(Attr, "__class__")
+  rule attrExp(Ellipsis, Attr:Id) => #typeVal(#token("EllipsisType", "Id"))
+    requires classAttrIdMatchesString(Attr, "__class__")
+  rule attrExp(NotImplemented, Attr:Id) => #typeVal(#token("NotImplementedType", "Id"))
+    requires classAttrIdMatchesString(Attr, "__class__")
+  rule <k> attrExp(None, Attr:Id) => exceptionSignal(#exception(#token("AttributeError", "Id"))) ... </k>
+    requires notBool classAttrIdMatchesString(Attr, "__class__")
+  rule <k> attrExp(Ellipsis, Attr:Id) => exceptionSignal(#exception(#token("AttributeError", "Id"))) ... </k>
+    requires notBool classAttrIdMatchesString(Attr, "__class__")
+  rule <k> attrExp(NotImplemented, Attr:Id) => exceptionSignal(#exception(#token("AttributeError", "Id"))) ... </k>
+    requires notBool classAttrIdMatchesString(Attr, "__class__")
   rule attrExp(rangeVal(Start:Int, _:Int), Attr:Id) => Start
     requires Id2String(Attr) ==String "start"
   rule attrExp(rangeVal(_:Int, Stop:Int), Attr:Id) => Stop

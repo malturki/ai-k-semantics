@@ -46,6 +46,30 @@ try:
 except ImportError:
     relative_module_star = True
 
+relative_dotted_module_attr = False
+try:
+    from .pkg.sub import value
+except ImportError:
+    relative_dotted_module_attr = True
+
+relative_dotted_module_multi = False
+try:
+    from .pkg.sub import value as local_value, other
+except ImportError:
+    relative_dotted_module_multi = True
+
+relative_dotted_module_star = False
+try:
+    from .pkg.sub import *
+except ImportError:
+    relative_dotted_module_star = True
+
+relative_parent_dotted_module = False
+try:
+    from ..pkg.sub import value
+except ImportError:
+    relative_parent_dotted_module = True
+
 result = (
     relative_bare
     and relative_alias
@@ -55,6 +79,10 @@ result = (
     and relative_module_multi
     and relative_star
     and relative_module_star
+    and relative_dotted_module_attr
+    and relative_dotted_module_multi
+    and relative_dotted_module_star
+    and relative_parent_dotted_module
 )
 assert result
 result

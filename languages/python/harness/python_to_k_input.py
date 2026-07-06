@@ -826,16 +826,26 @@ def emit_import_stmt(stmt: ast.Import, names: list[ast.alias]) -> str:
 
 def emit_import_from_stmt(stmt: ast.ImportFrom, module: str | None, names: list[ast.alias], level: int) -> str:
     if level != 0:
-        if module is not None and "." in module:
-            raise unsupported(stmt, "dotted relative from-import modules are not supported")
-        module_name = NO_RELATIVE_MODULE_ID if module is None else emit_id(module)
+        dotted_module = module is not None and "." in module
+        module_name = emit_string(module) if dotted_module and module is not None else (
+            NO_RELATIVE_MODULE_ID if module is None else emit_id(module)
+        )
         emitted: list[str] = []
         for alias in names:
             if alias.name == "*":
-                emitted.append(f"#fromRelativeImportStar({level}, {module_name})")
+                if dotted_module:
+                    emitted.append(f"#fromRelativeDottedImportStar({level}, {module_name})")
+                else:
+                    emitted.append(f"#fromRelativeImportStar({level}, {module_name})")
                 continue
             imported = emit_id(alias.name)
-            if alias.asname is None:
+            if dotted_module and alias.asname is None:
+                emitted.append(f"#fromRelativeDottedImport({level}, {module_name}, {imported})")
+            elif dotted_module:
+                emitted.append(
+                    f"#fromRelativeDottedImportAs({level}, {module_name}, {imported}, {emit_id(alias.asname)})"
+                )
+            elif alias.asname is None:
                 emitted.append(f"#fromRelativeImport({level}, {module_name}, {imported})")
             else:
                 emitted.append(f"#fromRelativeImportAs({level}, {module_name}, {imported}, {emit_id(alias.asname)})")

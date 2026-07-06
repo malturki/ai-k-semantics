@@ -342,6 +342,9 @@ module PYTHON-SYNTAX
                 | "#fromRelativeImport" "(" Int "," Id "," Id ")" [symbol(fromRelativeImportStmt)]
                 | "#fromRelativeImportAs" "(" Int "," Id "," Id "," Id ")" [symbol(fromRelativeImportAsStmt)]
                 | "#fromRelativeImportStar" "(" Int "," Id ")" [symbol(fromRelativeImportStarStmt)]
+                | "#fromRelativeDottedImport" "(" Int "," String "," Id ")" [symbol(fromRelativeDottedImportStmt)]
+                | "#fromRelativeDottedImportAs" "(" Int "," String "," Id "," Id ")" [symbol(fromRelativeDottedImportAsStmt)]
+                | "#fromRelativeDottedImportStar" "(" Int "," String ")" [symbol(fromRelativeDottedImportStarStmt)]
                 | "assert" Exp [symbol(assertStmt), strict]
                 | "#assertMsg" "(" Exp "," Exp ")" [symbol(assertMsgStmt), strict(1)]
                 | "global" Id [symbol(globalStmt)]
@@ -16416,6 +16419,12 @@ module PYTHON
   rule <k> #fromRelativeImportAs(Level:Int, _Module:Id, _A:Id, _Alias:Id) => exceptionSignal(#exception(#token("ImportError", "Id"))) ... </k>
     requires Level >Int 0
   rule <k> #fromRelativeImportStar(Level:Int, _Module:Id) => exceptionSignal(#exception(#token("ImportError", "Id"))) ... </k>
+    requires Level >Int 0
+  rule <k> #fromRelativeDottedImport(Level:Int, _Module:String, _A:Id) => exceptionSignal(#exception(#token("ImportError", "Id"))) ... </k>
+    requires Level >Int 0
+  rule <k> #fromRelativeDottedImportAs(Level:Int, _Module:String, _A:Id, _Alias:Id) => exceptionSignal(#exception(#token("ImportError", "Id"))) ... </k>
+    requires Level >Int 0
+  rule <k> #fromRelativeDottedImportStar(Level:Int, _Module:String) => exceptionSignal(#exception(#token("ImportError", "Id"))) ... </k>
     requires Level >Int 0
 
   rule <k> fstringExp(Parts:FStringParts) => fStringEval(Parts, "") ... </k>

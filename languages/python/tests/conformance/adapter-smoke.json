@@ -218,7 +218,7 @@
       "source": "../adapter/adapter-relative-import-no-package.py",
       "reference": "Python Language Reference import statement and import system: Package Relative Imports; CPython 3.14.6 top-level script relative-import ImportError",
       "expected_result": "True ~> .K",
-      "coverage": ["relative-import-statement", "multi-clause-relative-import", "relative-star-import", "package-context", "top-level-script-import-error", "ordinary-python-source-adapter"]
+      "coverage": ["relative-import-statement", "multi-clause-relative-import", "relative-star-import", "dotted-relative-import", "package-context", "top-level-script-import-error", "ordinary-python-source-adapter"]
     },
     {
       "id": "adapter-importlib-import-module",

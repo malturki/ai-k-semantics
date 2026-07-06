@@ -338,6 +338,7 @@ module PYTHON-SYNTAX
                 | "#importAs" "(" Id "," Id ")" [symbol(importAsStmt)]
                 | "#fromImport" "(" Id "," Id ")" [symbol(fromImportStmt)]
                 | "#fromImportAs" "(" Id "," Id "," Id ")" [symbol(fromImportAsStmt)]
+                | "#fromImportStar" "(" Id ")" [symbol(fromImportStarStmt)]
                 | "#fromRelativeImport" "(" Int "," Id "," Id ")" [symbol(fromRelativeImportStmt)]
                 | "#fromRelativeImportAs" "(" Int "," Id "," Id "," Id ")" [symbol(fromRelativeImportAsStmt)]
                 | "assert" Exp [symbol(assertStmt), strict]
@@ -1819,6 +1820,9 @@ module PYTHON
                 | valContainsModuleString(Val, String) [function, symbol(valContainsModuleString)]
                 | valItemsContainModuleString(ValItems, String) [function, symbol(valItemsContainModuleString)]
                 | dictItemsContainModuleString(DictItems, String) [function, symbol(dictItemsContainModuleString)]
+                | moduleStarImportPublicId(Id) [function, symbol(moduleStarImportPublicId)]
+                | moduleStarImportInternalId(Id) [function, symbol(moduleStarImportInternalId)]
+                | stringStartsWithUnderscore(String) [function, symbol(stringStartsWithUnderscore)]
                 | importlibImportModuleSupported(String) [function, symbol(importlibImportModuleSupported)]
                 | importlibImportModuleRelativeName(String) [function, symbol(importlibImportModuleRelativeName)]
                 | keywordIsKeywordString(String) [function, symbol(keywordIsKeywordString)]
@@ -2772,6 +2776,8 @@ module PYTHON
                | moduleValueAttrStringSet(Map, Id, String, Val) [function, symbol(moduleValueAttrStringSet)]
                | moduleValueAttrDel(Map, Id, Id) [function, symbol(moduleValueAttrDel)]
                | moduleValueAttrStringDel(Map, Id, String) [function, symbol(moduleValueAttrStringDel)]
+               | moduleStarImport(Map, Val) [function, symbol(moduleStarImport)]
+               | moduleStarImportAttrs(Map, ClassAttrs) [function, symbol(moduleStarImportAttrs)]
   syntax Val ::= classValueAttrSetVal(Val, Int, Id, Val) [function, symbol(classValueAttrSetVal)]
                | classValueAttrStringSetVal(Val, Int, String, Val) [function, symbol(classValueAttrStringSetVal)]
                | classValueAttrDelVal(Val, Int, Id) [function, symbol(classValueAttrDelVal)]
@@ -6966,6 +6972,36 @@ module PYTHON
   rule dictItemsModuleStringGet(dictItemsCons(_K:Val, V:Val, DS:DictItems), Expected:String) => dictItemsModuleStringGet(DS, Expected)
     requires notBool valContainsModuleString(V, Expected)
       andBool dictItemsContainModuleString(DS, Expected)
+
+  rule stringStartsWithUnderscore(S:String) =>
+    lengthString(S) >Int 0 andBool substrString(S, 0, 1) ==String "_"
+
+  rule moduleStarImportInternalId(A:Id) =>
+    classAttrIdMatchesString(A, "__name__")
+      orBool classAttrIdMatchesString(A, "__all__")
+      orBool classAttrIdMatchesString(A, "__doc__")
+      orBool classAttrIdMatchesString(A, "__module__")
+      orBool classAttrIdMatchesString(A, "__qualname__")
+      orBool classAttrIdMatchesString(A, "__value__")
+      orBool classAttrIdMatchesString(A, "__type_params__")
+      orBool classAttrIdMatchesString(A, "__parameters__")
+
+  rule moduleStarImportPublicId(A:Id) =>
+    notBool moduleStarImportInternalId(A) andBool notBool stringStartsWithUnderscore(Id2String(A))
+
+  rule moduleStarImport(Rho:Map, moduleVal(_:Id, Attrs:ClassAttrs)) => moduleStarImportAttrs(Rho, Attrs)
+
+  rule moduleStarImportAttrs(Rho:Map, #noRuntimeClassAttrs) => Rho
+  rule moduleStarImportAttrs(Rho:Map, classAttr(A:Id, V:Val, Rest:ClassAttrs)) =>
+    moduleStarImportAttrs(Rho [ A <- V ], Rest)
+    requires moduleStarImportPublicId(A)
+  rule moduleStarImportAttrs(Rho:Map, classAttr(A:Id, _V:Val, Rest:ClassAttrs)) =>
+    moduleStarImportAttrs(Rho, Rest)
+    requires notBool moduleStarImportPublicId(A)
+  rule moduleStarImportAttrs(Rho:Map, classStringAttr(_A:String, _V:Val, Rest:ClassAttrs)) =>
+    moduleStarImportAttrs(Rho, Rest)
+  rule moduleStarImportAttrs(Rho:Map, classBase(_BaseId:Int, Rest:ClassAttrs)) =>
+    moduleStarImportAttrs(Rho, Rest)
 
   rule functionMeta(F:Id, Doc:Val, Fun:Val) =>
     functionMetaVal(Id2String(F), Id2String(F), Doc, "__main__", Fun)
@@ -16219,6 +16255,12 @@ module PYTHON
   rule <k> #fromImportAs(M:Id, A:Id, Alias:Id) => stmtNoResult ... </k>
        <env> Rho => Rho [ Alias <- builtinModuleAttr(M, A) ] </env>
     requires builtinModuleSupported(M) andBool notBool envModuleHas(Rho, M) andBool builtinModuleHasAttr(M, A)
+  rule <k> #fromImportStar(M:Id) => stmtNoResult ... </k>
+       <env> Rho => moduleStarImport(Rho, envModuleGet(Rho, M)) </env>
+    requires builtinModuleSupported(M) andBool envModuleHas(Rho, M)
+  rule <k> #fromImportStar(M:Id) => stmtNoResult ... </k>
+       <env> Rho => moduleStarImport(Rho, builtinModule(M)) </env>
+    requires builtinModuleSupported(M) andBool notBool envModuleHas(Rho, M)
   rule <k> #import(M:Id) => exceptionSignal(#exception(#token("ModuleNotFoundError", "Id"))) ... </k>
     requires notBool builtinModuleSupported(M)
   rule <k> #importAs(M:Id, _Alias:Id) => exceptionSignal(#exception(#token("ModuleNotFoundError", "Id"))) ... </k>
@@ -16226,6 +16268,8 @@ module PYTHON
   rule <k> #fromImport(M:Id, _A:Id) => exceptionSignal(#exception(#token("ModuleNotFoundError", "Id"))) ... </k>
     requires notBool builtinModuleSupported(M)
   rule <k> #fromImportAs(M:Id, _A:Id, _Alias:Id) => exceptionSignal(#exception(#token("ModuleNotFoundError", "Id"))) ... </k>
+    requires notBool builtinModuleSupported(M)
+  rule <k> #fromImportStar(M:Id) => exceptionSignal(#exception(#token("ModuleNotFoundError", "Id"))) ... </k>
     requires notBool builtinModuleSupported(M)
   rule <k> #fromImport(M:Id, A:Id) => exceptionSignal(#exception(#token("ImportError", "Id"))) ... </k>
        <env> Rho </env>

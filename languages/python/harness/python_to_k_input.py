@@ -845,7 +845,7 @@ def emit_import_from_stmt(stmt: ast.ImportFrom, module: str | None, names: list[
         raise unsupported(stmt, "only single-name from-import statements are supported")
     alias = names[0]
     if alias.name == "*":
-        raise unsupported(stmt, "from-import star is not supported")
+        return f"#fromImportStar({emit_id(module)})"
     module_id = emit_id(module)
     imported = emit_id(alias.name)
     if alias.asname is None:

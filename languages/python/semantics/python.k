@@ -3151,6 +3151,10 @@ module PYTHON
                | typeValCtorResult(Id) [function, symbol(typeValCtorResult)]
                | builtinTypeNameVal(Id) [function, symbol(builtinTypeNameVal)]
                | valueClassTypeVal(Val) [function, symbol(valueClassTypeVal)]
+               | typeValClass(Id) [function, symbol(typeValClass)]
+               | typeValBase(Id) [function, symbol(typeValBase)]
+               | typeValBases(Id) [function, symbol(typeValBases)]
+               | typeValMro(Id) [function, symbol(typeValMro)]
                | complexMulVal(Val, Val) [function, symbol(complexMulVal)]
                | complexInv(Val) [function, symbol(complexInv)]
                | complexPowNonNeg(Float, Float, Int) [function, symbol(complexPowNonNeg)]
@@ -3430,7 +3434,9 @@ module PYTHON
   rule isTypeVal(_:Val) => false [owise]
 
   rule typeValSupported(T:Id) =>
-    Id2String(T) ==String "NoneType"
+    Id2String(T) ==String "object"
+      orBool Id2String(T) ==String "type"
+      orBool Id2String(T) ==String "NoneType"
       orBool Id2String(T) ==String "EllipsisType"
       orBool Id2String(T) ==String "NotImplementedType"
       orBool Id2String(T) ==String "bool"
@@ -3467,7 +3473,9 @@ module PYTHON
       andBool builtinTypeName(T)
 
   rule builtinTypeNameString(S:String) =>
-    S ==String "bool"
+    S ==String "object"
+      orBool S ==String "type"
+      orBool S ==String "bool"
       orBool S ==String "int"
       orBool S ==String "float"
       orBool S ==String "complex"
@@ -3503,7 +3511,8 @@ module PYTHON
   rule typeValNoArgConstructible(_:Id) => false [owise]
 
   rule typeValOneArgConstructible(T:Id) =>
-    Id2String(T) ==String "bool"
+    Id2String(T) ==String "type"
+      orBool Id2String(T) ==String "bool"
       orBool Id2String(T) ==String "int"
       orBool Id2String(T) ==String "float"
       orBool Id2String(T) ==String "complex"
@@ -3545,11 +3554,19 @@ module PYTHON
       orBool (N ==Int 3 andBool typeValThreeArgConstructible(T))
 
   rule typeValAttrId(A:Id) =>
-    classAttrIdMatchesString(A, "__name__")
+    classAttrIdMatchesString(A, "__class__")
+      orBool classAttrIdMatchesString(A, "__base__")
+      orBool classAttrIdMatchesString(A, "__bases__")
+      orBool classAttrIdMatchesString(A, "__mro__")
+      orBool classAttrIdMatchesString(A, "__name__")
       orBool classAttrIdMatchesString(A, "__qualname__")
       orBool classAttrIdMatchesString(A, "__module__")
   rule typeValAttrString(A:String) =>
-    A ==String "__name__"
+    A ==String "__class__"
+      orBool A ==String "__base__"
+      orBool A ==String "__bases__"
+      orBool A ==String "__mro__"
+      orBool A ==String "__name__"
       orBool A ==String "__qualname__"
       orBool A ==String "__module__"
 
@@ -3558,6 +3575,33 @@ module PYTHON
   rule typeValName(T:Id) => Id2String(T)
     requires Id2String(T) =/=String "EllipsisType"
   rule typeValDisplay(T:Id) => "<class '" +String typeValName(T) +String "'>"
+
+  rule typeValClass(_:Id) => #typeVal(#token("type", "Id"))
+  rule typeValBase(T:Id) => None
+    requires Id2String(T) ==String "object"
+  rule typeValBase(T:Id) => #typeVal(#token("int", "Id"))
+    requires Id2String(T) ==String "bool"
+  rule typeValBase(T:Id) => #typeVal(#token("object", "Id"))
+    requires Id2String(T) =/=String "object"
+      andBool Id2String(T) =/=String "bool"
+
+  rule typeValBases(T:Id) => ()
+    requires Id2String(T) ==String "object"
+  rule typeValBases(T:Id) => (#typeVal(#token("int", "Id")),)
+    requires Id2String(T) ==String "bool"
+  rule typeValBases(T:Id) => (#typeVal(#token("object", "Id")),)
+    requires Id2String(T) =/=String "object"
+      andBool Id2String(T) =/=String "bool"
+
+  rule typeValMro(T:Id) => (#typeVal(#token("object", "Id")),)
+    requires Id2String(T) ==String "object"
+  rule typeValMro(T:Id) =>
+    (#typeVal(#token("bool", "Id")), #typeVal(#token("int", "Id")), #typeVal(#token("object", "Id")),)
+    requires Id2String(T) ==String "bool"
+  rule typeValMro(T:Id) =>
+    (#typeVal(T), #typeVal(#token("object", "Id")),)
+    requires Id2String(T) =/=String "object"
+      andBool Id2String(T) =/=String "bool"
 
   rule typeValCtorResult(T:Id) => None
     requires Id2String(T) ==String "NoneType"
@@ -3614,6 +3658,7 @@ module PYTHON
   rule valueClassTypeSupported(rangeVal(_:Int, _:Int)) => true
   rule valueClassTypeSupported(rangeVal(_:Int, _:Int, _:Int)) => true
   rule valueClassTypeSupported(sliceVal(_:Val, _:Val, _:Val)) => true
+  rule valueClassTypeSupported(#typeVal(_:Id)) => true
   rule valueClassTypeSupported(_:Val) => false [owise]
 
   rule valueClassTypeVal(True) => #typeVal(#token("bool", "Id"))
@@ -3640,10 +3685,23 @@ module PYTHON
   rule valueClassTypeVal(rangeVal(_:Int, _:Int)) => #typeVal(#token("range", "Id"))
   rule valueClassTypeVal(rangeVal(_:Int, _:Int, _:Int)) => #typeVal(#token("range", "Id"))
   rule valueClassTypeVal(sliceVal(_:Val, _:Val, _:Val)) => #typeVal(#token("slice", "Id"))
+  rule valueClassTypeVal(#typeVal(_:Id)) => #typeVal(#token("type", "Id"))
 
   rule typeValMatches(None, T:Id) => Id2String(T) ==String "NoneType"
   rule typeValMatches(Ellipsis, T:Id) => Id2String(T) ==String "EllipsisType"
   rule typeValMatches(NotImplemented, T:Id) => Id2String(T) ==String "NotImplementedType"
+  rule typeValMatches(None, T:Id) => true
+    requires Id2String(T) ==String "object"
+  rule typeValMatches(Ellipsis, T:Id) => true
+    requires Id2String(T) ==String "object"
+  rule typeValMatches(NotImplemented, T:Id) => true
+    requires Id2String(T) ==String "object"
+  rule typeValMatches(#typeVal(_:Id), T:Id) => true
+    requires Id2String(T) ==String "object" orBool Id2String(T) ==String "type"
+  rule typeValMatches(V:Val, T:Id) => true
+    requires Id2String(T) ==String "object"
+      andBool valueClassTypeSupported(V)
+      andBool notBool isTypeVal(V)
   rule typeValMatches(True, T:Id) => Id2String(T) ==String "bool" orBool Id2String(T) ==String "int"
   rule typeValMatches(False, T:Id) => Id2String(T) ==String "bool" orBool Id2String(T) ==String "int"
   rule typeValMatches(V:Val, T:Id) => valIs(valueClassTypeVal(V), #typeVal(T))
@@ -3652,8 +3710,7 @@ module PYTHON
   rule typeValMatches(_:Val, _:Id) => false [owise]
 
   rule typeValSubclass(#typeVal(C:Id), #typeVal(I:Id)) =>
-    (Id2String(C) ==String Id2String(I))
-      orBool (Id2String(C) ==String "bool" andBool Id2String(I) ==String "int")
+    builtinSubclass(C, I)
   rule typeValSubclass(_:Val, _:Val) => false [owise]
 
   rule isClassVal(classVal(_:Id, _:Int, _:ClassAttrs)) => true
@@ -6846,6 +6903,10 @@ module PYTHON
     requires Id2String(C) ==String "bool" orBool Id2String(C) ==String "int"
   rule matchBuiltinClass(False, C:Id) => true
     requires Id2String(C) ==String "bool" orBool Id2String(C) ==String "int"
+  rule matchBuiltinClass(#typeVal(_:Id), C:Id) => true
+    requires Id2String(C) ==String "type"
+  rule matchBuiltinClass(_:Val, C:Id) => true
+    requires Id2String(C) ==String "object"
   rule matchBuiltinClass(_I:Int, C:Id) => true
     requires Id2String(C) ==String "int"
   rule matchBuiltinClass(_F:Float, C:Id) => true
@@ -6909,7 +6970,9 @@ module PYTHON
   rule builtinClassWholeArg(_:Id) => false [owise]
 
   rule isinstanceClassSupported(C:Id) => true
-    requires Id2String(C) ==String "bytearray"
+    requires Id2String(C) ==String "object"
+      orBool Id2String(C) ==String "type"
+      orBool Id2String(C) ==String "bytearray"
       orBool Id2String(C) ==String "bool"
       orBool Id2String(C) ==String "bytes"
       orBool Id2String(C) ==String "complex"
@@ -6953,6 +7016,10 @@ module PYTHON
       orBool ((Id2String(C) ==String "set" orBool Id2String(C) ==String "kSetClassName")
         andBool (Id2String(I) ==String "set" orBool Id2String(I) ==String "kSetClassName"))
       orBool (Id2String(C) ==String "bool" andBool Id2String(I) ==String "int")
+      orBool (Id2String(I) ==String "object"
+        andBool (typeValSupported(C)
+          orBool Id2String(C) ==String "kSetClassName"
+          orBool Id2String(C) ==String "kFrozenSetClassName"))
   rule builtinSubclass(_:Id, _:Id) => false [owise]
 
   rule builtinSubclassAny(_:Id, #noIds) => false
@@ -7165,6 +7232,8 @@ module PYTHON
     requires builtinModuleSupported(M)
 
   rule builtinTypeClassAttrs() =>
+    classAttr(#token("object", "Id"), #typeVal(#token("object", "Id")),
+    classAttr(#token("type", "Id"), #typeVal(#token("type", "Id")),
     classAttr(#token("bool", "Id"), #typeVal(#token("bool", "Id")),
     classAttr(#token("int", "Id"), #typeVal(#token("int", "Id")),
     classAttr(#token("float", "Id"), #typeVal(#token("float", "Id")),
@@ -7180,7 +7249,7 @@ module PYTHON
     classAttr(#token("kFrozenSetName", "Id"), #typeVal(#token("frozenset", "Id")),
     classAttr(#token("range", "Id"), #typeVal(#token("range", "Id")),
     classAttr(#token("slice", "Id"), #typeVal(#token("slice", "Id")),
-      #noRuntimeClassAttrs)))))))))))))))
+      #noRuntimeClassAttrs)))))))))))))))))
 
   rule builtinModuleAttrs(M:Id) =>
     classAttr(#token("kDunderNameName", "Id"), "math",
@@ -7647,6 +7716,9 @@ module PYTHON
 
   rule classAttrIdMatchesString(#token("kDunderInitName", "Id"), B:String) => B ==String "__init__"
   rule classAttrIdMatchesString(#token("kDunderClassName", "Id"), B:String) => B ==String "__class__"
+  rule classAttrIdMatchesString(#token("kDunderBaseName", "Id"), B:String) => B ==String "__base__"
+  rule classAttrIdMatchesString(#token("kDunderBasesName", "Id"), B:String) => B ==String "__bases__"
+  rule classAttrIdMatchesString(#token("kDunderMroName", "Id"), B:String) => B ==String "__mro__"
   rule classAttrIdMatchesString(#token("kDunderNameName", "Id"), B:String) => B ==String "__name__"
   rule classAttrIdMatchesString(#token("kDunderDocName", "Id"), B:String) => B ==String "__doc__"
   rule classAttrIdMatchesString(#token("kDunderModuleName", "Id"), B:String) => B ==String "__module__"
@@ -7771,6 +7843,9 @@ module PYTHON
   rule getattrStringSupported("denominator") => true
   rule getattrStringSupported("missing") => true
   rule getattrStringSupported("__class__") => true
+  rule getattrStringSupported("__base__") => true
+  rule getattrStringSupported("__bases__") => true
+  rule getattrStringSupported("__mro__") => true
   rule getattrStringSupported("__name__") => true
   rule getattrStringSupported("__qualname__") => true
   rule getattrStringSupported("__doc__") => true
@@ -7908,6 +7983,14 @@ module PYTHON
     requires classAttrIdMatchesString(Attr, "__doc__")
   rule matchClassAttrVal(functionMetaVal(_:String, _:String, _:Val, Module:String, _:Val), Attr:Id) => Module
     requires classAttrIdMatchesString(Attr, "__module__")
+  rule matchClassAttrVal(#typeVal(T:Id), Attr:Id) => typeValClass(T)
+    requires classAttrIdMatchesString(Attr, "__class__")
+  rule matchClassAttrVal(#typeVal(T:Id), Attr:Id) => typeValBase(T)
+    requires classAttrIdMatchesString(Attr, "__base__")
+  rule matchClassAttrVal(#typeVal(T:Id), Attr:Id) => typeValBases(T)
+    requires classAttrIdMatchesString(Attr, "__bases__")
+  rule matchClassAttrVal(#typeVal(T:Id), Attr:Id) => typeValMro(T)
+    requires classAttrIdMatchesString(Attr, "__mro__")
   rule matchClassAttrVal(#typeVal(T:Id), Attr:Id) => typeValName(T)
     requires classAttrIdMatchesString(Attr, "__name__")
   rule matchClassAttrVal(#typeVal(T:Id), Attr:Id) => typeValName(T)
@@ -7975,6 +8058,10 @@ module PYTHON
   rule matchClassAttrStringVal(functionMetaVal(_:String, Qual:String, _:Val, _:String, _:Val), "__qualname__") => Qual
   rule matchClassAttrStringVal(functionMetaVal(_:String, _:String, Doc:Val, _:String, _:Val), "__doc__") => Doc
   rule matchClassAttrStringVal(functionMetaVal(_:String, _:String, _:Val, Module:String, _:Val), "__module__") => Module
+  rule matchClassAttrStringVal(#typeVal(T:Id), "__class__") => typeValClass(T)
+  rule matchClassAttrStringVal(#typeVal(T:Id), "__base__") => typeValBase(T)
+  rule matchClassAttrStringVal(#typeVal(T:Id), "__bases__") => typeValBases(T)
+  rule matchClassAttrStringVal(#typeVal(T:Id), "__mro__") => typeValMro(T)
   rule matchClassAttrStringVal(#typeVal(T:Id), "__name__") => typeValName(T)
   rule matchClassAttrStringVal(#typeVal(T:Id), "__qualname__") => typeValName(T)
   rule matchClassAttrStringVal(#typeVal(_:Id), "__module__") => "builtins"
@@ -20077,6 +20164,11 @@ module PYTHON
     requires Id2String(T) ==String "bool"
       andBool argValsLen(VS) ==Int 1
   rule <k> argsVal(VS:ArgVals) ~> callApplyArgs(#typeVal(T:Id)) =>
+           #typeCtor(argValAt(VS, 0))
+       ... </k>
+    requires Id2String(T) ==String "type"
+      andBool argValsLen(VS) ==Int 1
+  rule <k> argsVal(VS:ArgVals) ~> callApplyArgs(#typeVal(T:Id)) =>
            #intCtor(argValAt(VS, 0))
        ... </k>
     requires Id2String(T) ==String "int"
@@ -21104,6 +21196,10 @@ module PYTHON
        ... </k>
     requires Id2String(T) ==String "complex"
       andBool notBool complexCtorKwOk(KWS)
+  rule <k> kwArgsVal(_:KwArgVals) ~> callApplyKwArgs(#typeVal(T:Id)) =>
+           exceptionSignal(#exception(#token("TypeError", "Id")))
+       ... </k>
+    requires Id2String(T) ==String "type" orBool Id2String(T) ==String "object"
   rule <k> kwArgsVal(KWS:KwArgVals) ~> callApplyKwArgs(#__import__Fun) =>
            exceptionSignal(#exception(#token("TypeError", "Id")))
        ... </k>
@@ -21887,6 +21983,20 @@ module PYTHON
       orBool Id2String(T) ==String "bytearray"
       orBool Id2String(T) ==String "memoryview"
       orBool Id2String(T) ==String "complex"
+      orBool Id2String(T) ==String "type"
+      orBool Id2String(T) ==String "object"
+  rule <k> kwArgsVal(KWS:KwArgVals) ~> callApplyMixedArgs(#typeVal(T:Id), VS:ArgVals) =>
+           argsVal(VS) ~> callApplyArgs(#typeVal(T))
+       ... </k>
+    requires Id2String(T) ==String "type"
+      andBool argValsLen(VS) >Int 0
+      andBool emptyKwArgVals(KWS)
+  rule <k> kwArgsVal(KWS:KwArgVals) ~> callApplyMixedArgs(#typeVal(T:Id), VS:ArgVals) =>
+           exceptionSignal(#exception(#token("TypeError", "Id")))
+       ... </k>
+    requires (Id2String(T) ==String "type" orBool Id2String(T) ==String "object")
+      andBool argValsLen(VS) >Int 0
+      andBool (Id2String(T) ==String "object" orBool notBool emptyKwArgVals(KWS))
   rule <k> kwArgsVal(KWS:KwArgVals) ~> callApplyMixedArgs(#typeVal(T:Id), VS:ArgVals) =>
            argsVal(VS) ~> callApplyArgs(#typeVal(T))
        ... </k>

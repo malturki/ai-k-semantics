@@ -27,6 +27,9 @@ SET_NAME_ID = "kSetName"
 FROZENSET_NAME_ID = "kFrozenSetName"
 DUNDER_INIT_NAME_ID = "kDunderInitName"
 DUNDER_CLASS_NAME_ID = "kDunderClassName"
+DUNDER_BASE_NAME_ID = "kDunderBaseName"
+DUNDER_BASES_NAME_ID = "kDunderBasesName"
+DUNDER_MRO_NAME_ID = "kDunderMroName"
 DUNDER_NAME_NAME_ID = "kDunderNameName"
 DUNDER_DOC_NAME_ID = "kDunderDocName"
 DUNDER_MODULE_NAME_ID = "kDunderModuleName"
@@ -72,8 +75,11 @@ CLASS_PATTERN_ID_ALIASES = {
 }
 SUPPORTED_GETATTR_NAMES = {
     "__class__",
+    "__base__",
+    "__bases__",
     "__doc__",
     "__module__",
+    "__mro__",
     "__name__",
     "__parameters__",
     "__qualname__",
@@ -99,11 +105,13 @@ SUPPORTED_BUILTIN_CLASS_NAMES = {
     "int",
     "list",
     "memoryview",
+    "object",
     "range",
     "set",
     "slice",
     "str",
     "tuple",
+    "type",
 }
 SUPPORTED_IMPORT_MODULES = {
     "builtins",
@@ -665,6 +673,12 @@ def emit_id(name: str) -> str:
         return DUNDER_INIT_NAME_ID
     if name == "__class__":
         return DUNDER_CLASS_NAME_ID
+    if name == "__base__":
+        return DUNDER_BASE_NAME_ID
+    if name == "__bases__":
+        return DUNDER_BASES_NAME_ID
+    if name == "__mro__":
+        return DUNDER_MRO_NAME_ID
     if name == "__name__":
         return DUNDER_NAME_NAME_ID
     if name == "__doc__":

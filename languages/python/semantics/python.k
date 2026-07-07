@@ -2316,6 +2316,15 @@ module PYTHON
                 | strCtorObjectKwOk(KwArgVals) [function, symbol(strCtorObjectKwOk)]
                 | strCtorDefaultKwOk(KwArgVals) [function, symbol(strCtorDefaultKwOk)]
                 | strCtorKwOk(KwArgVals) [function, symbol(strCtorKwOk)]
+                | binaryCtorSourceKwOk(KwArgVals) [function, symbol(binaryCtorSourceKwOk)]
+                | binaryCtorSourceEncodingKwOk(KwArgVals) [function, symbol(binaryCtorSourceEncodingKwOk)]
+                | binaryCtorSourceEncodingErrorsKwOk(KwArgVals) [function, symbol(binaryCtorSourceEncodingErrorsKwOk)]
+                | binaryCtorKwOk(KwArgVals) [function, symbol(binaryCtorKwOk)]
+                | binaryCtorMixedEncodingKwOk(KwArgVals) [function, symbol(binaryCtorMixedEncodingKwOk)]
+                | binaryCtorMixedEncodingErrorsKwOk(KwArgVals) [function, symbol(binaryCtorMixedEncodingErrorsKwOk)]
+                | binaryCtorMixedErrorsKwOk(KwArgVals) [function, symbol(binaryCtorMixedErrorsKwOk)]
+                | binaryCtorMixedKwOk(ArgVals, KwArgVals) [function, symbol(binaryCtorMixedKwOk)]
+                | memoryviewCtorKwOk(KwArgVals) [function, symbol(memoryviewCtorKwOk)]
                 | complexCtorKwOk(KwArgVals) [function, symbol(complexCtorKwOk)]
                 | complexCtorMixedOk(Val, KwArgVals) [function, symbol(complexCtorMixedOk)]
                 | stringIdContains(String, IdItems) [function, symbol(stringIdContains)]
@@ -9892,6 +9901,57 @@ module PYTHON
 
   rule strCtorKwOk(KWS:KwArgVals) =>
     emptyKwArgVals(KWS) orBool strCtorObjectKwOk(KWS) orBool strCtorDefaultKwOk(KWS)
+
+  rule binaryCtorSourceKwOk(KWS:KwArgVals) =>
+    kwNoDuplicates(KWS)
+      andBool kwAllInIds(KWS, idItemsLast(#token("source", "Id")))
+      andBool kwContains(#token("source", "Id"), KWS)
+
+  rule binaryCtorSourceEncodingKwOk(KWS:KwArgVals) =>
+    kwNoDuplicates(KWS)
+      andBool kwAllInIds(KWS, idItemsCons(#token("source", "Id"), idItemsLast(#token("encoding", "Id"))))
+      andBool kwContains(#token("source", "Id"), KWS)
+      andBool kwContains(#token("encoding", "Id"), KWS)
+
+  rule binaryCtorSourceEncodingErrorsKwOk(KWS:KwArgVals) =>
+    kwNoDuplicates(KWS)
+      andBool kwAllInIds(KWS, idItemsCons(#token("source", "Id"), idItemsCons(#token("encoding", "Id"), idItemsLast(#token("errors", "Id")))))
+      andBool kwContains(#token("source", "Id"), KWS)
+      andBool kwContains(#token("encoding", "Id"), KWS)
+      andBool kwContains(#token("errors", "Id"), KWS)
+
+  rule binaryCtorKwOk(KWS:KwArgVals) =>
+    emptyKwArgVals(KWS)
+      orBool binaryCtorSourceKwOk(KWS)
+      orBool binaryCtorSourceEncodingKwOk(KWS)
+      orBool binaryCtorSourceEncodingErrorsKwOk(KWS)
+
+  rule binaryCtorMixedEncodingKwOk(KWS:KwArgVals) =>
+    kwNoDuplicates(KWS)
+      andBool kwAllInIds(KWS, idItemsLast(#token("encoding", "Id")))
+      andBool kwContains(#token("encoding", "Id"), KWS)
+
+  rule binaryCtorMixedEncodingErrorsKwOk(KWS:KwArgVals) =>
+    kwNoDuplicates(KWS)
+      andBool kwAllInIds(KWS, idItemsCons(#token("encoding", "Id"), idItemsLast(#token("errors", "Id"))))
+      andBool kwContains(#token("encoding", "Id"), KWS)
+      andBool kwContains(#token("errors", "Id"), KWS)
+
+  rule binaryCtorMixedErrorsKwOk(KWS:KwArgVals) =>
+    kwNoDuplicates(KWS)
+      andBool kwAllInIds(KWS, idItemsLast(#token("errors", "Id")))
+      andBool kwContains(#token("errors", "Id"), KWS)
+
+  rule binaryCtorMixedKwOk(VS:ArgVals, KWS:KwArgVals) =>
+    emptyKwArgVals(KWS)
+      orBool (argValsLen(VS) ==Int 1
+        andBool (binaryCtorMixedEncodingKwOk(KWS) orBool binaryCtorMixedEncodingErrorsKwOk(KWS)))
+      orBool (argValsLen(VS) ==Int 2 andBool binaryCtorMixedErrorsKwOk(KWS))
+
+  rule memoryviewCtorKwOk(KWS:KwArgVals) =>
+    kwNoDuplicates(KWS)
+      andBool kwAllInIds(KWS, idItemsLast(#token("object", "Id")))
+      andBool kwContains(#token("object", "Id"), KWS)
 
   rule complexCtorRealArg(KWS:KwArgVals) => kwLookup(#token("real", "Id"), KWS)
     requires kwContains(#token("real", "Id"), KWS)
@@ -20896,6 +20956,66 @@ module PYTHON
     requires Id2String(T) ==String "str"
       andBool notBool strCtorKwOk(KWS)
   rule <k> kwArgsVal(KWS:KwArgVals) ~> callApplyKwArgs(#typeVal(T:Id)) =>
+           #bytesCtor()
+       ... </k>
+    requires Id2String(T) ==String "bytes"
+      andBool emptyKwArgVals(KWS)
+  rule <k> kwArgsVal(KWS:KwArgVals) ~> callApplyKwArgs(#typeVal(T:Id)) =>
+           #bytesCtor(kwLookup(#token("source", "Id"), KWS))
+       ... </k>
+    requires Id2String(T) ==String "bytes"
+      andBool binaryCtorSourceKwOk(KWS)
+  rule <k> kwArgsVal(KWS:KwArgVals) ~> callApplyKwArgs(#typeVal(T:Id)) =>
+           #bytesCtor(kwLookup(#token("source", "Id"), KWS), kwLookup(#token("encoding", "Id"), KWS))
+       ... </k>
+    requires Id2String(T) ==String "bytes"
+      andBool binaryCtorSourceEncodingKwOk(KWS)
+  rule <k> kwArgsVal(KWS:KwArgVals) ~> callApplyKwArgs(#typeVal(T:Id)) =>
+           #bytesCtor(kwLookup(#token("source", "Id"), KWS), kwLookup(#token("encoding", "Id"), KWS), kwLookup(#token("errors", "Id"), KWS))
+       ... </k>
+    requires Id2String(T) ==String "bytes"
+      andBool binaryCtorSourceEncodingErrorsKwOk(KWS)
+  rule <k> kwArgsVal(KWS:KwArgVals) ~> callApplyKwArgs(#typeVal(T:Id)) =>
+           exceptionSignal(#exception(#token("TypeError", "Id")))
+       ... </k>
+    requires Id2String(T) ==String "bytes"
+      andBool notBool binaryCtorKwOk(KWS)
+  rule <k> kwArgsVal(KWS:KwArgVals) ~> callApplyKwArgs(#typeVal(T:Id)) =>
+           #bytearrayCtor()
+       ... </k>
+    requires Id2String(T) ==String "bytearray"
+      andBool emptyKwArgVals(KWS)
+  rule <k> kwArgsVal(KWS:KwArgVals) ~> callApplyKwArgs(#typeVal(T:Id)) =>
+           #bytearrayCtor(kwLookup(#token("source", "Id"), KWS))
+       ... </k>
+    requires Id2String(T) ==String "bytearray"
+      andBool binaryCtorSourceKwOk(KWS)
+  rule <k> kwArgsVal(KWS:KwArgVals) ~> callApplyKwArgs(#typeVal(T:Id)) =>
+           #bytearrayCtor(kwLookup(#token("source", "Id"), KWS), kwLookup(#token("encoding", "Id"), KWS))
+       ... </k>
+    requires Id2String(T) ==String "bytearray"
+      andBool binaryCtorSourceEncodingKwOk(KWS)
+  rule <k> kwArgsVal(KWS:KwArgVals) ~> callApplyKwArgs(#typeVal(T:Id)) =>
+           #bytearrayCtor(kwLookup(#token("source", "Id"), KWS), kwLookup(#token("encoding", "Id"), KWS), kwLookup(#token("errors", "Id"), KWS))
+       ... </k>
+    requires Id2String(T) ==String "bytearray"
+      andBool binaryCtorSourceEncodingErrorsKwOk(KWS)
+  rule <k> kwArgsVal(KWS:KwArgVals) ~> callApplyKwArgs(#typeVal(T:Id)) =>
+           exceptionSignal(#exception(#token("TypeError", "Id")))
+       ... </k>
+    requires Id2String(T) ==String "bytearray"
+      andBool notBool binaryCtorKwOk(KWS)
+  rule <k> kwArgsVal(KWS:KwArgVals) ~> callApplyKwArgs(#typeVal(T:Id)) =>
+           #memoryview(kwLookup(#token("object", "Id"), KWS))
+       ... </k>
+    requires Id2String(T) ==String "memoryview"
+      andBool memoryviewCtorKwOk(KWS)
+  rule <k> kwArgsVal(KWS:KwArgVals) ~> callApplyKwArgs(#typeVal(T:Id)) =>
+           exceptionSignal(#exception(#token("TypeError", "Id")))
+       ... </k>
+    requires Id2String(T) ==String "memoryview"
+      andBool notBool memoryviewCtorKwOk(KWS)
+  rule <k> kwArgsVal(KWS:KwArgVals) ~> callApplyKwArgs(#typeVal(T:Id)) =>
            dictCtorFromKwArgs(KWS)
        ... </k>
     requires Id2String(T) ==String "dict"
@@ -21694,6 +21814,9 @@ module PYTHON
     requires Id2String(T) ==String "int"
       orBool Id2String(T) ==String "dict"
       orBool Id2String(T) ==String "str"
+      orBool Id2String(T) ==String "bytes"
+      orBool Id2String(T) ==String "bytearray"
+      orBool Id2String(T) ==String "memoryview"
       orBool Id2String(T) ==String "complex"
   rule <k> kwArgsVal(KWS:KwArgVals) ~> callApplyMixedArgs(#typeVal(T:Id), VS:ArgVals) =>
            argsVal(VS) ~> callApplyArgs(#typeVal(T))
@@ -21728,6 +21851,62 @@ module PYTHON
            exceptionSignal(#exception(#token("TypeError", "Id")))
        ... </k>
     requires Id2String(T) ==String "str"
+      andBool argValsLen(VS) >Int 0
+      andBool notBool emptyKwArgVals(KWS)
+  rule <k> kwArgsVal(KWS:KwArgVals) ~> callApplyMixedArgs(#typeVal(T:Id), VS:ArgVals) =>
+           argsVal(VS) ~> callApplyArgs(#typeVal(T))
+       ... </k>
+    requires (Id2String(T) ==String "bytes"
+      orBool Id2String(T) ==String "bytearray"
+      orBool Id2String(T) ==String "memoryview")
+      andBool argValsLen(VS) >Int 0
+      andBool emptyKwArgVals(KWS)
+  rule <k> kwArgsVal(KWS:KwArgVals) ~> callApplyMixedArgs(#typeVal(T:Id), VS:ArgVals) =>
+           #bytesCtor(argValAt(VS, 0), kwLookup(#token("encoding", "Id"), KWS))
+       ... </k>
+    requires Id2String(T) ==String "bytes"
+      andBool argValsLen(VS) ==Int 1
+      andBool binaryCtorMixedEncodingKwOk(KWS)
+  rule <k> kwArgsVal(KWS:KwArgVals) ~> callApplyMixedArgs(#typeVal(T:Id), VS:ArgVals) =>
+           #bytesCtor(argValAt(VS, 0), kwLookup(#token("encoding", "Id"), KWS), kwLookup(#token("errors", "Id"), KWS))
+       ... </k>
+    requires Id2String(T) ==String "bytes"
+      andBool argValsLen(VS) ==Int 1
+      andBool binaryCtorMixedEncodingErrorsKwOk(KWS)
+  rule <k> kwArgsVal(KWS:KwArgVals) ~> callApplyMixedArgs(#typeVal(T:Id), VS:ArgVals) =>
+           #bytesCtor(argValAt(VS, 0), argValAt(VS, 1), kwLookup(#token("errors", "Id"), KWS))
+       ... </k>
+    requires Id2String(T) ==String "bytes"
+      andBool argValsLen(VS) ==Int 2
+      andBool binaryCtorMixedErrorsKwOk(KWS)
+  rule <k> kwArgsVal(KWS:KwArgVals) ~> callApplyMixedArgs(#typeVal(T:Id), VS:ArgVals) =>
+           #bytearrayCtor(argValAt(VS, 0), kwLookup(#token("encoding", "Id"), KWS))
+       ... </k>
+    requires Id2String(T) ==String "bytearray"
+      andBool argValsLen(VS) ==Int 1
+      andBool binaryCtorMixedEncodingKwOk(KWS)
+  rule <k> kwArgsVal(KWS:KwArgVals) ~> callApplyMixedArgs(#typeVal(T:Id), VS:ArgVals) =>
+           #bytearrayCtor(argValAt(VS, 0), kwLookup(#token("encoding", "Id"), KWS), kwLookup(#token("errors", "Id"), KWS))
+       ... </k>
+    requires Id2String(T) ==String "bytearray"
+      andBool argValsLen(VS) ==Int 1
+      andBool binaryCtorMixedEncodingErrorsKwOk(KWS)
+  rule <k> kwArgsVal(KWS:KwArgVals) ~> callApplyMixedArgs(#typeVal(T:Id), VS:ArgVals) =>
+           #bytearrayCtor(argValAt(VS, 0), argValAt(VS, 1), kwLookup(#token("errors", "Id"), KWS))
+       ... </k>
+    requires Id2String(T) ==String "bytearray"
+      andBool argValsLen(VS) ==Int 2
+      andBool binaryCtorMixedErrorsKwOk(KWS)
+  rule <k> kwArgsVal(KWS:KwArgVals) ~> callApplyMixedArgs(#typeVal(T:Id), VS:ArgVals) =>
+           exceptionSignal(#exception(#token("TypeError", "Id")))
+       ... </k>
+    requires (Id2String(T) ==String "bytes" orBool Id2String(T) ==String "bytearray")
+      andBool argValsLen(VS) >Int 0
+      andBool notBool binaryCtorMixedKwOk(VS, KWS)
+  rule <k> kwArgsVal(KWS:KwArgVals) ~> callApplyMixedArgs(#typeVal(T:Id), VS:ArgVals) =>
+           exceptionSignal(#exception(#token("TypeError", "Id")))
+       ... </k>
+    requires Id2String(T) ==String "memoryview"
       andBool argValsLen(VS) >Int 0
       andBool notBool emptyKwArgVals(KWS)
   rule <k> kwArgsVal(KWS:KwArgVals) ~> callApplyMixedArgs(#typeVal(T:Id), VS:ArgVals) =>

@@ -1173,6 +1173,10 @@ def emit_exp(exp: ast.expr) -> str:
             return "#strCtor()"
         case ast.Call(func=ast.Name(id="str"), args=[arg], keywords=[]):
             return f"#strCtor({emit_exp(arg)})"
+        case ast.Call(func=ast.Name(id="str"), args=[source, encoding], keywords=[]):
+            return f"#strCtor({emit_exp(source)}, {emit_exp(encoding)})"
+        case ast.Call(func=ast.Name(id="str"), args=[source, encoding, errors], keywords=[]):
+            return f"#strCtor({emit_exp(source)}, {emit_exp(encoding)}, {emit_exp(errors)})"
         case ast.Call(func=ast.Name(id="repr"), args=[arg], keywords=[]):
             return f"#repr({emit_exp(arg)})"
         case ast.Call(func=ast.Name(id="ascii"), args=[arg], keywords=[]):

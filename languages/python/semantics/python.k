@@ -580,6 +580,8 @@ module PYTHON-SYNTAX
                | "#boolCtor" "(" Exp ")" [symbol(boolCtor1Exp), strict]
                | "#strCtor" "(" ")" [symbol(strCtor0Exp)]
                | "#strCtor" "(" Exp ")" [symbol(strCtor1Exp), strict]
+               | "#strCtor" "(" Exp "," Exp ")" [symbol(strCtor2Exp), strict]
+               | "#strCtor" "(" Exp "," Exp "," Exp ")" [symbol(strCtor3Exp), strict]
                | "#repr" "(" Exp ")" [symbol(reprExp), strict]
                | "#ascii" "(" Exp ")" [symbol(asciiExp), strict]
                | "#format" "(" Exp ")" [symbol(format1Exp)]
@@ -1846,6 +1848,7 @@ module PYTHON
                 | isComplexLike(Val) [function, symbol(isComplexLike)]
                 | isBytesVal(Val) [function, symbol(isBytesVal)]
                 | isBytearrayVal(Val) [function, symbol(isBytearrayVal)]
+                | isMemoryviewVal(Val) [function, symbol(isMemoryviewVal)]
                 | valEq(Val, Val) [function, symbol(valEq)]
                 | builtinModuleSupported(Id) [function, symbol(builtinModuleSupported)]
                 | builtinModuleHasAttr(Id, Id) [function, symbol(builtinModuleHasAttr)]
@@ -2314,6 +2317,10 @@ module PYTHON
                 | kwAllInEitherIds(KwArgVals, IdItems, IdItems) [function, symbol(kwAllInEitherIds)]
                 | kwValStringIfPresent(Id, KwArgVals) [function, symbol(kwValStringIfPresent)]
                 | strCtorObjectKwOk(KwArgVals) [function, symbol(strCtorObjectKwOk)]
+                | strCtorObjectEncodingKwOk(KwArgVals) [function, symbol(strCtorObjectEncodingKwOk)]
+                | strCtorObjectErrorsKwOk(KwArgVals) [function, symbol(strCtorObjectErrorsKwOk)]
+                | strCtorObjectEncodingErrorsKwOk(KwArgVals) [function, symbol(strCtorObjectEncodingErrorsKwOk)]
+                | strCtorMixedKwOk(ArgVals, KwArgVals) [function, symbol(strCtorMixedKwOk)]
                 | strCtorDefaultKwOk(KwArgVals) [function, symbol(strCtorDefaultKwOk)]
                 | strCtorKwOk(KwArgVals) [function, symbol(strCtorKwOk)]
                 | binaryCtorSourceKwOk(KwArgVals) [function, symbol(binaryCtorSourceKwOk)]
@@ -3516,6 +3523,7 @@ module PYTHON
   rule typeValTwoArgConstructible(T:Id) =>
     Id2String(T) ==String "int"
       orBool Id2String(T) ==String "complex"
+      orBool Id2String(T) ==String "str"
       orBool Id2String(T) ==String "bytes"
       orBool Id2String(T) ==String "bytearray"
       orBool Id2String(T) ==String "range"
@@ -3523,7 +3531,8 @@ module PYTHON
   rule typeValTwoArgConstructible(_:Id) => false [owise]
 
   rule typeValThreeArgConstructible(T:Id) =>
-    Id2String(T) ==String "bytes"
+    Id2String(T) ==String "str"
+      orBool Id2String(T) ==String "bytes"
       orBool Id2String(T) ==String "bytearray"
       orBool Id2String(T) ==String "range"
       orBool Id2String(T) ==String "slice"
@@ -5416,6 +5425,9 @@ module PYTHON
   rule isBytearrayVal(#bytearray()) => true
   rule isBytearrayVal(bytearrayVal(_:ValItems)) => true
   rule isBytearrayVal(_:Val) => false [owise]
+
+  rule isMemoryviewVal(#memoryviewVal(_:Val)) => true
+  rule isMemoryviewVal(_:Val) => false [owise]
 
   rule isFloatVal(_:Float) => true
   rule isFloatVal(_:Val) => false [owise]
@@ -9891,6 +9903,25 @@ module PYTHON
       andBool kwAllInIds(KWS, idItemsLast(#token("object", "Id")))
       andBool kwContains(#token("object", "Id"), KWS)
 
+  rule strCtorObjectEncodingKwOk(KWS:KwArgVals) =>
+    kwNoDuplicates(KWS)
+      andBool kwAllInIds(KWS, idItemsCons(#token("object", "Id"), idItemsLast(#token("encoding", "Id"))))
+      andBool kwContains(#token("object", "Id"), KWS)
+      andBool kwContains(#token("encoding", "Id"), KWS)
+
+  rule strCtorObjectErrorsKwOk(KWS:KwArgVals) =>
+    kwNoDuplicates(KWS)
+      andBool kwAllInIds(KWS, idItemsCons(#token("object", "Id"), idItemsLast(#token("errors", "Id"))))
+      andBool kwContains(#token("object", "Id"), KWS)
+      andBool kwContains(#token("errors", "Id"), KWS)
+
+  rule strCtorObjectEncodingErrorsKwOk(KWS:KwArgVals) =>
+    kwNoDuplicates(KWS)
+      andBool kwAllInIds(KWS, idItemsCons(#token("object", "Id"), idItemsCons(#token("encoding", "Id"), idItemsLast(#token("errors", "Id")))))
+      andBool kwContains(#token("object", "Id"), KWS)
+      andBool kwContains(#token("encoding", "Id"), KWS)
+      andBool kwContains(#token("errors", "Id"), KWS)
+
   rule strCtorDefaultKwOk(KWS:KwArgVals) =>
     notBool emptyKwArgVals(KWS)
       andBool kwNoDuplicates(KWS)
@@ -9899,8 +9930,21 @@ module PYTHON
       andBool kwValStringIfPresent(#token("encoding", "Id"), KWS)
       andBool kwValStringIfPresent(#token("errors", "Id"), KWS)
 
+  rule strCtorMixedKwOk(VS:ArgVals, KWS:KwArgVals) =>
+    emptyKwArgVals(KWS)
+      orBool (argValsLen(VS) ==Int 1
+        andBool (binaryCtorMixedEncodingKwOk(KWS)
+          orBool binaryCtorMixedEncodingErrorsKwOk(KWS)
+          orBool binaryCtorMixedErrorsKwOk(KWS)))
+      orBool (argValsLen(VS) ==Int 2 andBool binaryCtorMixedErrorsKwOk(KWS))
+
   rule strCtorKwOk(KWS:KwArgVals) =>
-    emptyKwArgVals(KWS) orBool strCtorObjectKwOk(KWS) orBool strCtorDefaultKwOk(KWS)
+    emptyKwArgVals(KWS)
+      orBool strCtorObjectKwOk(KWS)
+      orBool strCtorObjectEncodingKwOk(KWS)
+      orBool strCtorObjectErrorsKwOk(KWS)
+      orBool strCtorObjectEncodingErrorsKwOk(KWS)
+      orBool strCtorDefaultKwOk(KWS)
 
   rule binaryCtorSourceKwOk(KWS:KwArgVals) =>
     kwNoDuplicates(KWS)
@@ -20063,6 +20107,16 @@ module PYTHON
     requires Id2String(T) ==String "str"
       andBool argValsLen(VS) ==Int 1
   rule <k> argsVal(VS:ArgVals) ~> callApplyArgs(#typeVal(T:Id)) =>
+           #strCtor(argValAt(VS, 0), argValAt(VS, 1))
+       ... </k>
+    requires Id2String(T) ==String "str"
+      andBool argValsLen(VS) ==Int 2
+  rule <k> argsVal(VS:ArgVals) ~> callApplyArgs(#typeVal(T:Id)) =>
+           #strCtor(argValAt(VS, 0), argValAt(VS, 1), argValAt(VS, 2))
+       ... </k>
+    requires Id2String(T) ==String "str"
+      andBool argValsLen(VS) ==Int 3
+  rule <k> argsVal(VS:ArgVals) ~> callApplyArgs(#typeVal(T:Id)) =>
            #bytesCtor(argValAt(VS, 0))
        ... </k>
     requires Id2String(T) ==String "bytes"
@@ -20950,6 +21004,21 @@ module PYTHON
        ... </k>
     requires Id2String(T) ==String "str"
       andBool strCtorObjectKwOk(KWS)
+  rule <k> kwArgsVal(KWS:KwArgVals) ~> callApplyKwArgs(#typeVal(T:Id)) =>
+           #strCtor(kwLookup(#token("object", "Id"), KWS), kwLookup(#token("encoding", "Id"), KWS))
+       ... </k>
+    requires Id2String(T) ==String "str"
+      andBool strCtorObjectEncodingKwOk(KWS)
+  rule <k> kwArgsVal(KWS:KwArgVals) ~> callApplyKwArgs(#typeVal(T:Id)) =>
+           #strCtor(kwLookup(#token("object", "Id"), KWS), "utf-8", kwLookup(#token("errors", "Id"), KWS))
+       ... </k>
+    requires Id2String(T) ==String "str"
+      andBool strCtorObjectErrorsKwOk(KWS)
+  rule <k> kwArgsVal(KWS:KwArgVals) ~> callApplyKwArgs(#typeVal(T:Id)) =>
+           #strCtor(kwLookup(#token("object", "Id"), KWS), kwLookup(#token("encoding", "Id"), KWS), kwLookup(#token("errors", "Id"), KWS))
+       ... </k>
+    requires Id2String(T) ==String "str"
+      andBool strCtorObjectEncodingErrorsKwOk(KWS)
   rule <k> kwArgsVal(KWS:KwArgVals) ~> callApplyKwArgs(#typeVal(T:Id)) =>
            exceptionSignal(#exception(#token("TypeError", "Id")))
        ... </k>
@@ -21848,11 +21917,35 @@ module PYTHON
       andBool argValsLen(VS) >Int 0
       andBool emptyKwArgVals(KWS)
   rule <k> kwArgsVal(KWS:KwArgVals) ~> callApplyMixedArgs(#typeVal(T:Id), VS:ArgVals) =>
+           #strCtor(argValAt(VS, 0), kwLookup(#token("encoding", "Id"), KWS))
+       ... </k>
+    requires Id2String(T) ==String "str"
+      andBool argValsLen(VS) ==Int 1
+      andBool binaryCtorMixedEncodingKwOk(KWS)
+  rule <k> kwArgsVal(KWS:KwArgVals) ~> callApplyMixedArgs(#typeVal(T:Id), VS:ArgVals) =>
+           #strCtor(argValAt(VS, 0), "utf-8", kwLookup(#token("errors", "Id"), KWS))
+       ... </k>
+    requires Id2String(T) ==String "str"
+      andBool argValsLen(VS) ==Int 1
+      andBool binaryCtorMixedErrorsKwOk(KWS)
+  rule <k> kwArgsVal(KWS:KwArgVals) ~> callApplyMixedArgs(#typeVal(T:Id), VS:ArgVals) =>
+           #strCtor(argValAt(VS, 0), kwLookup(#token("encoding", "Id"), KWS), kwLookup(#token("errors", "Id"), KWS))
+       ... </k>
+    requires Id2String(T) ==String "str"
+      andBool argValsLen(VS) ==Int 1
+      andBool binaryCtorMixedEncodingErrorsKwOk(KWS)
+  rule <k> kwArgsVal(KWS:KwArgVals) ~> callApplyMixedArgs(#typeVal(T:Id), VS:ArgVals) =>
+           #strCtor(argValAt(VS, 0), argValAt(VS, 1), kwLookup(#token("errors", "Id"), KWS))
+       ... </k>
+    requires Id2String(T) ==String "str"
+      andBool argValsLen(VS) ==Int 2
+      andBool binaryCtorMixedErrorsKwOk(KWS)
+  rule <k> kwArgsVal(KWS:KwArgVals) ~> callApplyMixedArgs(#typeVal(T:Id), VS:ArgVals) =>
            exceptionSignal(#exception(#token("TypeError", "Id")))
        ... </k>
     requires Id2String(T) ==String "str"
       andBool argValsLen(VS) >Int 0
-      andBool notBool emptyKwArgVals(KWS)
+      andBool notBool strCtorMixedKwOk(VS, KWS)
   rule <k> kwArgsVal(KWS:KwArgVals) ~> callApplyMixedArgs(#typeVal(T:Id), VS:ArgVals) =>
            argsVal(VS) ~> callApplyArgs(#typeVal(T))
        ... </k>
@@ -26792,6 +26885,98 @@ module PYTHON
   rule #strCtor() => ""
   rule #strCtor(V:Val) => pyFormatStr(V)
     requires pyStringConversionSupported(V)
+  rule #strCtor(#memoryviewVal(V:Val), Enc:Val) => #strCtor(V, Enc)
+  rule #strCtor(B:Val, Enc:String) => bytesDecodeString(B, Enc)
+    requires (isBytesVal(B) orBool isBytearrayVal(B))
+      andBool bytesEncodingSupported(Enc)
+      andBool bytesDecodeValid(B, Enc)
+  rule <k> #strCtor(_B:Val, Enc:Val) => exceptionSignal(#exception(#token("TypeError", "Id"))) ... </k>
+    requires notBool isStringVal(Enc)
+  rule <k> #strCtor(B:Val, _Enc:String) => exceptionSignal(#exception(#token("TypeError", "Id"))) ... </k>
+    requires notBool isBytesVal(B)
+      andBool notBool isBytearrayVal(B)
+      andBool notBool isMemoryviewVal(B)
+  rule <k> #strCtor(B:Val, Enc:String) => exceptionSignal(#exception(#token("UnicodeDecodeError", "Id"))) ... </k>
+    requires (isBytesVal(B) orBool isBytearrayVal(B))
+      andBool bytesEncodingSupported(Enc)
+      andBool notBool bytesDecodeValid(B, Enc)
+  rule <k> #strCtor(B:Val, Enc:String) => exceptionSignal(#exception(#token("LookupError", "Id"))) ... </k>
+    requires (isBytesVal(B) orBool isBytearrayVal(B))
+      andBool notBool bytesEncodingSupported(Enc)
+
+  rule #strCtor(#memoryviewVal(V:Val), Enc:Val, Errors:Val) => #strCtor(V, Enc, Errors)
+  rule <k> #strCtor(_B:Val, Enc:Val, _Errors:Val) => exceptionSignal(#exception(#token("TypeError", "Id"))) ... </k>
+    requires notBool isStringVal(Enc)
+  rule <k> #strCtor(_B:Val, _Enc:String, Errors:Val) => exceptionSignal(#exception(#token("TypeError", "Id"))) ... </k>
+    requires notBool isStringVal(Errors)
+  rule <k> #strCtor(B:Val, _Enc:String, _Errors:String) => exceptionSignal(#exception(#token("TypeError", "Id"))) ... </k>
+    requires notBool isBytesVal(B)
+      andBool notBool isBytearrayVal(B)
+      andBool notBool isMemoryviewVal(B)
+  rule #strCtor(B:Val, Enc:String, _Errors:String) => bytesDecodeString(B, Enc)
+    requires (isBytesVal(B) orBool isBytearrayVal(B))
+      andBool bytesEncodingSupported(Enc)
+      andBool bytesDecodeValid(B, Enc)
+  rule <k> #strCtor(B:Val, Enc:String, Errors:String) =>
+           exceptionSignal(#exception(#token("UnicodeDecodeError", "Id")))
+       ... </k>
+    requires (isBytesVal(B) orBool isBytearrayVal(B))
+      andBool bytesEncodingSupported(Enc)
+      andBool notBool bytesDecodeValid(B, Enc)
+      andBool bytesErrorsStrict(Errors)
+  rule #strCtor(B:Val, Enc:String, Errors:String) => bytesDecodeUtf8IgnoreString(B)
+    requires (isBytesVal(B) orBool isBytearrayVal(B))
+      andBool bytesEncodingUtf8(Enc)
+      andBool notBool bytesDecodeValid(B, Enc)
+      andBool bytesErrorsIgnore(Errors)
+  rule #strCtor(B:Val, Enc:String, Errors:String) => bytesDecodeUtf8ReplaceString(B)
+    requires (isBytesVal(B) orBool isBytearrayVal(B))
+      andBool bytesEncodingUtf8(Enc)
+      andBool notBool bytesDecodeValid(B, Enc)
+      andBool bytesErrorsReplace(Errors)
+  rule #strCtor(B:Val, Enc:String, Errors:String) => bytesDecodeUtf8BackslashString(B)
+    requires (isBytesVal(B) orBool isBytearrayVal(B))
+      andBool bytesEncodingUtf8(Enc)
+      andBool notBool bytesDecodeValid(B, Enc)
+      andBool bytesErrorsBackslashReplace(Errors)
+  rule #strCtor(B:Val, Enc:String, Errors:String) => bytesDecodeAsciiIgnoreString(B)
+    requires (isBytesVal(B) orBool isBytearrayVal(B))
+      andBool bytesEncodingAscii(Enc)
+      andBool notBool bytesDecodeValid(B, Enc)
+      andBool bytesErrorsIgnore(Errors)
+  rule #strCtor(B:Val, Enc:String, Errors:String) => bytesDecodeAsciiReplaceString(B)
+    requires (isBytesVal(B) orBool isBytearrayVal(B))
+      andBool bytesEncodingAscii(Enc)
+      andBool notBool bytesDecodeValid(B, Enc)
+      andBool bytesErrorsReplace(Errors)
+  rule #strCtor(B:Val, Enc:String, Errors:String) => bytesDecodeAsciiBackslashString(B)
+    requires (isBytesVal(B) orBool isBytearrayVal(B))
+      andBool bytesEncodingAscii(Enc)
+      andBool notBool bytesDecodeValid(B, Enc)
+      andBool bytesErrorsBackslashReplace(Errors)
+  rule <k> #strCtor(B:Val, Enc:String, _Errors:String) =>
+           exceptionSignal(#exception(#token("LookupError", "Id")))
+       ... </k>
+    requires (isBytesVal(B) orBool isBytearrayVal(B))
+      andBool notBool bytesEncodingSupported(Enc)
+  rule <k> #strCtor(B:Val, Enc:String, Errors:String) =>
+           exceptionSignal(#exception(#token("LookupError", "Id")))
+       ... </k>
+    requires (isBytesVal(B) orBool isBytearrayVal(B))
+      andBool bytesEncodingSupported(Enc)
+      andBool notBool bytesDecodeValid(B, Enc)
+      andBool notBool bytesErrorsKnown(Errors)
+  rule <k> #strCtor(B:Val, Enc:String, Errors:String) =>
+           exceptionSignal(#exception(#token("NotImplementedError", "Id")))
+       ... </k>
+    requires (isBytesVal(B) orBool isBytearrayVal(B))
+      andBool bytesEncodingSupported(Enc)
+      andBool notBool bytesDecodeValid(B, Enc)
+      andBool bytesErrorsKnown(Errors)
+      andBool notBool bytesErrorsStrict(Errors)
+      andBool notBool bytesErrorsIgnore(Errors)
+      andBool notBool bytesErrorsReplace(Errors)
+      andBool notBool bytesErrorsBackslashReplace(Errors)
   rule #repr(V:Val) => pyReprStr(V)
     requires pyStringConversionSupported(V)
   rule #ascii(V:Val) => pyAsciiStr(V)

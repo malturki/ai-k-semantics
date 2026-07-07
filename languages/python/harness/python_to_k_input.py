@@ -1392,7 +1392,7 @@ def emit_exp(exp: ast.expr) -> str:
             return f"#callMixed({emit_exp(func)}, {emit_arg_exps(args)}, {emit_kw_arg_exps(exp, keywords)})"
         case ast.Call(keywords=keywords) if keywords:
             raise unsupported(exp, "unsupported keyword call shape")
-        case ast.Call(func=func, args=[arg], keywords=[]):
+        case ast.Call(func=func, args=[arg], keywords=[]) if not isinstance(arg, ast.Starred):
             return f"({emit_exp(func)}({emit_exp(arg)}))"
         case ast.Call(func=func, args=args, keywords=[]):
             return f"#call({emit_exp(func)}, {emit_arg_exps(args)})"

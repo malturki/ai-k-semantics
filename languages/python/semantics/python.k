@@ -16,6 +16,7 @@ module PYTHON-SYNTAX
                | "Ellipsis" [symbol(pyEllipsis)]
                | "NotImplemented" [symbol(pyNotImplemented)]
                | "#typeVal" "(" Id ")" [symbol(typeVal)]
+               | objectVal(Int) [symbol(objectVal)]
                | "#bytes" "(" ")" [symbol(emptyBytesVal)]
                | "#bytes" "(" ValItems ")" [symbol(bytesVal)]
                | "#bytearray" "(" ")" [symbol(emptyBytearrayVal)]
@@ -3275,6 +3276,7 @@ module PYTHON
   rule truthy(#keywordIsKeywordFun) => true
   rule truthy(#keywordIsSoftKeywordFun) => true
   rule truthy(#typeVal(_:Id)) => true
+  rule truthy(objectVal(_:Int)) => true
   rule truthy(moduleVal(_:Id, _:ClassAttrs)) => true
   rule truthy(classVal(_:Id, _:Int, _:ClassAttrs)) => true
   rule truthy(userObjectVal(_:Id, _:Int, _:Int, _:ClassAttrs)) => true
@@ -3303,6 +3305,7 @@ module PYTHON
   rule floatCtorTypeErrorProfile(None) => true
   rule floatCtorTypeErrorProfile(Ellipsis) => true
   rule floatCtorTypeErrorProfile(NotImplemented) => true
+  rule floatCtorTypeErrorProfile(objectVal(_:Int)) => true
   rule floatCtorTypeErrorProfile([]) => true
   rule floatCtorTypeErrorProfile(listVal(_:ValItems)) => true
   rule floatCtorTypeErrorProfile(()) => true
@@ -3325,6 +3328,7 @@ module PYTHON
   rule complexCtorTypeErrorProfile(None) => true
   rule complexCtorTypeErrorProfile(Ellipsis) => true
   rule complexCtorTypeErrorProfile(NotImplemented) => true
+  rule complexCtorTypeErrorProfile(objectVal(_:Int)) => true
   rule complexCtorTypeErrorProfile([]) => true
   rule complexCtorTypeErrorProfile(listVal(_:ValItems)) => true
   rule complexCtorTypeErrorProfile(()) => true
@@ -3548,7 +3552,7 @@ module PYTHON
   rule typeValThreeArgConstructible(_:Id) => false [owise]
 
   rule typeValPositionalAritySupported(T:Id, N:Int) =>
-    (N ==Int 0 andBool typeValNoArgConstructible(T))
+    (N ==Int 0 andBool (typeValNoArgConstructible(T) orBool Id2String(T) ==String "object"))
       orBool (N ==Int 1 andBool typeValOneArgConstructible(T))
       orBool (N ==Int 2 andBool typeValTwoArgConstructible(T))
       orBool (N ==Int 3 andBool typeValThreeArgConstructible(T))
@@ -3659,6 +3663,7 @@ module PYTHON
   rule valueClassTypeSupported(rangeVal(_:Int, _:Int, _:Int)) => true
   rule valueClassTypeSupported(sliceVal(_:Val, _:Val, _:Val)) => true
   rule valueClassTypeSupported(#typeVal(_:Id)) => true
+  rule valueClassTypeSupported(objectVal(_:Int)) => true
   rule valueClassTypeSupported(_:Val) => false [owise]
 
   rule valueClassTypeVal(True) => #typeVal(#token("bool", "Id"))
@@ -3686,6 +3691,7 @@ module PYTHON
   rule valueClassTypeVal(rangeVal(_:Int, _:Int, _:Int)) => #typeVal(#token("range", "Id"))
   rule valueClassTypeVal(sliceVal(_:Val, _:Val, _:Val)) => #typeVal(#token("slice", "Id"))
   rule valueClassTypeVal(#typeVal(_:Id)) => #typeVal(#token("type", "Id"))
+  rule valueClassTypeVal(objectVal(_:Int)) => #typeVal(#token("object", "Id"))
 
   rule typeValMatches(None, T:Id) => Id2String(T) ==String "NoneType"
   rule typeValMatches(Ellipsis, T:Id) => Id2String(T) ==String "EllipsisType"
@@ -5366,6 +5372,7 @@ module PYTHON
   rule isIntLike(Ellipsis) => false
   rule isIntLike(NotImplemented) => false
   rule isIntLike(#typeVal(_:Id)) => false
+  rule isIntLike(objectVal(_:Int)) => false
   rule isIntLike([]) => false
   rule isIntLike(listVal(_:ValItems)) => false
   rule isIntLike(()) => false
@@ -6401,6 +6408,7 @@ module PYTHON
   rule singletonIdentity(Ellipsis) => true
   rule singletonIdentity(NotImplemented) => true
   rule singletonIdentity(#typeVal(_:Id)) => false
+  rule singletonIdentity(objectVal(_:Int)) => false
   rule singletonIdentity(_:Int) => false
   rule singletonIdentity(_:Float) => false
   rule singletonIdentity(#complex(_:Float, _:Float)) => false
@@ -6561,6 +6569,7 @@ module PYTHON
   rule pyHash(Ellipsis) => 590923759
   rule pyHash(NotImplemented) => 590923781
   rule pyHash(#typeVal(T:Id)) => pyStringHash(Id2String(T))
+  rule pyHash(objectVal(I:Int)) => pyHashInt(710239 +Int I)
   rule pyHash(#bytes()) => 0
   rule pyHash(bytesVal(VS:ValItems)) => pyHashByteItems(VS, 0)
   rule pyHash(()) => pyHashInt(345678)
@@ -8471,6 +8480,9 @@ module PYTHON
     requires notBool isTypeVal(V)
   rule valEq(V:Val, #typeVal(_:Id)) => false
     requires notBool isTypeVal(V)
+  rule valEq(objectVal(I1:Int), objectVal(I2:Int)) => I1 ==Int I2
+  rule valEq(objectVal(_:Int), _V:Val) => false [owise]
+  rule valEq(_V:Val, objectVal(_:Int)) => false [owise]
   rule valEq(None, _:Int) => false
   rule valEq(_:Int, None) => false
   rule valEq(None, True) => false
@@ -8734,6 +8746,9 @@ module PYTHON
     requires notBool isTypeAliasVal(V)
   rule valIs(V:Val, typeAliasVal(_:Id, _:Int, _:Exp)) => false
     requires notBool isTypeAliasVal(V)
+  rule valIs(objectVal(I1:Int), objectVal(I2:Int)) => I1 ==Int I2
+  rule valIs(objectVal(_:Int), _V:Val) => false [owise]
+  rule valIs(_V:Val, objectVal(_:Int)) => false [owise]
   rule valIs(#typeVal(T1:Id), #typeVal(T2:Id)) => Id2String(T1) ==String Id2String(T2)
   rule valIs(#typeVal(_:Id), V:Val) => false
     requires notBool isTypeVal(V)
@@ -16896,6 +16911,7 @@ module PYTHON
   rule dictLookupKeySupported(Ellipsis) => true
   rule dictLookupKeySupported(NotImplemented) => true
   rule dictLookupKeySupported(#typeVal(_:Id)) => true
+  rule dictLookupKeySupported(objectVal(_:Int)) => true
   rule dictLookupKeySupported(#bytes()) => true
   rule dictLookupKeySupported(bytesVal(_:ValItems)) => true
   rule dictLookupKeySupported(#complex(_:Float, _:Float)) => true
@@ -20155,6 +20171,11 @@ module PYTHON
        ... </k>
     requires notBool callableVal(F)
   rule <k> argsVal(#noArgVals) ~> callApplyArgs(#typeVal(T:Id)) =>
+           objectVal(I)
+       ... </k>
+       <nextObject> I => I +Int 1 </nextObject>
+    requires Id2String(T) ==String "object"
+  rule <k> argsVal(#noArgVals) ~> callApplyArgs(#typeVal(T:Id)) =>
            typeValCtorResult(T)
        ... </k>
     requires typeValSupported(T) andBool typeValNoArgConstructible(T)
@@ -21196,6 +21217,11 @@ module PYTHON
        ... </k>
     requires Id2String(T) ==String "complex"
       andBool notBool complexCtorKwOk(KWS)
+  rule <k> kwArgsVal(KWS:KwArgVals) ~> callApplyKwArgs(#typeVal(T:Id)) =>
+           argsVal(#noArgVals) ~> callApplyArgs(#typeVal(T))
+       ... </k>
+    requires Id2String(T) ==String "object"
+      andBool emptyKwArgVals(KWS)
   rule <k> kwArgsVal(_:KwArgVals) ~> callApplyKwArgs(#typeVal(T:Id)) =>
            exceptionSignal(#exception(#token("TypeError", "Id")))
        ... </k>
@@ -28883,6 +28909,9 @@ module PYTHON
     requires valItemsAllByteInts(VS)
   rule #intCtor(bytearrayVal(VS:ValItems), B:Val) => #intBytesCtor(bytesAsciiString(VS), B)
     requires valItemsAllByteInts(VS)
+  rule <k> #intCtor(objectVal(_:Int)) =>
+           exceptionSignal(#exception(#token("TypeError", "Id")))
+       ... </k>
   rule #intBytesCtor(S:String) => intStringValue(stripAsciiSpace(S), 10)
     requires stripAsciiSpace(S) =/=String S
       andBool intStringOk(stripAsciiSpace(S), 10)

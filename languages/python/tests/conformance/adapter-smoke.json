@@ -221,6 +221,13 @@
       "coverage": ["builtin-object-type", "builtin-type-objects", "object-type-hierarchy", "dunder-class-attribute", "dunder-base-attribute", "dunder-bases-attribute", "dunder-mro-attribute", "type-object-call", "isinstance-builtin", "issubclass-builtin", "builtins-module", "from-import", "ordinary-python-source-adapter"]
     },
     {
+      "id": "adapter-object-constructor",
+      "source": "../adapter/adapter-object-constructor.py",
+      "reference": "Python Data Model objects, values, and types and the standard type hierarchy; Python Standard Library object, type, bool, callable, hash, int, float, complex, isinstance, getattr, and hasattr builtins; Python Language Reference 6.3.4 Calls",
+      "expected_result": "True ~> .K",
+      "coverage": ["builtin-object-type", "object-constructor", "object-identity", "dunder-class-attribute", "type-builtin", "bool-builtin", "callable-builtin", "hash-builtin", "dict-keys", "set-elements", "keyword-call", "starred-call", "mixed-call", "constructor-diagnostics", "ordinary-python-source-adapter"]
+    },
+    {
       "id": "adapter-type-object-constructor-aliases",
       "source": "../adapter/adapter-type-object-constructor-aliases.py",
       "reference": "Python Language Reference 6.3.4 Calls and 4.2 name resolution; Python Data Model objects, values, and types; Python Standard Library builtins module and Built-in Types constructors",

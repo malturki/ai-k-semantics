@@ -150,6 +150,7 @@ run_case "adapter-singleton-class-attribute" "$ROOT/tests/adapter/adapter-single
 run_case "adapter-core-type-objects" "$ROOT/tests/adapter/adapter-core-type-objects.py" "True ~> .K"
 run_case "adapter-builtin-type-names" "$ROOT/tests/adapter/adapter-builtin-type-names.py" "True ~> .K"
 run_case "adapter-type-object-hierarchy" "$ROOT/tests/adapter/adapter-type-object-hierarchy.py" "True ~> .K"
+run_case "adapter-object-constructor" "$ROOT/tests/adapter/adapter-object-constructor.py" "True ~> .K"
 run_case "adapter-type-object-constructor-aliases" "$ROOT/tests/adapter/adapter-type-object-constructor-aliases.py" "True ~> .K"
 run_case "adapter-type-object-constructor-keyword-aliases" "$ROOT/tests/adapter/adapter-type-object-constructor-keyword-aliases.py" "True ~> .K"
 run_case "adapter-type-object-constructor-int-keyword-aliases" "$ROOT/tests/adapter/adapter-type-object-constructor-int-keyword-aliases.py" "True ~> .K"

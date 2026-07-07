@@ -2312,6 +2312,10 @@ module PYTHON
                 | kwNoDuplicates(KwArgVals) [function, symbol(kwNoDuplicates)]
                 | kwAllInIds(KwArgVals, IdItems) [function, symbol(kwAllInIds)]
                 | kwAllInEitherIds(KwArgVals, IdItems, IdItems) [function, symbol(kwAllInEitherIds)]
+                | kwValStringIfPresent(Id, KwArgVals) [function, symbol(kwValStringIfPresent)]
+                | strCtorObjectKwOk(KwArgVals) [function, symbol(strCtorObjectKwOk)]
+                | strCtorDefaultKwOk(KwArgVals) [function, symbol(strCtorDefaultKwOk)]
+                | strCtorKwOk(KwArgVals) [function, symbol(strCtorKwOk)]
                 | complexCtorKwOk(KwArgVals) [function, symbol(complexCtorKwOk)]
                 | complexCtorMixedOk(Val, KwArgVals) [function, symbol(complexCtorMixedOk)]
                 | stringIdContains(String, IdItems) [function, symbol(stringIdContains)]
@@ -9867,6 +9871,27 @@ module PYTHON
   rule dictCtorMergeKw((), KWS:KwArgVals) => dictCtorFromKwArgs(KWS)
   rule dictCtorMergeKw(tupleVal(VS:ValItems), KWS:KwArgVals) =>
     dictFromDictVals(appendKwDictVals(dictCtorPairs(VS, #noDictVals), KWS))
+
+  rule kwValStringIfPresent(X:Id, KWS:KwArgVals) => true
+    requires notBool kwContains(X, KWS)
+  rule kwValStringIfPresent(X:Id, KWS:KwArgVals) => isStringVal(kwLookup(X, KWS))
+    requires kwContains(X, KWS)
+
+  rule strCtorObjectKwOk(KWS:KwArgVals) =>
+    kwNoDuplicates(KWS)
+      andBool kwAllInIds(KWS, idItemsLast(#token("object", "Id")))
+      andBool kwContains(#token("object", "Id"), KWS)
+
+  rule strCtorDefaultKwOk(KWS:KwArgVals) =>
+    notBool emptyKwArgVals(KWS)
+      andBool kwNoDuplicates(KWS)
+      andBool notBool kwContains(#token("object", "Id"), KWS)
+      andBool kwAllInIds(KWS, idItemsCons(#token("encoding", "Id"), idItemsLast(#token("errors", "Id"))))
+      andBool kwValStringIfPresent(#token("encoding", "Id"), KWS)
+      andBool kwValStringIfPresent(#token("errors", "Id"), KWS)
+
+  rule strCtorKwOk(KWS:KwArgVals) =>
+    emptyKwArgVals(KWS) orBool strCtorObjectKwOk(KWS) orBool strCtorDefaultKwOk(KWS)
 
   rule complexCtorRealArg(KWS:KwArgVals) => kwLookup(#token("real", "Id"), KWS)
     requires kwContains(#token("real", "Id"), KWS)
@@ -20856,6 +20881,21 @@ module PYTHON
     requires Id2String(T) ==String "int"
       andBool notBool emptyKwArgVals(KWS)
   rule <k> kwArgsVal(KWS:KwArgVals) ~> callApplyKwArgs(#typeVal(T:Id)) =>
+           #strCtor()
+       ... </k>
+    requires Id2String(T) ==String "str"
+      andBool (emptyKwArgVals(KWS) orBool strCtorDefaultKwOk(KWS))
+  rule <k> kwArgsVal(KWS:KwArgVals) ~> callApplyKwArgs(#typeVal(T:Id)) =>
+           #strCtor(kwLookup(#token("object", "Id"), KWS))
+       ... </k>
+    requires Id2String(T) ==String "str"
+      andBool strCtorObjectKwOk(KWS)
+  rule <k> kwArgsVal(KWS:KwArgVals) ~> callApplyKwArgs(#typeVal(T:Id)) =>
+           exceptionSignal(#exception(#token("TypeError", "Id")))
+       ... </k>
+    requires Id2String(T) ==String "str"
+      andBool notBool strCtorKwOk(KWS)
+  rule <k> kwArgsVal(KWS:KwArgVals) ~> callApplyKwArgs(#typeVal(T:Id)) =>
            dictCtorFromKwArgs(KWS)
        ... </k>
     requires Id2String(T) ==String "dict"
@@ -21653,6 +21693,7 @@ module PYTHON
        ... </k>
     requires Id2String(T) ==String "int"
       orBool Id2String(T) ==String "dict"
+      orBool Id2String(T) ==String "str"
       orBool Id2String(T) ==String "complex"
   rule <k> kwArgsVal(KWS:KwArgVals) ~> callApplyMixedArgs(#typeVal(T:Id), VS:ArgVals) =>
            argsVal(VS) ~> callApplyArgs(#typeVal(T))
@@ -21677,6 +21718,18 @@ module PYTHON
       andBool (argValsLen(VS) =/=Int 1
         orBool notBool kwNoDuplicates(KWS)
         orBool notBool kwAllInIds(KWS, idItemsLast(#token("base", "Id"))))
+  rule <k> kwArgsVal(KWS:KwArgVals) ~> callApplyMixedArgs(#typeVal(T:Id), VS:ArgVals) =>
+           argsVal(VS) ~> callApplyArgs(#typeVal(T))
+       ... </k>
+    requires Id2String(T) ==String "str"
+      andBool argValsLen(VS) >Int 0
+      andBool emptyKwArgVals(KWS)
+  rule <k> kwArgsVal(KWS:KwArgVals) ~> callApplyMixedArgs(#typeVal(T:Id), VS:ArgVals) =>
+           exceptionSignal(#exception(#token("TypeError", "Id")))
+       ... </k>
+    requires Id2String(T) ==String "str"
+      andBool argValsLen(VS) >Int 0
+      andBool notBool emptyKwArgVals(KWS)
   rule <k> kwArgsVal(KWS:KwArgVals) ~> callApplyMixedArgs(#typeVal(T:Id), VS:ArgVals) =>
            dictCtorMergeKw(argValAt(VS, 0), KWS)
        ... </k>

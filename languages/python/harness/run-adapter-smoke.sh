@@ -152,6 +152,7 @@ run_case "adapter-builtin-type-names" "$ROOT/tests/adapter/adapter-builtin-type-
 run_case "adapter-type-object-constructor-aliases" "$ROOT/tests/adapter/adapter-type-object-constructor-aliases.py" "True ~> .K"
 run_case "adapter-type-object-constructor-keyword-aliases" "$ROOT/tests/adapter/adapter-type-object-constructor-keyword-aliases.py" "True ~> .K"
 run_case "adapter-type-object-constructor-int-keyword-aliases" "$ROOT/tests/adapter/adapter-type-object-constructor-int-keyword-aliases.py" "True ~> .K"
+run_case "adapter-type-object-constructor-str-keyword-aliases" "$ROOT/tests/adapter/adapter-type-object-constructor-str-keyword-aliases.py" "True ~> .K"
 run_case "adapter-debug-constant" "$ROOT/tests/adapter/adapter-debug-constant.py" "True ~> .K"
 run_eval_case "adapter-eval-input" "$ROOT/tests/adapter/adapter-eval-input.pyexpr" "True ~> .K"
 run_interactive_case "adapter-interactive-input" "$ROOT/tests/adapter/adapter-interactive-input.pysingle" "True ~> .K" "True"
